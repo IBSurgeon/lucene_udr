@@ -1,0 +1,33 @@
+#include <winver.h>
+#include "udr_build_no.h"
+
+VS_VERSION_INFO VERSIONINFO
+FILEFLAGSMASK   VS_FF_DEBUG | VS_FF_PRERELEASE
+FILEFLAGS       VS_FF_PRERELEASE | VS_FF_SPECIALBUILD
+FILEVERSION     FILE_VER_NUMBER
+PRODUCTVERSION  FILE_VER_NUMBER
+FILEOS          VOS_NT_WINDOWS32
+
+FILETYPE        VFT_APP
+FILESUBTYPE     VS_USER_DEFINED
+
+BEGIN
+  BLOCK "StringFileInfo"
+  BEGIN
+    BLOCK "041904E2"
+    BEGIN
+      VALUE "CompanyName", "IBase\0"
+      VALUE "FileDescription", "LUCENE-UDR\0"
+      VALUE "FileVersion", FILE_VER_STRING
+      VALUE "InternalName", "luceneudr.dll\0"
+      VALUE "LegalCopyright", "Copyright (c) 2001-2022 Simonov Denis\0"
+      VALUE "ProductName", "LUCENE-UDR\0"
+      VALUE "ProductVersion", PRODUCT_VER_STRING
+    END
+  END
+
+  BLOCK "VarFileInfo"
+  BEGIN                               /*  Language   |    Translation       */
+    VALUE "Translation", 0x0419, 1251  /* Russion, Windows 1251 */
+  END
+END

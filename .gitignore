@@ -1,0 +1,25 @@
+#Ignore thumbnails created by Windows
+Thumbs.db
+#Ignore files built by Visual Studio
+*.obj
+*.exe
+*.dll
+*.rsm
+*.pdb
+*.dcu
+*.local
+*.identcache
+*.ppu
+*.a
+*.o
+*.compiled
+*.stat
+*.tvsconfig
+*.~*
+*.aps
+*.so
+lib/
+x64/
+Win32/
+Linux_x64/
+.vs/
