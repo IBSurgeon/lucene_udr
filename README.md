@@ -12,10 +12,10 @@ Lucene написан на языке Java. К сожалению плагин FB Java для написания внешних х
 Для установки Lucene UDR необходимо:
 
 1. Распаковать zip архив с динамическими библиотеками в каталог `plugins\udr`
-2. Выполнить скрипт fts$install.sql для регистраци процедур и функций. В индексируемой БД.
+2. Выполнить скрипт [fts$install.sql](https://github.com/sim1984/lucene_udr/blob/main/fts%24install.sql) для регистраци процедур и функций в индексируемой БД.
 
 Скачать готовые сборки можно по ссылкам:
-* [LuceneUdr_Win_x64.zip](https://github.com/sim1984/lucene_udr/releases/download/1.0/LuceneUdr_Win_x64.zip)
+* [LuceneUdr_Win_x64.zip](https://github.com/sim1984/lucene_udr/files/7970826/LuceneUdr_Win_x64.zip)
 
 В настоящий момент других сборок нет.
 
@@ -194,7 +194,7 @@ COMMIT;
 
 Поиск по такому индексу можно делать следующим образом:
 
-```
+```sql
 SELECT
     FTS.*,
     HORSE.CODE_HORSE,
