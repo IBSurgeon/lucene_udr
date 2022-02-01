@@ -16,6 +16,57 @@
 using namespace Firebird;
 using namespace Lucene;
 
+IMessageMetadata* prepareTextMetaData(ThrowStatusWrapper* status, IMessageMetadata* meta)
+{
+	unsigned colCount = meta->getCount(status);
+	// делаем все поля строкового типа, кроме BLOB
+	AutoRelease<IMetadataBuilder> builder(meta->getBuilder(status));
+	for (unsigned i = 0; i < colCount; i++) {
+		unsigned dataType = meta->getType(status, i);
+		switch (dataType) {
+		case SQL_VARYING:
+			break;
+		case SQL_TEXT:
+			builder->setType(status, i, SQL_VARYING);
+			break;
+		case SQL_SHORT:
+		case SQL_LONG:
+		case SQL_INT64:
+		case SQL_INT128:
+			builder->setType(status, i, SQL_VARYING);
+			builder->setLength(status, i, 40 * 4);
+			break;
+		case SQL_FLOAT:
+		case SQL_D_FLOAT:
+		case SQL_DOUBLE:
+			builder->setType(status, i, SQL_VARYING);
+			builder->setLength(status, i, 50 * 4);
+			break;
+		case SQL_BOOLEAN:
+			builder->setType(status, i, SQL_VARYING);
+			builder->setLength(status, i, 5 * 4);
+			break;
+		case SQL_TYPE_DATE:
+		case SQL_TYPE_TIME:
+		case SQL_TIMESTAMP:
+			builder->setType(status, i, SQL_VARYING);
+			builder->setLength(status, i, 35 * 4);
+			break;
+		case SQL_TIME_TZ:
+		case SQL_TIMESTAMP_TZ:
+			builder->setType(status, i, SQL_VARYING);
+			builder->setLength(status, i, 42 * 4);
+			break;
+		case SQL_DEC16:
+		case SQL_DEC34:
+			builder->setType(status, i, SQL_VARYING);
+			builder->setLength(status, i, 60 * 4);
+			break;
+		}
+	}
+	return builder->getMetadata(status);
+}
+
 
 string getFtsDirectory(IExternalContext* context) {
 	IConfigManager* configManager = context->getMaster()->getConfigManager();
@@ -466,53 +517,7 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 				AutoRelease<IMessageMetadata> outputMetadata(stmt->getOutputMetadata(status));
 				unsigned colCount = outputMetadata->getCount(status);
 				// делаем все поля строкового типа, кроме BLOB
-				// делаем кодировку UTF8
-				AutoRelease<IMetadataBuilder> builder(outputMetadata->getBuilder(status));
-				for (unsigned i = 0; i < colCount; i++) {
-					unsigned dataType = outputMetadata->getType(status, i);
-					switch (dataType) {
-					case SQL_VARYING:
-						break;
-					case SQL_TEXT:
-						builder->setType(status, i, SQL_VARYING);
-						break;
-					case SQL_SHORT:
-					case SQL_LONG:
-					case SQL_INT64:
-					case SQL_INT128:
-						builder->setType(status, i, SQL_VARYING);
-						builder->setLength(status, i, 40 * 4);
-						break;
-					case SQL_FLOAT:
-					case SQL_D_FLOAT:
-					case SQL_DOUBLE:
-						builder->setType(status, i, SQL_VARYING);
-						builder->setLength(status, i, 50 * 4);
-						break;
-					case SQL_BOOLEAN:
-						builder->setType(status, i, SQL_VARYING);
-						builder->setLength(status, i, 5 * 4);
-						break;
-					case SQL_TYPE_DATE:
-					case SQL_TYPE_TIME:
-					case SQL_TIMESTAMP:
-						builder->setType(status, i, SQL_VARYING);
-						builder->setLength(status, i, 35 * 4);
-						break;
-					case SQL_TIME_TZ:
-					case SQL_TIMESTAMP_TZ:
-						builder->setType(status, i, SQL_VARYING);
-						builder->setLength(status, i, 42 * 4);
-						break;
-					case SQL_DEC16:
-					case SQL_DEC34:
-						builder->setType(status, i, SQL_VARYING);
-						builder->setLength(status, i, 60 * 4);
-						break;
-					}
-					//builder->setCharSet(status, i, CS_UTF8);
-				}
-				AutoRelease<IMessageMetadata> newMeta(builder->getMetadata(status));
+				AutoRelease<IMessageMetadata> newMeta(prepareTextMetaData(status, outputMetadata));
 				auto fields = getFieldsInfo(status, newMeta);
 
 				AutoRelease<IResultSet> rs(stmt->openCursor(
@@ -585,16 +590,205 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
     }
 FB_UDR_END_PROCEDURE
 
+
+/***
+CREATE PROCEDURE FTS$ADD_RECORD_TO_INDEX (
+	FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+	FTS$RELATION_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+	FTS$DB_KEY CHAR(8) CHARACTER SET OCTETS NOT NULL
+)
+EXTERNAL NAME 'luceneudr!addRecordToIndex'
+ENGINE UDR;
+***/
+FB_UDR_BEGIN_PROCEDURE(addRecordToIndex)
+    FB_UDR_MESSAGE(InMessage,
+	   (FB_INTL_VARCHAR(252, CS_UTF8), index_name)
+	   (FB_INTL_VARCHAR(252, CS_UTF8), relation_name)
+	   (FB_INTL_VARCHAR(8, CS_BINARY), db_key)
+    );
+
+	FB_UDR_CONSTRUCTOR
+		, indexRepository(context->getMaster())
+		, relationHelper(context->getMaster())
+	{
+	}
+
+	LuceneFTS::FTSIndexRepository indexRepository;
+	LuceneFTS::RelationHelper relationHelper;
+
+	FB_UDR_EXECUTE_PROCEDURE
+	{
+		if (in->index_nameNull) {
+			throwFbException(status, "Index name can not be NULL");
+		}
+		indexName.assign(in->index_name.str, in->index_name.length);
+		if (in->relation_nameNull) {
+			throwFbException(status, "Relation name can not be NULL");
+		}
+		relationName.assign(in->relation_name.str, in->relation_name.length);
+		if (in->db_keyNull) {
+			throwFbException(status, "DB_KEY can not be NULL");
+		}
+		dbKey.assign(in->db_key.str, in->db_key.length);
+
+		string hexDbKey = string_to_hex(dbKey);
+
+		att.reset(context->getAttachment(status));
+		tra.reset(context->getTransaction(status));
+
+		// проверка существования индекса
+		if (!procedure->indexRepository.hasIndex(status, att, tra, indexName)) {
+			string error_message;
+			error_message += "Index \"" + indexName + "\" not exists";
+			throwFbException(status, error_message.c_str());
+		}
+
+		string ftsDirectory = getFtsDirectory(context);
+		// проверка есть ли директория для полнотекстового индекса
+		auto indexDir = StringUtils::toUnicode(ftsDirectory + "/" + indexName);
+		if (!FileUtils::isDirectory(indexDir)) {
+			string error_message;
+			error_message += "Index \"" + indexName + "\" exists, but cannot be build. Please run rebuildIndex.";
+			throwFbException(status, error_message.c_str());
+		}
+
+		// проверка существования таблицы
+		if (!procedure->relationHelper.relationExists(status, att, tra, relationName)) {
+			string error_message = "";
+			error_message += "Table \"" + relationName + "\" not exists";
+			throwFbException(status, error_message.c_str());
+		}
+
+		try {
+			auto fsIndexDir = FSDirectory::open(indexDir);
+			auto analyzer = newLucene<StandardAnalyzer>(LuceneVersion::LUCENE_CURRENT);
+			IndexWriterPtr writer = newLucene<IndexWriter>(fsIndexDir, analyzer, true, IndexWriter::MaxFieldLengthLIMITED);
+
+			const char* fbCharset = context->getClientCharSet();
+			string icuCharset = getICICharset(fbCharset);
+
+			// получаем сегменты индекса и группируем их по именам таблиц
+			auto allSegments = procedure->indexRepository.getIndexSegments(status, att, tra, indexName);
+			auto segmentsByRelation = LuceneFTS::FTSIndexRepository::groupIndexSegmentsByRelation(allSegments);
+			auto s_it = segmentsByRelation.find(relationName);
+
+			if (s_it == segmentsByRelation.end()) {
+				string error_message;
+				error_message += "Segment with table \"" + relationName + "\" not found in index \"" + indexName + "\".";
+				throwFbException(status, error_message.c_str());
+			}
+			const auto segments = (*s_it).second;
+			
+
+			list<string> fieldNames;
+			for (const auto& segment : segments) {
+				if (procedure->relationHelper.fieldExists(status, att, tra, segment.relationName, segment.fieldName)) {
+					// игнорируем не существующие поля
+					fieldNames.push_back(segment.fieldName);
+				}
+			}
+			string sql = LuceneFTS::RelationHelper::buildSqlSelectFieldValues(relationName, fieldNames);
+			sql = sql + "\n WHERE RDB$DB_KEY = ?";
+			// todo: по идее нужен кеш скомпилированных операторов
+			AutoRelease<IStatement> stmt(att->prepare(
+				status,
+				tra,
+				0,
+				sql.c_str(),
+				UDR_SQL_DIALECT,
+				IStatement::PREPARE_PREFETCH_METADATA
+			));
+
+			FB_MESSAGE(Input, ThrowStatusWrapper,
+				(FB_INTL_VARCHAR(8, CS_BINARY), db_key)
+			) input(status, context->getMaster());
+
+			input.clear();
+			input->db_key = in->db_key;
+
+			AutoRelease<IMessageMetadata> outputMetadata(stmt->getOutputMetadata(status));
+			unsigned colCount = outputMetadata->getCount(status);
+			// делаем все поля строкового типа, кроме BLOB
+			AutoRelease<IMessageMetadata> newMeta(prepareTextMetaData(status, outputMetadata));
+			auto fields = getFieldsInfo(status, newMeta);
+
+			AutoRelease<IResultSet> rs(stmt->openCursor(
+				status,
+				tra,
+				input.getMetadata(),
+				input.getData(),
+				newMeta,
+				0
+			));
+
+			unsigned msgLength = newMeta->getMessageLength(status);
+			{
+				// allocate output buffer
+				auto b = make_unique<unsigned char[]>(msgLength);
+				unsigned char* buffer = b.get();
+				while (rs->fetchNext(status, buffer) == IStatus::RESULT_OK) {
+					bool emptyFlag = true;
+					DocumentPtr doc = newLucene<Document>();					
+					doc->add(newLucene<Field>(L"RDB$DB_KEY", StringUtils::toUnicode(hexDbKey), Field::STORE_YES, Field::INDEX_NOT_ANALYZED));
+					doc->add(newLucene<Field>(L"RDB$RELATION_NAME", StringUtils::toUnicode(relationName), Field::STORE_YES, Field::INDEX_NOT_ANALYZED));
+					for (int i = 1; i < colCount; i++) {
+						auto field = fields[i];
+						bool nullFlag = field.isNull(buffer);
+						string value;
+						if (!nullFlag) {
+							value = field.getStringValue(status, att, tra, buffer);
+						}
+						auto fieldName = StringUtils::toUnicode(relationName + "." + field.fieldName);
+						if (!value.empty()) {
+							// перекодируем содержимое в Unicode только если строка не пустая
+							auto unicodeValue = StringUtils::toUnicode(to_utf8(value, icuCharset));
+							doc->add(newLucene<Field>(fieldName, unicodeValue, Field::STORE_NO, Field::INDEX_ANALYZED));
+						}
+						else {
+							doc->add(newLucene<Field>(fieldName, L"", Field::STORE_NO, Field::INDEX_ANALYZED));
+						}
+						emptyFlag = emptyFlag && value.empty();
+					}
+					// если все индексируемые поля пусты, то не имеет смысла добавлять документ в индекс
+					if (!emptyFlag) {
+						writer->addDocument(doc);
+					}
+				}
+				rs->close(status);
+			}
+			writer->commit();
+			writer->optimize();
+			writer->close();
+		}
+		catch (LuceneException& e) {
+			string error_message = StringUtils::toUTF8(e.getError());
+			throwFbException(status, error_message.c_str());
+		}
+	}
+
+	AutoRelease<IAttachment> att;
+	AutoRelease<ITransaction> tra;
+	string indexName;
+	string relationName;
+	string dbKey;
+
+	FB_UDR_FETCH_PROCEDURE
+	{
+		return false;
+	}
+
+FB_UDR_END_PROCEDURE
+
 /***
 CREATE PROCEDURE FTS$SEARCH (
-	rdb$index_name varchar(63) character set utf8 not null,
-	rdb$relation_name varchar(63) character set utf8,
-	rdb$filter varchar(8191) character set utf8
+	RDB$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT null,
+	RDB$RELATION_NAME VARCHAR(63) CHARACTER SET UTF8,
+	rdb$filter VARCHAR(8191) CHARACTER SET UTF8
 )
 RETURNS (
-    fts$relation_name varchar(63) character set utf8,
-	fts$db_key char(8) character set octets,
-	fts$score double precision
+    FTS$RELATION_NAME VARCHAR(63) CHARACTER SET UTF8,
+	FTS$DB_KEY CHAR(8) CHARACTER SET OCTETS,
+	FTS$SCORE DOUBLE PRECISION
 )
 EXTERNAL NAME 'luceneudr!ftsSearch'
 ENGINE UDR;
@@ -608,7 +802,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 
 	FB_UDR_MESSAGE(OutMessage,
 		(FB_INTL_VARCHAR(252, CS_UTF8), relation_name)
-		(FB_INTL_VARCHAR(252, CS_BINARY), db_key)
+		(FB_INTL_VARCHAR(8, CS_BINARY), db_key)
 		(FB_DOUBLE, score)
 	);
 
