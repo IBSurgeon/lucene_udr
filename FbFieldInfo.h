@@ -155,7 +155,7 @@ template <class StatusType> string FbFieldInfo::getStringValue(StatusType* statu
 		return s;
 	}
 	default:
-		// остальные типы пока не рассматриваем
+		// РѕСЃС‚Р°Р»СЊРЅС‹Рµ С‚РёРїС‹ РїРѕРєР° РЅРµ СЂР°СЃСЃРјР°С‚СЂРёРІР°РµРј
 		return "";
 	}
 }

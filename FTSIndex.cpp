@@ -7,7 +7,7 @@ using namespace std;
 using namespace LuceneFTS;
 
 //
-// Создание нового полнотекстового индекса
+// РЎРѕР·РґР°РЅРёРµ РЅРѕРІРѕРіРѕ РїРѕР»РЅРѕС‚РµРєСЃС‚РѕРІРѕРіРѕ РёРЅРґРµРєСЃР°
 //
 void FTSIndexRepository::createIndex(
 	ThrowStatusWrapper status,
@@ -56,7 +56,7 @@ void FTSIndexRepository::createIndex(
 }
 
 //
-// Удаление полнотекстового индекса
+// РЈРґР°Р»РµРЅРёРµ РїРѕР»РЅРѕС‚РµРєСЃС‚РѕРІРѕРіРѕ РёРЅРґРµРєСЃР°
 //
 void FTSIndexRepository::dropIndex(
 	ThrowStatusWrapper status,
@@ -86,7 +86,7 @@ void FTSIndexRepository::dropIndex(
 }
 
 //
-// Возвращает существует ли индекс с заданным именем.
+// Р’РѕР·РІСЂР°С‰Р°РµС‚ СЃСѓС‰РµСЃС‚РІСѓРµС‚ Р»Рё РёРЅРґРµРєСЃ СЃ Р·Р°РґР°РЅРЅС‹Рј РёРјРµРЅРµРј.
 //
 bool FTSIndexRepository::hasIndex(ThrowStatusWrapper status, IAttachment* att, ITransaction* tra, string indexName)
 {
@@ -133,8 +133,8 @@ bool FTSIndexRepository::hasIndex(ThrowStatusWrapper status, IAttachment* att, I
 }
 
 //
-// Получает информацию об индексе с заданным именем, если он существует.
-// Возвращает true, если индекс существует, и false - в противном случае.
+// РџРѕР»СѓС‡Р°РµС‚ РёРЅС„РѕСЂРјР°С†РёСЋ РѕР± РёРЅРґРµРєСЃРµ СЃ Р·Р°РґР°РЅРЅС‹Рј РёРјРµРЅРµРј, РµСЃР»Рё РѕРЅ СЃСѓС‰РµСЃС‚РІСѓРµС‚.
+// Р’РѕР·РІСЂР°С‰Р°РµС‚ true, РµСЃР»Рё РёРЅРґРµРєСЃ СЃСѓС‰РµСЃС‚РІСѓРµС‚, Рё false - РІ РїСЂРѕС‚РёРІРЅРѕРј СЃР»СѓС‡Р°Рµ.
 //
 bool FTSIndexRepository::getIndex(ThrowStatusWrapper status, IAttachment* att, ITransaction* tra, string indexName, FTSIndex& ftsIndex)
 {
@@ -190,7 +190,7 @@ bool FTSIndexRepository::getIndex(ThrowStatusWrapper status, IAttachment* att, I
 }
 
 //
-// Возвращает сегменты индекса с заданным именем
+// Р’РѕР·РІСЂР°С‰Р°РµС‚ СЃРµРіРјРµРЅС‚С‹ РёРЅРґРµРєСЃР° СЃ Р·Р°РґР°РЅРЅС‹Рј РёРјРµРЅРµРј
 //
 list<FTSIndexSegment> FTSIndexRepository::getIndexSegments(ThrowStatusWrapper status, IAttachment* att, ITransaction* tra, string indexName)
 {
@@ -242,7 +242,7 @@ list<FTSIndexSegment> FTSIndexRepository::getIndexSegments(ThrowStatusWrapper st
 }
 
 //
-// Добавление нового поля (сегмента) полнотекстового индекса
+// Р”РѕР±Р°РІР»РµРЅРёРµ РЅРѕРІРѕРіРѕ РїРѕР»СЏ (СЃРµРіРјРµРЅС‚Р°) РїРѕР»РЅРѕС‚РµРєСЃС‚РѕРІРѕРіРѕ РёРЅРґРµРєСЃР°
 //
 void FTSIndexRepository::addIndexField(
 	ThrowStatusWrapper status,
@@ -284,7 +284,7 @@ void FTSIndexRepository::addIndexField(
 }
 
 //
-// Удаление поля (сегмента) из полнотекстового индекса
+// РЈРґР°Р»РµРЅРёРµ РїРѕР»СЏ (СЃРµРіРјРµРЅС‚Р°) РёР· РїРѕР»РЅРѕС‚РµРєСЃС‚РѕРІРѕРіРѕ РёРЅРґРµРєСЃР°
 //
 void FTSIndexRepository::dropIndexField(
 	ThrowStatusWrapper status,
@@ -326,7 +326,7 @@ void FTSIndexRepository::dropIndexField(
 }
 
 //
-// Проверка существования поля (сегмента) в полнотекстовом индексе
+// РџСЂРѕРІРµСЂРєР° СЃСѓС‰РµСЃС‚РІРѕРІР°РЅРёСЏ РїРѕР»СЏ (СЃРµРіРјРµРЅС‚Р°) РІ РїРѕР»РЅРѕС‚РµРєСЃС‚РѕРІРѕРј РёРЅРґРµРєСЃРµ
 //
 bool FTSIndexRepository::hasIndexSegment(
 	ThrowStatusWrapper status,

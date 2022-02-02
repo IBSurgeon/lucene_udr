@@ -19,7 +19,7 @@ using namespace Lucene;
 IMessageMetadata* prepareTextMetaData(ThrowStatusWrapper* status, IMessageMetadata* meta)
 {
 	unsigned colCount = meta->getCount(status);
-	// делаем все поля строкового типа, кроме BLOB
+	// РґРµР»Р°РµРј РІСЃРµ РїРѕР»СЏ СЃС‚СЂРѕРєРѕРІРѕРіРѕ С‚РёРїР°, РєСЂРѕРјРµ BLOB
 	AutoRelease<IMetadataBuilder> builder(meta->getBuilder(status));
 	for (unsigned i = 0; i < colCount; i++) {
 		unsigned dataType = meta->getType(status, i);
@@ -138,10 +138,10 @@ FB_UDR_BEGIN_PROCEDURE(createIndex)
 		att.reset(context->getAttachment(status));
 		tra.reset(context->getTransaction(status));
 
-		// TODO: В настоящее время анализаторы не учитываются
-		// когда они будут учитываться необходима проверка существования
+		// TODO: Р’ РЅР°СЃС‚РѕСЏС‰РµРµ РІСЂРµРјСЏ Р°РЅР°Р»РёР·Р°С‚РѕСЂС‹ РЅРµ СѓС‡РёС‚С‹РІР°СЋС‚СЃСЏ
+		// РєРѕРіРґР° РѕРЅРё Р±СѓРґСѓС‚ СѓС‡РёС‚С‹РІР°С‚СЊСЃСЏ РЅРµРѕР±С…РѕРґРёРјР° РїСЂРѕРІРµСЂРєР° СЃСѓС‰РµСЃС‚РІРѕРІР°РЅРёСЏ
 
-		// проверка существования индекса
+		// РїСЂРѕРІРµСЂРєР° СЃСѓС‰РµСЃС‚РІРѕРІР°РЅРёСЏ РёРЅРґРµРєСЃР°
 		if (procedure->indexRepository.hasIndex(status, att, tra, indexName)) {
 			string error_message = "";
 			error_message += "Index \"" + indexName + "\" already exists";
@@ -156,8 +156,8 @@ FB_UDR_BEGIN_PROCEDURE(createIndex)
 
 		procedure->indexRepository.createIndex(status, att, tra, indexName, analyzerName, description);
 
-		// проверка существования директории для индекса
-        // и если она не существует создаём её
+		// РїСЂРѕРІРµСЂРєР° СЃСѓС‰РµСЃС‚РІРѕРІР°РЅРёСЏ РґРёСЂРµРєС‚РѕСЂРёРё РґР»СЏ РёРЅРґРµРєСЃР°
+        // Рё РµСЃР»Рё РѕРЅР° РЅРµ СЃСѓС‰РµСЃС‚РІСѓРµС‚ СЃРѕР·РґР°С‘Рј РµС‘
 		string ftsDirectory = getFtsDirectory(context);
 		auto indexDir = StringUtils::toUnicode(ftsDirectory + "/" + indexName);
 		if (!FileUtils::isDirectory(indexDir)) {
@@ -211,7 +211,7 @@ FB_UDR_BEGIN_PROCEDURE(dropIndex)
 		att.reset(context->getAttachment(status));
 		tra.reset(context->getTransaction(status));
 
-		// проверка существования индекса
+		// РїСЂРѕРІРµСЂРєР° СЃСѓС‰РµСЃС‚РІРѕРІР°РЅРёСЏ РёРЅРґРµРєСЃР°
 		if (!procedure->indexRepository.hasIndex(status, att, tra, indexName)) {
 			string error_message = "";
 			error_message += "Index \"" + indexName + "\" not exists";
@@ -221,7 +221,7 @@ FB_UDR_BEGIN_PROCEDURE(dropIndex)
 		string ftsDirectory = getFtsDirectory(context);
 		auto indexDir = StringUtils::toUnicode(ftsDirectory + "/" + indexName);
 		if (FileUtils::isDirectory(indexDir)) {
-			// если директория есть, то удаляем её
+			// РµСЃР»Рё РґРёСЂРµРєС‚РѕСЂРёСЏ РµСЃС‚СЊ, С‚Рѕ СѓРґР°Р»СЏРµРј РµС‘
 			FileUtils::removeDirectory(indexDir);
 		}
 
@@ -283,35 +283,35 @@ FB_UDR_BEGIN_PROCEDURE(addIndexField)
 		att.reset(context->getAttachment(status));
 		tra.reset(context->getTransaction(status));
 
-		// проверка существования индекса
+		// РїСЂРѕРІРµСЂРєР° СЃСѓС‰РµСЃС‚РІРѕРІР°РЅРёСЏ РёРЅРґРµРєСЃР°
 		if (!procedure->indexRepository.hasIndex(status, att, tra, indexName)) {
 			string error_message = "";
 			error_message += "Index \"" + indexName + "\" not exists";
 			throwFbException(status, error_message.c_str());
 		}
 
-		// проверка существования таблицы
+		// РїСЂРѕРІРµСЂРєР° СЃСѓС‰РµСЃС‚РІРѕРІР°РЅРёСЏ С‚Р°Р±Р»РёС†С‹
 		if (!procedure->relationHelper.relationExists(status, att, tra, relationName)) {
 			string error_message = "";
 			error_message += "Table \"" + relationName + "\" not exists";
 			throwFbException(status, error_message.c_str());
 		}
 
-		// проверка существования поля
+		// РїСЂРѕРІРµСЂРєР° СЃСѓС‰РµСЃС‚РІРѕРІР°РЅРёСЏ РїРѕР»СЏ
 		if (!procedure->relationHelper.fieldExists(status, att, tra, relationName, fieldName)) {
 			string error_message = "";
 			error_message += "Field \"" + fieldName + "\" not exitsts in table \"" + relationName + "\"";
 			throwFbException(status, error_message.c_str());
 		}
 
-		// проверка существования сегмента
+		// РїСЂРѕРІРµСЂРєР° СЃСѓС‰РµСЃС‚РІРѕРІР°РЅРёСЏ СЃРµРіРјРµРЅС‚Р°
 		if (procedure->indexRepository.hasIndexSegment(status, att, tra, indexName, relationName, fieldName)) {
 			string error_message = "";
 			error_message += "Segment for \"" + relationName + "\".\"" + fieldName + "\" already exitsts in index \"" + indexName + "\"";
 			throwFbException(status, error_message.c_str());
 		}
 
-		// добавление сегмента
+		// РґРѕР±Р°РІР»РµРЅРёРµ СЃРµРіРјРµРЅС‚Р°
 		procedure->indexRepository.addIndexField(status, att, tra, indexName, relationName, fieldName);
 	}
 
@@ -372,35 +372,35 @@ FB_UDR_BEGIN_PROCEDURE(dropIndexField)
 		att.reset(context->getAttachment(status));
 		tra.reset(context->getTransaction(status));
 
-		// проверка существования индекса
+		// РїСЂРѕРІРµСЂРєР° СЃСѓС‰РµСЃС‚РІРѕРІР°РЅРёСЏ РёРЅРґРµРєСЃР°
 		if (!procedure->indexRepository.hasIndex(status, att, tra, indexName)) {
 			string error_message = "";
 			error_message += "Index \"" + indexName + "\" not exists";
 			throwFbException(status, error_message.c_str());
 		}
 
-		// проверка существования таблицы
+		// РїСЂРѕРІРµСЂРєР° СЃСѓС‰РµСЃС‚РІРѕРІР°РЅРёСЏ С‚Р°Р±Р»РёС†С‹
 		if (!procedure->relationHelper.relationExists(status, att, tra, relationName)) {
 			string error_message = "";
 			error_message += "Table \"" + relationName + "\" not exists";
 			throwFbException(status, error_message.c_str());
 		}
 
-		// проверка существования поля
+		// РїСЂРѕРІРµСЂРєР° СЃСѓС‰РµСЃС‚РІРѕРІР°РЅРёСЏ РїРѕР»СЏ
 		if (!procedure->relationHelper.fieldExists(status, att, tra, relationName, fieldName)) {
 			string error_message = "";
 			error_message += "Field \"" + fieldName + "\" not exitsts in table \"" + relationName + "\"";
 			throwFbException(status, error_message.c_str());
 		}
 
-		// проверка существования сегмента
+		// РїСЂРѕРІРµСЂРєР° СЃСѓС‰РµСЃС‚РІРѕРІР°РЅРёСЏ СЃРµРіРјРµРЅС‚Р°
 		if (!procedure->indexRepository.hasIndexSegment(status, att, tra, indexName, relationName, fieldName)) {
 			string error_message = "";
 			error_message += "Segment for \"" + relationName + "\".\"" + fieldName + "\" not exists in index \"" + indexName + "\"";
 			throwFbException(status, error_message.c_str());
 		}
 
-		// удаление сегмента
+		// СѓРґР°Р»РµРЅРёРµ СЃРµРіРјРµРЅС‚Р°
 		procedure->indexRepository.dropIndexField(status, att, tra, indexName, relationName, fieldName);
 	}
 
@@ -445,7 +445,7 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 	    indexName.assign(in->index_name.str, in->index_name.length);
 
 	    string ftsDirectory = getFtsDirectory(context);
-		// проверка есть ли директория для полнотекстовых индексов
+		// РїСЂРѕРІРµСЂРєР° РµСЃС‚СЊ Р»Рё РґРёСЂРµРєС‚РѕСЂРёСЏ РґР»СЏ РїРѕР»РЅРѕС‚РµРєСЃС‚РѕРІС‹С… РёРЅРґРµРєСЃРѕРІ
 	    String ftsUnicodeDirectory = StringUtils::toUnicode(ftsDirectory);
 	    if (!FileUtils::isDirectory(ftsUnicodeDirectory)) {
 		    string error_message = "";
@@ -456,14 +456,14 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 		att.reset(context->getAttachment(status));
 		tra.reset(context->getTransaction(status));
 
-		// проверка существования индекса
+		// РїСЂРѕРІРµСЂРєР° СЃСѓС‰РµСЃС‚РІРѕРІР°РЅРёСЏ РёРЅРґРµРєСЃР°
 		if (!procedure->indexRepository.hasIndex(status, att, tra, indexName)) {
 			string error_message = "";
 			error_message += "Index \"" + indexName + "\" not exists";
 			throwFbException(status, error_message.c_str());
 		}
-		// проверка существования директории для индекса
-		// и если она не существует создаём её
+		// РїСЂРѕРІРµСЂРєР° СЃСѓС‰РµСЃС‚РІРѕРІР°РЅРёСЏ РґРёСЂРµРєС‚РѕСЂРёРё РґР»СЏ РёРЅРґРµРєСЃР°
+		// Рё РµСЃР»Рё РѕРЅР° РЅРµ СЃСѓС‰РµСЃС‚РІСѓРµС‚ СЃРѕР·РґР°С‘Рј РµС‘
 	    auto indexDir = StringUtils::toUnicode(ftsDirectory + "/" + indexName);
         if (!FileUtils::isDirectory(indexDir)) {
 		    bool result = FileUtils::createDirectory(indexDir);
@@ -479,28 +479,28 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 			auto analyzer = newLucene<StandardAnalyzer>(LuceneVersion::LUCENE_CURRENT);
 		    IndexWriterPtr writer = newLucene<IndexWriter>(fsIndexDir, analyzer, true, IndexWriter::MaxFieldLengthLIMITED);
 
-			// очищаем директорию индекса
+			// РѕС‡РёС‰Р°РµРј РґРёСЂРµРєС‚РѕСЂРёСЋ РёРЅРґРµРєСЃР°
 		    writer->deleteAll();
 		    writer->commit();
 
 			const char* fbCharset = context->getClientCharSet();
 			string icuCharset = getICICharset(fbCharset);
 			
-			// получаем сегменты индекса и группируем их по именам таблиц
+			// РїРѕР»СѓС‡Р°РµРј СЃРµРіРјРµРЅС‚С‹ РёРЅРґРµРєСЃР° Рё РіСЂСѓРїРїРёСЂСѓРµРј РёС… РїРѕ РёРјРµРЅР°Рј С‚Р°Р±Р»РёС†
 			auto segments = procedure->indexRepository.getIndexSegments(status, att, tra, indexName);
 			auto segmentsByRelation = LuceneFTS::FTSIndexRepository::groupIndexSegmentsByRelation(segments);
 			
 			for (const auto& p : segmentsByRelation) {
 				const string relationName = p.first;
 				if (!procedure->relationHelper.relationExists(status, att, tra, relationName)) {
-					// если таблицы не существует просто пропускаем этот сегмент
+					// РµСЃР»Рё С‚Р°Р±Р»РёС†С‹ РЅРµ СЃСѓС‰РµСЃС‚РІСѓРµС‚ РїСЂРѕСЃС‚Рѕ РїСЂРѕРїСѓСЃРєР°РµРј СЌС‚РѕС‚ СЃРµРіРјРµРЅС‚
 					continue;
 				}
 				const auto segments = p.second;
 				list<string> fieldNames;
 				for (const auto& segment : segments) {
 					if (procedure->relationHelper.fieldExists(status, att, tra, segment.relationName, segment.fieldName)) {
-						// игнорируем не существующие поля
+						// РёРіРЅРѕСЂРёСЂСѓРµРј РЅРµ СЃСѓС‰РµСЃС‚РІСѓСЋС‰РёРµ РїРѕР»СЏ
 						fieldNames.push_back(segment.fieldName);
 					}
 				}
@@ -516,7 +516,7 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 				));
 				AutoRelease<IMessageMetadata> outputMetadata(stmt->getOutputMetadata(status));
 				unsigned colCount = outputMetadata->getCount(status);
-				// делаем все поля строкового типа, кроме BLOB
+				// РґРµР»Р°РµРј РІСЃРµ РїРѕР»СЏ СЃС‚СЂРѕРєРѕРІРѕРіРѕ С‚РёРїР°, РєСЂРѕРјРµ BLOB
 				AutoRelease<IMessageMetadata> newMeta(prepareTextMetaData(status, outputMetadata));
 				auto fields = getFieldsInfo(status, newMeta);
 
@@ -539,8 +539,8 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 						bool emptyFlag = true;
 						DocumentPtr doc = newLucene<Document>();
 						string dbKey = fields[0].getStringValue(status, att, tra, buffer); 
-						// RDB$DB_KEY имеет бинарный формат, который невозможно перекодировать в Unicode
-						// поэтому мы перобразуем строку в шестнацетиричное представление
+						// RDB$DB_KEY РёРјРµРµС‚ Р±РёРЅР°СЂРЅС‹Р№ С„РѕСЂРјР°С‚, РєРѕС‚РѕСЂС‹Р№ РЅРµРІРѕР·РјРѕР¶РЅРѕ РїРµСЂРµРєРѕРґРёСЂРѕРІР°С‚СЊ РІ Unicode
+						// РїРѕСЌС‚РѕРјСѓ РјС‹ РїРµСЂРѕР±СЂР°Р·СѓРµРј СЃС‚СЂРѕРєСѓ РІ С€РµСЃС‚РЅР°С†РµС‚РёСЂРёС‡РЅРѕРµ РїСЂРµРґСЃС‚Р°РІР»РµРЅРёРµ
 						string hexDbKey = string_to_hex(dbKey);
 						doc->add(newLucene<Field>(L"RDB$DB_KEY", StringUtils::toUnicode(hexDbKey), Field::STORE_YES, Field::INDEX_NOT_ANALYZED));
 						doc->add(newLucene<Field>(L"RDB$RELATION_NAME", StringUtils::toUnicode(relationName), Field::STORE_YES, Field::INDEX_NOT_ANALYZED));
@@ -553,7 +553,7 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 							}
 							auto fieldName = StringUtils::toUnicode(relationName + "." + field.fieldName);
 							if (!value.empty()) {
-								// перекодируем содержимое в Unicode только если строка не пустая
+								// РїРµСЂРµРєРѕРґРёСЂСѓРµРј СЃРѕРґРµСЂР¶РёРјРѕРµ РІ Unicode С‚РѕР»СЊРєРѕ РµСЃР»Рё СЃС‚СЂРѕРєР° РЅРµ РїСѓСЃС‚Р°СЏ
 								auto unicodeValue = StringUtils::toUnicode(to_utf8(value, icuCharset));
 								doc->add(newLucene<Field>(fieldName, unicodeValue, Field::STORE_NO, Field::INDEX_ANALYZED));
 							}
@@ -562,7 +562,7 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 							}
 							emptyFlag = emptyFlag && value.empty();
 						}
-						// если все индексируемые поля пусты, то не имеет смысла добавлять документ в индекс
+						// РµСЃР»Рё РІСЃРµ РёРЅРґРµРєСЃРёСЂСѓРµРјС‹Рµ РїРѕР»СЏ РїСѓСЃС‚С‹, С‚Рѕ РЅРµ РёРјРµРµС‚ СЃРјС‹СЃР»Р° РґРѕР±Р°РІР»СЏС‚СЊ РґРѕРєСѓРјРµРЅС‚ РІ РёРЅРґРµРєСЃ
 						if (!emptyFlag) {
 							writer->addDocument(doc);
 						}
@@ -636,7 +636,7 @@ FB_UDR_BEGIN_PROCEDURE(addRecordToIndex)
 		att.reset(context->getAttachment(status));
 		tra.reset(context->getTransaction(status));
 
-		// проверка существования индекса
+		// РїСЂРѕРІРµСЂРєР° СЃСѓС‰РµСЃС‚РІРѕРІР°РЅРёСЏ РёРЅРґРµРєСЃР°
 		if (!procedure->indexRepository.hasIndex(status, att, tra, indexName)) {
 			string error_message;
 			error_message += "Index \"" + indexName + "\" not exists";
@@ -644,7 +644,7 @@ FB_UDR_BEGIN_PROCEDURE(addRecordToIndex)
 		}
 
 		string ftsDirectory = getFtsDirectory(context);
-		// проверка есть ли директория для полнотекстового индекса
+		// РїСЂРѕРІРµСЂРєР° РµСЃС‚СЊ Р»Рё РґРёСЂРµРєС‚РѕСЂРёСЏ РґР»СЏ РїРѕР»РЅРѕС‚РµРєСЃС‚РѕРІРѕРіРѕ РёРЅРґРµРєСЃР°
 		auto indexDir = StringUtils::toUnicode(ftsDirectory + "/" + indexName);
 		if (!FileUtils::isDirectory(indexDir)) {
 			string error_message;
@@ -652,7 +652,7 @@ FB_UDR_BEGIN_PROCEDURE(addRecordToIndex)
 			throwFbException(status, error_message.c_str());
 		}
 
-		// проверка существования таблицы
+		// РїСЂРѕРІРµСЂРєР° СЃСѓС‰РµСЃС‚РІРѕРІР°РЅРёСЏ С‚Р°Р±Р»РёС†С‹
 		if (!procedure->relationHelper.relationExists(status, att, tra, relationName)) {
 			string error_message = "";
 			error_message += "Table \"" + relationName + "\" not exists";
@@ -667,7 +667,7 @@ FB_UDR_BEGIN_PROCEDURE(addRecordToIndex)
 			const char* fbCharset = context->getClientCharSet();
 			string icuCharset = getICICharset(fbCharset);
 
-			// получаем сегменты индекса и группируем их по именам таблиц
+			// РїРѕР»СѓС‡Р°РµРј СЃРµРіРјРµРЅС‚С‹ РёРЅРґРµРєСЃР° Рё РіСЂСѓРїРїРёСЂСѓРµРј РёС… РїРѕ РёРјРµРЅР°Рј С‚Р°Р±Р»РёС†
 			auto allSegments = procedure->indexRepository.getIndexSegments(status, att, tra, indexName);
 			auto segmentsByRelation = LuceneFTS::FTSIndexRepository::groupIndexSegmentsByRelation(allSegments);
 			auto s_it = segmentsByRelation.find(relationName);
@@ -683,13 +683,13 @@ FB_UDR_BEGIN_PROCEDURE(addRecordToIndex)
 			list<string> fieldNames;
 			for (const auto& segment : segments) {
 				if (procedure->relationHelper.fieldExists(status, att, tra, segment.relationName, segment.fieldName)) {
-					// игнорируем не существующие поля
+					// РёРіРЅРѕСЂРёСЂСѓРµРј РЅРµ СЃСѓС‰РµСЃС‚РІСѓСЋС‰РёРµ РїРѕР»СЏ
 					fieldNames.push_back(segment.fieldName);
 				}
 			}
 			string sql = LuceneFTS::RelationHelper::buildSqlSelectFieldValues(relationName, fieldNames);
 			sql = sql + "\n WHERE RDB$DB_KEY = ?";
-			// todo: по идее нужен кеш скомпилированных операторов
+			// todo: РїРѕ РёРґРµРµ РЅСѓР¶РµРЅ РєРµС€ СЃРєРѕРјРїРёР»РёСЂРѕРІР°РЅРЅС‹С… РѕРїРµСЂР°С‚РѕСЂРѕРІ
 			AutoRelease<IStatement> stmt(att->prepare(
 				status,
 				tra,
@@ -708,7 +708,7 @@ FB_UDR_BEGIN_PROCEDURE(addRecordToIndex)
 
 			AutoRelease<IMessageMetadata> outputMetadata(stmt->getOutputMetadata(status));
 			unsigned colCount = outputMetadata->getCount(status);
-			// делаем все поля строкового типа, кроме BLOB
+			// РґРµР»Р°РµРј РІСЃРµ РїРѕР»СЏ СЃС‚СЂРѕРєРѕРІРѕРіРѕ С‚РёРїР°, РєСЂРѕРјРµ BLOB
 			AutoRelease<IMessageMetadata> newMeta(prepareTextMetaData(status, outputMetadata));
 			auto fields = getFieldsInfo(status, newMeta);
 
@@ -740,7 +740,7 @@ FB_UDR_BEGIN_PROCEDURE(addRecordToIndex)
 						}
 						auto fieldName = StringUtils::toUnicode(relationName + "." + field.fieldName);
 						if (!value.empty()) {
-							// перекодируем содержимое в Unicode только если строка не пустая
+							// РїРµСЂРµРєРѕРґРёСЂСѓРµРј СЃРѕРґРµСЂР¶РёРјРѕРµ РІ Unicode С‚РѕР»СЊРєРѕ РµСЃР»Рё СЃС‚СЂРѕРєР° РЅРµ РїСѓСЃС‚Р°СЏ
 							auto unicodeValue = StringUtils::toUnicode(to_utf8(value, icuCharset));
 							doc->add(newLucene<Field>(fieldName, unicodeValue, Field::STORE_NO, Field::INDEX_ANALYZED));
 						}
@@ -749,7 +749,7 @@ FB_UDR_BEGIN_PROCEDURE(addRecordToIndex)
 						}
 						emptyFlag = emptyFlag && value.empty();
 					}
-					// если все индексируемые поля пусты, то не имеет смысла добавлять документ в индекс
+					// РµСЃР»Рё РІСЃРµ РёРЅРґРµРєСЃРёСЂСѓРµРјС‹Рµ РїРѕР»СЏ РїСѓСЃС‚С‹, С‚Рѕ РЅРµ РёРјРµРµС‚ СЃРјС‹СЃР»Р° РґРѕР±Р°РІР»СЏС‚СЊ РґРѕРєСѓРјРµРЅС‚ РІ РёРЅРґРµРєСЃ
 					if (!emptyFlag) {
 						writer->addDocument(doc);
 					}
@@ -827,7 +827,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 		}
 
 		string ftsDirectory = getFtsDirectory(context);
-		// проверка есть ли директория для полнотекстовых индексов
+		// РїСЂРѕРІРµСЂРєР° РµСЃС‚СЊ Р»Рё РґРёСЂРµРєС‚РѕСЂРёСЏ РґР»СЏ РїРѕР»РЅРѕС‚РµРєСЃС‚РѕРІС‹С… РёРЅРґРµРєСЃРѕРІ
 		String ftsUnicodeDirectory = StringUtils::toUnicode(ftsDirectory);
 		if (!FileUtils::isDirectory(ftsUnicodeDirectory)) {
 			string error_message;
@@ -838,14 +838,14 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 		att.reset(context->getAttachment(status));
 		tra.reset(context->getTransaction(status));
 
-		// проверка существования индекса
+		// РїСЂРѕРІРµСЂРєР° СЃСѓС‰РµСЃС‚РІРѕРІР°РЅРёСЏ РёРЅРґРµРєСЃР°
 		if (!procedure->indexRepository.hasIndex(status, att, tra, indexName)) {
 			string error_message;
 			error_message += "Index \"" + indexName + "\" not exists";
 			throwFbException(status, error_message.c_str());
 		}
 
-		// проверка существования директории для индекса
+		// РїСЂРѕРІРµСЂРєР° СЃСѓС‰РµСЃС‚РІРѕРІР°РЅРёСЏ РґРёСЂРµРєС‚РѕСЂРёРё РґР»СЏ РёРЅРґРµРєСЃР°
 		auto indexDir = StringUtils::toUnicode(ftsDirectory + "/" + indexName);
 		if (!FileUtils::isDirectory(indexDir)) {
 			string error_message;
@@ -860,7 +860,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 			AnalyzerPtr analyzer = newLucene<StandardAnalyzer>(LuceneVersion::LUCENE_CURRENT);
 			auto segments = procedure->indexRepository.getIndexSegments(status, att, tra, indexName);
 			if (!relationName.empty()) {
-				// если задано имя таблицы, то выбираем только сегменты с этой таблицей
+				// РµСЃР»Рё Р·Р°РґР°РЅРѕ РёРјСЏ С‚Р°Р±Р»РёС†С‹, С‚Рѕ РІС‹Р±РёСЂР°РµРј С‚РѕР»СЊРєРѕ СЃРµРіРјРµРЅС‚С‹ СЃ СЌС‚РѕР№ С‚Р°Р±Р»РёС†РµР№
 				auto segmentsByRelation = LuceneFTS::FTSIndexRepository::groupIndexSegmentsByRelation(segments);
 				auto el = segmentsByRelation.find(relationName);
 				if (el == segmentsByRelation.end()) {
@@ -912,8 +912,8 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 		DocumentPtr doc = searcher->doc(scoreDoc->doc);
 		string relationName = StringUtils::toUTF8(doc->get(L"RDB$RELATION_NAME"));
 		string hexDbKey = StringUtils::toUTF8(doc->get(L"RDB$DB_KEY"));
-		// в Lucene индексе строка хранится в 16-ричном виде
-		// преобразуем её обратно в бинарный формат
+		// РІ Lucene РёРЅРґРµРєСЃРµ СЃС‚СЂРѕРєР° С…СЂР°РЅРёС‚СЃСЏ РІ 16-СЂРёС‡РЅРѕРј РІРёРґРµ
+		// РїСЂРµРѕР±СЂР°Р·СѓРµРј РµС‘ РѕР±СЂР°С‚РЅРѕ РІ Р±РёРЅР°СЂРЅС‹Р№ С„РѕСЂРјР°С‚
 		string dbKey = hex_to_string(hexDbKey);
 
 		out->relation_name.length = relationName.length();

@@ -34,7 +34,7 @@ namespace LuceneFTS
 	{
 	private:
 		IMaster* m_master;
-		// подготовленные запросы
+		// РїРѕРґРіРѕС‚РѕРІР»РµРЅРЅС‹Рµ Р·Р°РїСЂРѕСЃС‹
 		AutoRelease<IStatement> stmt_exists_index;
 		AutoRelease<IStatement> stmt_get_index;
 		AutoRelease<IStatement> stmt_index_segments;
@@ -49,7 +49,7 @@ namespace LuceneFTS
 		}
 
 		//
-		// Создание нового полнотекстового индекса
+		// РЎРѕР·РґР°РЅРёРµ РЅРѕРІРѕРіРѕ РїРѕР»РЅРѕС‚РµРєСЃС‚РѕРІРѕРіРѕ РёРЅРґРµРєСЃР°
 		//
 		void createIndex(
 			ThrowStatusWrapper status,
@@ -60,7 +60,7 @@ namespace LuceneFTS
 			string description);
 
 		//
-		// Удаление полнотекстового индекса
+		// РЈРґР°Р»РµРЅРёРµ РїРѕР»РЅРѕС‚РµРєСЃС‚РѕРІРѕРіРѕ РёРЅРґРµРєСЃР°
 		//
 		void dropIndex(
 			ThrowStatusWrapper status,
@@ -69,23 +69,23 @@ namespace LuceneFTS
 			string indexName);
 
 		//
-		// Возвращает существует ли индекс с заданным именем.
+		// Р’РѕР·РІСЂР°С‰Р°РµС‚ СЃСѓС‰РµСЃС‚РІСѓРµС‚ Р»Рё РёРЅРґРµРєСЃ СЃ Р·Р°РґР°РЅРЅС‹Рј РёРјРµРЅРµРј.
 		//
 		bool hasIndex(ThrowStatusWrapper status, IAttachment* att, ITransaction* tra, string indexName);
 
 		//
-		// Получает информацию об индексе с заданным именем, если он существует.
-		// Возвращает true, если индекс существует, и false - в противном случае.
+		// РџРѕР»СѓС‡Р°РµС‚ РёРЅС„РѕСЂРјР°С†РёСЋ РѕР± РёРЅРґРµРєСЃРµ СЃ Р·Р°РґР°РЅРЅС‹Рј РёРјРµРЅРµРј, РµСЃР»Рё РѕРЅ СЃСѓС‰РµСЃС‚РІСѓРµС‚.
+		// Р’РѕР·РІСЂР°С‰Р°РµС‚ true, РµСЃР»Рё РёРЅРґРµРєСЃ СЃСѓС‰РµСЃС‚РІСѓРµС‚, Рё false - РІ РїСЂРѕС‚РёРІРЅРѕРј СЃР»СѓС‡Р°Рµ.
 		//
 		bool getIndex(ThrowStatusWrapper status, IAttachment* att, ITransaction* tra, string indexName, FTSIndex& ftsIndex);
 
 		//
-		// Возвращает сегменты индекса с заданным именем
+		// Р’РѕР·РІСЂР°С‰Р°РµС‚ СЃРµРіРјРµРЅС‚С‹ РёРЅРґРµРєСЃР° СЃ Р·Р°РґР°РЅРЅС‹Рј РёРјРµРЅРµРј
 		//
 		list<FTSIndexSegment> getIndexSegments(ThrowStatusWrapper status, IAttachment* att, ITransaction* tra, string indexName);
 
 		//
-		// Добавление нового поля (сегмента) полнотекстового индекса
+		// Р”РѕР±Р°РІР»РµРЅРёРµ РЅРѕРІРѕРіРѕ РїРѕР»СЏ (СЃРµРіРјРµРЅС‚Р°) РїРѕР»РЅРѕС‚РµРєСЃС‚РѕРІРѕРіРѕ РёРЅРґРµРєСЃР°
 		//
 		void addIndexField(
 			ThrowStatusWrapper status,
@@ -96,7 +96,7 @@ namespace LuceneFTS
 			string fieldName);
 
 		//
-		// Удаление поля (сегмента) из полнотекстового индекса
+		// РЈРґР°Р»РµРЅРёРµ РїРѕР»СЏ (СЃРµРіРјРµРЅС‚Р°) РёР· РїРѕР»РЅРѕС‚РµРєСЃС‚РѕРІРѕРіРѕ РёРЅРґРµРєСЃР°
 		//
 		void dropIndexField(
 			ThrowStatusWrapper status,
@@ -107,7 +107,7 @@ namespace LuceneFTS
 			string fieldName);
 
 		//
-		// Проверка существования поля (сегмента) в полнотекстовом индексе
+		// РџСЂРѕРІРµСЂРєР° СЃСѓС‰РµСЃС‚РІРѕРІР°РЅРёСЏ РїРѕР»СЏ (СЃРµРіРјРµРЅС‚Р°) РІ РїРѕР»РЅРѕС‚РµРєСЃС‚РѕРІРѕРј РёРЅРґРµРєСЃРµ
 		//
 		bool hasIndexSegment(
 			ThrowStatusWrapper status,
@@ -118,7 +118,7 @@ namespace LuceneFTS
 			string fieldName);
 
 		//
-		// Группирует сегменты индекса по именам таблиц 
+		// Р“СЂСѓРїРїРёСЂСѓРµС‚ СЃРµРіРјРµРЅС‚С‹ РёРЅРґРµРєСЃР° РїРѕ РёРјРµРЅР°Рј С‚Р°Р±Р»РёС† 
 		//
 		static inline map<string, list<FTSIndexSegment>> groupIndexSegmentsByRelation(list<FTSIndexSegment> segments)
 		{

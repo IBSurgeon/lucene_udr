@@ -14,7 +14,7 @@ namespace LuceneFTS
 	{
 	private:
 		IMaster* m_master;
-		// подготовленные запросы
+		// РїРѕРґРіРѕС‚РѕРІР»РµРЅРЅС‹Рµ Р·Р°РїСЂРѕСЃС‹
 		AutoRelease<IStatement> stmt_exists_relation;
 		AutoRelease<IStatement> stmt_exists_field;
 	public:
