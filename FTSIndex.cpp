@@ -242,6 +242,72 @@ list<FTSIndexSegment> FTSIndexRepository::getIndexSegments(ThrowStatusWrapper st
 }
 
 //
+// Возвращает сегменты индексов по имени таблицы
+//
+list<FTSIndexSegment> FTSIndexRepository::getIndexSegmentsByRelation(
+	ThrowStatusWrapper status, 
+	IAttachment* att, 
+	ITransaction* tra, 
+	string relationName)
+{
+	FB_MESSAGE(Input, ThrowStatusWrapper,
+		(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
+	) input(&status, m_master);
+
+	FB_MESSAGE(Output, ThrowStatusWrapper,
+		(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
+		(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
+		(FB_INTL_VARCHAR(252, CS_UTF8), fieldName)
+		(FB_INTL_VARCHAR(252, CS_UTF8), analyzerName)
+	) output(&status, m_master);
+
+	input.clear();
+
+	input->relationName.length = relationName.length();
+	relationName.copy(input->relationName.str, input->relationName.length);
+
+	if (!stmt_rel_segments.hasData()) {
+		stmt_rel_segments.reset(att->prepare(
+			&status,
+			tra,
+			0,
+			"SELECT\n" 
+			"  FTS$INDEX_SEGMENTS.FTS$INDEX_NAME,\n" 
+			"  FTS$INDEX_SEGMENTS.FTS$RELATION_NAME,\n" 
+			"  FTS$INDEX_SEGMENTS.FTS$FIELD_NAME,\n"
+			"  FTS$INDICES.FTS$ANALYZER"
+			"FROM FTS$INDEX_SEGMENTS\n"
+			"JOIN FTS$INDICES ON FTS$INDEX_SEGMENTS.FTS$INDEX_NAME = FTS$INDICES.FTS$INDEX_NAME\n"
+			"WHERE FTS$INDEX_SEGMENTS.FTS$RELATION_NAME = ?\n"
+			"ORDER BY FTS$INDEX_SEGMENTS.FTS$INDEX_NAME",
+			UDR_SQL_DIALECT,
+			IStatement::PREPARE_PREFETCH_METADATA
+		));
+	}
+	AutoRelease<IResultSet> rs(stmt_rel_segments->openCursor(
+		&status,
+		tra,
+		input.getMetadata(),
+		input.getData(),
+		output.getMetadata(),
+		0
+	));
+	list<FTSIndexSegment> segments;
+	while (rs->fetchNext(&status, output.getData()) == IStatus::RESULT_OK) {
+		FTSIndexSegment indexSegment;
+		indexSegment.indexName.assign(output->indexName.str, output->indexName.length);
+		indexSegment.relationName.assign(output->relationName.str, output->relationName.length);
+		indexSegment.fieldName.assign(output->fieldName.str, output->fieldName.length);
+		indexSegment.index.indexName.assign(output->indexName.str, output->indexName.length);
+		indexSegment.index.analyzer.assign(output->analyzerName.str, output->analyzerName.length);
+		// замечание: описание индекса не требуется копировать
+		segments.push_back(indexSegment);
+	}
+	rs->close(&status);
+	return segments;
+}
+
+//
 // Добавление нового поля (сегмента) полнотекстового индекса
 //
 void FTSIndexRepository::addIndexField(

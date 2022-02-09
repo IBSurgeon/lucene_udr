@@ -12,18 +12,20 @@ using namespace std;
 namespace LuceneFTS
 {
 
-	struct FTSIndex 
+	struct FTSIndex
 	{
 		string indexName;
 		string analyzer;
 		string description;
 	};
 
-	struct FTSIndexSegment 
+	struct FTSIndexSegment
 	{
 		string indexName;
 		string relationName;
 		string fieldName;
+
+		FTSIndex index;
 
 		string getFullFieldName() {
 			return relationName + "." + fieldName;
@@ -38,13 +40,18 @@ namespace LuceneFTS
 		AutoRelease<IStatement> stmt_exists_index;
 		AutoRelease<IStatement> stmt_get_index;
 		AutoRelease<IStatement> stmt_index_segments;
+		AutoRelease<IStatement> stmt_rel_segments;
 	public:
 		FTSIndexRepository()
-			: m_master(nullptr)
+			: FTSIndexRepository(nullptr)
 		{}
 
 		FTSIndexRepository(IMaster* master)
-			: m_master(master)
+			: m_master(master),
+			stmt_exists_index(nullptr),
+			stmt_get_index(nullptr),
+			stmt_index_segments(nullptr),
+			stmt_rel_segments(nullptr)
 		{
 		}
 
@@ -85,6 +92,11 @@ namespace LuceneFTS
 		list<FTSIndexSegment> getIndexSegments(ThrowStatusWrapper status, IAttachment* att, ITransaction* tra, string indexName);
 
 		//
+		// Возвращает сегменты индексов по имени таблицы
+		//
+		list<FTSIndexSegment> getIndexSegmentsByRelation(ThrowStatusWrapper status, IAttachment* att, ITransaction* tra, string relationName);
+
+		//
 		// Добавление нового поля (сегмента) полнотекстового индекса
 		//
 		void addIndexField(
@@ -123,18 +135,40 @@ namespace LuceneFTS
 		static inline map<string, list<FTSIndexSegment>> groupIndexSegmentsByRelation(list<FTSIndexSegment> segments)
 		{
 			map<string, list<FTSIndexSegment>> segmentsByRelation;
-			for (const auto& segment : segments) {			
+			for (const auto& segment : segments) {
 				auto r = segmentsByRelation.find(segment.relationName);
 				if (r != segmentsByRelation.end()) {
 					auto relSegments = r->second;
 					relSegments.push_back(segment);
-				} else {
+				}
+				else {
 					list<FTSIndexSegment> relSegments;
 					relSegments.push_back(segment);
 					segmentsByRelation[segment.relationName] = relSegments;
 				}
 			}
 			return segmentsByRelation;
+		}
+
+		//
+        // Группирует сегменты индексов по именам индекса 
+        //
+		static inline map<string, list<FTSIndexSegment>> groupSegmentsByIndex(list<FTSIndexSegment> segments)
+		{
+			map<string, list<FTSIndexSegment>> segmentsByIndex;
+			for (const auto& segment : segments) {
+				auto r = segmentsByIndex.find(segment.indexName);
+				if (r != segmentsByIndex.end()) {
+					auto idxSegments = r->second;
+					idxSegments.push_back(segment);
+				}
+				else {
+					list<FTSIndexSegment> idxSegments;
+					idxSegments.push_back(segment);
+					segmentsByIndex[segment.indexName] = idxSegments;
+				}
+			}
+			return segmentsByIndex;
 		}
 	};
 }
