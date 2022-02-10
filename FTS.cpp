@@ -663,7 +663,7 @@ FB_UDR_BEGIN_PROCEDURE(insertRecord)
 			try {
 				auto fsIndexDir = FSDirectory::open(indexDir);
 				auto analyzer = newLucene<StandardAnalyzer>(LuceneVersion::LUCENE_CURRENT);
-				IndexWriterPtr writer = newLucene<IndexWriter>(fsIndexDir, analyzer, true, IndexWriter::MaxFieldLengthLIMITED);
+				IndexWriterPtr writer = newLucene<IndexWriter>(fsIndexDir, analyzer, IndexWriter::MaxFieldLengthLIMITED);
 
 				list<string> fieldNames;
 				for (const auto& segment : segments) {
@@ -737,13 +737,12 @@ FB_UDR_BEGIN_PROCEDURE(insertRecord)
 						}
 						// если все индексируемые поля пусты, то не имеет смысла добавлять документ в индекс
 						if (!emptyFlag) {
-							writer->addDocument(doc);
+							writer->addDocument(doc);							
 						}
 					}
 					rs->close(status);
 				}
 				writer->commit();
-				writer->optimize();
 				writer->close();
 			}
 			catch (LuceneException& e) {
