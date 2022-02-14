@@ -1042,7 +1042,8 @@ FB_UDR_END_PROCEDURE
 CREATE PROCEDURE FTS$SEARCH (
 	RDB$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT null,
 	RDB$RELATION_NAME VARCHAR(63) CHARACTER SET UTF8,
-	rdb$filter VARCHAR(8191) CHARACTER SET UTF8
+	RDB$FILTER VARCHAR(8191) CHARACTER SET UTF8,
+	FTS$LIMIT BIGINT NOT NULL DEFAULT 1000
 )
 RETURNS (
     FTS$RELATION_NAME VARCHAR(63) CHARACTER SET UTF8,
@@ -1057,6 +1058,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 	    (FB_INTL_VARCHAR(252, CS_UTF8), index_name)
 		(FB_INTL_VARCHAR(252, CS_UTF8), relation_name)
 		(FB_INTL_VARCHAR(32765, CS_UTF8), filter)
+		(FB_BIGINT, limit)
     );
 
 	FB_UDR_MESSAGE(OutMessage,
@@ -1084,6 +1086,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 		if (!in->filterNull) {
 			filter.assign(in->filter.str, in->filter.length);
 		}
+		limit = in->limit;
 
 		string ftsDirectory = getFtsDirectory(context);
 		// проверка есть ли директория для полнотекстовых индексов
@@ -1138,7 +1141,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 			MultiFieldQueryParserPtr parser = newLucene<MultiFieldQueryParser>(LuceneVersion::LUCENE_CURRENT, fields, analyzer);
 			parser->setDefaultOperator(QueryParser::OR_OPERATOR);
 			QueryPtr query = parser->parse(StringUtils::toUnicode(filter));
-			TopDocsPtr docs = searcher->search(query, 10);
+			TopDocsPtr docs = searcher->search(query, limit);
 
 			scoreDocs = docs->scoreDocs;
 
@@ -1158,6 +1161,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 	string indexName;
 	string relationName;
 	string filter;
+	ISC_INT64 limit;
 	SearcherPtr searcher;
 	Collection<ScoreDocPtr> scoreDocs;
 	Collection<ScoreDocPtr>::iterator it;
