@@ -352,3 +352,40 @@ FROM FTS$SEARCH('IDX_HORSE_NOTE_2', NULL, 'паспорт') FTS
 
 ### Пример триггеров для поддержки актуальности полнотекстовых индексов
 
+Для поддержки актуальности полнотекстовых индексов можно создать следующие триггеры:
+
+```sql
+SET TERM ^ ;
+
+
+CREATE OR ALTER TRIGGER TR_FTS$HORSE_AI FOR HORSE
+ACTIVE AFTER INSERT POSITION 3
+AS
+BEGIN
+  IF (NEW.REMARK IS NOT NULL) THEN
+    EXECUTE PROCEDURE FTS$INSERT_RECORD('HORSE', NEW.RDB$DB_KEY);
+END
+^
+
+CREATE OR ALTER TRIGGER TR_FTS$HORSE_AU FOR HORSE
+ACTIVE AFTER UPDATE POSITION 3
+AS
+BEGIN
+  IF (NEW.REMARK IS DISTINCT FROM OLD.REMARK) THEN
+    EXECUTE PROCEDURE FTS$UPDATE_RECORD('HORSE', OLD.RDB$DB_KEY);
+END
+^
+
+CREATE OR ALTER TRIGGER TR_FTS$HORSE_AD FOR HORSE
+ACTIVE AFTER DELETE POSITION 3
+AS
+BEGIN
+  IF (OLD.REMARK IS NOT NULL) THEN
+    EXECUTE PROCEDURE FTS$DELETE_RECORD('HORSE', OLD.RDB$DB_KEY);
+END
+^
+
+SET TERM ; ^
+```
+
+В данном примере созданы триггеры для поддержки актуальности полнотекстового построенного на поле REMARK таблицы HORSE.
