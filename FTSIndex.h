@@ -32,6 +32,65 @@ namespace LuceneFTS
 		}
 	};
 
+	class FTSRelation {
+
+	private:
+		string _relationName;                   // имя таблицы
+
+		map<string, FTSIndex> _indexes;         // индексы по имени
+		map<string, list<FTSIndexSegment>> _segments; // сегменты индекса для данной таблицы по индексам
+		map<string, string> _sqls;              // SQL запросы по именам индексов для данной таблицы
+
+		void addRelationSegments(const string indexName)
+		{
+			auto r = _segments.find(indexName);
+			if (r == _segments.end()) {
+				_segments[indexName] = list<FTSIndexSegment>();
+			}
+		}
+	public:
+		FTSRelation(string relationName) 
+			: _relationName(relationName),
+			_indexes(),
+			_segments(),
+			_sqls()
+		{
+		}
+
+		void addIndex(FTSIndex index)
+		{
+			auto r = _indexes.find(index.indexName);
+			if (r == _indexes.end()) {
+				_indexes[index.indexName] = index;
+			}
+		}
+
+		map<string, FTSIndex> getIndexes()
+		{
+			return _indexes;
+		}
+
+		void setSql(const string indexName, const string sql)
+		{
+			_sqls[indexName] = sql;
+		}
+
+		const string getSql(const string indexName) {
+			return _sqls[indexName];
+		}
+
+		void addSegment(FTSIndexSegment segment)
+		{
+			addRelationSegments(segment.indexName);
+			_segments[segment.indexName].push_back(segment);
+		}
+
+		list<FTSIndexSegment> getSegmentsByIndexName(const string indexName)
+		{
+			return _segments[indexName];
+		}
+	};
+
 	class FTSIndexRepository final
 	{
 	private:
@@ -87,9 +146,19 @@ namespace LuceneFTS
 		bool getIndex(ThrowStatusWrapper status, IAttachment* att, ITransaction* tra, string indexName, FTSIndex& ftsIndex);
 
 		//
+		// Возвращет список всех индексов
+		//
+		list<FTSIndex> getAllIndexes(ThrowStatusWrapper status, IAttachment* att, ITransaction* tra);
+
+		//
 		// Возвращает сегменты индекса с заданным именем
 		//
 		list<FTSIndexSegment> getIndexSegments(ThrowStatusWrapper status, IAttachment* att, ITransaction* tra, string indexName);
+
+		//
+        // Возвращает все сегменты всех индексов. Упорядочено по имеи индекса
+        //
+		list<FTSIndexSegment> getAllIndexSegments(ThrowStatusWrapper status, IAttachment* att, ITransaction* tra);
 
 		//
 		// Возвращает сегменты индексов по имени таблицы

@@ -1038,6 +1038,280 @@ FB_UDR_BEGIN_PROCEDURE(deleteRecord)
 
 FB_UDR_END_PROCEDURE
 
+
+/***
+CREATE PROCEDURE FTS$UPDATE_INDEXES 
+EXTERNAL NAME 'luceneudr!updateFtsIndexes'
+ENGINE UDR;
+***/
+FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
+
+	FB_UDR_CONSTRUCTOR
+		, indexRepository(context->getMaster())
+		, relationHelper(context->getMaster())
+	{
+	}
+
+	LuceneFTS::FTSIndexRepository indexRepository;
+	LuceneFTS::RelationHelper relationHelper;
+
+	FB_UDR_EXECUTE_PROCEDURE
+	{
+		att.reset(context->getAttachment(status));
+		tra.reset(context->getTransaction(status));
+
+		string ftsDirectory = getFtsDirectory(context);
+
+		const char* fbCharset = context->getClientCharSet();
+		string icuCharset = getICICharset(fbCharset);
+
+		map<string, LuceneFTS::FTSRelation> relationsByName;
+		// получаем все индексы
+		auto allIndexes = procedure->indexRepository.getAllIndexes(status, att, tra);
+		for (auto& ftsIndex : allIndexes) {
+		    // получаем сегменты индекса
+			auto segments = procedure->indexRepository.getIndexSegments(status, att, tra, ftsIndex.indexName);
+			for (auto& ftsSegment : segments) {
+			    // ищем таблицу по имени
+				auto r = relationsByName.find(ftsSegment.relationName);
+				
+				if (r != relationsByName.end()) {
+					auto relation = r->second;
+					relation.addIndex(ftsIndex);
+					relation.addSegment(ftsSegment);
+				}
+				else {
+					// такой таблицы ещё не было
+					LuceneFTS::FTSRelation relation(ftsSegment.relationName);
+					relation.addIndex(ftsIndex);
+					relation.addSegment(ftsSegment);
+				}
+			}
+		}
+		// теперь необходимо для каждой таблицы по каждому индексу построить запросы для ивлечения записей
+		for (auto& p : relationsByName) {
+			string relationName = p.first;
+			auto ftsRelation = p.second;
+			auto ftsIndexes = ftsRelation.getIndexes();
+			for (auto& pIndex : ftsIndexes) {
+				auto ftsIndex = pIndex.second;
+				auto segments = ftsRelation.getSegmentsByIndexName(ftsIndex.indexName);
+				list<string> fieldNames;
+				for (const auto& segment : segments) {
+					if (procedure->relationHelper.fieldExists(status, att, tra, segment.relationName, segment.fieldName)) {
+						// игнорируем не существующие поля
+						fieldNames.push_back(segment.fieldName);
+					}
+				}
+				string sql = LuceneFTS::RelationHelper::buildSqlSelectFieldValues(relationName, fieldNames);
+				sql = sql + "\n WHERE RDB$DB_KEY = ?";
+				ftsRelation.setSql(ftsIndex.indexName, sql);
+			}
+		}
+		
+
+		// получаем лог изменений записей для индекса
+		AutoRelease<IStatement> logStmt(att->prepare(
+			status,
+			tra,
+			0,
+			"SELECT ID, DB_KEY, RELATION_NAME, CHANGE_TYPE\n"
+			"FROM FTS$LOG\n"
+			"ORDER BY ID",
+			UDR_SQL_DIALECT,
+			IStatement::PREPARE_PREFETCH_METADATA
+		));
+
+		FB_MESSAGE(Output, ThrowStatusWrapper,
+			(FB_BIGINT, id)
+			(FB_VARCHAR(8), dbKey)
+			(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
+			(FB_INTL_VARCHAR(4, CS_UTF8), changeType)
+
+		) logOutput(status, context->getMaster());
+
+		AutoRelease<IStatement> logDelStmt(att->prepare(
+			status,
+			tra,
+			0,
+			"DELETE FROM FTS$LOG\n"
+			"WHERE ID = ?",
+			UDR_SQL_DIALECT,
+			IStatement::PREPARE_PREFETCH_METADATA
+		));
+
+		FB_MESSAGE(Input, ThrowStatusWrapper,
+			(FB_BIGINT, id)
+		) logDelInput(status, context->getMaster());
+
+		AutoRelease<IResultSet> logRs(logStmt->openCursor(
+			status,
+			tra,
+			nullptr,
+			nullptr,
+			logOutput.getMetadata(),
+			0
+		));
+
+		map<string, IStatement*> prepareStmtMap;
+		map<string, IndexWriterPtr> indexWriters;
+
+		if (logRs->fetchNext(status, logOutput.getData()) == IStatus::RESULT_OK) {
+			ISC_INT64 logId = logOutput->id;
+			string dbKey(logOutput->dbKey.str, logOutput->dbKey.length);
+			string relationName(logOutput->relationName.str, logOutput->relationName.length);
+			string changeType(logOutput->changeType.str, logOutput->changeType.length);
+
+			string hexDbKey = string_to_hex(dbKey);
+
+			// ищем таблицу в списке индексированных таблиц
+			auto r = relationsByName.find(relationName);
+			if (r != relationsByName.end()) {
+				// для каждой таблицы получаем список индексов
+				LuceneFTS::FTSRelation ftsRelation = r->second;
+				auto ftsIndexes = ftsRelation.getIndexes();
+				// по каждому индексу ищем подготовленный запрос
+				for (auto& pIndex : ftsIndexes) {
+					string indexName = pIndex.first;
+					auto ftsIndex = pIndex.second;
+					// ищем IndexWriter
+					auto iWriter = indexWriters.find(ftsIndex.indexName);
+					// если не найден, то открываем такой
+					if (iWriter == indexWriters.end()) {
+						// проверка существования директории для индекса
+	                    // и если она не существует создаём её
+						auto indexDir = StringUtils::toUnicode(ftsDirectory + "/" + indexName);
+						if (!FileUtils::isDirectory(indexDir)) {
+							bool result = FileUtils::createDirectory(indexDir);
+							if (!result) {
+								string error_message = "";
+								error_message += "Cannot create index directory " + ftsDirectory + "/" + indexName;
+								throwFbException(status, error_message.c_str());
+							}
+						}
+						auto fsIndexDir = FSDirectory::open(indexDir);
+						// TODO: пока анализатор всегда стандартный
+						auto analyzer = newLucene<StandardAnalyzer>(LuceneVersion::LUCENE_CURRENT);
+						IndexWriterPtr writer = newLucene<IndexWriter>(fsIndexDir, analyzer, IndexWriter::MaxFieldLengthLIMITED);
+						indexWriters[indexName] = writer;
+					}
+					IndexWriterPtr writer = indexWriters[indexName];
+					if ((changeType == "I") || (changeType == "U")) {
+						string stmtName = relationName + "." + indexName;
+						// если его нет, то берём текст запроса и подготовливаем его
+						auto iStmt = prepareStmtMap.find(stmtName);
+						if (iStmt == prepareStmtMap.end()) {
+							AutoRelease<IStatement> stmt(att->prepare(
+								status,
+								tra,
+								0,
+								ftsRelation.getSql(indexName).c_str(),
+								UDR_SQL_DIALECT,
+								IStatement::PREPARE_PREFETCH_METADATA
+							));
+							prepareStmtMap[stmtName] = stmt;
+						}
+						auto stmt = prepareStmtMap[stmtName];
+						// получаем нужные значения полей
+						AutoRelease<IMessageMetadata> outputMetadata(stmt->getOutputMetadata(status));
+						unsigned colCount = outputMetadata->getCount(status);
+						// делаем все поля строкового типа, кроме BLOB
+						AutoRelease<IMessageMetadata> newMeta(prepareTextMetaData(status, outputMetadata));
+						auto fields = getFieldsInfo(status, newMeta);
+
+						FB_MESSAGE(Input, ThrowStatusWrapper,
+							(FB_BIGINT, id)
+						) selValInput(status, context->getMaster());
+
+						AutoRelease<IResultSet> rs(stmt->openCursor(
+							status,
+							tra,
+							selValInput.getMetadata(),
+							selValInput.getData(),
+							newMeta,
+							0
+						));
+
+						unsigned msgLength = newMeta->getMessageLength(status);
+						{
+							// allocate output buffer
+							auto b = make_unique<unsigned char[]>(msgLength);
+							unsigned char* buffer = b.get();
+							while (rs->fetchNext(status, buffer) == IStatus::RESULT_OK) {
+								bool emptyFlag = true;
+								DocumentPtr doc = newLucene<Document>();
+								doc->add(newLucene<Field>(L"RDB$DB_KEY", StringUtils::toUnicode(hexDbKey), Field::STORE_YES, Field::INDEX_NOT_ANALYZED));
+								doc->add(newLucene<Field>(L"RDB$RELATION_NAME", StringUtils::toUnicode(relationName), Field::STORE_YES, Field::INDEX_NOT_ANALYZED));
+								for (int i = 1; i < colCount; i++) {
+									auto field = fields[i];
+									bool nullFlag = field.isNull(buffer);
+									string value;
+									if (!nullFlag) {
+										value = field.getStringValue(status, att, tra, buffer);
+									}
+									auto fieldName = StringUtils::toUnicode(relationName + "." + field.fieldName);
+									if (!value.empty()) {
+										// перекодируем содержимое в Unicode только если строка не пустая
+										auto unicodeValue = StringUtils::toUnicode(to_utf8(value, icuCharset));
+										doc->add(newLucene<Field>(fieldName, unicodeValue, Field::STORE_NO, Field::INDEX_ANALYZED));
+									}
+									else {
+										doc->add(newLucene<Field>(fieldName, L"", Field::STORE_NO, Field::INDEX_ANALYZED));
+									}
+									emptyFlag = emptyFlag && value.empty();
+								}
+								if (changeType == "I") {
+									if (!emptyFlag) {
+										writer->addDocument(doc);
+									}
+								}
+								if (changeType == "U") {
+									TermPtr term = newLucene<Term>(L"RDB$DB_KEY", StringUtils::toUnicode(hexDbKey));
+									if (!emptyFlag) {
+										writer->updateDocument(term, doc);
+									}
+									else {
+										writer->deleteDocuments(term);
+									}
+								}
+							}
+							rs->close(status);
+						}
+					} else if(changeType == "D") {
+						TermPtr term = newLucene<Term>(L"RDB$DB_KEY", StringUtils::toUnicode(hexDbKey));
+						writer->deleteDocuments(term);
+					}
+				}
+			}
+			logDelStmt->execute(
+				status,
+				tra,
+				logDelInput.getMetadata(),
+				logDelInput.getData(),
+				nullptr,
+				nullptr
+			);
+		}
+		logRs->close(status);
+		// подтверждаем измения для всех индексов
+		for (auto& pIndexWriter : indexWriters) {
+			auto indexWriter = pIndexWriter.second;
+			indexWriter->commit();
+			indexWriter->close();
+		}
+	}
+
+	AutoRelease<IAttachment> att;
+	AutoRelease<ITransaction> tra;
+
+	FB_UDR_FETCH_PROCEDURE
+	{
+		return false;
+	}
+
+FB_UDR_END_PROCEDURE
+
+
 /***
 CREATE PROCEDURE FTS$SEARCH (
 	RDB$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT null,

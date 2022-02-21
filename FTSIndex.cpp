@@ -190,6 +190,56 @@ bool FTSIndexRepository::getIndex(ThrowStatusWrapper status, IAttachment* att, I
 }
 
 //
+// Возвращет список всех индексов
+//
+list<FTSIndex> FTSIndexRepository::getAllIndexes(ThrowStatusWrapper status, IAttachment* att, ITransaction* tra)
+{
+
+	FB_MESSAGE(Output, ThrowStatusWrapper,
+		(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
+		(FB_INTL_VARCHAR(252, CS_UTF8), analyzer)
+		(FB_BLOB, description)
+	) output(&status, m_master);
+
+
+	AutoRelease<IStatement> stmt(att->prepare(
+			&status,
+			tra,
+			0,
+			"SELECT FTS$INDEX_NAME, FTS$ANALYZER, FTS$DESCRIPTION\n"
+			"FROM FTS$INDICES\n"
+			"ORDER BY FTS$INDEX_NAME",
+			UDR_SQL_DIALECT,
+			IStatement::PREPARE_PREFETCH_METADATA
+		));
+	
+	AutoRelease<IResultSet> rs(stmt_get_index->openCursor(
+		&status,
+		tra,
+		nullptr,
+		nullptr,
+		output.getMetadata(),
+		0
+	));
+
+	list<FTSIndex> indexes;
+	if (rs->fetchNext(&status, output.getData()) == IStatus::RESULT_OK) {
+		FTSIndex ftsIndex;
+		ftsIndex.indexName.assign(output->indexName.str, output->indexName.length);
+		ftsIndex.analyzer.assign(output->analyzer.str, output->analyzer.length);
+		if (!output->descriptionNull) {
+			AutoRelease<IBlob> blob(att->openBlob(&status, tra, &output->description, 0, nullptr));
+			ftsIndex.description = blob_get_string(&status, blob);
+			blob->close(&status);
+		}
+		indexes.push_back(ftsIndex);
+	}
+	rs->close(&status);
+
+	return indexes;
+}
+
+//
 // Возвращает сегменты индекса с заданным именем
 //
 list<FTSIndexSegment> FTSIndexRepository::getIndexSegments(ThrowStatusWrapper status, IAttachment* att, ITransaction* tra, string indexName)
@@ -235,6 +285,62 @@ list<FTSIndexSegment> FTSIndexRepository::getIndexSegments(ThrowStatusWrapper st
 		indexSegment.indexName.assign(output->indexName.str, output->indexName.length);
 		indexSegment.relationName.assign(output->relationName.str, output->relationName.length);
 		indexSegment.fieldName.assign(output->fieldName.str, output->fieldName.length);
+		segments.push_back(indexSegment);
+	}
+	rs->close(&status);
+	return segments;
+}
+
+//
+// Возвращает все сегменты всех индексов. Упорядочено по имеи индекса
+//
+list<FTSIndexSegment> FTSIndexRepository::getAllIndexSegments(
+	ThrowStatusWrapper status, 
+	IAttachment* att, 
+	ITransaction* tra)
+{
+
+	FB_MESSAGE(Output, ThrowStatusWrapper,
+		(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
+		(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
+		(FB_INTL_VARCHAR(252, CS_UTF8), fieldName)
+		(FB_INTL_VARCHAR(252, CS_UTF8), analyzerName)
+	) output(&status, m_master);
+
+
+	AutoRelease<IStatement> stmt(att->prepare(
+			&status,
+			tra,
+			0,
+			"SELECT\n"
+			"  FTS$INDEX_SEGMENTS.FTS$INDEX_NAME,\n"
+			"  FTS$INDEX_SEGMENTS.FTS$RELATION_NAME,\n"
+			"  FTS$INDEX_SEGMENTS.FTS$FIELD_NAME,\n"
+			"  FTS$INDICES.FTS$ANALYZER\n"
+			"FROM FTS$INDEX_SEGMENTS\n"
+			"JOIN FTS$INDICES ON FTS$INDEX_SEGMENTS.FTS$INDEX_NAME = FTS$INDICES.FTS$INDEX_NAME\n"
+			"ORDER BY FTS$INDEX_SEGMENTS.FTS$INDEX_NAME",
+			UDR_SQL_DIALECT,
+			IStatement::PREPARE_PREFETCH_METADATA
+		));
+	
+	AutoRelease<IResultSet> rs(stmt->openCursor(
+		&status,
+		tra,
+		nullptr,
+		nullptr,
+		output.getMetadata(),
+		0
+	));
+	list<FTSIndexSegment> segments;
+	while (rs->fetchNext(&status, output.getData()) == IStatus::RESULT_OK) {
+		FTSIndexSegment indexSegment;
+		indexSegment.indexName.assign(output->indexName.str, output->indexName.length);
+		indexSegment.relationName.assign(output->relationName.str, output->relationName.length);
+		indexSegment.fieldName.assign(output->fieldName.str, output->fieldName.length);
+		indexSegment.index.indexName.assign(output->indexName.str, output->indexName.length);
+		indexSegment.index.analyzer.assign(output->analyzerName.str, output->analyzerName.length);
+		// замечание: описание индекса не требуется копировать
 		segments.push_back(indexSegment);
 	}
 	rs->close(&status);
