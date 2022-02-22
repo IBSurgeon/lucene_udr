@@ -69,6 +69,7 @@ void FTSIndexRepository::dropIndex(
 	) input(&status, m_master);
 
 	input.clear();
+	
 	input->indexName.length = indexName.length();
 	indexName.copy(input->indexName.str, input->indexName.length);
 

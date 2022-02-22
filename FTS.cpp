@@ -1158,7 +1158,8 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 		map<string, IStatement*> prepareStmtMap;
 		map<string, IndexWriterPtr> indexWriters;
 
-		if (logRs->fetchNext(status, logOutput.getData()) == IStatus::RESULT_OK) {
+        logOutput.clear();
+		while (logRs->fetchNext(status, logOutput.getData()) == IStatus::RESULT_OK) {
 			ISC_INT64 logId = logOutput->id;
 			string dbKey(logOutput->dbKey.str, logOutput->dbKey.length);
 			string relationName(logOutput->relationName.str, logOutput->relationName.length);
