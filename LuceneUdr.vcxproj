@@ -44,7 +44,7 @@
     <VCProjectVersion>16.0</VCProjectVersion>
     <ProjectGuid>{38960C55-869A-466C-B469-11BF3BF5E34E}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>SplitUdr</RootNamespace>
+    <RootNamespace>LuceneUdr</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
     <ProjectName>LuceneUdr</ProjectName>
   </PropertyGroup>
