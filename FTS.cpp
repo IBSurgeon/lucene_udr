@@ -1286,6 +1286,7 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 					}
 				}
 			}
+			logDelInput->id = logId; 
 			logDelStmt->execute(
 				status,
 				tra,
