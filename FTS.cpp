@@ -97,6 +97,7 @@ FB_UDR_BEGIN_FUNCTION(getFTSDirectory)
 	{
 		string ftsDirectory = getFtsDirectory(context);
 
+	    out->directoryNull = false;
 	    out->directory.length = ftsDirectory.length();
 		ftsDirectory.copy(out->directory.str, out->directory.length);
 	}
