@@ -1424,9 +1424,11 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 			scoreDocs = docs->scoreDocs;
 
 			it = scoreDocs.begin();
-			out->relation_nameNull = false;
-			out->db_keyNull = false;
-			out->scoreNull = false;
+			
+			out.clear();
+			out->relation_nameNull = true;
+			out->db_keyNull = true;
+			out->scoreNull = true;
 		}
 		catch (LuceneException& e) {
 			string error_message = StringUtils::toUTF8(e.getError());
@@ -1456,13 +1458,18 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 		// в Lucene индексе строка хранится в 16-ричном виде
 		// преобразуем её обратно в бинарный формат
 		string dbKey = hex_to_string(hexDbKey);
+		
+		out.clear();
 
+        out->relation_nameNull = false;
 		out->relation_name.length = relationName.length();
 		relationName.copy(out->relation_name.str, out->relation_name.length);
 		
+		out->db_keyNull = false;
 		out->db_key.length = dbKey.length();
 		dbKey.copy(out->db_key.str, out->db_key.length);
 
+        out->scoreNull = false;
 		out->score = scoreDoc->score;
 
 	    ++it;
