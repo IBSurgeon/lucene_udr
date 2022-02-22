@@ -1146,6 +1146,10 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 			(FB_BIGINT, id)
 		) logDelInput(status, context->getMaster());
 
+		FB_MESSAGE(Input, ThrowStatusWrapper,
+			(FB_INTL_VARCHAR(8, CS_BINARY), db_key)
+		) selValInput(status, context->getMaster());
+
 		AutoRelease<IResultSet> logRs(logStmt->openCursor(
 			status,
 			tra,
@@ -1221,10 +1225,10 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 						// делаем все поля строкового типа, кроме BLOB
 						AutoRelease<IMessageMetadata> newMeta(prepareTextMetaData(status, outputMetadata));
 						auto fields = getFieldsInfo(status, newMeta);
-
-						FB_MESSAGE(Input, ThrowStatusWrapper,
-							(FB_BIGINT, id)
-						) selValInput(status, context->getMaster());
+						
+						selValInput.clear();
+						selValInput->db_keyNull = false;
+						selValInput->db_key = dbKey;
 
 						AutoRelease<IResultSet> rs(stmt->openCursor(
 							status,
