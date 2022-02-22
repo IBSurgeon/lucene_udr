@@ -1,6 +1,7 @@
 
 #include "LuceneUdr.h"
 #include "FTSIndex.h"
+#include "FTSLog.h"
 #include "Relations.h"
 #include "FBBlobUtils.h"
 #include "FBFieldInfo.h"
@@ -97,7 +98,6 @@ FB_UDR_BEGIN_FUNCTION(getFTSDirectory)
 	{
 		string ftsDirectory = getFtsDirectory(context);
 
-	    out.clear();
 	    out->directoryNull = false;
 	    out->directory.length = ftsDirectory.length();
 		ftsDirectory.copy(out->directory.str, out->directory.length);
@@ -1040,6 +1040,63 @@ FB_UDR_BEGIN_PROCEDURE(deleteRecord)
 
 FB_UDR_END_PROCEDURE
 
+/***
+CREATE PROCEDURE FTS$LOG_CHANGE (
+    RELATION_NAME  VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+	DB_KEY         CHAR(8) CHARACTER SET OCTETS NOT NULL,
+	CHANGE_TYPE    FTS$CHANGE_TYPE NOT NULL
+)
+EXTERNAL NAME 'luceneudr!ftsLogChange'
+ENGINE UDR;
+***/
+FB_UDR_BEGIN_PROCEDURE(ftsLogChange)
+    FB_UDR_MESSAGE(InMessage,
+	    (FB_INTL_VARCHAR(252, CS_UTF8), relation_name)
+	    (FB_INTL_VARCHAR(8, CS_BINARY), db_key)
+		(FB_INTL_VARCHAR(4, CS_UTF8), change_type)
+    );
+
+	FB_UDR_CONSTRUCTOR
+		, logRepository(context->getMaster())
+	{
+	}
+
+	LuceneFTS::FTSLogRepository logRepository;
+
+    FB_UDR_EXECUTE_PROCEDURE
+	{
+		if (in->relation_nameNull) {
+			throwFbException(status, "Relation name can not be NULL");
+		}
+		relationName.assign(in->relation_name.str, in->relation_name.length);
+		if (in->db_keyNull) {
+			throwFbException(status, "DB_KEY can not be NULL");
+		}
+		dbKey.assign(in->db_key.str, in->db_key.length);
+		if (in->change_typeNull) {
+			throwFbException(status, "CHANGE_TYPE can not be NULL");
+		}
+		changeType.assign(in->change_type.str, in->change_type.length);
+
+
+		att.reset(context->getAttachment(status));
+		tra.reset(context->getTransaction(status));
+
+		procedure->logRepository.appendLog(status, att, tra, relationName, dbKey, changeType);
+	}
+
+	AutoRelease<IAttachment> att;
+	AutoRelease<ITransaction> tra;
+	string relationName;
+	string dbKey;
+	string changeType;
+
+    FB_UDR_FETCH_PROCEDURE
+	{
+		return false;
+	}
+
+FB_UDR_END_PROCEDURE
 
 /***
 CREATE PROCEDURE FTS$UPDATE_INDEXES 
@@ -1051,11 +1108,13 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 	FB_UDR_CONSTRUCTOR
 		, indexRepository(context->getMaster())
 		, relationHelper(context->getMaster())
+		, logRepository(context->getMaster())
 	{
 	}
 
 	LuceneFTS::FTSIndexRepository indexRepository;
 	LuceneFTS::RelationHelper relationHelper;
+	LuceneFTS::FTSLogRepository logRepository;
 
 	FB_UDR_EXECUTE_PROCEDURE
 	{
@@ -1068,8 +1127,9 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 		string icuCharset = getICICharset(fbCharset);
 
 		map<string, LuceneFTS::FTSRelation> relationsByName;
+		
 		// получаем все индексы
-		auto allIndexes = procedure->indexRepository.getAllIndexes(status, att, tra);
+		auto allIndexes = procedure->indexRepository.getAllIndexes(status, att, tra);		
 		for (auto& ftsIndex : allIndexes) {
 		    // получаем сегменты индекса
 			auto segments = procedure->indexRepository.getIndexSegments(status, att, tra, ftsIndex.indexName);
@@ -1087,9 +1147,11 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 					LuceneFTS::FTSRelation relation(ftsSegment.relationName);
 					relation.addIndex(ftsIndex);
 					relation.addSegment(ftsSegment);
+					relationsByName.insert_or_assign(ftsSegment.relationName, relation);
 				}
 			}
 		}
+		
 		// теперь необходимо для каждой таблицы по каждому индексу построить запросы для ивлечения записей
 		for (auto& p : relationsByName) {
 			string relationName = p.first;
@@ -1111,7 +1173,15 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 			}
 		}
 		
+		FB_MESSAGE(ValInput, ThrowStatusWrapper,
+			(FB_INTL_VARCHAR(8, CS_BINARY), db_key)
+		) selValInput(status, context->getMaster());
+		
 
+		map<string, IStatement*> prepareStmtMap;
+		map<string, IndexWriterPtr> indexWriters;
+
+		
 		// получаем лог изменений записей для индекса
 		AutoRelease<IStatement> logStmt(att->prepare(
 			status,
@@ -1124,31 +1194,14 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 			IStatement::PREPARE_PREFETCH_METADATA
 		));
 
-		FB_MESSAGE(Output, ThrowStatusWrapper,
+		FB_MESSAGE(LogOutput, ThrowStatusWrapper,
 			(FB_BIGINT, id)
 			(FB_VARCHAR(8), dbKey)
 			(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
 			(FB_INTL_VARCHAR(4, CS_UTF8), changeType)
 
 		) logOutput(status, context->getMaster());
-
-		AutoRelease<IStatement> logDelStmt(att->prepare(
-			status,
-			tra,
-			0,
-			"DELETE FROM FTS$LOG\n"
-			"WHERE ID = ?",
-			UDR_SQL_DIALECT,
-			IStatement::PREPARE_PREFETCH_METADATA
-		));
-
-		FB_MESSAGE(Input, ThrowStatusWrapper,
-			(FB_BIGINT, id)
-		) logDelInput(status, context->getMaster());
-
-		FB_MESSAGE(Input, ThrowStatusWrapper,
-			(FB_INTL_VARCHAR(8, CS_BINARY), db_key)
-		) selValInput(status, context->getMaster());
+		logOutput.clear();
 
 		AutoRelease<IResultSet> logRs(logStmt->openCursor(
 			status,
@@ -1158,11 +1211,8 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 			logOutput.getMetadata(),
 			0
 		));
-
-		map<string, IStatement*> prepareStmtMap;
-		map<string, IndexWriterPtr> indexWriters;
-
-        logOutput.clear();
+        
+		
 		while (logRs->fetchNext(status, logOutput.getData()) == IStatus::RESULT_OK) {
 			ISC_INT64 logId = logOutput->id;
 			string dbKey(logOutput->dbKey.str, logOutput->dbKey.length);
@@ -1226,9 +1276,9 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 						AutoRelease<IMessageMetadata> newMeta(prepareTextMetaData(status, outputMetadata));
 						auto fields = getFieldsInfo(status, newMeta);
 						
-						selValInput.clear();
 						selValInput->db_keyNull = false;
-						selValInput->db_key = dbKey;
+						selValInput->db_key.length = dbKey.length();
+						dbKey.copy(selValInput->db_key.str, selValInput->db_key.length);
 
 						AutoRelease<IResultSet> rs(stmt->openCursor(
 							status,
@@ -1290,16 +1340,9 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 					}
 				}
 			}
-			logDelInput->id = logId; 
-			logDelStmt->execute(
-				status,
-				tra,
-				logDelInput.getMetadata(),
-				logDelInput.getData(),
-				nullptr,
-				nullptr
-			);
+			procedure->logRepository.deleteLog(status, att, tra, logId);
 		}
+		
 		logRs->close(status);
 		// подтверждаем измения для всех индексов
 		for (auto& pIndexWriter : indexWriters) {
@@ -1429,7 +1472,6 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 
 			it = scoreDocs.begin();
 			
-			out.clear();
 			out->relation_nameNull = true;
 			out->db_keyNull = true;
 			out->scoreNull = true;
@@ -1463,8 +1505,6 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 		// преобразуем её обратно в бинарный формат
 		string dbKey = hex_to_string(hexDbKey);
 		
-		out.clear();
-
         out->relation_nameNull = false;
 		out->relation_name.length = relationName.length();
 		relationName.copy(out->relation_name.str, out->relation_name.length);

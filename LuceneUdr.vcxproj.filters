@@ -31,6 +31,9 @@
     <ClCompile Include="Relations.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
+    <ClCompile Include="FTSLog.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="LuceneUdr.h">
@@ -52,6 +55,9 @@
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
     <ClInclude Include="EncodeUtils.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="FTSLog.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
   </ItemGroup>

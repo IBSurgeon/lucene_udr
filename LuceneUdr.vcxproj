@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClCompile Include="FTS.cpp" />
     <ClCompile Include="FTSIndex.cpp" />
+    <ClCompile Include="FTSLog.cpp" />
     <ClCompile Include="Relations.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -29,6 +30,7 @@
     <ClInclude Include="FBBlobUtils.h" />
     <ClInclude Include="FbFieldInfo.h" />
     <ClInclude Include="FTSIndex.h" />
+    <ClInclude Include="FTSLog.h" />
     <ClInclude Include="LuceneUdr.h" />
     <ClInclude Include="Relations.h" />
   </ItemGroup>

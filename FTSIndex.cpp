@@ -214,7 +214,7 @@ list<FTSIndex> FTSIndexRepository::getAllIndexes(ThrowStatusWrapper status, IAtt
 			IStatement::PREPARE_PREFETCH_METADATA
 		));
 	
-	AutoRelease<IResultSet> rs(stmt_get_index->openCursor(
+	AutoRelease<IResultSet> rs(stmt->openCursor(
 		&status,
 		tra,
 		nullptr,

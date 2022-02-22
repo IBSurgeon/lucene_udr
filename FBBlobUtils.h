@@ -14,10 +14,11 @@ template <class StatusType> string blob_get_string(StatusType* status, IBlob* bl
 {
 	std::stringstream ss("");
 	bool eof = false;
-	char buffer[MAX_SEGMENT_SIZE + 1];
+	auto b = make_unique<char[]>(MAX_SEGMENT_SIZE + 1);
+	char* buffer = b.get();
 	unsigned int l;
 	while (!eof) {
-		switch (blob->getSegment(status, MAX_SEGMENT_SIZE, &buffer[0], &l))
+		switch (blob->getSegment(status, MAX_SEGMENT_SIZE, buffer, &l))
 		{
 		case IStatus::RESULT_OK:
 		case IStatus::RESULT_SEGMENT:
@@ -35,9 +36,11 @@ template <class StatusType> void blob_set_string(StatusType* status, IBlob* blob
 {
 	size_t str_len = str.length();
 	size_t offset = 0;
+	auto b = make_unique<char[]>(MAX_SEGMENT_SIZE + 1);
+	char* buffer = b.get();
 	while (str_len > 0) {
-		char buffer[MAX_SEGMENT_SIZE + 1];
 		size_t len = std::min(str_len, MAX_SEGMENT_SIZE);
+		memset(buffer, 0, MAX_SEGMENT_SIZE + 1);
 		memcpy(buffer, str.data() + offset, len);
 		blob->putSegment(status, len, buffer);
 		offset += len;
