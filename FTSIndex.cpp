@@ -224,7 +224,7 @@ list<FTSIndex> FTSIndexRepository::getAllIndexes(ThrowStatusWrapper status, IAtt
 	));
 
 	list<FTSIndex> indexes;
-	if (rs->fetchNext(&status, output.getData()) == IStatus::RESULT_OK) {
+	while (rs->fetchNext(&status, output.getData()) == IStatus::RESULT_OK) {
 		FTSIndex ftsIndex;
 		ftsIndex.indexName.assign(output->indexName.str, output->indexName.length);
 		ftsIndex.analyzer.assign(output->analyzer.str, output->analyzer.length);

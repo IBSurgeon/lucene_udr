@@ -29,7 +29,7 @@ namespace LuceneFTS
 		bool relationExists(ThrowStatusWrapper status, IAttachment* att, ITransaction* tra, string relationName);
 		bool fieldExists(ThrowStatusWrapper status, IAttachment* att, ITransaction* tra, string relationName, string fieldName);
 
-		static inline string buildSqlSelectFieldValues(string relationName, list<string> fieldNames)
+		static inline string buildSqlSelectFieldValues(string relationName, list<string> fieldNames, bool whereDbKey = false)
 		{
 			std::stringstream ss;
 			ss << "SELECT\n";
@@ -38,6 +38,9 @@ namespace LuceneFTS
 				ss << ",\n  " << fieldName;
 			}
 			ss << "\nFROM " << relationName;
+			if (whereDbKey) {
+				ss << "\nWHERE RDB$DB_KEY = ?";
+			}
 			return ss.str();
 		}
 	};

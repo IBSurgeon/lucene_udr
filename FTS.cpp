@@ -1109,12 +1109,26 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 		, indexRepository(context->getMaster())
 		, relationHelper(context->getMaster())
 		, logRepository(context->getMaster())
+		, prepareStmtMap()
 	{
+	}
+
+	FB_UDR_DESTRUCTOR
+	{
+		clearPreparedStatements();
 	}
 
 	LuceneFTS::FTSIndexRepository indexRepository;
 	LuceneFTS::RelationHelper relationHelper;
 	LuceneFTS::FTSLogRepository logRepository;
+	map<string, IStatement*> prepareStmtMap;
+
+	void clearPreparedStatements() {
+		for (auto& pStmt : prepareStmtMap) {
+			pStmt.second->release();
+		}
+		prepareStmtMap.clear();
+	}
 
 	FB_UDR_EXECUTE_PROCEDURE
 	{
@@ -1127,6 +1141,7 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 		string icuCharset = getICICharset(fbCharset);
 
 		map<string, LuceneFTS::FTSRelation> relationsByName;
+		procedure->clearPreparedStatements();
 		
 		// получаем все индексы
 		auto allIndexes = procedure->indexRepository.getAllIndexes(status, att, tra);		
@@ -1138,16 +1153,17 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 				auto r = relationsByName.find(ftsSegment.relationName);
 				
 				if (r != relationsByName.end()) {
-					auto relation = r->second;
-					relation.addIndex(ftsIndex);
-					relation.addSegment(ftsSegment);
+					auto ftsRelation = r->second;
+					ftsRelation.addIndex(ftsIndex);
+					ftsRelation.addSegment(ftsSegment);
+					relationsByName.insert_or_assign(ftsSegment.relationName, ftsRelation);
 				}
 				else {
 					// такой таблицы ещё не было
-					LuceneFTS::FTSRelation relation(ftsSegment.relationName);
-					relation.addIndex(ftsIndex);
-					relation.addSegment(ftsSegment);
-					relationsByName.insert_or_assign(ftsSegment.relationName, relation);
+					LuceneFTS::FTSRelation ftsRelation(ftsSegment.relationName);
+					ftsRelation.addIndex(ftsIndex);
+					ftsRelation.addSegment(ftsSegment);
+					relationsByName.insert_or_assign(ftsSegment.relationName, ftsRelation);
 				}
 			}
 		}
@@ -1167,10 +1183,10 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 						fieldNames.push_back(segment.fieldName);
 					}
 				}
-				string sql = LuceneFTS::RelationHelper::buildSqlSelectFieldValues(relationName, fieldNames);
-				sql = sql + "\n WHERE RDB$DB_KEY = ?";
+				string sql = LuceneFTS::RelationHelper::buildSqlSelectFieldValues(relationName, fieldNames, true);
 				ftsRelation.setSql(ftsIndex.indexName, sql);
 			}
+			relationsByName.insert_or_assign(relationName, ftsRelation);
 		}
 		
 		FB_MESSAGE(ValInput, ThrowStatusWrapper,
@@ -1178,7 +1194,6 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 		) selValInput(status, context->getMaster());
 		
 
-		map<string, IStatement*> prepareStmtMap;
 		map<string, IndexWriterPtr> indexWriters;
 
 		
@@ -1212,7 +1227,7 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 			0
 		));
         
-		
+
 		while (logRs->fetchNext(status, logOutput.getData()) == IStatus::RESULT_OK) {
 			ISC_INT64 logId = logOutput->id;
 			string dbKey(logOutput->dbKey.str, logOutput->dbKey.length);
@@ -1236,7 +1251,7 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 					// если не найден, то открываем такой
 					if (iWriter == indexWriters.end()) {
 						// проверка существования директории для индекса
-	                    // и если она не существует создаём её
+						// и если она не существует создаём её
 						auto indexDir = StringUtils::toUnicode(ftsDirectory + "/" + indexName);
 						if (!FileUtils::isDirectory(indexDir)) {
 							bool result = FileUtils::createDirectory(indexDir);
@@ -1256,26 +1271,26 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 					if ((changeType == "I") || (changeType == "U")) {
 						string stmtName = relationName + "." + indexName;
 						// если его нет, то берём текст запроса и подготовливаем его
-						auto iStmt = prepareStmtMap.find(stmtName);
-						if (iStmt == prepareStmtMap.end()) {
-							AutoRelease<IStatement> stmt(att->prepare(
+						auto iStmt = procedure->prepareStmtMap.find(stmtName);
+						if (iStmt == procedure->prepareStmtMap.end()) {
+							IStatement* stmt = att->prepare(
 								status,
 								tra,
 								0,
 								ftsRelation.getSql(indexName).c_str(),
 								UDR_SQL_DIALECT,
 								IStatement::PREPARE_PREFETCH_METADATA
-							));
-							prepareStmtMap[stmtName] = stmt;
+							);
+							procedure->prepareStmtMap[stmtName] = stmt;
 						}
-						auto stmt = prepareStmtMap[stmtName];
+						auto stmt = procedure->prepareStmtMap[stmtName];
 						// получаем нужные значения полей
 						AutoRelease<IMessageMetadata> outputMetadata(stmt->getOutputMetadata(status));
 						unsigned colCount = outputMetadata->getCount(status);
 						// делаем все поля строкового типа, кроме BLOB
 						AutoRelease<IMessageMetadata> newMeta(prepareTextMetaData(status, outputMetadata));
 						auto fields = getFieldsInfo(status, newMeta);
-						
+
 						selValInput->db_keyNull = false;
 						selValInput->db_key.length = dbKey.length();
 						dbKey.copy(selValInput->db_key.str, selValInput->db_key.length);
@@ -1334,7 +1349,8 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 							}
 							rs->close(status);
 						}
-					} else if(changeType == "D") {
+					}
+					else if (changeType == "D") {
 						TermPtr term = newLucene<Term>(L"RDB$DB_KEY", StringUtils::toUnicode(hexDbKey));
 						writer->deleteDocuments(term);
 					}
@@ -1342,7 +1358,6 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 			}
 			procedure->logRepository.deleteLog(status, att, tra, logId);
 		}
-		
 		logRs->close(status);
 		// подтверждаем измения для всех индексов
 		for (auto& pIndexWriter : indexWriters) {
@@ -1350,6 +1365,8 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 			indexWriter->commit();
 			indexWriter->close();
 		}
+		// очищаем подготовленные запросы
+		procedure->clearPreparedStatements();
 	}
 
 	AutoRelease<IAttachment> att;
