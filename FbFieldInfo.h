@@ -25,6 +25,8 @@ inline string ToString(T tX)
 }
 
 struct FbFieldInfo {
+	unsigned fieldIndex;
+
 	string fieldName;
 	string relationName;
 	string owner;
@@ -166,6 +168,7 @@ template <class StatusType>  vector<FbFieldInfo> getFieldsInfo(StatusType* statu
 	vector<FbFieldInfo> fields(colCount);
 	for (unsigned i = 0; i < colCount; i++) { 
 		FbFieldInfo field;
+		field.fieldIndex = i;
 		field.nullable = meta->isNullable(status, i);
 		field.fieldName.assign(meta->getField(status, i));
 		field.relationName.assign(meta->getRelation(status, i));
