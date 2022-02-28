@@ -5,7 +5,7 @@ using namespace Firebird;
 using namespace std;
 using namespace LuceneFTS;
 
-bool RelationHelper::relationExists(ThrowStatusWrapper status, IAttachment* att, ITransaction* tra, string relationName)
+bool RelationHelper::relationExists(ThrowStatusWrapper status, IAttachment* att, ITransaction* tra, unsigned int sqlDialect, string relationName)
 {
 	FB_MESSAGE(Input, ThrowStatusWrapper,
 		(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
@@ -27,7 +27,7 @@ bool RelationHelper::relationExists(ThrowStatusWrapper status, IAttachment* att,
 			"SELECT COUNT(*) AS CNT\n"
 			"FROM RDB$RELATIONS\n"
 			"WHERE RDB$RELATION_NAME = ?",
-			UDR_SQL_DIALECT,
+			sqlDialect,
 			IStatement::PREPARE_PREFETCH_METADATA
 		));
 	}
@@ -48,7 +48,7 @@ bool RelationHelper::relationExists(ThrowStatusWrapper status, IAttachment* att,
 	return foundFlag;
 }
 
-bool RelationHelper::fieldExists(ThrowStatusWrapper status, IAttachment* att, ITransaction* tra, string relationName, string fieldName)
+bool RelationHelper::fieldExists(ThrowStatusWrapper status, IAttachment* att, ITransaction* tra, unsigned int sqlDialect, string relationName, string fieldName)
 {
 	FB_MESSAGE(Input, ThrowStatusWrapper,
 		(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
@@ -73,7 +73,7 @@ bool RelationHelper::fieldExists(ThrowStatusWrapper status, IAttachment* att, IT
 			"SELECT COUNT(*) AS CNT\n"
 			"FROM RDB$RELATION_FIELDS\n"
 			"WHERE RDB$RELATION_NAME = ? AND RDB$FIELD_NAME = ?",
-			UDR_SQL_DIALECT,
+			sqlDialect,
 			IStatement::PREPARE_PREFETCH_METADATA
 		));
 	}

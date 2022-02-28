@@ -26,16 +26,28 @@ namespace LuceneFTS
 			: m_master(master)
 		{}
 
-		bool relationExists(ThrowStatusWrapper status, IAttachment* att, ITransaction* tra, string relationName);
-		bool fieldExists(ThrowStatusWrapper status, IAttachment* att, ITransaction* tra, string relationName, string fieldName);
+		bool relationExists(ThrowStatusWrapper status, IAttachment* att, ITransaction* tra, unsigned int sqlDialect, string relationName);
+		bool fieldExists(ThrowStatusWrapper status, IAttachment* att, ITransaction* tra, unsigned int sqlDialect, string relationName, string fieldName);
 
-		static inline string buildSqlSelectFieldValues(string relationName, list<string> fieldNames, bool whereDbKey = false)
+		static inline string escapeMetaName(unsigned int sqlDialect, const string name)
 		{
+			switch (sqlDialect) {
+			case 1:
+				return name;
+			case 3:
+			default:
+				return "\"" + name + "\"";
+			}
+		}
+
+		static inline string buildSqlSelectFieldValues(unsigned int sqlDialect, string relationName, list<string> fieldNames, bool whereDbKey = false)
+		{
+			relationName = RelationHelper::escapeMetaName(sqlDialect, relationName);
 			std::stringstream ss;
 			ss << "SELECT\n";
 			ss << "  RDB$DB_KEY";
 			for (auto fieldName : fieldNames) {
-				ss << ",\n  " << fieldName;
+				ss << ",\n  " << RelationHelper::escapeMetaName(sqlDialect, fieldName);
 			}
 			ss << "\nFROM " << relationName;
 			if (whereDbKey) {

@@ -13,6 +13,7 @@ void FTSIndexRepository::createIndex(
 	ThrowStatusWrapper status,
 	IAttachment* att,
 	ITransaction* tra,
+	unsigned int sqlDialect,
 	string indexName,
 	string analyzer,
 	string description)
@@ -47,7 +48,7 @@ void FTSIndexRepository::createIndex(
 		0,
 		"INSERT INTO FTS$INDICES(FTS$INDEX_NAME, FTS$ANALYZER, FTS$DESCRIPTION)\n"
 		"VALUES(?, ?, ?)",
-		UDR_SQL_DIALECT,
+		sqlDialect,
 		input.getMetadata(),
 		input.getData(),
 		nullptr,
@@ -62,6 +63,7 @@ void FTSIndexRepository::dropIndex(
 	ThrowStatusWrapper status,
 	IAttachment* att,
 	ITransaction* tra,
+	unsigned int sqlDialect,
 	string indexName)
 {
 	FB_MESSAGE(Input, ThrowStatusWrapper,
@@ -78,7 +80,7 @@ void FTSIndexRepository::dropIndex(
 		tra,
 		0,
 		"DELETE FROM FTS$INDICES WHERE FTS$INDEX_NAME = ?",
-		UDR_SQL_DIALECT,
+		sqlDialect,
 		input.getMetadata(),
 		input.getData(),
 		nullptr,
@@ -89,7 +91,7 @@ void FTSIndexRepository::dropIndex(
 //
 // Возвращает существует ли индекс с заданным именем.
 //
-bool FTSIndexRepository::hasIndex(ThrowStatusWrapper status, IAttachment* att, ITransaction* tra, string indexName)
+bool FTSIndexRepository::hasIndex(ThrowStatusWrapper status, IAttachment* att, ITransaction* tra, unsigned int sqlDialect, string indexName)
 {
 	FB_MESSAGE(Input, ThrowStatusWrapper,
 		(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
@@ -112,7 +114,7 @@ bool FTSIndexRepository::hasIndex(ThrowStatusWrapper status, IAttachment* att, I
 			"SELECT COUNT(*) AS CNT\n"
 			"FROM FTS$INDICES\n"
 			"WHERE FTS$INDEX_NAME = ?",
-			UDR_SQL_DIALECT,
+			sqlDialect,
 			IStatement::PREPARE_PREFETCH_METADATA
 		));
 	}
@@ -137,7 +139,7 @@ bool FTSIndexRepository::hasIndex(ThrowStatusWrapper status, IAttachment* att, I
 // Получает информацию об индексе с заданным именем, если он существует.
 // Возвращает true, если индекс существует, и false - в противном случае.
 //
-bool FTSIndexRepository::getIndex(ThrowStatusWrapper status, IAttachment* att, ITransaction* tra, string indexName, FTSIndex& ftsIndex)
+bool FTSIndexRepository::getIndex(ThrowStatusWrapper status, IAttachment* att, ITransaction* tra, unsigned int sqlDialect, string indexName, FTSIndex& ftsIndex)
 {
 	FB_MESSAGE(Input, ThrowStatusWrapper,
 		(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
@@ -162,7 +164,7 @@ bool FTSIndexRepository::getIndex(ThrowStatusWrapper status, IAttachment* att, I
 			"SELECT FTS$INDEX_NAME, FTS$ANALYZER, FTS$DESCRIPTION\n"
 			"FROM FTS$INDICES\n"
 			"WHERE FTS$INDEX_NAME = ?",
-			UDR_SQL_DIALECT,
+			sqlDialect,
 			IStatement::PREPARE_PREFETCH_METADATA
 		));
 	}
@@ -193,7 +195,7 @@ bool FTSIndexRepository::getIndex(ThrowStatusWrapper status, IAttachment* att, I
 //
 // Возвращет список всех индексов
 //
-list<FTSIndex> FTSIndexRepository::getAllIndexes(ThrowStatusWrapper status, IAttachment* att, ITransaction* tra)
+list<FTSIndex> FTSIndexRepository::getAllIndexes(ThrowStatusWrapper status, IAttachment* att, ITransaction* tra, unsigned int sqlDialect)
 {
 
 	FB_MESSAGE(Output, ThrowStatusWrapper,
@@ -210,7 +212,7 @@ list<FTSIndex> FTSIndexRepository::getAllIndexes(ThrowStatusWrapper status, IAtt
 			"SELECT FTS$INDEX_NAME, FTS$ANALYZER, FTS$DESCRIPTION\n"
 			"FROM FTS$INDICES\n"
 			"ORDER BY FTS$INDEX_NAME",
-			UDR_SQL_DIALECT,
+		    sqlDialect,
 			IStatement::PREPARE_PREFETCH_METADATA
 		));
 	
@@ -243,7 +245,7 @@ list<FTSIndex> FTSIndexRepository::getAllIndexes(ThrowStatusWrapper status, IAtt
 //
 // Возвращает сегменты индекса с заданным именем
 //
-list<FTSIndexSegment> FTSIndexRepository::getIndexSegments(ThrowStatusWrapper status, IAttachment* att, ITransaction* tra, string indexName)
+list<FTSIndexSegment> FTSIndexRepository::getIndexSegments(ThrowStatusWrapper status, IAttachment* att, ITransaction* tra, unsigned int sqlDialect, string indexName)
 {
 	FB_MESSAGE(Input, ThrowStatusWrapper,
 		(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
@@ -268,7 +270,7 @@ list<FTSIndexSegment> FTSIndexRepository::getIndexSegments(ThrowStatusWrapper st
 			"SELECT FTS$INDEX_NAME, FTS$RELATION_NAME, FTS$FIELD_NAME\n"
 			"FROM FTS$INDEX_SEGMENTS\n"
 			"WHERE FTS$INDEX_NAME = ?",
-			UDR_SQL_DIALECT,
+			sqlDialect,
 			IStatement::PREPARE_PREFETCH_METADATA
 		));
 	}
@@ -298,7 +300,8 @@ list<FTSIndexSegment> FTSIndexRepository::getIndexSegments(ThrowStatusWrapper st
 list<FTSIndexSegment> FTSIndexRepository::getAllIndexSegments(
 	ThrowStatusWrapper status, 
 	IAttachment* att, 
-	ITransaction* tra)
+	ITransaction* tra,
+	unsigned int sqlDialect)
 {
 
 	FB_MESSAGE(Output, ThrowStatusWrapper,
@@ -321,7 +324,7 @@ list<FTSIndexSegment> FTSIndexRepository::getAllIndexSegments(
 			"FROM FTS$INDEX_SEGMENTS\n"
 			"JOIN FTS$INDICES ON FTS$INDEX_SEGMENTS.FTS$INDEX_NAME = FTS$INDICES.FTS$INDEX_NAME\n"
 			"ORDER BY FTS$INDEX_SEGMENTS.FTS$INDEX_NAME",
-			UDR_SQL_DIALECT,
+		    sqlDialect,
 			IStatement::PREPARE_PREFETCH_METADATA
 		));
 	
@@ -355,6 +358,7 @@ list<FTSIndexSegment> FTSIndexRepository::getIndexSegmentsByRelation(
 	ThrowStatusWrapper status, 
 	IAttachment* att, 
 	ITransaction* tra, 
+	unsigned int sqlDialect,
 	string relationName)
 {
 	FB_MESSAGE(Input, ThrowStatusWrapper,
@@ -387,7 +391,7 @@ list<FTSIndexSegment> FTSIndexRepository::getIndexSegmentsByRelation(
 			"JOIN FTS$INDICES ON FTS$INDEX_SEGMENTS.FTS$INDEX_NAME = FTS$INDICES.FTS$INDEX_NAME\n"
 			"WHERE FTS$INDEX_SEGMENTS.FTS$RELATION_NAME = ?\n"
 			"ORDER BY FTS$INDEX_SEGMENTS.FTS$INDEX_NAME",
-			UDR_SQL_DIALECT,
+			sqlDialect,
 			IStatement::PREPARE_PREFETCH_METADATA
 		));
 	}
@@ -421,6 +425,7 @@ void FTSIndexRepository::addIndexField(
 	ThrowStatusWrapper status,
 	IAttachment* att,
 	ITransaction* tra,
+	unsigned int sqlDialect,
 	string indexName,
 	string relationName,
 	string fieldName)
@@ -448,7 +453,7 @@ void FTSIndexRepository::addIndexField(
 		0,
 		"INSERT INTO FTS$INDEX_SEGMENTS(FTS$INDEX_NAME, FTS$RELATION_NAME, FTS$FIELD_NAME)\n"
 		"VALUES(?, ?, ?)",
-		UDR_SQL_DIALECT,
+		sqlDialect,
 		input.getMetadata(),
 		input.getData(),
 		nullptr,
@@ -463,6 +468,7 @@ void FTSIndexRepository::dropIndexField(
 	ThrowStatusWrapper status,
 	IAttachment* att,
 	ITransaction* tra,
+	unsigned int sqlDialect,
 	string indexName,
 	string relationName,
 	string fieldName)
@@ -490,7 +496,7 @@ void FTSIndexRepository::dropIndexField(
 		0,
 		"DELETE FROM FTS$INDEX_SEGMENTS\n"
 		"WHERE FTS$INDEX_NAME = ? AND FTS$RELATION_NAME = ? AND FTS$FIELD_NAME = ?",
-		UDR_SQL_DIALECT,
+		sqlDialect,
 		input.getMetadata(),
 		input.getData(),
 		nullptr,
@@ -505,6 +511,7 @@ bool FTSIndexRepository::hasIndexSegment(
 	ThrowStatusWrapper status,
 	IAttachment* att,
 	ITransaction* tra,
+	unsigned int sqlDialect,
 	string indexName,
 	string relationName,
 	string fieldName)
@@ -537,7 +544,7 @@ bool FTSIndexRepository::hasIndexSegment(
 		"SELECT COUNT(*) AS CNT\n"
 		"FROM FTS$INDEX_SEGMENTS\n"
 		"WHERE FTS$INDEX_NAME = ? AND FTS$RELATION_NAME = ? AND FTS$FIELD_NAME = ?",
-		UDR_SQL_DIALECT,
+		sqlDialect,
 		IStatement::PREPARE_PREFETCH_METADATA
 	));
 

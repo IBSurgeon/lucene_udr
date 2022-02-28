@@ -11,6 +11,7 @@ void FTSLogRepository::appendLog(
 	ThrowStatusWrapper status,
 	IAttachment* att,
 	ITransaction* tra,
+	unsigned int sqlDialect,
 	string relationName,
 	string dbKey,
 	string changeType)
@@ -43,7 +44,7 @@ void FTSLogRepository::appendLog(
 			"  CHANGE_TYPE\n"
 			")\n"
 			"VALUES(?, ?, ?)",
-			UDR_SQL_DIALECT,
+			sqlDialect,
 			IStatement::PREPARE_PREFETCH_METADATA
 		));
 	}
@@ -65,6 +66,7 @@ void FTSLogRepository::deleteLog(
 	ThrowStatusWrapper status,
 	IAttachment* att,
 	ITransaction* tra,
+	unsigned int sqlDialect,
 	ISC_INT64 id)
 {
 	FB_MESSAGE(Input, ThrowStatusWrapper,
@@ -82,7 +84,7 @@ void FTSLogRepository::deleteLog(
 			0,
 			"DELETE FROM FTS$LOG\n"
 			"WHERE ID = ?",
-			UDR_SQL_DIALECT,
+			sqlDialect,
 			IStatement::PREPARE_PREFETCH_METADATA
 		));
 	}
@@ -103,14 +105,15 @@ void FTSLogRepository::deleteLog(
 void FTSLogRepository::clearLog(
 	ThrowStatusWrapper status,
 	IAttachment* att,
-	ITransaction* tra)
+	ITransaction* tra,
+	unsigned int sqlDialect)
 {
 	att->execute(
 		&status,
 		tra,
 		0,
 		"DELETE FROM FTS$LOG",
-		UDR_SQL_DIALECT,
+		sqlDialect,
 		nullptr,
 		nullptr,
 		nullptr,

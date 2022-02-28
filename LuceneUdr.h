@@ -3,8 +3,6 @@
 
 #define FB_UDR_STATUS_TYPE ::Firebird::ThrowStatusWrapper
 
-const int UDR_SQL_DIALECT = 3;
-
 #include "charsets.h"
 #include "FBAutoPtr.h"
 #include "firebird/UdrCppEngine.h"

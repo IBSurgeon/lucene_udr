@@ -34,6 +34,7 @@ namespace LuceneFTS
 			ThrowStatusWrapper status,
 			IAttachment* att,
 			ITransaction* tra,
+			unsigned int sqlDialect,
 			string relationName,
 			string dbKey,
 			string changeType);
@@ -45,6 +46,7 @@ namespace LuceneFTS
 			ThrowStatusWrapper status,
 			IAttachment* att,
 			ITransaction* tra,
+			unsigned int sqlDialect,
 			ISC_INT64 id);
 
 		//
@@ -53,7 +55,8 @@ namespace LuceneFTS
 		void clearLog(
 			ThrowStatusWrapper status,
 			IAttachment* att,
-			ITransaction* tra);
+			ITransaction* tra,
+			unsigned int sqlDialect);
 	};
 }
 

@@ -68,8 +68,8 @@ IMessageMetadata* prepareTextMetaData(ThrowStatusWrapper* status, IMessageMetada
 	return builder->getMetadata(status);
 }
 
-int getSqlDialect(ThrowStatusWrapper* status, IAttachment* att) {
-	int sql_dialect = 1;
+unsigned int getSqlDialect(ThrowStatusWrapper* status, IAttachment* att) {
+	unsigned int sql_dialect = 1;
 	const unsigned char info_options[] = { isc_info_db_sql_dialect, isc_info_end };
 	unsigned char buffer[256];
 	int length;
@@ -163,11 +163,13 @@ FB_UDR_BEGIN_PROCEDURE(createIndex)
 		att.reset(context->getAttachment(status));
 		tra.reset(context->getTransaction(status));
 
+		unsigned int sqlDialect = getSqlDialect(status, att);
+
 		// TODO: В настоящее время анализаторы не учитываются
 		// когда они будут учитываться необходима проверка существования
 
 		// проверка существования индекса
-		if (procedure->indexRepository.hasIndex(status, att, tra, indexName)) {
+		if (procedure->indexRepository.hasIndex(status, att, tra, sqlDialect, indexName)) {
 			string error_message = "";
 			error_message += "Index \"" + indexName + "\" already exists";
 			throwFbException(status, error_message.c_str());
@@ -179,7 +181,7 @@ FB_UDR_BEGIN_PROCEDURE(createIndex)
 		    blob->close(status);
 	    }
 
-		procedure->indexRepository.createIndex(status, att, tra, indexName, analyzerName, description);
+		procedure->indexRepository.createIndex(status, att, tra, sqlDialect, indexName, analyzerName, description);
 
 		// проверка существования директории для индекса
         // и если она не существует создаём её
@@ -236,8 +238,10 @@ FB_UDR_BEGIN_PROCEDURE(dropIndex)
 		att.reset(context->getAttachment(status));
 		tra.reset(context->getTransaction(status));
 
+		unsigned int sqlDialect = getSqlDialect(status, att);
+
 		// проверка существования индекса
-		if (!procedure->indexRepository.hasIndex(status, att, tra, indexName)) {
+		if (!procedure->indexRepository.hasIndex(status, att, tra, sqlDialect, indexName)) {
 			string error_message = "";
 			error_message += "Index \"" + indexName + "\" not exists";
 			throwFbException(status, error_message.c_str());
@@ -250,7 +254,7 @@ FB_UDR_BEGIN_PROCEDURE(dropIndex)
 			FileUtils::removeDirectory(indexDir);
 		}
 
-		procedure->indexRepository.dropIndex(status, att, tra, indexName);
+		procedure->indexRepository.dropIndex(status, att, tra, sqlDialect, indexName);
 	}
 
 	AutoRelease<IAttachment> att;
@@ -308,36 +312,38 @@ FB_UDR_BEGIN_PROCEDURE(addIndexField)
 		att.reset(context->getAttachment(status));
 		tra.reset(context->getTransaction(status));
 
+		unsigned int sqlDialect = getSqlDialect(status, att);
+
 		// проверка существования индекса
-		if (!procedure->indexRepository.hasIndex(status, att, tra, indexName)) {
+		if (!procedure->indexRepository.hasIndex(status, att, tra, sqlDialect, indexName)) {
 			string error_message = "";
 			error_message += "Index \"" + indexName + "\" not exists";
 			throwFbException(status, error_message.c_str());
 		}
 
 		// проверка существования таблицы
-		if (!procedure->relationHelper.relationExists(status, att, tra, relationName)) {
+		if (!procedure->relationHelper.relationExists(status, att, tra, sqlDialect, relationName)) {
 			string error_message = "";
 			error_message += "Table \"" + relationName + "\" not exists";
 			throwFbException(status, error_message.c_str());
 		}
 
 		// проверка существования поля
-		if (!procedure->relationHelper.fieldExists(status, att, tra, relationName, fieldName)) {
+		if (!procedure->relationHelper.fieldExists(status, att, tra, sqlDialect, relationName, fieldName)) {
 			string error_message = "";
 			error_message += "Field \"" + fieldName + "\" not exitsts in table \"" + relationName + "\"";
 			throwFbException(status, error_message.c_str());
 		}
 
 		// проверка существования сегмента
-		if (procedure->indexRepository.hasIndexSegment(status, att, tra, indexName, relationName, fieldName)) {
+		if (procedure->indexRepository.hasIndexSegment(status, att, tra, sqlDialect, indexName, relationName, fieldName)) {
 			string error_message = "";
 			error_message += "Segment for \"" + relationName + "\".\"" + fieldName + "\" already exitsts in index \"" + indexName + "\"";
 			throwFbException(status, error_message.c_str());
 		}
 
 		// добавление сегмента
-		procedure->indexRepository.addIndexField(status, att, tra, indexName, relationName, fieldName);
+		procedure->indexRepository.addIndexField(status, att, tra, sqlDialect, indexName, relationName, fieldName);
 	}
 
 	AutoRelease<IAttachment> att;
@@ -397,36 +403,38 @@ FB_UDR_BEGIN_PROCEDURE(dropIndexField)
 		att.reset(context->getAttachment(status));
 		tra.reset(context->getTransaction(status));
 
+		unsigned int sqlDialect = getSqlDialect(status, att);
+
 		// проверка существования индекса
-		if (!procedure->indexRepository.hasIndex(status, att, tra, indexName)) {
+		if (!procedure->indexRepository.hasIndex(status, att, tra, sqlDialect, indexName)) {
 			string error_message = "";
 			error_message += "Index \"" + indexName + "\" not exists";
 			throwFbException(status, error_message.c_str());
 		}
 
 		// проверка существования таблицы
-		if (!procedure->relationHelper.relationExists(status, att, tra, relationName)) {
+		if (!procedure->relationHelper.relationExists(status, att, tra, sqlDialect, relationName)) {
 			string error_message = "";
 			error_message += "Table \"" + relationName + "\" not exists";
 			throwFbException(status, error_message.c_str());
 		}
 
 		// проверка существования поля
-		if (!procedure->relationHelper.fieldExists(status, att, tra, relationName, fieldName)) {
+		if (!procedure->relationHelper.fieldExists(status, att, tra, sqlDialect, relationName, fieldName)) {
 			string error_message = "";
 			error_message += "Field \"" + fieldName + "\" not exitsts in table \"" + relationName + "\"";
 			throwFbException(status, error_message.c_str());
 		}
 
 		// проверка существования сегмента
-		if (!procedure->indexRepository.hasIndexSegment(status, att, tra, indexName, relationName, fieldName)) {
+		if (!procedure->indexRepository.hasIndexSegment(status, att, tra, sqlDialect, indexName, relationName, fieldName)) {
 			string error_message = "";
 			error_message += "Segment for \"" + relationName + "\".\"" + fieldName + "\" not exists in index \"" + indexName + "\"";
 			throwFbException(status, error_message.c_str());
 		}
 
 		// удаление сегмента
-		procedure->indexRepository.dropIndexField(status, att, tra, indexName, relationName, fieldName);
+		procedure->indexRepository.dropIndexField(status, att, tra, sqlDialect, indexName, relationName, fieldName);
 	}
 
 	AutoRelease<IAttachment> att;
@@ -481,9 +489,10 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 		att.reset(context->getAttachment(status));
 		tra.reset(context->getTransaction(status));
 		
+		unsigned int sqlDialect = getSqlDialect(status, att);
 
 		// проверка существования индекса
-		if (!procedure->indexRepository.hasIndex(status, att, tra, indexName)) {
+		if (!procedure->indexRepository.hasIndex(status, att, tra, sqlDialect, indexName)) {
 			string error_message = "";
 			error_message += "Index \"" + indexName + "\" not exists";
 			throwFbException(status, error_message.c_str());
@@ -513,31 +522,31 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 			string icuCharset = getICICharset(fbCharset);
 			
 			// получаем сегменты индекса и группируем их по именам таблиц
-			auto segments = procedure->indexRepository.getIndexSegments(status, att, tra, indexName);
+			auto segments = procedure->indexRepository.getIndexSegments(status, att, tra, sqlDialect, indexName);
 			auto segmentsByRelation = LuceneFTS::FTSIndexRepository::groupIndexSegmentsByRelation(segments);
 			
 			for (const auto& p : segmentsByRelation) {
 				const string relationName = p.first;
-				if (!procedure->relationHelper.relationExists(status, att, tra, relationName)) {
+				if (!procedure->relationHelper.relationExists(status, att, tra, sqlDialect, relationName)) {
 					// если таблицы не существует просто пропускаем этот сегмент
 					continue;
 				}
 				const auto segments = p.second;
 				list<string> fieldNames;
 				for (const auto& segment : segments) {
-					if (procedure->relationHelper.fieldExists(status, att, tra, segment.relationName, segment.fieldName)) {
+					if (procedure->relationHelper.fieldExists(status, att, tra, sqlDialect, segment.relationName, segment.fieldName)) {
 						// игнорируем не существующие поля
 						fieldNames.push_back(segment.fieldName);
 					}
 				}
-				const string sql = LuceneFTS::RelationHelper::buildSqlSelectFieldValues(relationName, fieldNames);
+				const string sql = LuceneFTS::RelationHelper::buildSqlSelectFieldValues(sqlDialect, relationName, fieldNames);
 
 				AutoRelease<IStatement> stmt(att->prepare(
 					status,
 					tra,
 					0,
 					sql.c_str(),
-					UDR_SQL_DIALECT,
+					sqlDialect,
 					IStatement::PREPARE_PREFETCH_METADATA
 				));
 				AutoRelease<IMessageMetadata> outputMetadata(stmt->getOutputMetadata(status));
@@ -659,7 +668,9 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogChange)
 		att.reset(context->getAttachment(status));
 		tra.reset(context->getTransaction(status));
 
-		procedure->logRepository.appendLog(status, att, tra, relationName, dbKey, changeType);
+		unsigned int sqlDialect = getSqlDialect(status, att);
+
+		procedure->logRepository.appendLog(status, att, tra, sqlDialect, relationName, dbKey, changeType);
 	}
 
 	AutoRelease<IAttachment> att;
@@ -675,56 +686,40 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogChange)
 
 FB_UDR_END_PROCEDURE
 
+
 /***
-CREATE OR ALTER TRIGGER FTS$TR_HORSE FOR HORSE
-ACTIVE AFTER INSERT OR UPDATE OR DELETE POSITION 100
-EXTERNAL NAME 'luceneudr!trFtsLog'
+CREATE PROCEDURE FTS$CLEAR_LOG
+EXTERNAL NAME 'luceneudr!ftsClearLog'
 ENGINE UDR;
 ***/
-FB_UDR_BEGIN_TRIGGER(trFtsLog)
-
-    FB_UDR_CONSTRUCTOR
-        , triggerMetadata(metadata->getTriggerMetadata(status))
-	    , triggerTable(metadata->getTriggerTable(status))
-		, indexRepository(context->getMaster())
+FB_UDR_BEGIN_PROCEDURE(ftsClearLog)
+	FB_UDR_CONSTRUCTOR
+		, logRepository(context->getMaster())
 	{
 	}
 
-	LuceneFTS::FTSIndexRepository indexRepository;
+	LuceneFTS::FTSLogRepository logRepository;
 
-	FB_UDR_EXECUTE_TRIGGER
+	FB_UDR_EXECUTE_PROCEDURE
 	{
+
 		att.reset(context->getAttachment(status));
 		tra.reset(context->getTransaction(status));
 
-		// получаем сегменты FTS индекса
-		auto segments = indexRepository.getIndexSegmentsByRelation(status, att, tra, triggerTable);
-		// если нет ни одного сегмента выходим
-		if (segments.size() == 0)
-			return;
-		auto fieldsInfo = getFieldsInfo(status, triggerMetadata);
-		string s;
-		for (const auto& fieldInfo : fieldsInfo) {
-			s += fieldInfo.fieldName + " ";
-		}
-		throwFbException(status, s.c_str());
-		
-		if (action == IExternalTrigger::ACTION_INSERT) {
-		   
-		}
-		if (action == IExternalTrigger::ACTION_UPDATE) {
+		unsigned int sqlDialect = getSqlDialect(status, att);
 
-		}
-		if (action == IExternalTrigger::ACTION_DELETE) {
-
-		}
+		procedure->logRepository.clearLog(status, att, tra, sqlDialect);
 	}
 
-	string triggerTable;
-    AutoRelease<IMessageMetadata> triggerMetadata;
 	AutoRelease<IAttachment> att;
 	AutoRelease<ITransaction> tra;
-FB_UDR_END_TRIGGER
+
+	FB_UDR_FETCH_PROCEDURE
+	{
+		return false;
+	}
+
+FB_UDR_END_PROCEDURE
 
 /***
 CREATE PROCEDURE FTS$UPDATE_INDEXES 
@@ -763,6 +758,8 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 		att.reset(context->getAttachment(status));
 		tra.reset(context->getTransaction(status));
 
+		unsigned int sqlDialect = getSqlDialect(status, att);
+
 		string ftsDirectory = getFtsDirectory(context);
 
 		const char* fbCharset = context->getClientCharSet();
@@ -772,10 +769,10 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 		procedure->clearPreparedStatements();
 		
 		// получаем все индексы
-		auto allIndexes = procedure->indexRepository.getAllIndexes(status, att, tra);		
+		auto allIndexes = procedure->indexRepository.getAllIndexes(status, att, tra, sqlDialect);
 		for (auto& ftsIndex : allIndexes) {
 		    // получаем сегменты индекса
-			auto segments = procedure->indexRepository.getIndexSegments(status, att, tra, ftsIndex.indexName);
+			auto segments = procedure->indexRepository.getIndexSegments(status, att, tra, sqlDialect, ftsIndex.indexName);
 			for (auto& ftsSegment : segments) {
 			    // ищем таблицу по имени
 				auto r = relationsByName.find(ftsSegment.relationName);
@@ -806,12 +803,12 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 				auto segments = ftsRelation.getSegmentsByIndexName(ftsIndex.indexName);
 				list<string> fieldNames;
 				for (const auto& segment : segments) {
-					if (procedure->relationHelper.fieldExists(status, att, tra, segment.relationName, segment.fieldName)) {
+					if (procedure->relationHelper.fieldExists(status, att, tra, sqlDialect, segment.relationName, segment.fieldName)) {
 						// игнорируем не существующие поля
 						fieldNames.push_back(segment.fieldName);
 					}
 				}
-				string sql = LuceneFTS::RelationHelper::buildSqlSelectFieldValues(relationName, fieldNames, true);
+				string sql = LuceneFTS::RelationHelper::buildSqlSelectFieldValues(sqlDialect, relationName, fieldNames, true);
 				ftsRelation.setSql(ftsIndex.indexName, sql);
 			}
 			relationsByName.insert_or_assign(relationName, ftsRelation);
@@ -833,7 +830,7 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 			"SELECT ID, DB_KEY, RELATION_NAME, CHANGE_TYPE\n"
 			"FROM FTS$LOG\n"
 			"ORDER BY ID",
-			UDR_SQL_DIALECT,
+			sqlDialect,
 			IStatement::PREPARE_PREFETCH_METADATA
 		));
 
@@ -906,7 +903,7 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 								tra,
 								0,
 								ftsRelation.getSql(indexName).c_str(),
-								UDR_SQL_DIALECT,
+								sqlDialect,
 								IStatement::PREPARE_PREFETCH_METADATA
 							);
 							procedure->prepareStmtMap[stmtName] = stmt;
@@ -984,7 +981,7 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 					}
 				}
 			}
-			procedure->logRepository.deleteLog(status, att, tra, logId);
+			procedure->logRepository.deleteLog(status, att, tra, sqlDialect, logId);
 		}
 		logRs->close(status);
 		// подтверждаем измения для всех индексов
@@ -1070,8 +1067,10 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 		att.reset(context->getAttachment(status));
 		tra.reset(context->getTransaction(status));
 
+		unsigned int sqlDialect = getSqlDialect(status, att);
+
 		// проверка существования индекса
-		if (!procedure->indexRepository.hasIndex(status, att, tra, indexName)) {
+		if (!procedure->indexRepository.hasIndex(status, att, tra, sqlDialect, indexName)) {
 			string error_message;
 			error_message += "Index \"" + indexName + "\" not exists";
 			throwFbException(status, error_message.c_str());
@@ -1090,7 +1089,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 			IndexReaderPtr reader = IndexReader::open(fsIndexDir, true);
 			searcher = newLucene<IndexSearcher>(reader);
 			AnalyzerPtr analyzer = newLucene<StandardAnalyzer>(LuceneVersion::LUCENE_CURRENT);
-			auto segments = procedure->indexRepository.getIndexSegments(status, att, tra, indexName);
+			auto segments = procedure->indexRepository.getIndexSegments(status, att, tra, sqlDialect, indexName);
 			if (!relationName.empty()) {
 				// если задано имя таблицы, то выбираем только сегменты с этой таблицей
 				auto segmentsByRelation = LuceneFTS::FTSIndexRepository::groupIndexSegmentsByRelation(segments);
@@ -1166,5 +1165,57 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 	}
 FB_UDR_END_PROCEDURE
 
+/***
+CREATE OR ALTER TRIGGER FTS$TR_HORSE FOR HORSE
+ACTIVE AFTER INSERT OR UPDATE OR DELETE POSITION 100
+EXTERNAL NAME 'luceneudr!trFtsLog'
+ENGINE UDR;
+***/
+FB_UDR_BEGIN_TRIGGER(trFtsLog)
+
+    FB_UDR_CONSTRUCTOR
+       , triggerMetadata(metadata->getTriggerMetadata(status))
+       , triggerTable(metadata->getTriggerTable(status))
+       , indexRepository(context->getMaster())
+	{
+	}
+
+	LuceneFTS::FTSIndexRepository indexRepository;
+
+	FB_UDR_EXECUTE_TRIGGER
+	{
+		att.reset(context->getAttachment(status));
+		tra.reset(context->getTransaction(status));
+
+		unsigned int sqlDialect = getSqlDialect(status, att);
+
+		// получаем сегменты FTS индекса
+		auto segments = indexRepository.getIndexSegmentsByRelation(status, att, tra, sqlDialect, triggerTable);
+		// если нет ни одного сегмента выходим
+		if (segments.size() == 0)
+			return;
+		auto fieldsInfo = getFieldsInfo(status, triggerMetadata);
+		string s;
+		for (const auto& fieldInfo : fieldsInfo) {
+			s += fieldInfo.fieldName + " ";
+		}
+		throwFbException(status, s.c_str());
+
+		if (action == IExternalTrigger::ACTION_INSERT) {
+
+		}
+		if (action == IExternalTrigger::ACTION_UPDATE) {
+
+		}
+		if (action == IExternalTrigger::ACTION_DELETE) {
+
+		}
+	}
+
+	string triggerTable;
+	AutoRelease<IMessageMetadata> triggerMetadata;
+	AutoRelease<IAttachment> att;
+	AutoRelease<ITransaction> tra;
+FB_UDR_END_TRIGGER
 
 FB_UDR_IMPLEMENT_ENTRY_POINT
