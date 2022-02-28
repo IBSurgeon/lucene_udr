@@ -186,4 +186,14 @@ template <class StatusType>  vector<FbFieldInfo> getFieldsInfo(StatusType* statu
 	return fields;
 }
 
+int findFieldByName(vector<FbFieldInfo> fieldsInfo, string fieldName)
+{
+	for (const auto& fieldInfo : fieldsInfo) {
+		if (fieldInfo.fieldName == fieldName) {
+			return fieldInfo.fieldIndex;
+		}
+	}
+	return -1;
+}
+
 #endif	// FB_AUTO_PTR_H

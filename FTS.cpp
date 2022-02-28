@@ -1174,10 +1174,18 @@ ENGINE UDR;
 FB_UDR_BEGIN_TRIGGER(trFtsLog)
 
     FB_UDR_CONSTRUCTOR
-       , triggerMetadata(metadata->getTriggerMetadata(status))
        , triggerTable(metadata->getTriggerTable(status))
        , indexRepository(context->getMaster())
 	{
+		AutoRelease<IMessageMetadata> origTriggerMetadata(metadata->getTriggerMetadata(status));
+		AutoRelease<IMetadataBuilder> builder(origTriggerMetadata->getBuilder(status));
+		auto fieldIndex = builder->addField(status);
+		builder->setField(status, fieldIndex, "RDB$DB_KEY");
+		builder->setType(status, fieldIndex, SQL_TEXT);
+		builder->setLength(status, fieldIndex, 8);
+		builder->setCharSet(status, fieldIndex, CS_BINARY);
+		triggerMetadata.reset(builder->getMetadata(status));
+
 	}
 
 	LuceneFTS::FTSIndexRepository indexRepository;
@@ -1195,20 +1203,27 @@ FB_UDR_BEGIN_TRIGGER(trFtsLog)
 		if (segments.size() == 0)
 			return;
 		auto fieldsInfo = getFieldsInfo(status, triggerMetadata);
-		string s;
-		for (const auto& fieldInfo : fieldsInfo) {
-			s += fieldInfo.fieldName + " ";
-		}
-		throwFbException(status, s.c_str());
+		int dbKeyIndex = findFieldByName(fieldsInfo, "RDB$DB_KEY");
+		
 
 		if (action == IExternalTrigger::ACTION_INSERT) {
-
+			string dbKey = fieldsInfo[dbKeyIndex].getStringValue(status, att, tra, newFields);
+			bool changeFlag = false;
+			for (auto& segment : segments) {
+			    int fieldIndex = findFieldByName(fieldsInfo, segment.fieldName);
+				if (fieldIndex < 0) {
+					string s = "Invalid index segment " + segment.relationName + "." + segment.fieldName + " for index " + segment.indexName;
+					throwFbException(status, s.c_str());
+				}
+			}
 		}
 		if (action == IExternalTrigger::ACTION_UPDATE) {
-
+			string dbKey = fieldsInfo[dbKeyIndex].getStringValue(status, att, tra, newFields);
+			string hexDbKey = string_to_hex(dbKey);
+			throwFbException(status, hexDbKey.c_str());
 		}
 		if (action == IExternalTrigger::ACTION_DELETE) {
-
+			string dbKey = fieldsInfo[dbKeyIndex].getStringValue(status, att, tra, newFields);
 		}
 	}
 
