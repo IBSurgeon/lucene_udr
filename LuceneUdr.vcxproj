@@ -31,6 +31,7 @@
     <ClInclude Include="FbFieldInfo.h" />
     <ClInclude Include="FTSIndex.h" />
     <ClInclude Include="FTSLog.h" />
+    <ClInclude Include="LuceneAnalyzerFactory.h" />
     <ClInclude Include="LuceneUdr.h" />
     <ClInclude Include="Relations.h" />
   </ItemGroup>
@@ -168,7 +169,7 @@
       <EnableUAC>false</EnableUAC>
       <AdditionalLibraryDirectories>lib\Win32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <ModuleDefinitionFile>defs\udr_plugin.def</ModuleDefinitionFile>
-      <AdditionalDependencies>fbclient_ms.lib;lucene++.lib;c:\Boost\boost_1_78_0\stage\x86\lib\libboost_filesystem-vc143-mt-x32-1_78.lib;c:\Boost\boost_1_78_0\stage\x86\lib\libboost_thread-vc143-mt-x32-1_78.lib;c:\Boost\boost_1_78_0\stage\x86\lib\libboost_chrono-vc143-mt-x32-1_78.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>fbclient_ms.lib;lucene++.lib;lucene++-contrib.lib;c:\Boost\boost_1_78_0\stage\x86\lib\libboost_filesystem-vc143-mt-x32-1_78.lib;c:\Boost\boost_1_78_0\stage\x86\lib\libboost_thread-vc143-mt-x32-1_78.lib;c:\Boost\boost_1_78_0\stage\x86\lib\libboost_chrono-vc143-mt-x32-1_78.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -191,7 +192,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
       <AdditionalLibraryDirectories>lib\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>fbclient_ms.lib;lucene++.lib;c:\Boost\boost_1_78_0\stage\x64\lib\libboost_filesystem-vc143-mt-x64-1_78.lib;c:\Boost\boost_1_78_0\stage\x64\lib\libboost_thread-vc143-mt-x64-1_78.lib;c:\Boost\boost_1_78_0\stage\x64\lib\libboost_chrono-vc143-mt-x64-1_78.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>fbclient_ms.lib;lucene++.lib;lucene++-contrib.lib;c:\Boost\boost_1_78_0\stage\x64\lib\libboost_filesystem-vc143-mt-x64-1_78.lib;c:\Boost\boost_1_78_0\stage\x64\lib\libboost_thread-vc143-mt-x64-1_78.lib;c:\Boost\boost_1_78_0\stage\x64\lib\libboost_chrono-vc143-mt-x64-1_78.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>defs\udr_plugin.def</ModuleDefinitionFile>
     </Link>
   </ItemDefinitionGroup>

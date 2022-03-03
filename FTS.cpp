@@ -9,6 +9,7 @@
 #include "lucene++\LuceneHeaders.h"
 #include "lucene++\FileUtils.h"
 #include "lucene++\MiscUtils.h"
+#include "LuceneAnalyzerFactory.h"
 #include "inicpp.h"
 #include <sstream>
 #include <vector>
@@ -464,11 +465,13 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
     FB_UDR_CONSTRUCTOR
 		, indexRepository(context->getMaster())
 		, relationHelper(context->getMaster())
+		, analyzerFactory()
     {
     }
 
 	LuceneFTS::FTSIndexRepository indexRepository;
 	LuceneFTS::RelationHelper relationHelper;
+	LuceneFTS::LuceneAnalyzerFactory analyzerFactory;
 	   
     FB_UDR_EXECUTE_PROCEDURE
     {		
@@ -492,7 +495,8 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 		unsigned int sqlDialect = getSqlDialect(status, att);
 
 		// проверка существования индекса
-		if (!procedure->indexRepository.hasIndex(status, att, tra, sqlDialect, indexName)) {
+		LuceneFTS::FTSIndex ftsIndex;
+		if (!procedure->indexRepository.getIndex(status, att, tra, sqlDialect, indexName, ftsIndex)) {
 			string error_message = "";
 			error_message += "Index \"" + indexName + "\" not exists";
 			throwFbException(status, error_message.c_str());
@@ -510,8 +514,9 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
         }
 
 	    try {
+
 			auto fsIndexDir = FSDirectory::open(indexDir);
-			auto analyzer = newLucene<StandardAnalyzer>(LuceneVersion::LUCENE_CURRENT);
+			auto analyzer = procedure->analyzerFactory.createAnalyzer(ftsIndex.analyzer);
 		    IndexWriterPtr writer = newLucene<IndexWriter>(fsIndexDir, analyzer, true, IndexWriter::MaxFieldLengthLIMITED);
 
 			// очищаем директорию индекса
@@ -732,6 +737,7 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 		, indexRepository(context->getMaster())
 		, relationHelper(context->getMaster())
 		, logRepository(context->getMaster())
+		, analyzerFactory()
 		, prepareStmtMap()
 	{
 	}
@@ -744,6 +750,7 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 	LuceneFTS::FTSIndexRepository indexRepository;
 	LuceneFTS::RelationHelper relationHelper;
 	LuceneFTS::FTSLogRepository logRepository;
+	LuceneFTS::LuceneAnalyzerFactory analyzerFactory;
 	map<string, IStatement*> prepareStmtMap;
 
 	void clearPreparedStatements() {
@@ -888,7 +895,7 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 						}
 						auto fsIndexDir = FSDirectory::open(indexDir);
 						// TODO: пока анализатор всегда стандартный
-						auto analyzer = newLucene<StandardAnalyzer>(LuceneVersion::LUCENE_CURRENT);
+						auto analyzer = procedure->analyzerFactory.createAnalyzer(ftsIndex.analyzer);
 						IndexWriterPtr writer = newLucene<IndexWriter>(fsIndexDir, analyzer, IndexWriter::MaxFieldLengthLIMITED);
 						indexWriters[indexName] = writer;
 					}
@@ -1036,10 +1043,12 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 
 	FB_UDR_CONSTRUCTOR
 		, indexRepository(context->getMaster())
+		, analyzerFactory()
 	{
 	}
 
 	LuceneFTS::FTSIndexRepository indexRepository;
+	LuceneFTS::LuceneAnalyzerFactory analyzerFactory;
 
 	FB_UDR_EXECUTE_PROCEDURE
 	{
@@ -1069,8 +1078,9 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 
 		unsigned int sqlDialect = getSqlDialect(status, att);
 
+		LuceneFTS::FTSIndex ftsIndex;
 		// проверка существования индекса
-		if (!procedure->indexRepository.hasIndex(status, att, tra, sqlDialect, indexName)) {
+		if (!procedure->indexRepository.getIndex(status, att, tra, sqlDialect, indexName, ftsIndex)) {
 			string error_message;
 			error_message += "Index \"" + indexName + "\" not exists";
 			throwFbException(status, error_message.c_str());
@@ -1088,7 +1098,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 			auto fsIndexDir = FSDirectory::open(indexDir);
 			IndexReaderPtr reader = IndexReader::open(fsIndexDir, true);
 			searcher = newLucene<IndexSearcher>(reader);
-			AnalyzerPtr analyzer = newLucene<StandardAnalyzer>(LuceneVersion::LUCENE_CURRENT);
+			AnalyzerPtr analyzer = procedure->analyzerFactory.createAnalyzer(ftsIndex.analyzer);
 			auto segments = procedure->indexRepository.getIndexSegments(status, att, tra, sqlDialect, indexName);
 			if (!relationName.empty()) {
 				// если задано имя таблицы, то выбираем только сегменты с этой таблицей
