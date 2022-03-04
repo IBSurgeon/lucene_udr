@@ -129,6 +129,53 @@ FB_UDR_BEGIN_FUNCTION(getFTSDirectory)
 FB_UDR_END_FUNCTION
 
 /***
+CREATE PROCEDURE FTS$ANALYZERS
+EXTERNAL NAME 'luceneudr!getAnalyzers'
+RETURNS (
+  FTS$ANALYZER VARCHAR(63) CHARACTER SET UTF8
+)
+ENGINE UDR;
+***/
+FB_UDR_BEGIN_PROCEDURE(getAnalyzers)
+
+    FB_UDR_MESSAGE(OutMessage,
+	    (FB_INTL_VARCHAR(252, CS_UTF8), analyzer)
+    );
+
+	FB_UDR_CONSTRUCTOR
+		, analyzerFactory()
+	{
+	}
+
+	LuceneFTS::LuceneAnalyzerFactory analyzerFactory;
+
+	FB_UDR_EXECUTE_PROCEDURE
+	{
+		analyzerNames = procedure->analyzerFactory.getAnalyzerNames();
+	    it = analyzerNames.begin();;
+	}
+
+	list<string> analyzerNames;
+	list<string>::iterator it;
+
+	FB_UDR_FETCH_PROCEDURE
+	{
+		if (it == analyzerNames.end()) {
+			return false;
+		}
+		string analyzerName = *it;
+
+		out->analyzerNull = false;
+		out->analyzer.length = analyzerName.length();
+		analyzerName.copy(out->analyzer.str, out->analyzer.length);
+
+		++it;
+		return true;
+	}
+FB_UDR_END_PROCEDURE
+
+
+/***
 CREATE PROCEDURE FTS$CREATE_INDEX (
 	 FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
 	 FTS$ANALYZER VARCHAR(63) CHARACTER SET UTF8,
@@ -146,10 +193,12 @@ FB_UDR_BEGIN_PROCEDURE(createIndex)
 
 	FB_UDR_CONSTRUCTOR
 		, indexRepository(context->getMaster())
+		, analyzerFactory()
 	{
 	}
 
 	LuceneFTS::FTSIndexRepository indexRepository;
+	LuceneFTS::LuceneAnalyzerFactory analyzerFactory;
 
 	FB_UDR_EXECUTE_PROCEDURE
 	{
@@ -159,15 +208,16 @@ FB_UDR_BEGIN_PROCEDURE(createIndex)
 		indexName.assign(in->index_name.str, in->index_name.length);
 		if (!in->analyzerNull) {
 			analyzerName.assign(in->analyzer.str, in->analyzer.length);
+			std::transform(analyzerName.begin(), analyzerName.end(), analyzerName.begin(), ::toupper);
+		}
+		else {
+			analyzerName = "STANDART";
 		}
 
 		att.reset(context->getAttachment(status));
 		tra.reset(context->getTransaction(status));
 
 		unsigned int sqlDialect = getSqlDialect(status, att);
-
-		// TODO: В настоящее время анализаторы не учитываются
-		// когда они будут учитываться необходима проверка существования
 
 		// проверка существования индекса
 		if (procedure->indexRepository.hasIndex(status, att, tra, sqlDialect, indexName)) {
@@ -176,11 +226,19 @@ FB_UDR_BEGIN_PROCEDURE(createIndex)
 			throwFbException(status, error_message.c_str());
 		}
 
+		// проверяем существование анализатора
+		if (procedure->analyzerFactory.hasAnalyzer(analyzerName)) {
+			string error_message = "";
+			error_message += "Analyzer \"" + analyzerName + "\" not exists";
+			throwFbException(status, error_message.c_str());
+		}
+
 		if (!in->descriptionNull) {
 		    AutoRelease<IBlob> blob(att->openBlob(status, tra, &in->description, 0, nullptr));
 			description = blob_get_string(status, blob);
 		    blob->close(status);
 	    }
+
 
 		procedure->indexRepository.createIndex(status, att, tra, sqlDialect, indexName, analyzerName, description);
 

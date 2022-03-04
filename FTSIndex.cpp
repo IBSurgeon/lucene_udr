@@ -180,7 +180,12 @@ bool FTSIndexRepository::getIndex(ThrowStatusWrapper status, IAttachment* att, I
 	if (rs->fetchNext(&status, output.getData()) == IStatus::RESULT_OK) {
 		foundFlag = true;
 		ftsIndex.indexName.assign(output->indexName.str, output->indexName.length);
-		ftsIndex.analyzer.assign(output->analyzer.str, output->analyzer.length);
+		if (!output->analyzerNull && output->analyzer.length > 0) {
+			ftsIndex.analyzer.assign(output->analyzer.str, output->analyzer.length);
+		}
+		else {
+			ftsIndex.analyzer = "STANDART";
+		}
 		if (!output->descriptionNull) {
 			AutoRelease<IBlob> blob(att->openBlob(&status, tra, &output->description, 0, nullptr));
 			ftsIndex.description = blob_get_string(&status, blob);
@@ -229,7 +234,12 @@ list<FTSIndex> FTSIndexRepository::getAllIndexes(ThrowStatusWrapper status, IAtt
 	while (rs->fetchNext(&status, output.getData()) == IStatus::RESULT_OK) {
 		FTSIndex ftsIndex;
 		ftsIndex.indexName.assign(output->indexName.str, output->indexName.length);
-		ftsIndex.analyzer.assign(output->analyzer.str, output->analyzer.length);
+		if (!output->analyzerNull && output->analyzer.length > 0) {
+			ftsIndex.analyzer.assign(output->analyzer.str, output->analyzer.length);
+		}
+		else {
+			ftsIndex.analyzer = "STANDART";
+		}
 		if (!output->descriptionNull) {
 			AutoRelease<IBlob> blob(att->openBlob(&status, tra, &output->description, 0, nullptr));
 			ftsIndex.description = blob_get_string(&status, blob);
@@ -344,6 +354,12 @@ list<FTSIndexSegment> FTSIndexRepository::getAllIndexSegments(
 		indexSegment.fieldName.assign(output->fieldName.str, output->fieldName.length);
 		indexSegment.index.indexName.assign(output->indexName.str, output->indexName.length);
 		indexSegment.index.analyzer.assign(output->analyzerName.str, output->analyzerName.length);
+		if (!output->analyzerNameNull && output->analyzerName.length > 0) {
+			indexSegment.index.analyzer.assign(output->analyzerName.str, output->analyzerName.length);
+		}
+		else {
+			indexSegment.index.analyzer = "STANDART";
+		}
 		// замечание: описание индекса не требуется копировать
 		segments.push_back(indexSegment);
 	}
@@ -410,7 +426,12 @@ list<FTSIndexSegment> FTSIndexRepository::getIndexSegmentsByRelation(
 		indexSegment.relationName.assign(output->relationName.str, output->relationName.length);
 		indexSegment.fieldName.assign(output->fieldName.str, output->fieldName.length);
 		indexSegment.index.indexName.assign(output->indexName.str, output->indexName.length);
-		indexSegment.index.analyzer.assign(output->analyzerName.str, output->analyzerName.length);
+		if (!output->analyzerNameNull && output->analyzerName.length > 0) {
+			indexSegment.index.analyzer.assign(output->analyzerName.str, output->analyzerName.length);
+		}
+		else {
+			indexSegment.index.analyzer = "STANDART";
+		}
 		// замечание: описание индекса не требуется копировать
 		segments.push_back(indexSegment);
 	}
