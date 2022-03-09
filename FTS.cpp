@@ -211,7 +211,7 @@ FB_UDR_BEGIN_PROCEDURE(createIndex)
 			std::transform(analyzerName.begin(), analyzerName.end(), analyzerName.begin(), ::toupper);
 		}
 		else {
-			analyzerName = "STANDART";
+			analyzerName = "STANDARD";
 		}
 
 		att.reset(context->getAttachment(status));
@@ -227,7 +227,7 @@ FB_UDR_BEGIN_PROCEDURE(createIndex)
 		}
 
 		// проверяем существование анализатора
-		if (procedure->analyzerFactory.hasAnalyzer(analyzerName)) {
+		if (!procedure->analyzerFactory.hasAnalyzer(analyzerName)) {
 			string error_message = "";
 			error_message += "Analyzer \"" + analyzerName + "\" not exists";
 			throwFbException(status, error_message.c_str());

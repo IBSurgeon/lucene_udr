@@ -83,7 +83,7 @@ END
 Входные параметры:
 
 - FTS$INDEX_NAME - имя индекса. Должно быть уникальным среди имён полнотекстовых индексов;
-- FTS$ANALYZER - имя анализатора. Если не задано используется анализатор STANDART (StandartAnalyzer);
+- FTS$ANALYZER - имя анализатора. Если не задано используется анализатор STANDARD (StandardAnalyzer);
 - FTS$DESCRIPTION - описание индекса.
 
 Замечание: в настоящее время FTS$ANALYZER не учитывается. Эта возможность будет добавлена позже.
@@ -197,7 +197,7 @@ FROM RDB$DATABASE
 
 Список доступных анализаторов:
 
-* STANDARD - StandartAnalyzer (Английский язык);
+* STANDARD - StandardAnalyzer (Английский язык);
 
 * ARABIC - ArabicAnalyzer (Арабский язык);
 
@@ -211,7 +211,7 @@ FROM RDB$DATABASE
 
 * DUTCH - DutchAnalyzer (Голландский язык);
 
-* ENGLISH - StandartAnalyzer (Английский язык);
+* ENGLISH - StandardAnalyzer (Английский язык);
 
 * FRENCH - FrenchAnalyzer (Французский язык);
 
@@ -226,7 +226,10 @@ FROM RDB$DATABASE
 
 Далее будут привдеены примеры полнотекстовых индексов.
 
-### Пример односегментного полнотекстового индекса
+### Пример создания односегментного индекса для полнотекстового поиска на английском языке
+
+Ниже создаётся односегментный индекс для полнотекстового поиска на английском языке, поскольку по умолчанию
+используется анализатор STANDART.
 
 ```sql
 -- создание индекса
@@ -258,14 +261,59 @@ FROM FTS$SEARCH('IDX_HORSE_REMARK', 'HORSE', 'паспорт') FTS
 
 ```
 
-В качестве второго параметра можно указать NULL, поскольку индекс обрабатывает толко одну таблицу.
+В качестве второго параметра можно указать NULL, поскольку индекс обрабатывает только одну таблицу.
 
+```sql
+SELECT
+    FTS.*,
+    HORSE.CODE_HORSE,
+    HORSE.REMARK
+FROM FTS$SEARCH('IDX_HORSE_REMARK', NULL, 'паспорт') FTS
+    LEFT JOIN HORSE ON
+          HORSE.RDB$DB_KEY = FTS.FTS$DB_KEY  
+
+```
+
+### Пример создания односегментного индекса для полнотекстового поиска на русском языке
+
+
+```sql
+-- создание индекса
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$CREATE_INDEX('IDX_HORSE_REMARK_RU', 'RUSSIAN');
+
+COMMIT;
+
+-- добавление сегмента (поля REMARK таблицы HORSE)
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD('IDX_HORSE_REMARK_RU', 'HORSE', 'REMARK');
+
+COMMIT;
+
+-- построение индекса
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$REBUILD_INDEX('IDX_HORSE_REMARK_RU');
+
+COMMIT;
+```
+
+Поиск по такому индексу можно делать следующим образом:
+
+```sql
+SELECT
+    FTS.*,
+    HORSE.CODE_HORSE,
+    HORSE.REMARK
+FROM FTS$SEARCH('IDX_HORSE_REMARK_RU', 'HORSE', 'паспорт') FTS
+    LEFT JOIN HORSE ON
+          HORSE.RDB$DB_KEY = FTS.FTS$DB_KEY  
+
+```
+
+Обратите внимание. Результаты поиска по индексам IDX_HORSE_REMARK и IDX_HORSE_REMARK_RU будут отличаться.
 
 ### Пример полнотекстового индекса с двумя полями одной таблицы
 
 ```sql
 -- создание индекса
-EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$CREATE_INDEX('IDX_HORSE_NOTES');
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$CREATE_INDEX('IDX_HORSE_NOTES', 'RUSSIAN');
 
 COMMIT;
 
@@ -300,7 +348,7 @@ FROM FTS$SEARCH('IDX_HORSE_NOTE', 'NOTE', 'неровно') FTS
 
 ```sql
 -- создание индекса
-EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$CREATE_INDEX('IDX_HORSE_NOTE_2');;
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$CREATE_INDEX('IDX_HORSE_NOTE_2', 'RUSSIAN');
 
 COMMIT;
 
@@ -384,30 +432,15 @@ FROM FTS$SEARCH('IDX_HORSE_NOTE_2', NULL, 'паспорт') FTS
 ```sql
 SET TERM ^ ;
 
-
-CREATE OR ALTER TRIGGER TR_FTS$HORSE_AI FOR HORSE
-ACTIVE AFTER INSERT POSITION 3
+CREATE OR ALTER TRIGGER TR_FTS$HORSE_AIUD FOR HORSE
+ACTIVE AFTER INSERT OR UPDATE OR DELETE POSITION 100
 AS
 BEGIN
-  IF (NEW.REMARK IS NOT NULL) THEN
+  IF (INSERTING AND (NEW.REMARK IS NOT NULL)) THEN
     EXECUTE PROCEDURE FTS$LOG_CHANGE('HORSE', NEW.RDB$DB_KEY, 'I');
-END
-^
-
-CREATE OR ALTER TRIGGER TR_FTS$HORSE_AU FOR HORSE
-ACTIVE AFTER UPDATE POSITION 3
-AS
-BEGIN
-  IF (NEW.REMARK IS DISTINCT FROM OLD.REMARK) THEN
+  IF (UPDATING AND (NEW.REMARK IS DISTINCT FROM OLD.REMARK)) THEN
     EXECUTE PROCEDURE FTS$LOG_CHANGE('HORSE', OLD.RDB$DB_KEY, 'U');
-END
-^
-
-CREATE OR ALTER TRIGGER TR_FTS$HORSE_AD FOR HORSE
-ACTIVE AFTER DELETE POSITION 3
-AS
-BEGIN
-  IF (OLD.REMARK IS NOT NULL) THEN
+  IF (DELETING AND (OLD.REMARK IS NOT NULL)) THEN
     EXECUTE PROCEDURE FTS$LOG_CHANGE('HORSE', OLD.RDB$DB_KEY, 'D');
 END
 ^
@@ -423,4 +456,16 @@ SET TERM ; ^
 EXECUTE PROCEDURE FTS$UPDATE_INDEXES;
 ```
 
+Правила написания триггеров для поддержки полнотекстовых индексов:
 
+1. В триггер должны быть условия по всем поля которые участвуют хотя бы в одном полнотекстовом индексе.
+Такие условия должны быть объеденены через OR.
+
+2. Для операции INSERT необходимо проверять все поля, входящие в полнотекстовые индексы значение которых отличается от NULL.
+Если это условие соблюдается, то необходимо выполнить процедуру `FTS$LOG_CHANGE('<имя таблицы>', NEW.RDB$DB_KEY, 'I');`.
+
+3. Для операции UPDATE необходимо проверять все поля, входящие в полнотекстовые индексы значение которых изменилось.
+Если это условие соблюдается, то необходимо выполнить процедуру `FTS$LOG_CHANGE('<имя таблицы>', OLD.RDB$DB_KEY, 'U');`.
+
+4. Для операции DELETE необходимо проверять все поля, входящие в полнотекстовые индексы значение которых отличается от NULL.
+Если это условие соблюдается, то необходимо выполнить процедуру `FTS$LOG_CHANGE('<имя таблицы>', OLD.RDB$DB_KEY, 'D');`.

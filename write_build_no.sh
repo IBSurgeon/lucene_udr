@@ -2,8 +2,8 @@
 
 SET MajorVer=0
 SET MinorVer=8
-SET RevNo=1
-SET BuildNum=4
+SET RevNo=2
+SET BuildNum=5
 
 SET PRODUCT_VER_STRING=%MajorVer%.%MinorVer%.%RevNo%.%BuildNum%
 SET FILE_VER_STRING=Linux-%MajorVer%.%MinorVer%.%RevNo%.%BuildNum%

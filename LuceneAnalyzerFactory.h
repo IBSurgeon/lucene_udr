@@ -26,7 +26,7 @@ namespace LuceneFTS {
 
 	struct ci_more
 	{
-		// case-independent (ci) compare_less binary function
+		// case-independent (ci) compare_more binary function
 		struct nocase_compare
 		{
 			bool operator() (const unsigned char& c1, const unsigned char& c2) const {
