@@ -6,11 +6,11 @@
 #include "FBBlobUtils.h"
 #include "FBFieldInfo.h"
 #include "EncodeUtils.h"
+#include "StringFormatter.h"
 #include "lucene++\LuceneHeaders.h"
 #include "lucene++\FileUtils.h"
 #include "lucene++\MiscUtils.h"
 #include "LuceneAnalyzerFactory.h"
-#include "inicpp.h"
 #include <sstream>
 #include <vector>
 #include <memory>
@@ -93,18 +93,23 @@ unsigned int getSqlDialect(ThrowStatusWrapper* status, IAttachment* att) {
 	return sql_dialect;
 }
 
-string getFtsDirectory(IExternalContext* context) {
-	IConfigManager* configManager = context->getMaster()->getConfigManager();
-	const string databaseName(context->getDatabaseName());
-
-	string rootDir(configManager->getRootDirectory());
-
-	ini::IniFile iniFile;
-	iniFile.load(rootDir + "/fts.ini");
-	auto section = iniFile[databaseName];
-	return section["ftsDirectory"].as<string>();
+inline bool createIndexDirectory(string indexDir)
+{
+	auto indexDirUnicode = StringUtils::toUnicode(indexDir);
+	if (!FileUtils::isDirectory(indexDirUnicode)) {
+		return FileUtils::createDirectory(indexDirUnicode);
+	}
+	return true;
 }
 
+inline bool removeIndexDirectory(string indexDir)
+{
+	auto indexDirUnicode = StringUtils::toUnicode(indexDir);
+	if (FileUtils::isDirectory(indexDirUnicode)) {
+		return FileUtils::removeDirectory(indexDirUnicode);
+	}
+	return true;
+}
 
 /***
 CREATE FUNCTION FTS$GET_DIRECTORY () 
@@ -120,7 +125,7 @@ FB_UDR_BEGIN_FUNCTION(getFTSDirectory)
 
     FB_UDR_EXECUTE_FUNCTION
 	{
-		string ftsDirectory = getFtsDirectory(context);
+		string ftsDirectory = LuceneFTS::getFtsDirectory(context);
 
 	    out->directoryNull = false;
 	    out->directory.length = ftsDirectory.length();
@@ -203,36 +208,27 @@ FB_UDR_BEGIN_PROCEDURE(createIndex)
 	FB_UDR_EXECUTE_PROCEDURE
 	{
 		if (in->index_nameNull) {
-			throwFbException(status, "Index name can not be NULL");
+			ISC_STATUS statusVector[] = {
+                isc_arg_gds, isc_random,
+                isc_arg_string, (ISC_STATUS)"Index name can not be NULL",
+                isc_arg_end
+			};
+			throw FbException(status, statusVector);
 		}
-		indexName.assign(in->index_name.str, in->index_name.length);
+		string indexName(in->index_name.str, in->index_name.length);
+
+		string analyzerName;
 		if (!in->analyzerNull) {
 			analyzerName.assign(in->analyzer.str, in->analyzer.length);
-			std::transform(analyzerName.begin(), analyzerName.end(), analyzerName.begin(), ::toupper);
-		}
-		else {
-			analyzerName = "STANDARD";
 		}
 
-		att.reset(context->getAttachment(status));
-		tra.reset(context->getTransaction(status));
+		AutoRelease<IAttachment> att(context->getAttachment(status));
+		AutoRelease<ITransaction> tra(context->getTransaction(status));
 
 		unsigned int sqlDialect = getSqlDialect(status, att);
 
-		// проверка существования индекса
-		if (procedure->indexRepository.hasIndex(status, att, tra, sqlDialect, indexName)) {
-			string error_message = "";
-			error_message += "Index \"" + indexName + "\" already exists";
-			throwFbException(status, error_message.c_str());
-		}
 
-		// проверяем существование анализатора
-		if (!procedure->analyzerFactory.hasAnalyzer(analyzerName)) {
-			string error_message = "";
-			error_message += "Analyzer \"" + analyzerName + "\" not exists";
-			throwFbException(status, error_message.c_str());
-		}
-
+		string description;
 		if (!in->descriptionNull) {
 		    AutoRelease<IBlob> blob(att->openBlob(status, tra, &in->description, 0, nullptr));
 			description = blob_get_string(status, blob);
@@ -244,23 +240,18 @@ FB_UDR_BEGIN_PROCEDURE(createIndex)
 
 		// проверка существования директории для индекса
         // и если она не существует создаём её
-		string ftsDirectory = getFtsDirectory(context);
-		auto indexDir = StringUtils::toUnicode(ftsDirectory + "/" + indexName);
-		if (!FileUtils::isDirectory(indexDir)) {
-			bool result = FileUtils::createDirectory(indexDir);
-			if (!result) {
-				string error_message = "";
-				error_message += "Cannot create index directory " + ftsDirectory + "/" + indexName;
-				throwFbException(status, error_message.c_str());
-			}
+		string ftsDirectory = LuceneFTS::getFtsDirectory(context);
+		string indexDir = ftsDirectory + "/" + indexName;
+		if (!createIndexDirectory(indexDir)) {
+				string error_message = string_format("Cannot create index directory \"%s\".", indexDir);
+				ISC_STATUS statusVector[] = {
+					isc_arg_gds, isc_random,
+					isc_arg_string, (ISC_STATUS)error_message.c_str(),
+					isc_arg_end
+				};
+				throw FbException(status, statusVector);
 		}
-	}
-
-	AutoRelease<IAttachment> att;
-	AutoRelease<ITransaction> tra;
-	string indexName;
-	string analyzerName;
-	string description;
+	}	
 
 	FB_UDR_FETCH_PROCEDURE
 	{
@@ -290,35 +281,35 @@ FB_UDR_BEGIN_PROCEDURE(dropIndex)
 	FB_UDR_EXECUTE_PROCEDURE
 	{
 		if (in->index_nameNull) {
-			throwFbException(status, "Index name can not be NULL");
+			ISC_STATUS statusVector[] = {
+				isc_arg_gds, isc_random,
+				isc_arg_string, (ISC_STATUS)"Index name can not be NULL",
+				isc_arg_end
+			};
+			throw FbException(status, statusVector);
 		}
-		indexName.assign(in->index_name.str, in->index_name.length);
+		string indexName(in->index_name.str, in->index_name.length);
 
-		att.reset(context->getAttachment(status));
-		tra.reset(context->getTransaction(status));
+		AutoRelease<IAttachment> att(context->getAttachment(status));
+		AutoRelease<ITransaction> tra(context->getTransaction(status));
 
 		unsigned int sqlDialect = getSqlDialect(status, att);
 
-		// проверка существования индекса
-		if (!procedure->indexRepository.hasIndex(status, att, tra, sqlDialect, indexName)) {
-			string error_message = "";
-			error_message += "Index \"" + indexName + "\" not exists";
-			throwFbException(status, error_message.c_str());
-		}
-
-		string ftsDirectory = getFtsDirectory(context);
-		auto indexDir = StringUtils::toUnicode(ftsDirectory + "/" + indexName);
-		if (FileUtils::isDirectory(indexDir)) {
-			// если директория есть, то удаляем её
-			FileUtils::removeDirectory(indexDir);
-		}
-
 		procedure->indexRepository.dropIndex(status, att, tra, sqlDialect, indexName);
-	}
 
-	AutoRelease<IAttachment> att;
-	AutoRelease<ITransaction> tra;
-	string indexName;
+		string ftsDirectory = LuceneFTS::getFtsDirectory(context);
+		string indexDir = ftsDirectory + "/" + indexName;
+		// если директория есть, то удаляем её
+		if (removeIndexDirectory(indexDir)) {
+			string error_message = string_format("Cannot delete index directory \"%s\".", indexDir);
+			ISC_STATUS statusVector[] = {
+				isc_arg_gds, isc_random,
+				isc_arg_string, (ISC_STATUS)error_message.c_str(),
+				isc_arg_end
+			};
+			throw FbException(status, statusVector);
+		}
+	}
 
 	FB_UDR_FETCH_PROCEDURE
 	{
@@ -344,72 +335,51 @@ FB_UDR_BEGIN_PROCEDURE(addIndexField)
 
 	FB_UDR_CONSTRUCTOR
 		, indexRepository(context->getMaster())
-		, relationHelper(context->getMaster())
 	{
 	}
 
 	LuceneFTS::FTSIndexRepository indexRepository;
-	LuceneFTS::RelationHelper relationHelper;
 
 	FB_UDR_EXECUTE_PROCEDURE
 	{
 		if (in->index_nameNull) {
-			throwFbException(status, "Index name can not be NULL");
+			ISC_STATUS statusVector[] = {
+				isc_arg_gds, isc_random,
+				isc_arg_string, (ISC_STATUS)"Index name can not be NULL",
+				isc_arg_end
+			};
+			throw FbException(status, statusVector);
 		}
-		indexName.assign(in->index_name.str, in->index_name.length);
+		string indexName(in->index_name.str, in->index_name.length);
 
 		if (in->relation_nameNull) {
-			throwFbException(status, "Relation name can not be NULL");
+			ISC_STATUS statusVector[] = {
+				isc_arg_gds, isc_random,
+				isc_arg_string, (ISC_STATUS)"Relation name can not be NULL",
+				isc_arg_end
+			};
+			throw FbException(status, statusVector);
 		}
-		relationName.assign(in->relation_name.str, in->relation_name.length);
+		string relationName(in->relation_name.str, in->relation_name.length);
 
 		if (in->field_nameNull) {
-			throwFbException(status, "Field name can not be NULL");
+			ISC_STATUS statusVector[] = {
+				isc_arg_gds, isc_random,
+				isc_arg_string, (ISC_STATUS)"Field name can not be NULL",
+				isc_arg_end
+			};
+			throw FbException(status, statusVector);
 		}
-		fieldName.assign(in->field_name.str, in->field_name.length);
+		string fieldName(in->field_name.str, in->field_name.length);
 
-		att.reset(context->getAttachment(status));
-		tra.reset(context->getTransaction(status));
+		AutoRelease<IAttachment> att(context->getAttachment(status));
+		AutoRelease<ITransaction> tra(context->getTransaction(status));
 
 		unsigned int sqlDialect = getSqlDialect(status, att);
-
-		// проверка существования индекса
-		if (!procedure->indexRepository.hasIndex(status, att, tra, sqlDialect, indexName)) {
-			string error_message = "";
-			error_message += "Index \"" + indexName + "\" not exists";
-			throwFbException(status, error_message.c_str());
-		}
-
-		// проверка существования таблицы
-		if (!procedure->relationHelper.relationExists(status, att, tra, sqlDialect, relationName)) {
-			string error_message = "";
-			error_message += "Table \"" + relationName + "\" not exists";
-			throwFbException(status, error_message.c_str());
-		}
-
-		// проверка существования поля
-		if (!procedure->relationHelper.fieldExists(status, att, tra, sqlDialect, relationName, fieldName)) {
-			string error_message = "";
-			error_message += "Field \"" + fieldName + "\" not exitsts in table \"" + relationName + "\"";
-			throwFbException(status, error_message.c_str());
-		}
-
-		// проверка существования сегмента
-		if (procedure->indexRepository.hasIndexSegment(status, att, tra, sqlDialect, indexName, relationName, fieldName)) {
-			string error_message = "";
-			error_message += "Segment for \"" + relationName + "\".\"" + fieldName + "\" already exitsts in index \"" + indexName + "\"";
-			throwFbException(status, error_message.c_str());
-		}
 
 		// добавление сегмента
 		procedure->indexRepository.addIndexField(status, att, tra, sqlDialect, indexName, relationName, fieldName);
 	}
-
-	AutoRelease<IAttachment> att;
-	AutoRelease<ITransaction> tra;
-	string indexName;
-	string relationName;
-	string fieldName;
 
 	FB_UDR_FETCH_PROCEDURE
 	{
@@ -435,72 +405,51 @@ FB_UDR_BEGIN_PROCEDURE(dropIndexField)
 
 	FB_UDR_CONSTRUCTOR
 		, indexRepository(context->getMaster())
-		, relationHelper(context->getMaster())
 	{
 	}
 
 	LuceneFTS::FTSIndexRepository indexRepository;
-	LuceneFTS::RelationHelper relationHelper;
 
 	FB_UDR_EXECUTE_PROCEDURE
 	{
 		if (in->index_nameNull) {
-			throwFbException(status, "Index name can not be NULL");
+			ISC_STATUS statusVector[] = {
+				isc_arg_gds, isc_random,
+				isc_arg_string, (ISC_STATUS)"Index name can not be NULL",
+				isc_arg_end
+			};
+			throw FbException(status, statusVector);
 		}
-		indexName.assign(in->index_name.str, in->index_name.length);
+		string indexName(in->index_name.str, in->index_name.length);
 
 		if (in->relation_nameNull) {
-			throwFbException(status, "Relation name can not be NULL");
+			ISC_STATUS statusVector[] = {
+				isc_arg_gds, isc_random,
+				isc_arg_string, (ISC_STATUS)"Relation name can not be NULL",
+				isc_arg_end
+			};
+			throw FbException(status, statusVector);
 		}
-		relationName.assign(in->relation_name.str, in->relation_name.length);
+		string relationName(in->relation_name.str, in->relation_name.length);
 
 		if (in->field_nameNull) {
-			throwFbException(status, "Field name can not be NULL");
+			ISC_STATUS statusVector[] = {
+				isc_arg_gds, isc_random,
+				isc_arg_string, (ISC_STATUS)"Field name can not be NULL",
+				isc_arg_end
+			};
+			throw FbException(status, statusVector);
 		}
-		fieldName.assign(in->field_name.str, in->field_name.length);
+		string fieldName(in->field_name.str, in->field_name.length);
 
-		att.reset(context->getAttachment(status));
-		tra.reset(context->getTransaction(status));
+		AutoRelease<IAttachment> att(context->getAttachment(status));
+		AutoRelease<ITransaction> tra(context->getTransaction(status));
 
 		unsigned int sqlDialect = getSqlDialect(status, att);
-
-		// проверка существования индекса
-		if (!procedure->indexRepository.hasIndex(status, att, tra, sqlDialect, indexName)) {
-			string error_message = "";
-			error_message += "Index \"" + indexName + "\" not exists";
-			throwFbException(status, error_message.c_str());
-		}
-
-		// проверка существования таблицы
-		if (!procedure->relationHelper.relationExists(status, att, tra, sqlDialect, relationName)) {
-			string error_message = "";
-			error_message += "Table \"" + relationName + "\" not exists";
-			throwFbException(status, error_message.c_str());
-		}
-
-		// проверка существования поля
-		if (!procedure->relationHelper.fieldExists(status, att, tra, sqlDialect, relationName, fieldName)) {
-			string error_message = "";
-			error_message += "Field \"" + fieldName + "\" not exitsts in table \"" + relationName + "\"";
-			throwFbException(status, error_message.c_str());
-		}
-
-		// проверка существования сегмента
-		if (!procedure->indexRepository.hasIndexSegment(status, att, tra, sqlDialect, indexName, relationName, fieldName)) {
-			string error_message = "";
-			error_message += "Segment for \"" + relationName + "\".\"" + fieldName + "\" not exists in index \"" + indexName + "\"";
-			throwFbException(status, error_message.c_str());
-		}
 
 		// удаление сегмента
 		procedure->indexRepository.dropIndexField(status, att, tra, sqlDialect, indexName, relationName, fieldName);
 	}
-
-	AutoRelease<IAttachment> att;
-	AutoRelease<ITransaction> tra;
-	string indexName;
-	string relationName;
-	string fieldName;
 
 	FB_UDR_FETCH_PROCEDURE
 	{
@@ -532,49 +481,56 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 	LuceneFTS::LuceneAnalyzerFactory analyzerFactory;
 	   
     FB_UDR_EXECUTE_PROCEDURE
-    {		
-		if (in->index_nameNull) {
-			throwFbException(status, "Index name can not be NULL");
-		}
-	    indexName.assign(in->index_name.str, in->index_name.length);
+    {	
+		AutoRelease<IAttachment> att(context->getAttachment(status));
+	    AutoRelease<ITransaction> tra(context->getTransaction(status));
 
-	    string ftsDirectory = getFtsDirectory(context);
+		if (in->index_nameNull) {
+			ISC_STATUS statusVector[] = {
+				isc_arg_gds, isc_random,
+				isc_arg_string, (ISC_STATUS)"Index name can not be NULL",
+				isc_arg_end
+			};
+			throw FbException(status, statusVector);
+		}
+		string indexName(in->index_name.str, in->index_name.length);
+
+		string ftsDirectory = LuceneFTS::getFtsDirectory(context);
 		// проверка есть ли директория для полнотекстовых индексов
-	    String ftsUnicodeDirectory = StringUtils::toUnicode(ftsDirectory);
-	    if (!FileUtils::isDirectory(ftsUnicodeDirectory)) {
-		    string error_message = "";
-		    error_message += "Fts directory \"" + ftsDirectory + "\" not exists";
-		    throwFbException(status, error_message.c_str());
-	    }
-	
-		att.reset(context->getAttachment(status));
-		tra.reset(context->getTransaction(status));
-		
+		if (!FileUtils::isDirectory(StringUtils::toUnicode(ftsDirectory))) {
+			string error_message = string_format("Fts directory \"%s\" not exists", ftsDirectory);
+			ISC_STATUS statusVector[] = {
+				isc_arg_gds, isc_random,
+				isc_arg_string, (ISC_STATUS)error_message.c_str(),
+				isc_arg_end
+			};
+			throw FbException(status, statusVector);
+		}
+
 		unsigned int sqlDialect = getSqlDialect(status, att);
 
-		// проверка существования индекса
-		LuceneFTS::FTSIndex ftsIndex;
-		if (!procedure->indexRepository.getIndex(status, att, tra, sqlDialect, indexName, ftsIndex)) {
-			string error_message = "";
-			error_message += "Index \"" + indexName + "\" not exists";
-			throwFbException(status, error_message.c_str());
-		}
-		// проверка существования директории для индекса
-		// и если она не существует создаём её
-	    auto indexDir = StringUtils::toUnicode(ftsDirectory + "/" + indexName);
-        if (!FileUtils::isDirectory(indexDir)) {
-		    bool result = FileUtils::createDirectory(indexDir);
-		    if (!result) {
-			    string error_message = "";
-			    error_message += "Cannot create index directory " + ftsDirectory + "/" + indexName;
-			    throwFbException(status, error_message.c_str());
-		    }
-        }
-
 	    try {
+			// проверка существования индекса
+			auto ftsIndex = procedure->indexRepository.getIndex(status, att, tra, sqlDialect, indexName);
+			// проверка существования директории для индекса
+			// и если она не существует создаём её
+			string indexDir = ftsDirectory + "/" + indexName;
+			if (!createIndexDirectory(indexDir)) {
+				string error_message = string_format("Cannot create index directory \"%s\".", indexDir);
+				ISC_STATUS statusVector[] = {
+					isc_arg_gds, isc_random,
+					isc_arg_string, (ISC_STATUS)error_message.c_str(),
+					isc_arg_end
+				};
+				throw FbException(status, statusVector);
+			}
 
-			auto fsIndexDir = FSDirectory::open(indexDir);
-			auto analyzer = procedure->analyzerFactory.createAnalyzer(ftsIndex.analyzer);
+			// получаем сегменты индекса и группируем их по именам таблиц
+			auto segments = procedure->indexRepository.getIndexSegments(status, att, tra, sqlDialect, indexName);
+			auto segmentsByRelation = LuceneFTS::FTSIndexRepository::groupIndexSegmentsByRelation(segments);
+
+			auto fsIndexDir = FSDirectory::open(StringUtils::toUnicode(indexDir));
+			auto analyzer = procedure->analyzerFactory.createAnalyzer(status, ftsIndex.analyzer);
 		    IndexWriterPtr writer = newLucene<IndexWriter>(fsIndexDir, analyzer, true, IndexWriter::MaxFieldLengthLIMITED);
 
 			// очищаем директорию индекса
@@ -583,24 +539,31 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 
 			const char* fbCharset = context->getClientCharSet();
 			string icuCharset = getICICharset(fbCharset);
-			
-			// получаем сегменты индекса и группируем их по именам таблиц
-			auto segments = procedure->indexRepository.getIndexSegments(status, att, tra, sqlDialect, indexName);
-			auto segmentsByRelation = LuceneFTS::FTSIndexRepository::groupIndexSegmentsByRelation(segments);
-			
+					
 			for (const auto& p : segmentsByRelation) {
 				const string relationName = p.first;
 				if (!procedure->relationHelper.relationExists(status, att, tra, sqlDialect, relationName)) {
-					// если таблицы не существует просто пропускаем этот сегмент
-					continue;
+					string error_message = string_format("Cannot rebuild index \"%s\". Table \"%s\" not exists. Please delete the index segments containing it.", indexName, relationName);
+					ISC_STATUS statusVector[] = {
+						isc_arg_gds, isc_random,
+						isc_arg_string, (ISC_STATUS)error_message.c_str(),
+						isc_arg_end
+					};
+					throw FbException(status, statusVector);
 				}
 				const auto segments = p.second;
 				list<string> fieldNames;
 				for (const auto& segment : segments) {
-					if (procedure->relationHelper.fieldExists(status, att, tra, sqlDialect, segment.relationName, segment.fieldName)) {
-						// игнорируем не существующие поля
-						fieldNames.push_back(segment.fieldName);
+					if (!procedure->relationHelper.fieldExists(status, att, tra, sqlDialect, segment.relationName, segment.fieldName)) {
+						string error_message = string_format("Cannot rebuild index \"%s\". Field \"%s\" not exists in table \"%s\". Please delete the index segments containing it.", indexName, segment.fieldName, segment.relationName);
+						ISC_STATUS statusVector[] = {
+							isc_arg_gds, isc_random,
+							isc_arg_string, (ISC_STATUS)error_message.c_str(),
+							isc_arg_end
+						};
+						throw FbException(status, statusVector);
 					}
+					fieldNames.push_back(segment.fieldName);
 				}
 				const string sql = LuceneFTS::RelationHelper::buildSqlSelectFieldValues(sqlDialect, relationName, fieldNames);
 
@@ -630,7 +593,6 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 				unsigned msgLength = newMeta->getMessageLength(status);
 				{
 					// allocate output buffer
-					//char* buffer = new char[msgLength];
 					auto b = make_unique<unsigned char[]>(msgLength);
 					unsigned char* buffer = b.get();
 					while (rs->fetchNext(status, buffer) == IStatus::RESULT_OK) {
@@ -672,15 +634,16 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 			writer->optimize();
 			writer->close();
 	    }
-	    catch (LuceneException& e) {
+	    catch (const LuceneException& e) {
 		    string error_message = StringUtils::toUTF8(e.getError());
-		    throwFbException(status, error_message.c_str());
+			ISC_STATUS statusVector[] = {
+	            isc_arg_gds, isc_random,
+	            isc_arg_string, (ISC_STATUS)error_message.c_str(),
+	            isc_arg_end
+			};
+			throw FbException(status, statusVector);
 	    }
     }
-
-	AutoRelease<IAttachment> att;
-	AutoRelease<ITransaction> tra;
-	string indexName;
 
     FB_UDR_FETCH_PROCEDURE
     {
@@ -715,32 +678,42 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogChange)
     FB_UDR_EXECUTE_PROCEDURE
 	{
 		if (in->relation_nameNull) {
-			throwFbException(status, "Relation name can not be NULL");
+			ISC_STATUS statusVector[] = {
+				isc_arg_gds, isc_random,
+				isc_arg_string, (ISC_STATUS)"RELATION_NAME name can not be NULL",
+				isc_arg_end
+			};
+			throw FbException(status, statusVector);
 		}
-		relationName.assign(in->relation_name.str, in->relation_name.length);
+	    string relationName(in->relation_name.str, in->relation_name.length);
+
 		if (in->db_keyNull) {
-			throwFbException(status, "DB_KEY can not be NULL");
+			ISC_STATUS statusVector[] = {
+				isc_arg_gds, isc_random,
+				isc_arg_string, (ISC_STATUS)"DB_KEY can not be NULL",
+				isc_arg_end
+			};
+			throw FbException(status, statusVector);
 		}
-		dbKey.assign(in->db_key.str, in->db_key.length);
+		string dbKey(in->db_key.str, in->db_key.length);
+
 		if (in->change_typeNull) {
-			throwFbException(status, "CHANGE_TYPE can not be NULL");
+			ISC_STATUS statusVector[] = {
+				isc_arg_gds, isc_random,
+				isc_arg_string, (ISC_STATUS)"CHANGE_TYPE can not be NULL",
+				isc_arg_end
+			};
+			throw FbException(status, statusVector);
 		}
-		changeType.assign(in->change_type.str, in->change_type.length);
+		string changeType(in->change_type.str, in->change_type.length);
 
-
-		att.reset(context->getAttachment(status));
-		tra.reset(context->getTransaction(status));
+		AutoRelease<IAttachment> att(context->getAttachment(status));
+		AutoRelease<ITransaction> tra(context->getTransaction(status));
 
 		unsigned int sqlDialect = getSqlDialect(status, att);
 
 		procedure->logRepository.appendLog(status, att, tra, sqlDialect, relationName, dbKey, changeType);
 	}
-
-	AutoRelease<IAttachment> att;
-	AutoRelease<ITransaction> tra;
-	string relationName;
-	string dbKey;
-	string changeType;
 
     FB_UDR_FETCH_PROCEDURE
 	{
@@ -766,16 +739,13 @@ FB_UDR_BEGIN_PROCEDURE(ftsClearLog)
 	FB_UDR_EXECUTE_PROCEDURE
 	{
 
-		att.reset(context->getAttachment(status));
-		tra.reset(context->getTransaction(status));
+		AutoRelease<IAttachment> att(context->getAttachment(status));
+		AutoRelease<ITransaction> tra(context->getTransaction(status));
 
 		unsigned int sqlDialect = getSqlDialect(status, att);
 
 		procedure->logRepository.clearLog(status, att, tra, sqlDialect);
 	}
-
-	AutoRelease<IAttachment> att;
-	AutoRelease<ITransaction> tra;
 
 	FB_UDR_FETCH_PROCEDURE
 	{
@@ -820,12 +790,12 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 
 	FB_UDR_EXECUTE_PROCEDURE
 	{
-		att.reset(context->getAttachment(status));
-		tra.reset(context->getTransaction(status));
+		AutoRelease<IAttachment> att(context->getAttachment(status));
+		AutoRelease<ITransaction> tra(context->getTransaction(status));
 
 		unsigned int sqlDialect = getSqlDialect(status, att);
 
-		string ftsDirectory = getFtsDirectory(context);
+		string ftsDirectory = LuceneFTS::getFtsDirectory(context);
 
 		const char* fbCharset = context->getClientCharSet();
 		string icuCharset = getICICharset(fbCharset);
@@ -870,6 +840,7 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 				for (const auto& segment : segments) {
 					if (procedure->relationHelper.fieldExists(status, att, tra, sqlDialect, segment.relationName, segment.fieldName)) {
 						// игнорируем не существующие поля
+						// TODO: Надо бы пометить индекс невалидным
 						fieldNames.push_back(segment.fieldName);
 					}
 				}
@@ -942,18 +913,20 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 					if (iWriter == indexWriters.end()) {
 						// проверка существования директории для индекса
 						// и если она не существует создаём её
-						auto indexDir = StringUtils::toUnicode(ftsDirectory + "/" + indexName);
-						if (!FileUtils::isDirectory(indexDir)) {
-							bool result = FileUtils::createDirectory(indexDir);
-							if (!result) {
-								string error_message = "";
-								error_message += "Cannot create index directory " + ftsDirectory + "/" + indexName;
-								throwFbException(status, error_message.c_str());
-							}
+						string indexDir = ftsDirectory + "/" + indexName;
+						auto indexDirUnicode = StringUtils::toUnicode(indexDir);
+						if (!FileUtils::isDirectory(indexDirUnicode)) {
+							// TODO: Выставить статус инвалида для индекса
+							string error_message = string_format("Directory \"%s\" not exists", indexDir);
+							ISC_STATUS statusVector[] = {
+								isc_arg_gds, isc_random,
+								isc_arg_string, (ISC_STATUS)error_message.c_str(),
+								isc_arg_end
+							};
+							throw FbException(status, statusVector);
 						}
-						auto fsIndexDir = FSDirectory::open(indexDir);
-						// TODO: пока анализатор всегда стандартный
-						auto analyzer = procedure->analyzerFactory.createAnalyzer(ftsIndex.analyzer);
+						auto fsIndexDir = FSDirectory::open(indexDirUnicode);
+						auto analyzer = procedure->analyzerFactory.createAnalyzer(status, ftsIndex.analyzer);
 						IndexWriterPtr writer = newLucene<IndexWriter>(fsIndexDir, analyzer, IndexWriter::MaxFieldLengthLIMITED);
 						indexWriters[indexName] = writer;
 					}
@@ -1012,20 +985,17 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 										value = field.getStringValue(status, att, tra, buffer);
 									}
 									auto fieldName = StringUtils::toUnicode(relationName + "." + field.fieldName);
+									Lucene::String unicodeValue;
 									if (!value.empty()) {
 										// перекодируем содержимое в Unicode только если строка не пустая
-										auto unicodeValue = StringUtils::toUnicode(to_utf8(value, icuCharset));
-										doc->add(newLucene<Field>(fieldName, unicodeValue, Field::STORE_NO, Field::INDEX_ANALYZED));
+										unicodeValue = StringUtils::toUnicode(to_utf8(value, icuCharset));
 									}
-									else {
-										doc->add(newLucene<Field>(fieldName, L"", Field::STORE_NO, Field::INDEX_ANALYZED));
-									}
+									auto luceneField = newLucene<Field>(fieldName, unicodeValue, Field::STORE_NO, Field::INDEX_ANALYZED);
+									doc->add(luceneField);
 									emptyFlag = emptyFlag && value.empty();
 								}
-								if (changeType == "I") {
-									if (!emptyFlag) {
-										writer->addDocument(doc);
-									}
+								if ((changeType == "I") && !emptyFlag) {
+									writer->addDocument(doc);
 								}
 								if (changeType == "U") {
 									TermPtr term = newLucene<Term>(L"RDB$DB_KEY", StringUtils::toUnicode(hexDbKey));
@@ -1058,9 +1028,6 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 		// очищаем подготовленные запросы
 		procedure->clearPreparedStatements();
 	}
-
-	AutoRelease<IAttachment> att;
-	AutoRelease<ITransaction> tra;
 
 	FB_UDR_FETCH_PROCEDURE
 	{
@@ -1111,61 +1078,67 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 	FB_UDR_EXECUTE_PROCEDURE
 	{
 	    if (in->index_nameNull) {
-		    throwFbException(status, "Index name can not be NULL");
+			ISC_STATUS statusVector[] = {
+				isc_arg_gds, isc_random,
+				isc_arg_string, (ISC_STATUS)"Index name can not be NULL",
+				isc_arg_end
+			};
+			throw FbException(status, statusVector);
 	    }
-	    indexName.assign(in->index_name.str, in->index_name.length);
+	    string indexName(in->index_name.str, in->index_name.length);
+
+		string relationName;
 		if (!in->relation_nameNull) {
 			relationName.assign(in->relation_name.str, in->relation_name.length);
 		}
+
+		string filter;
 		if (!in->filterNull) {
 			filter.assign(in->filter.str, in->filter.length);
 		}
-		limit = in->limit;
 
-		string ftsDirectory = getFtsDirectory(context);
-		// проверка есть ли директория для полнотекстовых индексов
-		String ftsUnicodeDirectory = StringUtils::toUnicode(ftsDirectory);
-		if (!FileUtils::isDirectory(ftsUnicodeDirectory)) {
-			string error_message;
-			error_message += "Fts directory \"" + ftsDirectory + "\" not exists";
-			throwFbException(status, error_message.c_str());
-		}
+		ISC_INT64 limit = in->limit;
+
+		string ftsDirectory = LuceneFTS::getFtsDirectory(context);
+
 
 		att.reset(context->getAttachment(status));
 		tra.reset(context->getTransaction(status));
 
 		unsigned int sqlDialect = getSqlDialect(status, att);
 
-		LuceneFTS::FTSIndex ftsIndex;
-		// проверка существования индекса
-		if (!procedure->indexRepository.getIndex(status, att, tra, sqlDialect, indexName, ftsIndex)) {
-			string error_message;
-			error_message += "Index \"" + indexName + "\" not exists";
-			throwFbException(status, error_message.c_str());
-		}
+		auto ftsIndex = procedure->indexRepository.getIndex(status, att, tra, sqlDialect, indexName);
 
 		// проверка существования директории для индекса
 		auto indexDir = StringUtils::toUnicode(ftsDirectory + "/" + indexName);
 		if (!FileUtils::isDirectory(indexDir)) {
-			string error_message;
-			error_message += "Index \"" + indexName + "\" exists, but cannot be build. Please run rebuildIndex.";
-			throwFbException(status, error_message.c_str());
+			string error_message = string_format("Index \"%s\" exists, but cannot be build. Please rebuild index.", indexName);
+			ISC_STATUS statusVector[] = {
+				isc_arg_gds, isc_random,
+				isc_arg_string, (ISC_STATUS)error_message.c_str(),
+				isc_arg_end
+			};
+			throw FbException(status, statusVector);
 		}
 
 		try {
 			auto fsIndexDir = FSDirectory::open(indexDir);
 			IndexReaderPtr reader = IndexReader::open(fsIndexDir, true);
 			searcher = newLucene<IndexSearcher>(reader);
-			AnalyzerPtr analyzer = procedure->analyzerFactory.createAnalyzer(ftsIndex.analyzer);
+			AnalyzerPtr analyzer = procedure->analyzerFactory.createAnalyzer(status, ftsIndex.analyzer);
 			auto segments = procedure->indexRepository.getIndexSegments(status, att, tra, sqlDialect, indexName);
 			if (!relationName.empty()) {
 				// если задано имя таблицы, то выбираем только сегменты с этой таблицей
 				auto segmentsByRelation = LuceneFTS::FTSIndexRepository::groupIndexSegmentsByRelation(segments);
 				auto el = segmentsByRelation.find(relationName);
 				if (el == segmentsByRelation.end()) {
-					string error_message;
-					error_message += "Relation \"" + relationName + "\" not exisit in index \"" + indexName + "\".";
-					throwFbException(status, error_message.c_str());
+					string error_message = string_format("Relation \"%s\" not exists in index \"%s\".", relationName, indexName);
+					ISC_STATUS statusVector[] = {
+						isc_arg_gds, isc_random,
+						isc_arg_string, (ISC_STATUS)error_message.c_str(),
+						isc_arg_end
+					};
+					throw FbException(status, statusVector);
 				}
 				segments = el->second;
 			}
@@ -1190,16 +1163,17 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 		}
 		catch (LuceneException& e) {
 			string error_message = StringUtils::toUTF8(e.getError());
-			throwFbException(status, error_message.c_str());
+			ISC_STATUS statusVector[] = {
+				isc_arg_gds, isc_random,
+				isc_arg_string, (ISC_STATUS)error_message.c_str(),
+				isc_arg_end
+			};
+			throw FbException(status, statusVector);
 		}
 	}
 
 	AutoRelease<IAttachment> att;
 	AutoRelease<ITransaction> tra;
-	string indexName;
-	string relationName;
-	string filter;
-	ISC_INT64 limit;
 	SearcherPtr searcher;
 	Collection<ScoreDocPtr> scoreDocs;
 	Collection<ScoreDocPtr>::iterator it;
@@ -1245,6 +1219,7 @@ FB_UDR_BEGIN_TRIGGER(trFtsLog)
        , triggerTable(metadata->getTriggerTable(status))
        , indexRepository(context->getMaster())
 	{
+	
 		AutoRelease<IMessageMetadata> origTriggerMetadata(metadata->getTriggerMetadata(status));
 		AutoRelease<IMetadataBuilder> builder(origTriggerMetadata->getBuilder(status));
 		auto fieldIndex = builder->addField(status);
@@ -1253,7 +1228,6 @@ FB_UDR_BEGIN_TRIGGER(trFtsLog)
 		builder->setLength(status, fieldIndex, 8);
 		builder->setCharSet(status, fieldIndex, CS_BINARY);
 		triggerMetadata.reset(builder->getMetadata(status));
-
 	}
 
 	LuceneFTS::FTSIndexRepository indexRepository;
@@ -1280,15 +1254,25 @@ FB_UDR_BEGIN_TRIGGER(trFtsLog)
 			for (auto& segment : segments) {
 			    int fieldIndex = findFieldByName(fieldsInfo, segment.fieldName);
 				if (fieldIndex < 0) {
-					string s = "Invalid index segment " + segment.relationName + "." + segment.fieldName + " for index " + segment.indexName;
-					throwFbException(status, s.c_str());
+					string error_message = string_format("Invalid index segment \"%s\".\"%s\" for index \"%s\".", segment.relationName, segment.fieldName, segment.indexName);
+					ISC_STATUS statusVector[] = {
+						isc_arg_gds, isc_random,
+						isc_arg_string, (ISC_STATUS)error_message.c_str(),
+						isc_arg_end
+					};
+					throw FbException(status, statusVector);
 				}
 			}
 		}
 		if (action == IExternalTrigger::ACTION_UPDATE) {
 			string dbKey = fieldsInfo[dbKeyIndex].getStringValue(status, att, tra, newFields);
 			string hexDbKey = string_to_hex(dbKey);
-			throwFbException(status, hexDbKey.c_str());
+			ISC_STATUS statusVector[] = {
+				isc_arg_gds, isc_random,
+				isc_arg_string, (ISC_STATUS)hexDbKey.c_str(),
+				isc_arg_end
+			};
+			throw FbException(status, statusVector);
 		}
 		if (action == IExternalTrigger::ACTION_DELETE) {
 			string dbKey = fieldsInfo[dbKeyIndex].getStringValue(status, att, tra, newFields);

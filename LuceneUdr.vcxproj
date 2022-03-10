@@ -34,6 +34,7 @@
     <ClInclude Include="LuceneAnalyzerFactory.h" />
     <ClInclude Include="LuceneUdr.h" />
     <ClInclude Include="Relations.h" />
+    <ClInclude Include="StringFormatter.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="defs\udr_plugin.def" />

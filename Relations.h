@@ -26,8 +26,20 @@ namespace LuceneFTS
 			: m_master(master)
 		{}
 
-		bool relationExists(ThrowStatusWrapper status, IAttachment* att, ITransaction* tra, unsigned int sqlDialect, string relationName);
-		bool fieldExists(ThrowStatusWrapper status, IAttachment* att, ITransaction* tra, unsigned int sqlDialect, string relationName, string fieldName);
+		bool relationExists(
+			ThrowStatusWrapper* status, 
+			IAttachment* att, 
+			ITransaction* tra, 
+			unsigned int sqlDialect, 
+			string relationName);
+
+		bool fieldExists(
+			ThrowStatusWrapper* status, 
+			IAttachment* att, 
+			ITransaction* tra, 
+			unsigned int sqlDialect, 
+			string relationName, 
+			string fieldName);
 
 		static inline string escapeMetaName(unsigned int sqlDialect, const string name)
 		{

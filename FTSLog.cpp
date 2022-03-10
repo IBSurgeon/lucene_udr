@@ -8,7 +8,7 @@ using namespace LuceneFTS;
 // Добавлении записи в журнал изменений
 //
 void FTSLogRepository::appendLog(
-	ThrowStatusWrapper status,
+	ThrowStatusWrapper* status,
 	IAttachment* att,
 	ITransaction* tra,
 	unsigned int sqlDialect,
@@ -20,7 +20,7 @@ void FTSLogRepository::appendLog(
 		(FB_INTL_VARCHAR(252, CS_UTF8), relation_name)
 		(FB_INTL_VARCHAR(8, CS_BINARY), db_key)
 		(FB_INTL_VARCHAR(4, CS_UTF8), change_type)
-	) input(&status, m_master);
+	) input(status, m_master);
 
 	input.clear();
 
@@ -35,7 +35,7 @@ void FTSLogRepository::appendLog(
 
 	if (!stmt_append_log.hasData()) {
 		stmt_append_log.reset(att->prepare(
-			&status,
+			status,
 			tra,
 			0,
 			"INSERT INTO FTS$LOG (\n"
@@ -50,7 +50,7 @@ void FTSLogRepository::appendLog(
 	}
 
 	stmt_append_log->execute(
-		&status,
+		status,
 		tra,
 		input.getMetadata(),
 		input.getData(),
@@ -63,7 +63,7 @@ void FTSLogRepository::appendLog(
 // Удаление записи из журнала изменений
 //
 void FTSLogRepository::deleteLog(
-	ThrowStatusWrapper status,
+	ThrowStatusWrapper* status,
 	IAttachment* att,
 	ITransaction* tra,
 	unsigned int sqlDialect,
@@ -71,7 +71,7 @@ void FTSLogRepository::deleteLog(
 {
 	FB_MESSAGE(Input, ThrowStatusWrapper,
 		(FB_BIGINT, id)
-	) input(&status, m_master);
+	) input(status, m_master);
 
 	input.clear();
 	input->idNull = false;
@@ -79,7 +79,7 @@ void FTSLogRepository::deleteLog(
 
 	if (!stmt_delete_log.hasData()) {
 		stmt_delete_log.reset(att->prepare(
-			&status,
+			status,
 			tra,
 			0,
 			"DELETE FROM FTS$LOG\n"
@@ -90,7 +90,7 @@ void FTSLogRepository::deleteLog(
 	}
 
 	stmt_delete_log->execute(
-		&status,
+		status,
 		tra,
 		input.getMetadata(),
 		input.getData(),
@@ -103,13 +103,13 @@ void FTSLogRepository::deleteLog(
 // Очистка журнала изменений
 //
 void FTSLogRepository::clearLog(
-	ThrowStatusWrapper status,
+	ThrowStatusWrapper* status,
 	IAttachment* att,
 	ITransaction* tra,
 	unsigned int sqlDialect)
 {
 	att->execute(
-		&status,
+		status,
 		tra,
 		0,
 		"DELETE FROM FTS$LOG",

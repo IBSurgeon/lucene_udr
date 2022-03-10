@@ -31,7 +31,7 @@ namespace LuceneFTS
 		// Добавлении записи в журнал изменений
 		//
 		void appendLog(
-			ThrowStatusWrapper status,
+			ThrowStatusWrapper* status,
 			IAttachment* att,
 			ITransaction* tra,
 			unsigned int sqlDialect,
@@ -43,7 +43,7 @@ namespace LuceneFTS
 		// Удаление записи из журнала изменений
 		//
 		void deleteLog(
-			ThrowStatusWrapper status,
+			ThrowStatusWrapper* status,
 			IAttachment* att,
 			ITransaction* tra,
 			unsigned int sqlDialect,
@@ -53,7 +53,7 @@ namespace LuceneFTS
 		// Очистка журнала изменений
 		//
 		void clearLog(
-			ThrowStatusWrapper status,
+			ThrowStatusWrapper* status,
 			IAttachment* att,
 			ITransaction* tra,
 			unsigned int sqlDialect);

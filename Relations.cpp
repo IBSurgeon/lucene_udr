@@ -5,15 +5,20 @@ using namespace Firebird;
 using namespace std;
 using namespace LuceneFTS;
 
-bool RelationHelper::relationExists(ThrowStatusWrapper status, IAttachment* att, ITransaction* tra, unsigned int sqlDialect, string relationName)
+bool RelationHelper::relationExists(
+	ThrowStatusWrapper* status, 
+	IAttachment* att, 
+	ITransaction* tra, 
+	unsigned int sqlDialect, 
+	string relationName)
 {
 	FB_MESSAGE(Input, ThrowStatusWrapper,
 		(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
-	) input(&status, m_master);
+	) input(status, m_master);
 
 	FB_MESSAGE(Output, ThrowStatusWrapper,
 		(FB_INTEGER, cnt)
-	) output(&status, m_master);
+	) output(status, m_master);
 
 	input.clear();
 	input->relationName.length = relationName.length();
@@ -21,7 +26,7 @@ bool RelationHelper::relationExists(ThrowStatusWrapper status, IAttachment* att,
 
 	if (!stmt_exists_relation.hasData()) {
 		stmt_exists_relation.reset(att->prepare(
-			&status,
+			status,
 			tra,
 			0,
 			"SELECT COUNT(*) AS CNT\n"
@@ -32,7 +37,7 @@ bool RelationHelper::relationExists(ThrowStatusWrapper status, IAttachment* att,
 		));
 	}
 	AutoRelease<IResultSet> rs(stmt_exists_relation->openCursor(
-		&status,
+		status,
 		tra,
 		input.getMetadata(),
 		input.getData(),
@@ -40,24 +45,30 @@ bool RelationHelper::relationExists(ThrowStatusWrapper status, IAttachment* att,
 		0
 	));
 	bool foundFlag = false;
-	if (rs->fetchNext(&status, output.getData()) == IStatus::RESULT_OK) {
+	if (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
 		foundFlag = (output->cnt > 0);
 	}
-	rs->close(&status);
+	rs->close(status);
 
 	return foundFlag;
 }
 
-bool RelationHelper::fieldExists(ThrowStatusWrapper status, IAttachment* att, ITransaction* tra, unsigned int sqlDialect, string relationName, string fieldName)
+bool RelationHelper::fieldExists(
+	ThrowStatusWrapper* status, 
+	IAttachment* att, 
+	ITransaction* tra, 
+	unsigned int sqlDialect, 
+	string relationName, 
+	string fieldName)
 {
 	FB_MESSAGE(Input, ThrowStatusWrapper,
 		(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
 		(FB_INTL_VARCHAR(252, CS_UTF8), fieldName)
-	) input(&status, m_master);
+	) input(status, m_master);
 
 	FB_MESSAGE(Output, ThrowStatusWrapper,
 		(FB_INTEGER, cnt)
-	) output(&status, m_master);
+	) output(status, m_master);
 
 	input.clear();
 	input->relationName.length = relationName.length();
@@ -67,7 +78,7 @@ bool RelationHelper::fieldExists(ThrowStatusWrapper status, IAttachment* att, IT
 
 	if (!stmt_exists_field.hasData()) {
 		stmt_exists_field.reset(att->prepare(
-			&status,
+			status,
 			tra,
 			0,
 			"SELECT COUNT(*) AS CNT\n"
@@ -78,7 +89,7 @@ bool RelationHelper::fieldExists(ThrowStatusWrapper status, IAttachment* att, IT
 		));
 	}
 	AutoRelease<IResultSet> rs(stmt_exists_field->openCursor(
-		&status,
+		status,
 		tra,
 		input.getMetadata(),
 		input.getData(),
@@ -86,10 +97,10 @@ bool RelationHelper::fieldExists(ThrowStatusWrapper status, IAttachment* att, IT
 		0
 	));
 	bool foundFlag = false;
-	if (rs->fetchNext(&status, output.getData()) == IStatus::RESULT_OK) {
+	if (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
 		foundFlag = (output->cnt > 0);
 	}
-	rs->close(&status);
+	rs->close(status);
 
 	return foundFlag;
 }

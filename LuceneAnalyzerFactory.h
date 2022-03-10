@@ -6,6 +6,7 @@
 #include <string>
 #include <functional>
 #include <stdexcept>
+#include "LuceneUdr.h"
 #include "lucene++\LuceneHeaders.h"
 #include "lucene++\ArabicAnalyzer.h"
 #include "lucene++\BrazilianAnalyzer.h"
@@ -41,10 +42,13 @@ namespace LuceneFTS {
 		}
 	};
 
+	static const string DEFAULT_ANALYZER_NAME = "STANDARD";
+
 	class LuceneAnalyzerFactory {
 	private:
 		std::map<string, std::function<AnalyzerPtr()>, ci_more> factories;
 	public:
+
 		LuceneAnalyzerFactory()
 			: factories()
 		{
@@ -72,12 +76,18 @@ namespace LuceneFTS {
 			return (factories.find(analyzerName) != factories.end());
 		}
 
-		AnalyzerPtr createAnalyzer(string analyzerName)
+		AnalyzerPtr createAnalyzer(ThrowStatusWrapper* status, string analyzerName)
 		{
 			auto pFactory = factories.find(analyzerName);
 			if (pFactory == factories.end()) {
 				// исключение
-				throw std::runtime_error("Analyzer" + analyzerName + " not found");
+				string error_message = string_format("Analyzer \"%s\" not found.", analyzerName);
+				ISC_STATUS statusVector[] = {
+				   isc_arg_gds, isc_random,
+				   isc_arg_string, (ISC_STATUS)error_message.c_str(),
+				   isc_arg_end
+				};
+				throw FbException(status, statusVector);
 			}
 			auto factory = pFactory->second;
 			return factory();

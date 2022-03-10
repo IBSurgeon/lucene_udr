@@ -63,6 +63,9 @@
     <ClInclude Include="LuceneAnalyzerFactory.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
+    <ClInclude Include="StringFormatter.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="defs\udr_plugin.def">

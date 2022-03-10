@@ -2,6 +2,7 @@
 #define FTS_INDEX_H
 
 #include "LuceneUdr.h"
+#include "Relations.h"
 #include <string>
 #include <list>
 #include <map>
@@ -17,6 +18,7 @@ namespace LuceneFTS
 		string indexName;
 		string analyzer;
 		string description;
+		string status;
 	};
 
 	struct FTSIndexSegment
@@ -24,6 +26,7 @@ namespace LuceneFTS
 		string indexName;
 		string relationName;
 		string fieldName;
+		double boost = 1.0;
 
 		FTSIndex index;
 
@@ -31,6 +34,8 @@ namespace LuceneFTS
 			return relationName + "." + fieldName;
 		}
 	};
+
+	string getFtsDirectory(IExternalContext* context);
 
 	class FTSRelation {
 
@@ -95,6 +100,7 @@ namespace LuceneFTS
 	{
 	private:
 		IMaster* m_master;
+		RelationHelper relationHelper;
 		// подготовленные запросы
 		AutoRelease<IStatement> stmt_exists_index;
 		AutoRelease<IStatement> stmt_get_index;
@@ -107,6 +113,7 @@ namespace LuceneFTS
 
 		FTSIndexRepository(IMaster* master)
 			: m_master(master),
+			relationHelper(master),
 			stmt_exists_index(nullptr),
 			stmt_get_index(nullptr),
 			stmt_index_segments(nullptr),
@@ -118,7 +125,7 @@ namespace LuceneFTS
 		// Создание нового полнотекстового индекса
 		//
 		void createIndex(
-			ThrowStatusWrapper status,
+			ThrowStatusWrapper* status,
 			IAttachment* att,
 			ITransaction* tra,
 			unsigned int sqlDialect,
@@ -130,7 +137,7 @@ namespace LuceneFTS
 		// Удаление полнотекстового индекса
 		//
 		void dropIndex(
-			ThrowStatusWrapper status,
+			ThrowStatusWrapper* status,
 			IAttachment* att,
 			ITransaction* tra,
 			unsigned int sqlDialect,
@@ -139,39 +146,39 @@ namespace LuceneFTS
 		//
 		// Возвращает существует ли индекс с заданным именем.
 		//
-		bool hasIndex(ThrowStatusWrapper status, IAttachment* att, ITransaction* tra, unsigned int sqlDialect, string indexName);
+		bool hasIndex(ThrowStatusWrapper* status, IAttachment* att, ITransaction* tra, unsigned int sqlDialect, string indexName);
 
 		//
 		// Получает информацию об индексе с заданным именем, если он существует.
 		// Возвращает true, если индекс существует, и false - в противном случае.
 		//
-		bool getIndex(ThrowStatusWrapper status, IAttachment* att, ITransaction* tra, unsigned int sqlDialect, string indexName, FTSIndex& ftsIndex);
+		FTSIndex getIndex(ThrowStatusWrapper* status, IAttachment* att, ITransaction* tra, unsigned int sqlDialect, string indexName);
 
 		//
 		// Возвращет список всех индексов
 		//
-		list<FTSIndex> getAllIndexes(ThrowStatusWrapper status, IAttachment* att, ITransaction* tra, unsigned int sqlDialect);
+		list<FTSIndex> getAllIndexes(ThrowStatusWrapper* status, IAttachment* att, ITransaction* tra, unsigned int sqlDialect);
 
 		//
 		// Возвращает сегменты индекса с заданным именем
 		//
-		list<FTSIndexSegment> getIndexSegments(ThrowStatusWrapper status, IAttachment* att, ITransaction* tra, unsigned int sqlDialect, string indexName);
+		list<FTSIndexSegment> getIndexSegments(ThrowStatusWrapper* status, IAttachment* att, ITransaction* tra, unsigned int sqlDialect, string indexName);
 
 		//
-        // Возвращает все сегменты всех индексов. Упорядочено по имеи индекса
+        // Возвращает все сегменты всех индексов. Упорядочено по имени индекса
         //
-		list<FTSIndexSegment> getAllIndexSegments(ThrowStatusWrapper status, IAttachment* att, ITransaction* tra, unsigned int sqlDialect);
+		list<FTSIndexSegment> getAllIndexSegments(ThrowStatusWrapper* status, IAttachment* att, ITransaction* tra, unsigned int sqlDialect);
 
 		//
 		// Возвращает сегменты индексов по имени таблицы
 		//
-		list<FTSIndexSegment> getIndexSegmentsByRelation(ThrowStatusWrapper status, IAttachment* att, ITransaction* tra, unsigned int sqlDialect, string relationName);
+		list<FTSIndexSegment> getIndexSegmentsByRelation(ThrowStatusWrapper* status, IAttachment* att, ITransaction* tra, unsigned int sqlDialect, string relationName);
 
 		//
 		// Добавление нового поля (сегмента) полнотекстового индекса
 		//
 		void addIndexField(
-			ThrowStatusWrapper status,
+			ThrowStatusWrapper* status,
 			IAttachment* att,
 			ITransaction* tra,
 			unsigned int sqlDialect,
@@ -183,7 +190,7 @@ namespace LuceneFTS
 		// Удаление поля (сегмента) из полнотекстового индекса
 		//
 		void dropIndexField(
-			ThrowStatusWrapper status,
+			ThrowStatusWrapper* status,
 			IAttachment* att,
 			ITransaction* tra,
 			unsigned int sqlDialect,
@@ -195,7 +202,7 @@ namespace LuceneFTS
 		// Проверка существования поля (сегмента) в полнотекстовом индексе
 		//
 		bool hasIndexSegment(
-			ThrowStatusWrapper status,
+			ThrowStatusWrapper* status,
 			IAttachment* att,
 			ITransaction* tra,
 			unsigned int sqlDialect,
