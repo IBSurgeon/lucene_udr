@@ -378,7 +378,7 @@ FB_UDR_BEGIN_PROCEDURE(addIndexField)
 		unsigned int sqlDialect = getSqlDialect(status, att);
 
 		// добавление сегмента
-		procedure->indexRepository.addIndexField(status, att, tra, sqlDialect, indexName, relationName, fieldName);
+		procedure->indexRepository.addIndexField(status, att, tra, sqlDialect, indexName, relationName, fieldName, false, 1.0);
 	}
 
 	FB_UDR_FETCH_PROCEDURE

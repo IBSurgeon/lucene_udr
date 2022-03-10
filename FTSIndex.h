@@ -26,6 +26,7 @@ namespace LuceneFTS
 		string indexName;
 		string relationName;
 		string fieldName;
+		bool storeData;
 		double boost = 1.0;
 
 		FTSIndex index;
@@ -144,6 +145,17 @@ namespace LuceneFTS
 			string indexName);
 
 		//
+		// Устанавливает статус индекса
+		//
+		void setIndexStatus(
+			ThrowStatusWrapper* status,
+			IAttachment* att,
+			ITransaction* tra,
+			unsigned int sqlDialect,
+			string indexName,
+			string indexStatus);
+
+		//
 		// Возвращает существует ли индекс с заданным именем.
 		//
 		bool hasIndex(ThrowStatusWrapper* status, IAttachment* att, ITransaction* tra, unsigned int sqlDialect, string indexName);
@@ -184,7 +196,9 @@ namespace LuceneFTS
 			unsigned int sqlDialect,
 			string indexName,
 			string relationName,
-			string fieldName);
+			string fieldName,
+			bool storeData,
+			double boost);
 
 		//
 		// Удаление поля (сегмента) из полнотекстового индекса

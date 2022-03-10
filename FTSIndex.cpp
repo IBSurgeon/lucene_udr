@@ -37,6 +37,7 @@ void FTSIndexRepository::createIndex(
 		(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
 		(FB_INTL_VARCHAR(252, CS_UTF8), analyzer)
 		(FB_BLOB, description)
+		(FB_INTL_VARCHAR(4, CS_UTF8), indexStatus)
 	) input(status, m_master);
 
 	input.clear();
@@ -63,6 +64,10 @@ void FTSIndexRepository::createIndex(
 	else {
 		input->descriptionNull = true;
 	}
+
+	string indexStatus = "N";
+	input->indexStatus.length = indexStatus.length();
+	indexStatus.copy(input->indexStatus.str, input->indexStatus.length);
 
 	// проверка существования индекса
 	if (hasIndex(status, att, tra, sqlDialect, indexName)) {
@@ -91,8 +96,8 @@ void FTSIndexRepository::createIndex(
 		status,
 		tra,
 		0,
-		"INSERT INTO FTS$INDICES(FTS$INDEX_NAME, FTS$ANALYZER, FTS$DESCRIPTION)\n"
-		"VALUES(?, ?, ?)",
+		"INSERT INTO FTS$INDICES(FTS$INDEX_NAME, FTS$ANALYZER, FTS$DESCRIPTION, FTS$INDEX_STATUS)\n"
+		"VALUES(?, ?, ?, ?)",
 		sqlDialect,
 		input.getMetadata(),
 		input.getData(),
@@ -137,6 +142,43 @@ void FTSIndexRepository::dropIndex(
 		tra,
 		0,
 		"DELETE FROM FTS$INDICES WHERE FTS$INDEX_NAME = ?",
+		sqlDialect,
+		input.getMetadata(),
+		input.getData(),
+		nullptr,
+		nullptr
+	);
+}
+
+//
+// Устанавливает статус индекса
+//
+void FTSIndexRepository::setIndexStatus(
+	ThrowStatusWrapper* status,
+	IAttachment* att,
+	ITransaction* tra,
+	unsigned int sqlDialect,
+	string indexName,
+	string indexStatus)
+{
+	FB_MESSAGE(Input, ThrowStatusWrapper,
+		(FB_INTL_VARCHAR(4, CS_UTF8), indexStatus)
+		(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
+	) input(status, m_master);
+
+	input.clear();
+
+	input->indexName.length = indexName.length();
+	indexName.copy(input->indexName.str, input->indexName.length);
+
+	input->indexStatus.length = indexStatus.length();
+	indexStatus.copy(input->indexStatus.str, input->indexStatus.length);
+
+	att->execute(
+		status,
+		tra,
+		0,
+		"UPDATE FTS$INDICES SET FTS$INDEX_STATUS = ? WHERE FTS$INDEX_NAME = ?",
 		sqlDialect,
 		input.getMetadata(),
 		input.getData(),
@@ -203,7 +245,12 @@ bool FTSIndexRepository::hasIndex(
 // Получает информацию об индексе с заданным именем, если он существует.
 // Бросает сиключение в случае его отсуствия.
 //
-FTSIndex FTSIndexRepository::getIndex(ThrowStatusWrapper* status, IAttachment* att, ITransaction* tra, unsigned int sqlDialect, string indexName)
+FTSIndex FTSIndexRepository::getIndex(
+	ThrowStatusWrapper* status, 
+	IAttachment* att, 
+	ITransaction* tra, 
+	unsigned int sqlDialect, 
+	string indexName)
 {
 	FTSIndex ftsIndex;
 
@@ -215,6 +262,7 @@ FTSIndex FTSIndexRepository::getIndex(ThrowStatusWrapper* status, IAttachment* a
 		(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
 		(FB_INTL_VARCHAR(252, CS_UTF8), analyzer)
 		(FB_BLOB, description)
+		(FB_INTL_VARCHAR(4, CS_UTF8), indexStatus)
 	) output(status, m_master);
 
 	input.clear();
@@ -227,7 +275,7 @@ FTSIndex FTSIndexRepository::getIndex(ThrowStatusWrapper* status, IAttachment* a
 			status,
 			tra,
 			0,
-			"SELECT FTS$INDEX_NAME, FTS$ANALYZER, FTS$DESCRIPTION\n"
+			"SELECT FTS$INDEX_NAME, FTS$ANALYZER, FTS$DESCRIPTION, FTS$INDEX_STATUS\n"
 			"FROM FTS$INDICES\n"
 			"WHERE FTS$INDEX_NAME = ?",
 			sqlDialect,
@@ -246,17 +294,13 @@ FTSIndex FTSIndexRepository::getIndex(ThrowStatusWrapper* status, IAttachment* a
 	if (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
 		foundFlag = true;
 		ftsIndex.indexName.assign(output->indexName.str, output->indexName.length);
-		if (!output->analyzerNull && output->analyzer.length > 0) {
-			ftsIndex.analyzer.assign(output->analyzer.str, output->analyzer.length);
-		}
-		else {
-			ftsIndex.analyzer = LuceneFTS::DEFAULT_ANALYZER_NAME;
-		}
+		ftsIndex.analyzer.assign(output->analyzer.str, output->analyzer.length);
 		if (!output->descriptionNull) {
 			AutoRelease<IBlob> blob(att->openBlob(status, tra, &output->description, 0, nullptr));
 			ftsIndex.description = blob_get_string(status, blob);
 			blob->close(status);
 		}
+		ftsIndex.status.assign(output->indexStatus.str, output->indexStatus.length);
 	}
 	rs->close(status);
 	if (!foundFlag) {
@@ -275,13 +319,18 @@ FTSIndex FTSIndexRepository::getIndex(ThrowStatusWrapper* status, IAttachment* a
 //
 // Возвращет список всех индексов
 //
-list<FTSIndex> FTSIndexRepository::getAllIndexes(ThrowStatusWrapper* status, IAttachment* att, ITransaction* tra, unsigned int sqlDialect)
+list<FTSIndex> FTSIndexRepository::getAllIndexes(
+	ThrowStatusWrapper* status, 
+	IAttachment* att, 
+	ITransaction* tra, 
+	unsigned int sqlDialect)
 {
 
 	FB_MESSAGE(Output, ThrowStatusWrapper,
 		(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
 		(FB_INTL_VARCHAR(252, CS_UTF8), analyzer)
 		(FB_BLOB, description)
+		(FB_INTL_VARCHAR(4, CS_UTF8), indexStatus)
 	) output(status, m_master);
 
 
@@ -289,7 +338,7 @@ list<FTSIndex> FTSIndexRepository::getAllIndexes(ThrowStatusWrapper* status, IAt
 			status,
 			tra,
 			0,
-			"SELECT FTS$INDEX_NAME, FTS$ANALYZER, FTS$DESCRIPTION\n"
+			"SELECT FTS$INDEX_NAME, FTS$ANALYZER, FTS$DESCRIPTION, FTS$INDEX_STATUS\n"
 			"FROM FTS$INDICES\n"
 			"ORDER BY FTS$INDEX_NAME",
 		    sqlDialect,
@@ -309,17 +358,16 @@ list<FTSIndex> FTSIndexRepository::getAllIndexes(ThrowStatusWrapper* status, IAt
 	while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
 		FTSIndex ftsIndex;
 		ftsIndex.indexName.assign(output->indexName.str, output->indexName.length);
-		if (!output->analyzerNull && output->analyzer.length > 0) {
-			ftsIndex.analyzer.assign(output->analyzer.str, output->analyzer.length);
-		}
-		else {
-			ftsIndex.analyzer = LuceneFTS::DEFAULT_ANALYZER_NAME;
-		}
+		ftsIndex.analyzer.assign(output->analyzer.str, output->analyzer.length);
+
 		if (!output->descriptionNull) {
 			AutoRelease<IBlob> blob(att->openBlob(status, tra, &output->description, 0, nullptr));
 			ftsIndex.description = blob_get_string(status, blob);
 			blob->close(status);
 		}
+
+		ftsIndex.status.assign(output->indexStatus.str, output->indexStatus.length);
+
 		indexes.push_back(ftsIndex);
 	}
 	rs->close(status);
@@ -330,7 +378,12 @@ list<FTSIndex> FTSIndexRepository::getAllIndexes(ThrowStatusWrapper* status, IAt
 //
 // Возвращает сегменты индекса с заданным именем
 //
-list<FTSIndexSegment> FTSIndexRepository::getIndexSegments(ThrowStatusWrapper* status, IAttachment* att, ITransaction* tra, unsigned int sqlDialect, string indexName)
+list<FTSIndexSegment> FTSIndexRepository::getIndexSegments(
+	ThrowStatusWrapper* status, 
+	IAttachment* att, 
+	ITransaction* tra, 
+	unsigned int sqlDialect, 
+	string indexName)
 {
 	FB_MESSAGE(Input, ThrowStatusWrapper,
 		(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
@@ -340,6 +393,8 @@ list<FTSIndexSegment> FTSIndexRepository::getIndexSegments(ThrowStatusWrapper* s
 		(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
 		(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
 		(FB_INTL_VARCHAR(252, CS_UTF8), fieldName)
+		(FB_BOOLEAN, storeData)
+		(FB_DOUBLE, boost)
 	) output(status, m_master);
 
 	input.clear();
@@ -352,7 +407,7 @@ list<FTSIndexSegment> FTSIndexRepository::getIndexSegments(ThrowStatusWrapper* s
 			status,
 			tra,
 			0,
-			"SELECT FTS$INDEX_NAME, FTS$RELATION_NAME, FTS$FIELD_NAME\n"
+			"SELECT FTS$INDEX_NAME, FTS$RELATION_NAME, FTS$FIELD_NAME, FTS$STORE_DATA, FTS$BOOST\n"
 			"FROM FTS$INDEX_SEGMENTS\n"
 			"WHERE FTS$INDEX_NAME = ?",
 			sqlDialect,
@@ -373,6 +428,13 @@ list<FTSIndexSegment> FTSIndexRepository::getIndexSegments(ThrowStatusWrapper* s
 		indexSegment.indexName.assign(output->indexName.str, output->indexName.length);
 		indexSegment.relationName.assign(output->relationName.str, output->relationName.length);
 		indexSegment.fieldName.assign(output->fieldName.str, output->fieldName.length);
+		indexSegment.storeData = output->storeData;
+		if (output->boostNull) {
+			indexSegment.boost = 1.0;
+		}
+		else {
+			indexSegment.boost = output->boost;
+		}
 		segments.push_back(indexSegment);
 	}
 	rs->close(status);
@@ -393,7 +455,10 @@ list<FTSIndexSegment> FTSIndexRepository::getAllIndexSegments(
 		(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
 		(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
 		(FB_INTL_VARCHAR(252, CS_UTF8), fieldName)
+		(FB_BOOLEAN, storeData)
+		(FB_DOUBLE, boost)
 		(FB_INTL_VARCHAR(252, CS_UTF8), analyzerName)
+		(FB_INTL_VARCHAR(4, CS_UTF8), indexStatus)
 	) output(status, m_master);
 
 
@@ -405,7 +470,10 @@ list<FTSIndexSegment> FTSIndexRepository::getAllIndexSegments(
 			"  FTS$INDEX_SEGMENTS.FTS$INDEX_NAME,\n"
 			"  FTS$INDEX_SEGMENTS.FTS$RELATION_NAME,\n"
 			"  FTS$INDEX_SEGMENTS.FTS$FIELD_NAME,\n"
-			"  FTS$INDICES.FTS$ANALYZER\n"
+		    "  FTS$INDEX_SEGMENTS.FTS$STORE_DATA,\n"
+		    "  FTS$INDEX_SEGMENTS.FTS$BOOST,\n"
+			"  FTS$INDICES.FTS$ANALYZER,\n"
+		    "  FTS$INDICES.FTS$INDEX_STATUS\n"
 			"FROM FTS$INDEX_SEGMENTS\n"
 			"JOIN FTS$INDICES ON FTS$INDEX_SEGMENTS.FTS$INDEX_NAME = FTS$INDICES.FTS$INDEX_NAME\n"
 			"ORDER BY FTS$INDEX_SEGMENTS.FTS$INDEX_NAME",
@@ -427,14 +495,17 @@ list<FTSIndexSegment> FTSIndexRepository::getAllIndexSegments(
 		indexSegment.indexName.assign(output->indexName.str, output->indexName.length);
 		indexSegment.relationName.assign(output->relationName.str, output->relationName.length);
 		indexSegment.fieldName.assign(output->fieldName.str, output->fieldName.length);
-		indexSegment.index.indexName.assign(output->indexName.str, output->indexName.length);
-		indexSegment.index.analyzer.assign(output->analyzerName.str, output->analyzerName.length);
-		if (!output->analyzerNameNull && output->analyzerName.length > 0) {
-			indexSegment.index.analyzer.assign(output->analyzerName.str, output->analyzerName.length);
+		indexSegment.storeData = output->storeData;
+		if (output->boostNull) {
+			indexSegment.boost = 1.0;
 		}
 		else {
-			indexSegment.index.analyzer = LuceneFTS::DEFAULT_ANALYZER_NAME;
+			indexSegment.boost = output->boost;
 		}
+		indexSegment.index.indexName.assign(output->indexName.str, output->indexName.length);
+		indexSegment.index.analyzer.assign(output->analyzerName.str, output->analyzerName.length);
+		indexSegment.index.status.assign(output->indexStatus.str, output->indexStatus.length);
+
 		// замечание: описание индекса не требуется копировать
 		segments.push_back(indexSegment);
 	}
@@ -460,7 +531,10 @@ list<FTSIndexSegment> FTSIndexRepository::getIndexSegmentsByRelation(
 		(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
 		(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
 		(FB_INTL_VARCHAR(252, CS_UTF8), fieldName)
+		(FB_BOOLEAN, storeData)
+		(FB_DOUBLE, boost)
 		(FB_INTL_VARCHAR(252, CS_UTF8), analyzerName)
+		(FB_INTL_VARCHAR(4, CS_UTF8), indexStatus)
 	) output(status, m_master);
 
 	input.clear();
@@ -477,7 +551,10 @@ list<FTSIndexSegment> FTSIndexRepository::getIndexSegmentsByRelation(
 			"  FTS$INDEX_SEGMENTS.FTS$INDEX_NAME,\n" 
 			"  FTS$INDEX_SEGMENTS.FTS$RELATION_NAME,\n" 
 			"  FTS$INDEX_SEGMENTS.FTS$FIELD_NAME,\n"
-			"  FTS$INDICES.FTS$ANALYZER\n"
+			"  FTS$INDEX_SEGMENTS.FTS$STORE_DATA,\n"
+			"  FTS$INDEX_SEGMENTS.FTS$BOOST,\n"
+			"  FTS$INDICES.FTS$ANALYZER,\n"
+			"  FTS$INDICES.FTS$INDEX_STATUS\n"
 			"FROM FTS$INDEX_SEGMENTS\n"
 			"JOIN FTS$INDICES ON FTS$INDEX_SEGMENTS.FTS$INDEX_NAME = FTS$INDICES.FTS$INDEX_NAME\n"
 			"WHERE FTS$INDEX_SEGMENTS.FTS$RELATION_NAME = ?\n"
@@ -500,13 +577,17 @@ list<FTSIndexSegment> FTSIndexRepository::getIndexSegmentsByRelation(
 		indexSegment.indexName.assign(output->indexName.str, output->indexName.length);
 		indexSegment.relationName.assign(output->relationName.str, output->relationName.length);
 		indexSegment.fieldName.assign(output->fieldName.str, output->fieldName.length);
-		indexSegment.index.indexName.assign(output->indexName.str, output->indexName.length);
-		if (!output->analyzerNameNull && output->analyzerName.length > 0) {
-			indexSegment.index.analyzer.assign(output->analyzerName.str, output->analyzerName.length);
+		indexSegment.storeData = output->storeData;
+		if (output->boostNull) {
+			indexSegment.boost = 1.0;
 		}
 		else {
-			indexSegment.index.analyzer = LuceneFTS::DEFAULT_ANALYZER_NAME;
+			indexSegment.boost = output->boost;
 		}
+		indexSegment.index.indexName.assign(output->indexName.str, output->indexName.length);
+		indexSegment.index.analyzer.assign(output->analyzerName.str, output->analyzerName.length);
+		indexSegment.index.status.assign(output->indexStatus.str, output->indexStatus.length);
+
 		// замечание: описание индекса не требуется копировать
 		segments.push_back(indexSegment);
 	}
@@ -524,7 +605,9 @@ void FTSIndexRepository::addIndexField(
 	unsigned int sqlDialect,
 	string indexName,
 	string relationName,
-	string fieldName)
+	string fieldName,
+	bool storeData,
+	double boost)
 {
 	FB_MESSAGE(Input, ThrowStatusWrapper,
 		(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
@@ -599,6 +682,8 @@ void FTSIndexRepository::addIndexField(
 		nullptr,
 		nullptr
 	);
+
+	setIndexStatus(status, att, tra, sqlDialect, indexName, "U");
 }
 
 //
@@ -664,6 +749,8 @@ void FTSIndexRepository::dropIndexField(
 		nullptr,
 		nullptr
 	);
+
+	setIndexStatus(status, att, tra, sqlDialect, indexName, "U");
 }
 
 //
