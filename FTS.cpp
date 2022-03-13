@@ -14,6 +14,7 @@
 #include <sstream>
 #include <vector>
 #include <memory>
+#include <algorithm>
 
 using namespace Firebird;
 using namespace Lucene;
@@ -318,10 +319,73 @@ FB_UDR_BEGIN_PROCEDURE(dropIndex)
 FB_UDR_END_PROCEDURE
 
 /***
+CREATE PROCEDURE FTS$SET_INDEX_ACTIVE (
+	 FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+	 FTS$INDEX_ACTIVE BOOLEAN NOT NULL
+)
+EXTERNAL NAME 'luceneudr!setIndexActive'
+ENGINE UDR;
+***/
+FB_UDR_BEGIN_PROCEDURE(setIndexActive)
+    FB_UDR_MESSAGE(InMessage,
+	    (FB_INTL_VARCHAR(252, CS_UTF8), index_name)
+		(FB_BOOLEAN, index_active)
+    );
+
+	FB_UDR_CONSTRUCTOR
+		, indexRepository(context->getMaster())
+	{
+	}
+
+	LuceneFTS::FTSIndexRepository indexRepository;
+
+	FB_UDR_EXECUTE_PROCEDURE
+	{
+		if (in->index_nameNull) {
+			ISC_STATUS statusVector[] = {
+				isc_arg_gds, isc_random,
+				isc_arg_string, (ISC_STATUS)"Index name can not be NULL",
+				isc_arg_end
+			};
+			throw FbException(status, statusVector);
+		}
+		string indexName(in->index_name.str, in->index_name.length);
+		bool indexActive = in->index_active;
+
+		AutoRelease<IAttachment> att(context->getAttachment(status));
+		AutoRelease<ITransaction> tra(context->getTransaction(status));
+
+		unsigned int sqlDialect = getSqlDialect(status, att);
+
+		auto ftsIndex = procedure->indexRepository.getIndex(status, att, tra, sqlDialect, indexName);
+		if (indexActive) {
+			// индекс неактивен
+			if (ftsIndex.status == "I") {
+				// индекс активен, но требует перестройки
+				procedure->indexRepository.setIndexStatus(status, att, tra, sqlDialect, indexName, "U");
+			}
+		}
+		else {
+			// индекс активен
+			if (ftsIndex.isActive()) {
+				// делайем неактивным
+				procedure->indexRepository.setIndexStatus(status, att, tra, sqlDialect, indexName, "I");
+			}
+		}
+	}
+
+	FB_UDR_FETCH_PROCEDURE
+	{
+		return false;
+	}
+FB_UDR_END_PROCEDURE
+
+/***
 CREATE PROCEDURE FTS$ADD_INDEX_FIELD (
 	 FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
 	 FTS$RELATION_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
-	 FTS$FIELD_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL
+	 FTS$FIELD_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+	 FTS$BOOST DOUBLE PRECISION DEFAULT NULL
 )
 EXTERNAL NAME 'luceneudr!addIndexField'
 ENGINE UDR;
@@ -331,6 +395,7 @@ FB_UDR_BEGIN_PROCEDURE(addIndexField)
 	    (FB_INTL_VARCHAR(252, CS_UTF8), index_name)
 		(FB_INTL_VARCHAR(252, CS_UTF8), relation_name)
 		(FB_INTL_VARCHAR(252, CS_UTF8), field_name)
+		(FB_DOUBLE, boost)
     );
 
 	FB_UDR_CONSTRUCTOR
@@ -378,7 +443,7 @@ FB_UDR_BEGIN_PROCEDURE(addIndexField)
 		unsigned int sqlDialect = getSqlDialect(status, att);
 
 		// добавление сегмента
-		procedure->indexRepository.addIndexField(status, att, tra, sqlDialect, indexName, relationName, fieldName, false, 1.0);
+		procedure->indexRepository.addIndexField(status, att, tra, sqlDialect, indexName, relationName, fieldName, 1.0);
 	}
 
 	FB_UDR_FETCH_PROCEDURE
@@ -612,14 +677,23 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 								value = field.getStringValue(status, att, tra, buffer);							    
 							}
 							auto fieldName = StringUtils::toUnicode(relationName + "." + field.fieldName);
+							Lucene::String unicodeValue;
 							if (!value.empty()) {
 								// перекодируем содержимое в Unicode только если строка не пустая
-								auto unicodeValue = StringUtils::toUnicode(to_utf8(value, icuCharset));
-								doc->add(newLucene<Field>(fieldName, unicodeValue, Field::STORE_NO, Field::INDEX_ANALYZED));
+								unicodeValue = StringUtils::toUnicode(to_utf8(value, icuCharset));
 							}
-							else {
-								doc->add(newLucene<Field>(fieldName, L"", Field::STORE_NO, Field::INDEX_ANALYZED));
+
+							auto luceneField = newLucene<Field>(fieldName, unicodeValue, Field::STORE_NO, Field::INDEX_ANALYZED);
+
+							auto iSegment = std::find_if(
+								segments.begin(),
+								segments.end(),
+								[&field](LuceneFTS::FTSIndexSegment segment) { return segment.fieldName == field.fieldName; }
+							);
+							if (iSegment != segments.end()) {
+								luceneField->setBoost((*iSegment).boost);
 							}
+							doc->add(luceneField);
 							emptyFlag = emptyFlag && value.empty();
 						}
 						// если все индексируемые поля пусты, то не имеет смысла добавлять документ в индекс
@@ -806,6 +880,10 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 		// получаем все индексы
 		auto allIndexes = procedure->indexRepository.getAllIndexes(status, att, tra, sqlDialect);
 		for (auto& ftsIndex : allIndexes) {
+			// исключаем неактивные индексы
+			if (!ftsIndex.isActive()) {
+				continue;
+			}
 		    // получаем сегменты индекса
 			auto segments = procedure->indexRepository.getIndexSegments(status, att, tra, sqlDialect, ftsIndex.indexName);
 			for (auto& ftsSegment : segments) {
@@ -839,9 +917,18 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 				list<string> fieldNames;
 				for (const auto& segment : segments) {
 					if (procedure->relationHelper.fieldExists(status, att, tra, sqlDialect, segment.relationName, segment.fieldName)) {
-						// игнорируем не существующие поля
-						// TODO: Надо бы пометить индекс невалидным
 						fieldNames.push_back(segment.fieldName);
+					}
+					else {
+						// если поля не существует, то надо пометить индекс как требующий обновления
+						if (ftsIndex.status == "C") {
+							ftsIndex.status = "U";
+							// это делается в автономной транзакции
+							AutoRelease<ITransaction> aTra(att->startTransaction(status, 0, nullptr));
+							procedure->indexRepository.setIndexStatus(status, att, aTra, sqlDialect, ftsIndex.indexName, ftsIndex.status);
+							aTra->commit(status);
+							ftsRelation.updateIndex(ftsIndex);
+						}
 					}
 				}
 				string sql = LuceneFTS::RelationHelper::buildSqlSelectFieldValues(sqlDialect, relationName, fieldNames, true);
@@ -907,6 +994,7 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 				for (auto& pIndex : ftsIndexes) {
 					string indexName = pIndex.first;
 					auto ftsIndex = pIndex.second;
+					auto ftsSegments = ftsRelation.getSegmentsByIndexName(indexName);
 					// ищем IndexWriter
 					auto iWriter = indexWriters.find(ftsIndex.indexName);
 					// если не найден, то открываем такой
@@ -991,6 +1079,16 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 										unicodeValue = StringUtils::toUnicode(to_utf8(value, icuCharset));
 									}
 									auto luceneField = newLucene<Field>(fieldName, unicodeValue, Field::STORE_NO, Field::INDEX_ANALYZED);
+									
+									auto iSegment = std::find_if(
+										ftsSegments.begin(), 
+										ftsSegments.end(), 
+										[&field](LuceneFTS::FTSIndexSegment ftsSegment) { return ftsSegment.fieldName == field.fieldName; }
+									);
+									if (iSegment != ftsSegments.end()) {
+										luceneField->setBoost((*iSegment).boost);
+									}
+									
 									doc->add(luceneField);
 									emptyFlag = emptyFlag && value.empty();
 								}

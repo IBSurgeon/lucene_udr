@@ -393,7 +393,6 @@ list<FTSIndexSegment> FTSIndexRepository::getIndexSegments(
 		(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
 		(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
 		(FB_INTL_VARCHAR(252, CS_UTF8), fieldName)
-		(FB_BOOLEAN, storeData)
 		(FB_DOUBLE, boost)
 	) output(status, m_master);
 
@@ -407,7 +406,7 @@ list<FTSIndexSegment> FTSIndexRepository::getIndexSegments(
 			status,
 			tra,
 			0,
-			"SELECT FTS$INDEX_NAME, FTS$RELATION_NAME, FTS$FIELD_NAME, FTS$STORE_DATA, FTS$BOOST\n"
+			"SELECT FTS$INDEX_NAME, FTS$RELATION_NAME, FTS$FIELD_NAME, FTS$BOOST\n"
 			"FROM FTS$INDEX_SEGMENTS\n"
 			"WHERE FTS$INDEX_NAME = ?",
 			sqlDialect,
@@ -428,7 +427,6 @@ list<FTSIndexSegment> FTSIndexRepository::getIndexSegments(
 		indexSegment.indexName.assign(output->indexName.str, output->indexName.length);
 		indexSegment.relationName.assign(output->relationName.str, output->relationName.length);
 		indexSegment.fieldName.assign(output->fieldName.str, output->fieldName.length);
-		indexSegment.storeData = output->storeData;
 		if (output->boostNull) {
 			indexSegment.boost = 1.0;
 		}
@@ -455,7 +453,6 @@ list<FTSIndexSegment> FTSIndexRepository::getAllIndexSegments(
 		(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
 		(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
 		(FB_INTL_VARCHAR(252, CS_UTF8), fieldName)
-		(FB_BOOLEAN, storeData)
 		(FB_DOUBLE, boost)
 		(FB_INTL_VARCHAR(252, CS_UTF8), analyzerName)
 		(FB_INTL_VARCHAR(4, CS_UTF8), indexStatus)
@@ -470,7 +467,6 @@ list<FTSIndexSegment> FTSIndexRepository::getAllIndexSegments(
 			"  FTS$INDEX_SEGMENTS.FTS$INDEX_NAME,\n"
 			"  FTS$INDEX_SEGMENTS.FTS$RELATION_NAME,\n"
 			"  FTS$INDEX_SEGMENTS.FTS$FIELD_NAME,\n"
-		    "  FTS$INDEX_SEGMENTS.FTS$STORE_DATA,\n"
 		    "  FTS$INDEX_SEGMENTS.FTS$BOOST,\n"
 			"  FTS$INDICES.FTS$ANALYZER,\n"
 		    "  FTS$INDICES.FTS$INDEX_STATUS\n"
@@ -495,7 +491,6 @@ list<FTSIndexSegment> FTSIndexRepository::getAllIndexSegments(
 		indexSegment.indexName.assign(output->indexName.str, output->indexName.length);
 		indexSegment.relationName.assign(output->relationName.str, output->relationName.length);
 		indexSegment.fieldName.assign(output->fieldName.str, output->fieldName.length);
-		indexSegment.storeData = output->storeData;
 		if (output->boostNull) {
 			indexSegment.boost = 1.0;
 		}
@@ -531,7 +526,6 @@ list<FTSIndexSegment> FTSIndexRepository::getIndexSegmentsByRelation(
 		(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
 		(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
 		(FB_INTL_VARCHAR(252, CS_UTF8), fieldName)
-		(FB_BOOLEAN, storeData)
 		(FB_DOUBLE, boost)
 		(FB_INTL_VARCHAR(252, CS_UTF8), analyzerName)
 		(FB_INTL_VARCHAR(4, CS_UTF8), indexStatus)
@@ -551,7 +545,6 @@ list<FTSIndexSegment> FTSIndexRepository::getIndexSegmentsByRelation(
 			"  FTS$INDEX_SEGMENTS.FTS$INDEX_NAME,\n" 
 			"  FTS$INDEX_SEGMENTS.FTS$RELATION_NAME,\n" 
 			"  FTS$INDEX_SEGMENTS.FTS$FIELD_NAME,\n"
-			"  FTS$INDEX_SEGMENTS.FTS$STORE_DATA,\n"
 			"  FTS$INDEX_SEGMENTS.FTS$BOOST,\n"
 			"  FTS$INDICES.FTS$ANALYZER,\n"
 			"  FTS$INDICES.FTS$INDEX_STATUS\n"
@@ -577,7 +570,6 @@ list<FTSIndexSegment> FTSIndexRepository::getIndexSegmentsByRelation(
 		indexSegment.indexName.assign(output->indexName.str, output->indexName.length);
 		indexSegment.relationName.assign(output->relationName.str, output->relationName.length);
 		indexSegment.fieldName.assign(output->fieldName.str, output->fieldName.length);
-		indexSegment.storeData = output->storeData;
 		if (output->boostNull) {
 			indexSegment.boost = 1.0;
 		}
@@ -606,13 +598,13 @@ void FTSIndexRepository::addIndexField(
 	string indexName,
 	string relationName,
 	string fieldName,
-	bool storeData,
 	double boost)
 {
 	FB_MESSAGE(Input, ThrowStatusWrapper,
 		(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
 		(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
 		(FB_INTL_VARCHAR(252, CS_UTF8), fieldName)
+		(FB_DOUBLE, boost)
 	) input(status, m_master);
 
 	input.clear();
@@ -625,6 +617,13 @@ void FTSIndexRepository::addIndexField(
 
 	input->fieldName.length = fieldName.length();
 	fieldName.copy(input->fieldName.str, input->fieldName.length);
+
+	if (boost == 1.0) {
+		input->boostNull = true;
+	}
+	else {
+		input->boost = boost;
+	}
 
 	// проверка существования индекса
 	if (!hasIndex(status, att, tra, sqlDialect, indexName)) {
@@ -674,15 +673,15 @@ void FTSIndexRepository::addIndexField(
 		status,
 		tra,
 		0,
-		"INSERT INTO FTS$INDEX_SEGMENTS(FTS$INDEX_NAME, FTS$RELATION_NAME, FTS$FIELD_NAME)\n"
-		"VALUES(?, ?, ?)",
+		"INSERT INTO FTS$INDEX_SEGMENTS(FTS$INDEX_NAME, FTS$RELATION_NAME, FTS$FIELD_NAME, FTS$BOOST)\n"
+		"VALUES(?, ?, ?, ?)",
 		sqlDialect,
 		input.getMetadata(),
 		input.getData(),
 		nullptr,
 		nullptr
 	);
-
+	// устанавливаем статус что метаданые индекса обновлены
 	setIndexStatus(status, att, tra, sqlDialect, indexName, "U");
 }
 
@@ -749,7 +748,7 @@ void FTSIndexRepository::dropIndexField(
 		nullptr,
 		nullptr
 	);
-
+	// устанавливаем статус что метаданые индекса обновлены
 	setIndexStatus(status, att, tra, sqlDialect, indexName, "U");
 }
 

@@ -18,7 +18,11 @@ namespace LuceneFTS
 		string indexName;
 		string analyzer;
 		string description;
-		string status;
+		string status; // N - new index, I - inactive, U - need rebuild, C - complete
+
+		bool isActive() {
+			return (status == "C") || (status == "U");
+		}
 	};
 
 	struct FTSIndexSegment
@@ -69,6 +73,11 @@ namespace LuceneFTS
 			if (r == _indexes.end()) {
 				_indexes[index.indexName] = index;
 			}
+		}
+
+		void updateIndex(FTSIndex index)
+		{
+			_indexes[index.indexName] = index;
 		}
 
 		map<string, FTSIndex> getIndexes()
@@ -197,7 +206,6 @@ namespace LuceneFTS
 			string indexName,
 			string relationName,
 			string fieldName,
-			bool storeData,
 			double boost);
 
 		//

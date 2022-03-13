@@ -36,6 +36,11 @@ BEGIN
   FUNCTION FTS$GET_DIRECTORY ()
   RETURNS VARCHAR(255) CHARACTER SET UTF8;
 
+  PROCEDURE FTS$ANALYZERS 
+  RETURNS (
+     FTS$ANALYZER VARCHAR(63) CHARACTER SET UTF8
+  );
+
   PROCEDURE FTS$CREATE_INDEX (
      FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
      FTS$ANALYZER VARCHAR(63) CHARACTER SET UTF8 DEFAULT NULL,
@@ -46,10 +51,16 @@ BEGIN
      FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL
   );
 
+  PROCEDURE FTS$SET_INDEX_ACTIVE (
+	 FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+	 FTS$INDEX_ACTIVE BOOLEAN NOT NULL
+  );
+
   PROCEDURE FTS$ADD_INDEX_FIELD (
     FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
     FTS$RELATION_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
-    FTS$FIELD_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL
+    FTS$FIELD_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+    FTS$BOOST DOUBLE PRECISION DEFAULT NULL
   );
 
   PROCEDURE FTS$DROP_INDEX_FIELD (
@@ -61,6 +72,12 @@ BEGIN
   PROCEDURE FTS$REBUILD_INDEX (
      FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL
   );
+
+  PROCEDURE FTS$REINDEX_TABLE(
+     FTS$RELATION_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL
+  );
+
+  PROCEDURE FTS$FULL_REINDEX;
 END
 ```
 
@@ -96,6 +113,15 @@ END
 
 - FTS$INDEX_NAME - имя индекса.
 
+#### Процедура SET_INDEX_ACTIVE
+
+Процедура `SET_INDEX_ACTIVE()` позволяет сделать индекс активным или неактивным. 
+
+Входные параметры:
+
+- FTS$INDEX_NAME - имя индекса;
+- FTS$INDEX_AVTIVE - флаг активности.
+
 #### Процедура FTS$ADD_INDEX_FIELD
 
 Процедура `FTS$ADD_INDEX_FIELD()` добавляет новый сегмент (индексируемое поле таблицы) полнотекстового индекса. 
@@ -104,7 +130,8 @@ END
 
 - FTS$INDEX_NAME - имя индекса;
 - FTS$RELATION_NAME - имя таблицы, котоая должна быть проиндексиована;
-- FTS$FIELD_NAME - имя поля, которое должно быть проиндексировано.
+- FTS$FIELD_NAME - имя поля, которое должно быть проиндексировано;
+- FTS$BOOST - коэффициент увеличения значимости сегмента (по умолчанию 1.0).
 
 #### Процедура FTS$DROP_INDEX_FIELD
 
@@ -123,6 +150,19 @@ END
 Входные параметры:
 
 - FTS$INDEX_NAME - имя индекса.
+
+#### Процедура FTS$REINDEX_TABLE
+
+Процедура `FTS$REINDEX_TABLE()` перестраивает все полнотекстовые индексы для указанной таблицы.
+
+Входные параметры:
+
+- FTS$RELATION_NAME - имя таблицы.
+
+#### Процедура FTS$FULL_REINDEX
+
+Процедура `FTS$FULL_REINDEX()` перестраивает все полнотекстовые индексы в базе данных.
+
 
 ### Процедура FTS$SEARCH
 
@@ -143,7 +183,7 @@ END
 
 ### Процедура FTS$LOG_CHANGE
 
-Процедура `FTS$LOG_CHANGE` добавляет запись об изменении одного из полей входящих в полнтекствые индексы, построенные на таблице, в журнал изменений,
+Процедура `FTS$LOG_CHANGE` добавляет запись об изменении одного из полей входящих в полнтекствые индексы, построенные на таблице, в журнал изменений `FTS$LOG`,
 на оcнове которого будут обновляться полнотекстовые индексы.
 
 Входные параметры:
@@ -152,7 +192,29 @@ END
 - FTS$DB_KEY - ссылка на запись в таблице (соответствует псевдо полю RDB$DB_KEY);
 - CHANGE_TYPE - тип изменения (I - INSERT, U - UPDATE, D - DELETE).
 
+### Процедура FTS$CLEAR_LOG
 
+Процедура `FTS$CLEAR_LOG` очищает журнал изменений `FTS$LOG`, на оcнове которого обновляются полнотекстовые индексы.
+
+### Процедура FTS$UPDATE_INDEXES
+
+Процедура `FTS$UPDATE_INDEXES` обвновляет полнотекстовые индексы по записям в журнале изменений `FTS$LOG`. 
+Эта процедура обычно запускается по расписанию (cron) в отдельной сессии с некотоым интервалов, например 5 секунд.
+
+## Статусы индекса
+
+Описание индексов хранится в служебной таблице `FTS$INDICES`.
+
+Поле `FTS$INDEX_STATUS` хранит статус индекса. Индекс может иметь 4 статуса:
+
+*N* - New index. Новый индекс. Устанавливается при создани индекса, в котором ещё нет ни одного сегмента.
+
+*U* - Updated metadata. Устанавливается каждый раз, когда изменяются метаданные индекса, например при добавлени или удалени сегмента индекса. 
+Если индекс имеет такой статус, то он требует перестроения, чтобы поиск по нему работал корректно.
+
+*I* - Inactive. Неактивный индекс. Неактивные индексы не обновляются процедурой `FTS$UPDATE_INDEXES`.
+
+*C* - Complete. Активный индекс. Такие индексы обновляются процедурой `FTS$UPDATE_INDEXES`. Индекс переходит в это состония только после полного построения или перестроения.
 
 ## Создание полнотекствых индексов и поиск по ним
 
