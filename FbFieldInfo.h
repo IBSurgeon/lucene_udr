@@ -40,6 +40,22 @@ struct FbFieldInfo {
 	unsigned offset;
 	unsigned nullOffset;
 
+	FbFieldInfo()
+		: fieldIndex(0)
+		, fieldName("")
+		, relationName("")
+		, owner("")
+		, nullable(false)
+		, dataType(0)
+		, subType(0)
+		, length(0)
+		, scale(0)
+		, charSet(0)
+		, offset(0)
+		, nullOffset(0)
+	{    
+	}
+
 	inline bool isNull(unsigned char* buffer) {
 		return as<short>(buffer + nullOffset);
 	}

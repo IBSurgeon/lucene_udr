@@ -19,6 +19,27 @@
 using namespace Firebird;
 using namespace Lucene;
 
+class sstr final
+{
+public:
+	sstr(const std::string& str = "")
+		: ss_(str)
+	{
+	}
+	template<typename T> sstr& operator<<(const T& t)
+	{
+		ss_ << t;
+		return *this;
+	}
+	operator std::string() const
+	{
+		return ss_.str();
+	}
+private:
+	std::stringstream ss_;
+};
+
+
 IMessageMetadata* prepareTextMetaData(ThrowStatusWrapper* status, IMessageMetadata* meta)
 {
 	unsigned colCount = meta->getCount(status);
@@ -437,13 +458,18 @@ FB_UDR_BEGIN_PROCEDURE(addIndexField)
 		}
 		string fieldName(in->field_name.str, in->field_name.length);
 
+		double boost = 1.0;
+		if (!in->boostNull) {
+			boost = in->boost;
+		}
+
 		AutoRelease<IAttachment> att(context->getAttachment(status));
 		AutoRelease<ITransaction> tra(context->getTransaction(status));
 
 		unsigned int sqlDialect = getSqlDialect(status, att);
 
 		// добавление сегмента
-		procedure->indexRepository.addIndexField(status, att, tra, sqlDialect, indexName, relationName, fieldName, 1.0);
+		procedure->indexRepository.addIndexField(status, att, tra, sqlDialect, indexName, relationName, fieldName, boost);
 	}
 
 	FB_UDR_FETCH_PROCEDURE
@@ -592,6 +618,16 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 
 			// получаем сегменты индекса и группируем их по именам таблиц
 			auto segments = procedure->indexRepository.getIndexSegments(status, att, tra, sqlDialect, indexName);
+			if (segments.size() == 0) {
+				string error_message = string_format("Cannot rebuild index \"%s\". The index does not contain segments.", indexName);
+				ISC_STATUS statusVector[] = {
+					isc_arg_gds, isc_random,
+					isc_arg_string, (ISC_STATUS)error_message.c_str(),
+					isc_arg_end
+				};
+				throw FbException(status, statusVector);
+			}
+
 			auto segmentsByRelation = LuceneFTS::FTSIndexRepository::groupIndexSegmentsByRelation(segments);
 
 			auto fsIndexDir = FSDirectory::open(StringUtils::toUnicode(indexDir));
@@ -707,6 +743,9 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 			} 
 			writer->optimize();
 			writer->close();
+
+			// если построение индекса прошло успешно, то выставляем статус завершённости индексации
+			procedure->indexRepository.setIndexStatus(status, att, tra, sqlDialect, indexName, "C");
 	    }
 	    catch (const LuceneException& e) {
 		    string error_message = StringUtils::toUTF8(e.getError());
@@ -913,6 +952,10 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 			auto ftsIndexes = ftsRelation.getIndexes();
 			for (auto& pIndex : ftsIndexes) {
 				auto ftsIndex = pIndex.second;
+				// исключаем неактивные индексы
+				if (!ftsIndex.isActive()) {
+					continue;
+				}
 				auto segments = ftsRelation.getSegmentsByIndexName(ftsIndex.indexName);
 				list<string> fieldNames;
 				for (const auto& segment : segments) {
@@ -994,6 +1037,10 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 				for (auto& pIndex : ftsIndexes) {
 					string indexName = pIndex.first;
 					auto ftsIndex = pIndex.second;
+					// исключаем неактивные индексы
+					if (!ftsIndex.isActive()) {
+						continue;
+					}
 					auto ftsSegments = ftsRelation.getSegmentsByIndexName(indexName);
 					// ищем IndexWriter
 					auto iWriter = indexWriters.find(ftsIndex.indexName);
@@ -1004,14 +1051,15 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 						string indexDir = ftsDirectory + "/" + indexName;
 						auto indexDirUnicode = StringUtils::toUnicode(indexDir);
 						if (!FileUtils::isDirectory(indexDirUnicode)) {
-							// TODO: Выставить статус инвалида для индекса
-							string error_message = string_format("Directory \"%s\" not exists", indexDir);
-							ISC_STATUS statusVector[] = {
-								isc_arg_gds, isc_random,
-								isc_arg_string, (ISC_STATUS)error_message.c_str(),
-								isc_arg_end
-							};
-							throw FbException(status, statusVector);
+							if (ftsIndex.status == "C") {
+								// пометить индекс как требующий переиндексации 	
+							    // это делается в автономной транзакции
+								AutoRelease<ITransaction> aTra(att->startTransaction(status, 0, nullptr));
+								procedure->indexRepository.setIndexStatus(status, att, aTra, sqlDialect, ftsIndex.indexName, ftsIndex.status);
+								aTra->commit(status);
+							}
+							// и перейти к следующему индексу
+							continue;
 						}
 						auto fsIndexDir = FSDirectory::open(indexDirUnicode);
 						auto analyzer = procedure->analyzerFactory.createAnalyzer(status, ftsIndex.analyzer);
@@ -1209,8 +1257,8 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 
 		// проверка существования директории для индекса
 		auto indexDir = StringUtils::toUnicode(ftsDirectory + "/" + indexName);
-		if (!FileUtils::isDirectory(indexDir)) {
-			string error_message = string_format("Index \"%s\" exists, but cannot be build. Please rebuild index.", indexName);
+		if (ftsIndex.status == "N" || !FileUtils::isDirectory(indexDir)) {			
+			string error_message = sstr() << "Index \"" << indexName << "\" exists, but is not build. Please rebuild index.";
 			ISC_STATUS statusVector[] = {
 				isc_arg_gds, isc_random,
 				isc_arg_string, (ISC_STATUS)error_message.c_str(),
