@@ -1,19 +1,29 @@
 #ifndef STRING_FORMATTER_H
 #define STRING_FORMATTER_H
 
-#include <memory>
 #include <string>
-#include <stdexcept>
+#include <boost/format.hpp>
+//#include <boost/locale/format.hpp>
 
-template<typename ... Args>
-std::string string_format(const std::string& format, Args ... args)
+template<typename First, typename... Args>
+    inline std::string string_format(const std::string& formatString,
+        First&& firstArg, Args&&... arg)
 {
-    int size_s = std::snprintf(nullptr, 0, format.c_str(), args ...) + 1; // Extra space for '\0'
-    if (size_s <= 0) { throw std::runtime_error("Error during formatting."); }
-    auto size = static_cast<size_t>(size_s);
-    auto buf = std::make_unique<char[]>(size);
-    std::snprintf(buf.get(), size, format.c_str(), args ...);
-    return std::string(buf.get(), buf.get() + size - 1); // We don't want the '\0' inside
+    boost::format formatter{ formatString };
+    boost::format* list[] = { &(formatter % firstArg), &(formatter % arg)... };
+    (void)list;
+    return formatter.str();
+}
+
+inline std::string string_format(const std::string& string)
+{
+    return string;
+}
+
+inline std::string string_format()
+{
+    BOOST_ASSERT_MSG(false, "Format may not be used without arguments");
+    return {};
 }
 
 #endif	// STRING_FORMATTER_H

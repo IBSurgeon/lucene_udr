@@ -2,7 +2,6 @@
 #include "FTSIndex.h"
 #include "inicpp.h"
 #include "FBBlobUtils.h"
-#include "StringFormatter.h"
 #include "LuceneAnalyzerFactory.h"
 
 using namespace Firebird;

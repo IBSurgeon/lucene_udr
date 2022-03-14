@@ -6,7 +6,6 @@
 #include "FBBlobUtils.h"
 #include "FBFieldInfo.h"
 #include "EncodeUtils.h"
-#include "StringFormatter.h"
 #include "lucene++\LuceneHeaders.h"
 #include "lucene++\FileUtils.h"
 #include "lucene++\MiscUtils.h"
@@ -1258,7 +1257,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 		// проверка существования директории для индекса
 		auto indexDir = StringUtils::toUnicode(ftsDirectory + "/" + indexName);
 		if (ftsIndex.status == "N" || !FileUtils::isDirectory(indexDir)) {			
-			string error_message = sstr() << "Index \"" << indexName << "\" exists, but is not build. Please rebuild index.";
+			string error_message = string_format("Index \"%s\" exists, but is not build. Please rebuild index.", indexName);
 			ISC_STATUS statusVector[] = {
 				isc_arg_gds, isc_random,
 				isc_arg_string, (ISC_STATUS)error_message.c_str(),

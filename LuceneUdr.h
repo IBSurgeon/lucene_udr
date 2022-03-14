@@ -5,6 +5,7 @@
 
 #include "charsets.h"
 #include "FBAutoPtr.h"
+#include "StringFormatter.h"
 #include "firebird/UdrCppEngine.h"
 #include <assert.h>
 #include <stdio.h>

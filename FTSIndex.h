@@ -243,6 +243,7 @@ namespace LuceneFTS
 				if (r != segmentsByRelation.end()) {
 					auto relSegments = r->second;
 					relSegments.push_back(segment);
+					segmentsByRelation[segment.relationName] = relSegments;
 				}
 				else {
 					list<FTSIndexSegment> relSegments;
@@ -264,6 +265,7 @@ namespace LuceneFTS
 				if (r != segmentsByIndex.end()) {
 					auto idxSegments = r->second;
 					idxSegments.push_back(segment);
+					segmentsByIndex[segment.indexName] = idxSegments;
 				}
 				else {
 					list<FTSIndexSegment> idxSegments;
