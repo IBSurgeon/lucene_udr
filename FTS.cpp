@@ -726,7 +726,8 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 								[&field](LuceneFTS::FTSIndexSegment segment) { return segment.fieldName == field.fieldName; }
 							);
 							if (iSegment != segments.end()) {
-								luceneField->setBoost((*iSegment).boost);
+								auto segment = *iSegment;
+								luceneField->setBoost(segment.boost);
 							}
 							doc->add(luceneField);
 							emptyFlag = emptyFlag && value.empty();
@@ -1187,12 +1188,14 @@ CREATE PROCEDURE FTS$SEARCH (
 	RDB$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT null,
 	RDB$RELATION_NAME VARCHAR(63) CHARACTER SET UTF8,
 	RDB$FILTER VARCHAR(8191) CHARACTER SET UTF8,
-	FTS$LIMIT BIGINT NOT NULL DEFAULT 1000
+	FTS$LIMIT BIGINT NOT NULL DEFAULT 1000,
+	FTS$EXPLAIN BOOLEAN DEFAULT FALSE
 )
 RETURNS (
     FTS$RELATION_NAME VARCHAR(63) CHARACTER SET UTF8,
 	FTS$DB_KEY CHAR(8) CHARACTER SET OCTETS,
-	FTS$SCORE DOUBLE PRECISION
+	FTS$SCORE DOUBLE PRECISION,
+	FTS$EXPLANATION BLOB SUB_TYPE TEXT CHARACTER SET UTF8
 )
 EXTERNAL NAME 'luceneudr!ftsSearch'
 ENGINE UDR;
@@ -1203,12 +1206,14 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 		(FB_INTL_VARCHAR(252, CS_UTF8), relation_name)
 		(FB_INTL_VARCHAR(32765, CS_UTF8), filter)
 		(FB_BIGINT, limit)
+		(FB_BOOLEAN, explain)
     );
 
 	FB_UDR_MESSAGE(OutMessage,
 		(FB_INTL_VARCHAR(252, CS_UTF8), relation_name)
 		(FB_INTL_VARCHAR(8, CS_BINARY), db_key)
 		(FB_DOUBLE, score)
+		(FB_BLOB, explanation)
 	);
 
 	FB_UDR_CONSTRUCTOR
@@ -1243,6 +1248,10 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 		}
 
 		ISC_INT64 limit = in->limit;
+
+		if (!in->explainNull) {
+			explainFlag = in->explain;
+		}
 
 		string ftsDirectory = LuceneFTS::getFtsDirectory(context);
 
@@ -1295,7 +1304,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 
 			MultiFieldQueryParserPtr parser = newLucene<MultiFieldQueryParser>(LuceneVersion::LUCENE_CURRENT, fields, analyzer);
 			parser->setDefaultOperator(QueryParser::OR_OPERATOR);
-			QueryPtr query = parser->parse(StringUtils::toUnicode(filter));
+			query = parser->parse(StringUtils::toUnicode(filter));
 			TopDocsPtr docs = searcher->search(query, limit);
 
 			scoreDocs = docs->scoreDocs;
@@ -1317,8 +1326,10 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 		}
 	}
 
+	bool explainFlag = false;
 	AutoRelease<IAttachment> att;
 	AutoRelease<ITransaction> tra;
+	QueryPtr query;
 	SearcherPtr searcher;
 	Collection<ScoreDocPtr> scoreDocs;
 	Collection<ScoreDocPtr>::iterator it;
@@ -1346,6 +1357,18 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 
         out->scoreNull = false;
 		out->score = scoreDoc->score;
+
+		if (explainFlag) {
+			out->explanationNull = false;
+			auto explanation = searcher->explain(query, scoreDoc->doc);
+			string explanationStr = StringUtils::toUTF8(explanation->toString());
+			AutoRelease<IBlob> blob(att->createBlob(status, tra, &out->explanation, 0, nullptr));
+			blob_set_string(status, blob, explanationStr);
+			blob->close(status);
+		}
+		else {
+			out->explanationNull = true;
+		}
 
 	    ++it;
 	    return true;
