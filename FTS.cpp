@@ -4,11 +4,11 @@
 #include "FTSLog.h"
 #include "Relations.h"
 #include "FBBlobUtils.h"
-#include "FBFieldInfo.h"
+#include "FbFieldInfo.h"
 #include "EncodeUtils.h"
-#include "lucene++\LuceneHeaders.h"
-#include "lucene++\FileUtils.h"
-#include "lucene++\MiscUtils.h"
+#include "lucene++/LuceneHeaders.h"
+#include "lucene++/FileUtils.h"
+#include "lucene++/MiscUtils.h"
 #include "LuceneAnalyzerFactory.h"
 #include <sstream>
 #include <vector>
