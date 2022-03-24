@@ -35,7 +35,7 @@ else
 CFLAGS=	-pthread -ggdb -O3 -fno-omit-frame-pointer -fno-builtin -pipe -MMD -fPIC -c -I. -I./include -DFIREBIRD -DHAVE_CONFIG_H -std=c++1z
 endif
 LINK_FLAGS=	-L. ./defs/udr_plugin.def -L$(FIREBIRD)/lib
-LIB_LINK_FLAGS=	-shared -Wl,-s -Wl,-x
+LIB_LINK_FLAGS=	-shared -fPIC -Wl,-s -Wl,-x
 LIB_LINK_SONAME:= -Wl,-soname,
 LIB_LINK_RPATH:= -Wl,-rpath,
 CP=		cp
@@ -61,7 +61,7 @@ lucene_udr_objects = FTS.o FTSIndex.o FTSLog.o Relations.o
 all:	$(TARGETS)
 
 luceneudr: $(lucene_udr_objects) 
-	$(LIB_LINK) $(LIB_LINK_FLAGS) $(LIB_LINK_SONAME)libluceneudr.so $(LIB_LINK_RPATH)$(FIREBIRD)/lib -o ./Linux_x64/lib$@.so $(lucene_udr_objects) -pthread -lpthread -lib_util -lfbclient -lstdc++
+	$(LIB_LINK) $(LIB_LINK_FLAGS) $(LIB_LINK_SONAME)libluceneudr.so $(LIB_LINK_RPATH)$(FIREBIRD)/lib -o ./Linux_x64/lib$@.so $(lucene_udr_objects) -pthread -lpthread -lib_util -lfbclient -static-libstdc++ -llucene++ -llucene++-contrib
 
 	@echo ------------------------------------------------------
 	@echo You need to copy libluceneudr.so to the firebird plugins/udr directory
