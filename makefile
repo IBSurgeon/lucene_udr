@@ -61,7 +61,7 @@ lucene_udr_objects = FTS.o FTSIndex.o FTSLog.o Relations.o
 all:	$(TARGETS)
 
 luceneudr: $(lucene_udr_objects) 
-	$(LIB_LINK) $(LIB_LINK_FLAGS) $(LIB_LINK_SONAME)libluceneudr.so $(LIB_LINK_RPATH)$(FIREBIRD)/lib -o ./Linux_x64/lib$@.so $(lucene_udr_objects) -pthread -lpthread -lib_util -lfbclient -static-libstdc++ -llucene++ -llucene++-contrib
+	$(LIB_LINK) $(LIB_LINK_FLAGS) $(LIB_LINK_SONAME)libluceneudr.so $(LIB_LINK_RPATH)$(FIREBIRD)/lib -o ./Linux_x64/lib$@.so $(lucene_udr_objects) -pthread -lpthread -lib_util -lfbclient -lstdc++ -llucene++ -llucene++-contrib
 
 	@echo ------------------------------------------------------
 	@echo You need to copy libluceneudr.so to the firebird plugins/udr directory

@@ -7,18 +7,18 @@
 #include <functional>
 #include <stdexcept>
 #include "LuceneUdr.h"
-#include "lucene++\LuceneHeaders.h"
-#include "lucene++\ArabicAnalyzer.h"
-#include "lucene++\BrazilianAnalyzer.h"
-#include "lucene++\CJKAnalyzer.h"
-#include "lucene++\ChineseAnalyzer.h"
-#include "lucene++\CzechAnalyzer.h"
-#include "lucene++\DutchAnalyzer.h"
-#include "lucene++\FrenchAnalyzer.h"
-#include "lucene++\GermanAnalyzer.h"
-#include "lucene++\GreekAnalyzer.h"
-#include "lucene++\PersianAnalyzer.h"
-#include "lucene++\RussianAnalyzer.h"
+#include "lucene++/LuceneHeaders.h"
+#include "lucene++/ArabicAnalyzer.h"
+#include "lucene++/BrazilianAnalyzer.h"
+#include "lucene++/CJKAnalyzer.h"
+#include "lucene++/ChineseAnalyzer.h"
+#include "lucene++/CzechAnalyzer.h"
+#include "lucene++/DutchAnalyzer.h"
+#include "lucene++/FrenchAnalyzer.h"
+#include "lucene++/GermanAnalyzer.h"
+#include "lucene++/GreekAnalyzer.h"
+#include "lucene++/PersianAnalyzer.h"
+#include "lucene++/RussianAnalyzer.h"
 
 using namespace std;
 using namespace Lucene;
