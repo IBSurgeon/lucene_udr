@@ -18,7 +18,7 @@ void FTSLogRepository::appendLog(
 {
 	FB_MESSAGE(Input, ThrowStatusWrapper,
 		(FB_INTL_VARCHAR(252, CS_UTF8), relation_name)
-		(FB_INTL_VARCHAR(8, CS_BINARY), db_key)
+		(FB_INTL_VARCHAR(8, CS_BINARY), rec_id)
 		(FB_INTL_VARCHAR(4, CS_UTF8), change_type)
 	) input(status, m_master);
 
@@ -27,8 +27,8 @@ void FTSLogRepository::appendLog(
 	input->relation_name.length = relationName.length();
 	relationName.copy(input->relation_name.str, input->relation_name.length);
 
-	input->db_key.length = dbKey.length();
-	dbKey.copy(input->db_key.str, input->db_key.length);
+	input->rec_id.length = dbKey.length();
+	dbKey.copy(input->rec_id.str, input->rec_id.length);
 
 	input->change_type.length = changeType.length();
 	changeType.copy(input->change_type.str, input->change_type.length);
@@ -39,9 +39,9 @@ void FTSLogRepository::appendLog(
 			tra,
 			0,
 			"INSERT INTO FTS$LOG (\n"
-			"  RELATION_NAME,\n"
-			"  DB_KEY,\n"
-			"  CHANGE_TYPE\n"
+			"  FTS$RELATION_NAME,\n"
+			"  FTS$REC_ID,\n"
+			"  FTS$CHANGE_TYPE\n"
 			")\n"
 			"VALUES(?, ?, ?)",
 			sqlDialect,
@@ -83,7 +83,7 @@ void FTSLogRepository::deleteLog(
 			tra,
 			0,
 			"DELETE FROM FTS$LOG\n"
-			"WHERE ID = ?",
+			"WHERE FTS$LOG_ID = ?",
 			sqlDialect,
 			IStatement::PREPARE_PREFETCH_METADATA
 		));

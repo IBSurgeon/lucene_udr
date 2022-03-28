@@ -133,7 +133,7 @@ inline bool removeIndexDirectory(string indexDir)
 }
 
 /***
-CREATE FUNCTION FTS$GET_DIRECTORY () 
+FUNCTION FTS$GET_DIRECTORY () 
 RETURNS VARCHAR(255) CHARACTER SET UTF8
 EXTERNAL NAME 'luceneudr!getFTSDirectory'
 ENGINE UDR;
@@ -155,7 +155,7 @@ FB_UDR_BEGIN_FUNCTION(getFTSDirectory)
 FB_UDR_END_FUNCTION
 
 /***
-CREATE PROCEDURE FTS$ANALYZERS
+PROCEDURE FTS$ANALYZERS
 EXTERNAL NAME 'luceneudr!getAnalyzers'
 RETURNS (
   FTS$ANALYZER VARCHAR(63) CHARACTER SET UTF8
@@ -202,7 +202,7 @@ FB_UDR_END_PROCEDURE
 
 
 /***
-CREATE PROCEDURE FTS$CREATE_INDEX (
+PROCEDURE FTS$CREATE_INDEX (
 	 FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
 	 FTS$ANALYZER VARCHAR(63) CHARACTER SET UTF8,
 	 FTS$DESCRIPTION BLOB SUB_TYPE TEXT CHARACTER SET UTF8
@@ -281,7 +281,7 @@ FB_UDR_BEGIN_PROCEDURE(createIndex)
 FB_UDR_END_PROCEDURE
 
 /***
-CREATE PROCEDURE FTS$DROP_INDEX (
+PROCEDURE FTS$DROP_INDEX (
 	 FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL
 )
 EXTERNAL NAME 'luceneudr!dropIndex'
@@ -339,7 +339,7 @@ FB_UDR_BEGIN_PROCEDURE(dropIndex)
 FB_UDR_END_PROCEDURE
 
 /***
-CREATE PROCEDURE FTS$SET_INDEX_ACTIVE (
+PROCEDURE FTS$SET_INDEX_ACTIVE (
 	 FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
 	 FTS$INDEX_ACTIVE BOOLEAN NOT NULL
 )
@@ -401,7 +401,7 @@ FB_UDR_BEGIN_PROCEDURE(setIndexActive)
 FB_UDR_END_PROCEDURE
 
 /***
-CREATE PROCEDURE FTS$ADD_INDEX_FIELD (
+PROCEDURE FTS$ADD_INDEX_FIELD (
 	 FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
 	 FTS$RELATION_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
 	 FTS$FIELD_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
@@ -478,7 +478,7 @@ FB_UDR_BEGIN_PROCEDURE(addIndexField)
 FB_UDR_END_PROCEDURE
 
 /***
-CREATE PROCEDURE FTS$DROP_INDEX_FIELD (
+PROCEDURE FTS$DROP_INDEX_FIELD (
 	 FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
 	 FTS$RELATION_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
 	 FTS$FIELD_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL
@@ -548,7 +548,7 @@ FB_UDR_BEGIN_PROCEDURE(dropIndexField)
 FB_UDR_END_PROCEDURE
 
 /***
-CREATE PROCEDURE FTS$REBUILD_INDEX (
+PROCEDURE FTS$REBUILD_INDEX (
 	FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL
 )
 EXTERNAL NAME 'luceneudr!rebuildIndex'
@@ -766,10 +766,10 @@ FB_UDR_END_PROCEDURE
 
 
 /***
-CREATE PROCEDURE FTS$LOG_CHANGE (
-    RELATION_NAME  VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
-	DB_KEY         CHAR(8) CHARACTER SET OCTETS NOT NULL,
-	CHANGE_TYPE    FTS$CHANGE_TYPE NOT NULL
+PROCEDURE FTS$LOG_CHANGE (
+    FTS$RELATION_NAME  VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+	FTS$REC_ID         CHAR(8) CHARACTER SET OCTETS NOT NULL,
+	FTS$CHANGE_TYPE    FTS$CHANGE_TYPE NOT NULL
 )
 EXTERNAL NAME 'luceneudr!ftsLogChange'
 ENGINE UDR;
@@ -793,7 +793,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogChange)
 		if (in->relation_nameNull) {
 			ISC_STATUS statusVector[] = {
 				isc_arg_gds, isc_random,
-				isc_arg_string, (ISC_STATUS)"RELATION_NAME name can not be NULL",
+				isc_arg_string, (ISC_STATUS)"FTS$RELATION_NAME can not be NULL",
 				isc_arg_end
 			};
 			throw FbException(status, statusVector);
@@ -803,7 +803,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogChange)
 		if (in->db_keyNull) {
 			ISC_STATUS statusVector[] = {
 				isc_arg_gds, isc_random,
-				isc_arg_string, (ISC_STATUS)"DB_KEY can not be NULL",
+				isc_arg_string, (ISC_STATUS)"FTS$REC_ID can not be NULL",
 				isc_arg_end
 			};
 			throw FbException(status, statusVector);
@@ -813,7 +813,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogChange)
 		if (in->change_typeNull) {
 			ISC_STATUS statusVector[] = {
 				isc_arg_gds, isc_random,
-				isc_arg_string, (ISC_STATUS)"CHANGE_TYPE can not be NULL",
+				isc_arg_string, (ISC_STATUS)"FTS$CHANGE_TYPE can not be NULL",
 				isc_arg_end
 			};
 			throw FbException(status, statusVector);
@@ -837,7 +837,7 @@ FB_UDR_END_PROCEDURE
 
 
 /***
-CREATE PROCEDURE FTS$CLEAR_LOG
+PROCEDURE FTS$CLEAR_LOG
 EXTERNAL NAME 'luceneudr!ftsClearLog'
 ENGINE UDR;
 ***/
@@ -868,7 +868,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsClearLog)
 FB_UDR_END_PROCEDURE
 
 /***
-CREATE PROCEDURE FTS$UPDATE_INDEXES 
+PROCEDURE FTS$UPDATE_INDEXES 
 EXTERNAL NAME 'luceneudr!updateFtsIndexes'
 ENGINE UDR;
 ***/
@@ -993,17 +993,17 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 			status,
 			tra,
 			0,
-			"SELECT ID, DB_KEY, RELATION_NAME, CHANGE_TYPE\n"
+			"SELECT FTS$LOG_ID, FTS$RELATION_NAME, FTS$REC_ID, FTS$CHANGE_TYPE\n"
 			"FROM FTS$LOG\n"
-			"ORDER BY ID",
+			"ORDER BY FTS$LOG_ID",
 			sqlDialect,
 			IStatement::PREPARE_PREFETCH_METADATA
 		));
 
 		FB_MESSAGE(LogOutput, ThrowStatusWrapper,
 			(FB_BIGINT, id)
-			(FB_VARCHAR(8), dbKey)
 			(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
+			(FB_VARCHAR(8), dbKey)	
 			(FB_INTL_VARCHAR(4, CS_UTF8), changeType)
 
 		) logOutput(status, context->getMaster());
@@ -1184,16 +1184,16 @@ FB_UDR_END_PROCEDURE
 
 
 /***
-CREATE PROCEDURE FTS$SEARCH (
-	RDB$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT null,
-	RDB$RELATION_NAME VARCHAR(63) CHARACTER SET UTF8,
-	RDB$FILTER VARCHAR(8191) CHARACTER SET UTF8,
-	FTS$LIMIT BIGINT NOT NULL DEFAULT 1000,
+PROCEDURE FTS$SEARCH (
+	FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT null,
+	FTS$SEARCH_RELATION VARCHAR(63) CHARACTER SET UTF8,
+	FTS$FILTER VARCHAR(8191) CHARACTER SET UTF8,
+	FTS$LIMIT INT NOT NULL DEFAULT 1000,
 	FTS$EXPLAIN BOOLEAN DEFAULT FALSE
 )
 RETURNS (
     FTS$RELATION_NAME VARCHAR(63) CHARACTER SET UTF8,
-	FTS$DB_KEY CHAR(8) CHARACTER SET OCTETS,
+	FTS$REC_ID CHAR(8) CHARACTER SET OCTETS,
 	FTS$SCORE DOUBLE PRECISION,
 	FTS$EXPLANATION BLOB SUB_TYPE TEXT CHARACTER SET UTF8
 )
@@ -1211,7 +1211,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 
 	FB_UDR_MESSAGE(OutMessage,
 		(FB_INTL_VARCHAR(252, CS_UTF8), relation_name)
-		(FB_INTL_VARCHAR(8, CS_BINARY), db_key)
+		(FB_INTL_VARCHAR(8, CS_BINARY), rec_id)
 		(FB_DOUBLE, score)
 		(FB_BLOB, explanation)
 	);
@@ -1312,7 +1312,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 			it = scoreDocs.begin();
 			
 			out->relation_nameNull = true;
-			out->db_keyNull = true;
+			out->rec_idNull = true;
 			out->scoreNull = true;
 		}
 		catch (LuceneException& e) {
@@ -1351,9 +1351,9 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 		out->relation_name.length = relationName.length();
 		relationName.copy(out->relation_name.str, out->relation_name.length);
 		
-		out->db_keyNull = false;
-		out->db_key.length = dbKey.length();
-		dbKey.copy(out->db_key.str, out->db_key.length);
+		out->rec_idNull = false;
+		out->rec_id.length = dbKey.length();
+		dbKey.copy(out->rec_id.str, out->rec_id.length);
 
         out->scoreNull = false;
 		out->score = scoreDoc->score;

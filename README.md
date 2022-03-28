@@ -178,15 +178,15 @@ END
 Входные параметры:
 
 - FTS$INDEX_NAME - имя полнотекстового индекса, в котором осуществляется поиск;
-- FTS$RELATION_NAME - имя таблицы, ограничивает поиск только заданной таблицей. Если таблица не задана, то поиск делается по всем сегментам индекса;
+- FTS$SEARCH_RELATION - имя таблицы, ограничивает поиск только заданной таблицей. Если таблица не задана, то поиск делается по всем сегментам индекса;
 - FTS$FILTER - выражение для полнотекстового поиска;
 - FTS$LIMIT - ограничение на количество записей (результата поиска). По умолчанию 1000;
 - FTS$EXPLAIN - объяснять ли результат поиска. По умолчанию FALSE.
 
 Выходные параметры:
 
-- RDB$RELATION_NAME - имя таблицы в которой найден документ;
-- FTS$DB_KEY - ссылка на запись в таблице в которой был найден документ (соответствует псевдо полю RDB$DB_KEY);
+- FTS$RELATION_NAME - имя таблицы в которой найден документ;
+- FTS$REC_ID - ссылка на запись в таблице в которой был найден документ (соответствует псевдо полю RDB$DB_KEY);
 - FTS$SCORE - степень соответсвия поисковому запросу;
 - FTS$EXPLANATION - объяснение результата запроса.
 
@@ -198,8 +198,8 @@ END
 Входные параметры:
 
 - FTS$RELATION_NAME - имя таблицы для которой добавляется ссылка на запись;
-- FTS$DB_KEY - ссылка на запись в таблице (соответствует псевдо полю RDB$DB_KEY);
-- CHANGE_TYPE - тип изменения (I - INSERT, U - UPDATE, D - DELETE).
+- FTS$REC_ID - ссылка на запись в таблице (соответствует псевдо полю RDB$DB_KEY);
+- FTS$CHANGE_TYPE - тип изменения (I - INSERT, U - UPDATE, D - DELETE).
 
 ### Процедура FTS$CLEAR_LOG
 
@@ -328,7 +328,7 @@ SELECT
     HORSE.REMARK
 FROM FTS$SEARCH('IDX_HORSE_REMARK', 'HORSE', 'паспорт') FTS
     LEFT JOIN HORSE ON
-          HORSE.RDB$DB_KEY = FTS.FTS$DB_KEY  
+          HORSE.RDB$DB_KEY = FTS.FTS$REC_ID  
 
 ```
 
@@ -341,7 +341,7 @@ SELECT
     HORSE.REMARK
 FROM FTS$SEARCH('IDX_HORSE_REMARK', NULL, 'паспорт') FTS
     LEFT JOIN HORSE ON
-          HORSE.RDB$DB_KEY = FTS.FTS$DB_KEY  
+          HORSE.RDB$DB_KEY = FTS.FTS$REC_ID  
 
 ```
 
@@ -374,7 +374,7 @@ SELECT
     HORSE.REMARK
 FROM FTS$SEARCH('IDX_HORSE_REMARK_RU', 'HORSE', 'паспорт') FTS
     LEFT JOIN HORSE ON
-          HORSE.RDB$DB_KEY = FTS.FTS$DB_KEY  
+          HORSE.RDB$DB_KEY = FTS.FTS$REC_ID 
 
 ```
 
@@ -412,7 +412,7 @@ SELECT
     NOTE.REMARK_EN
 FROM FTS$SEARCH('IDX_HORSE_NOTE', 'NOTE', 'неровно') FTS
     LEFT JOIN NOTE ON
-          NOTE.RDB$DB_KEY = FTS.FTS$DB_KEY  
+          NOTE.RDB$DB_KEY = FTS.FTS$REC_ID  
 ```
 
 ### Пример полнотекстового индекса с двумя таблицами
@@ -449,7 +449,7 @@ SELECT
     NOTE.REMARK_EN
 FROM FTS$SEARCH('IDX_HORSE_NOTE_2', 'NOTE', 'неровно') FTS
     LEFT JOIN NOTE ON
-          NOTE.RDB$DB_KEY = FTS.FTS$DB_KEY 
+          NOTE.RDB$DB_KEY = FTS.FTS$REC_ID 
   
 -- поиск в таблице HORSE          
 SELECT
@@ -458,7 +458,7 @@ SELECT
     HORSE.REMARK
 FROM FTS$SEARCH('IDX_HORSE_REMARK', 'HORSE', 'паспорт') FTS
     LEFT JOIN HORSE ON
-          HORSE.RDB$DB_KEY = FTS.FTS$DB_KEY  
+          HORSE.RDB$DB_KEY = FTS.FTS$REC_ID  
 
 -- выдаст имя таблицы и DB_KEY из всех таблиц
 SELECT
@@ -473,11 +473,11 @@ SELECT
     NOTE.REMARK AS NOTEREMARK
 FROM FTS$SEARCH('IDX_HORSE_NOTE_2', NULL, 'паспорт') FTS
     LEFT JOIN HORSE ON
-          HORSE.RDB$DB_KEY = FTS.FTS$DB_KEY AND
-          FTS.RDB$RELATION_NAME = 'HORSE'
+          HORSE.RDB$DB_KEY = FTS.FTS$REC_ID AND
+          FTS.FTS$RELATION_NAME = 'HORSE'
     LEFT JOIN NOTE ON
-          NOTE.RDB$DB_KEY = FTS.FTS$DB_KEY AND
-          FTS.RDB$RELATION_NAME = 'NOTE'
+          NOTE.RDB$DB_KEY = FTS.FTS$REC_ID AND
+          FTS.FTS$RELATION_NAME = 'NOTE'
 ```
 
 ## Поддержание актуальности данных в полнотекстовых индексах
