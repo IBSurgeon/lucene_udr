@@ -811,3 +811,151 @@ bool FTSIndexRepository::hasIndexSegment(
 
 	return foundFlag;
 }
+
+//
+// Список полей индексов по имени таблицы
+//
+list<string> FTSIndexRepository::getFieldsByRelation (
+	ThrowStatusWrapper* status,
+	IAttachment* att,
+	ITransaction* tra,
+	unsigned int sqlDialect,
+	string relationName)
+{
+	FB_MESSAGE(Input, ThrowStatusWrapper,
+		(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
+	) input(status, m_master);
+
+	FB_MESSAGE(Output, ThrowStatusWrapper,
+		(FB_INTL_VARCHAR(252, CS_UTF8), fieldName)
+	) output(status, m_master);
+
+	input.clear();
+
+	input->relationName.length = relationName.length();
+	relationName.copy(input->relationName.str, input->relationName.length);
+
+	AutoRelease<IStatement> stmt(att->prepare(
+		status,
+		tra,
+		0,
+		"SELECT FTS$FIELD_NAME\n"
+		"FROM FTS$INDEX_SEGMENTS\n"
+		"WHERE FTS$RELATION_NAME = ?\n"
+		"GROUP BY 1",
+		sqlDialect,
+		IStatement::PREPARE_PREFETCH_METADATA
+	));
+
+	AutoRelease<IResultSet> rs(stmt->openCursor(
+		status,
+		tra,
+		input.getMetadata(),
+		input.getData(),
+		output.getMetadata(),
+		0
+	));
+
+	list<string> fieldNames;
+	while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
+		string fieldName(output->fieldName.str, output->fieldName.length);
+		fieldNames.push_back(fieldName);
+	}
+	rs->close(status);
+	return fieldNames;
+}
+
+//
+// Список исходных кодов триггеров по имени таблицы
+//
+list<string> FTSIndexRepository::makeTriggerSourceByRelation (
+	ThrowStatusWrapper* status,
+	IAttachment* att,
+	ITransaction* tra,
+	unsigned int sqlDialect,
+	string relationName,
+	bool multiAction)
+{
+	list<string> triggerSources;
+
+	list<string> fieldNames = getFieldsByRelation(status, att, tra, sqlDialect, relationName);
+
+	if (fieldNames.size() == 0)
+		return triggerSources;
+
+	string insertingCondition;
+	string updatingCondition;
+	string deletingCondition;
+	for (auto fieldName : fieldNames) {
+		string metaFieldName = makeMetaName(fieldName, sqlDialect);
+
+		if (!insertingCondition.empty()) {
+			insertingCondition += "\n      OR ";
+		}
+		insertingCondition += "NEW." + metaFieldName + " IS NOT NULL";
+
+		if (!updatingCondition.empty()) {
+			updatingCondition += "\n      OR ";
+		}
+		updatingCondition += "NEW." + metaFieldName + " IS DISTINCT FROM " + "OLD." + metaFieldName;
+
+		if (!deletingCondition.empty()) {
+			deletingCondition += "\n      OR ";
+		}
+		deletingCondition += "OLD." + metaFieldName + " IS NOT NULL";
+	}
+
+	
+	if (multiAction) {
+		string triggerName = "FTS$" + relationName + "_AIUD";
+		string triggerSource =
+			"CREATE OR ALTER TRIGGER " + makeMetaName(triggerName, sqlDialect) + " FOR " + makeMetaName(relationName, sqlDialect) + "\n"
+			"ACTIVE AFTER INSERT OR UPDATE OR DELETE POSITION 100\n"
+			"AS\n"
+			"BEGIN\n"
+			"  IF (INSERTING AND (" + insertingCondition + ")) THEN\n"
+			"    EXECUTE PROCEDURE FTS$LOG_CHANGE('" + relationName + "', NEW.RDB$DB_KEY, 'I');\n"
+			"  IF (UPDATING AND (" + updatingCondition + ")) THEN\n"
+			"    EXECUTE PROCEDURE FTS$LOG_CHANGE('" + relationName + "', OLD.RDB$DB_KEY, 'U');\n"
+			"  IF (DELITING AND (" + deletingCondition + ")) THEN\n"
+			"    EXECUTE PROCEDURE FTS$LOG_CHANGE('" + relationName + "', OLD.RDB$DB_KEY, 'D');\n"
+			"END";
+		triggerSources.push_back(triggerSource);
+	}
+	else {
+		// INSERT
+		string triggerName = "FTS$" + relationName + "_AI";
+		string triggerSource =
+			"CREATE OR ALTER TRIGGER " + makeMetaName(triggerName, sqlDialect) + " FOR " + makeMetaName(relationName, sqlDialect) + "\n"
+			"ACTIVE AFTER INSERT POSITION 100\n"
+			"AS\n"
+			"BEGIN\n"
+			"  IF (" + insertingCondition + ") THEN\n"
+			"    EXECUTE PROCEDURE FTS$LOG_CHANGE('" + relationName + "', NEW.RDB$DB_KEY, 'I');\n"
+			"END";
+		triggerSources.push_back(triggerSource);
+		// UPDATE
+		triggerName = "FTS$" + relationName + "_AU";
+		triggerSource =
+			"CREATE OR ALTER TRIGGER " + makeMetaName(triggerName, sqlDialect) + " FOR " + makeMetaName(relationName, sqlDialect) + "\n"
+			"ACTIVE AFTER UPDATE POSITION 100\n"
+			"AS\n"
+			"BEGIN\n"
+			"  IF (" + updatingCondition + ") THEN\n"
+			"    EXECUTE PROCEDURE FTS$LOG_CHANGE('" + relationName + "', OLD.RDB$DB_KEY, 'U');\n"
+			"END";
+		triggerSources.push_back(triggerSource);
+		// DELETE
+		triggerName = "FTS$" + relationName + "_AD";
+		triggerSource =
+			"CREATE OR ALTER TRIGGER " + makeMetaName(triggerName, sqlDialect) + " FOR " + makeMetaName(relationName, sqlDialect) + "\n"
+			"ACTIVE AFTER DELETE POSITION 100\n"
+			"AS\n"
+			"BEGIN\n"
+			"  IF (" + deletingCondition + ") THEN\n"
+			"    EXECUTE PROCEDURE FTS$LOG_CHANGE('" + relationName + "', OLD.RDB$DB_KEY, 'D');\n"
+			"END";
+		triggerSources.push_back(triggerSource);
+	}
+	return triggerSources;
+}

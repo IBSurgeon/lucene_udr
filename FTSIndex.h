@@ -275,6 +275,34 @@ namespace LuceneFTS
 			}
 			return segmentsByIndex;
 		}
+
+		string makeMetaName(string name, unsigned int sqlDialect) {
+			if (sqlDialect >= 3) {
+				return "\"" + name + "\"";
+			} 
+			return name;
+		}
+
+		//
+        // Список полей индексов по имени таблицы
+        //
+		list<string> getFieldsByRelation (
+			ThrowStatusWrapper* status,
+			IAttachment* att,
+			ITransaction* tra,
+			unsigned int sqlDialect,
+			string relationName);
+
+		//
+		// Список исходных кодов триггеров по имени таблицы
+		//
+		list<string> makeTriggerSourceByRelation (
+			ThrowStatusWrapper* status,
+			IAttachment* att,
+			ITransaction* tra,
+			unsigned int sqlDialect,
+			string relationName,
+			bool multiAction);
 	};
 }
 #endif	// FTS_INDEX_H
