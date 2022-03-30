@@ -20,12 +20,6 @@ Lucene написан на языке Java. К сожалению плагин F
 
 В настоящий момент других сборок нет.
 
-sudo dnf install libboost_filesystem*
-sudo dnf install libboost_iostreams*
-sudo dnf install libboost_thread*
-sudo dnf install libstdc++.so.6
-wget https://download-ib01.fedoraproject.org/pub/fedora/linux/releases/35/Everything/x86_64/os/Packages/l/lucene++-3.0.7-32.fc35.x86_64.rpm
-sudo rpm -Uvh lucene++*.rpm
 
 ## Описание процедур и функций для работы с полнотекстовым поиском
 
