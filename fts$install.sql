@@ -566,7 +566,7 @@ BEGIN
    *   FTS$FIELD_NAME - the name of the field that is being searched;
    *   FTS$FRAGMENT_SIZE - the length of the returned fragment.
    *       No less than is required to return whole words;
-   *   FTS$MAX_NUM_FRAGMENTS - maximum number of fragments.
+   *   FTS$MAX_NUM_FRAGMENTS - maximum number of fragments;
    *   FTS$LEFT_TAG - the left tag to highlight;
    *   FTS$RIGHT_TAG - the right tag to highlight.
    *
