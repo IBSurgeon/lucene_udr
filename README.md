@@ -15,8 +15,8 @@ Lucene написан на языке Java. К сожалению плагин F
 2. Выполнить скрипт [fts$install.sql](https://github.com/sim1984/lucene_udr/blob/main/fts%24install.sql) для регистраци процедур и функций в индексируемой БД.
 
 Скачать готовые сборки можно по ссылкам:
-* [LuceneUdr_Win_x64.zip](https://github.com/sim1984/lucene_udr/releases/download/0.8/LuceneUdr_Win_x64.zip)
-* [LuceneUdr_Win_x86.zip](https://github.com/sim1984/lucene_udr/releases/download/0.8/LuceneUdr_Win_x86.zip)
+* [LuceneUdr_Win_x64.zip](https://github.com/sim1984/lucene_udr/releases/download/0.9/LuceneUdr_Win_x64.zip)
+* [LuceneUdr_Win_x86.zip](https://github.com/sim1984/lucene_udr/releases/download/0.9/LuceneUdr_Win_x86.zip)
 
 В настоящий момент других сборок нет.
 
