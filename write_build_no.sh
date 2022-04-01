@@ -1,9 +1,9 @@
 #!/bin/sh
 
 SET MajorVer=0
-SET MinorVer=8
-SET RevNo=4
-SET BuildNum=7
+SET MinorVer=9
+SET RevNo=0
+SET BuildNum=9
 
 SET PRODUCT_VER_STRING=%MajorVer%.%MinorVer%.%RevNo%.%BuildNum%
 SET FILE_VER_STRING=Linux-%MajorVer%.%MinorVer%.%RevNo%.%BuildNum%

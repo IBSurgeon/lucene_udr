@@ -38,6 +38,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="defs\udr_plugin.def" />
+    <None Include="fts$uninstall.sql" />
     <None Include="fts%24install.sql" />
     <None Include="README.md" />
   </ItemGroup>

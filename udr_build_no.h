@@ -3,8 +3,8 @@
                *** DO NOT EDIT ***
   TO CHANGE ANY INFORMATION IN HERE PLEASE
   EDIT write_build_no.bat
-  FORMAL BUILD NUMBER:7
+  FORMAL BUILD NUMBER:9
 */
-#define PRODUCT_VER_STRING "0.8.4.7"
-#define FILE_VER_STRING "WIN-0.8.4.7"
-#define FILE_VER_NUMBER 0, 8, 4, 7
+#define PRODUCT_VER_STRING "0.9.0.9"
+#define FILE_VER_STRING "WIN-0.9.0.9"
+#define FILE_VER_NUMBER 0, 9, 0, 9

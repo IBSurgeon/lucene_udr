@@ -77,6 +77,9 @@
     <None Include="README.md">
       <Filter>Документация</Filter>
     </None>
+    <None Include="fts$uninstall.sql">
+      <Filter>SQL scripts</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="lucene_udr.rc">
