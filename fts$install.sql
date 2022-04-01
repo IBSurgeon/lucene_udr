@@ -386,7 +386,19 @@ SET TERM ^ ;
 CREATE OR ALTER PACKAGE FTS$TRIGGER_HELPER
 AS
 BEGIN
-
+  /**
+   * The FTS$MAKE_TRIGGERS procedure generates trigger source codes for
+   * a given table to keep full-text indexes up-to-date.
+   *
+   * Input parameters:
+   *   FTS$RELATION_NAME - table name for which triggers are created;
+   *   FTS$MULTI_ACTION - universal trigger flag. If set to TRUE,
+   *      then a trigger for multiple actions will be created,
+   *      otherwise a separate trigger will be created for each action.
+   *
+   * Output parameters:
+   *   FTS$TRIGGER_SOURCE - the text of the source code of the trigger.
+  **/
   PROCEDURE FTS$MAKE_TRIGGERS (
     FTS$RELATION_NAME VARCHAR(63) CHARACTER SET UTF8,
     FTS$MULTI_ACTION BOOLEAN DEFAULT TRUE
@@ -395,6 +407,19 @@ BEGIN
     FTS$TRIGGER_SOURCE BLOB SUB_TYPE TEXT CHARACTER SET UTF8
   );
 
+  /**
+   * The FTS$MAKE_TRIGGERS_BY_INDEX procedure generates trigger source codes
+   * for a given index to keep the full-text index up to date.
+   *
+   * Input parameters:
+   *   FTS$INDEX_NAME - index name for which triggers are created; 
+   *   FTS$MULTI_ACTION - universal trigger flag. If set to TRUE,
+   *      then a trigger for multiple actions will be created,
+   *      otherwise a separate trigger will be created for each action.
+   *
+   * Output parameters:
+   *   FTS$TRIGGER_SOURCE - the text of the source code of the trigger.
+  **/
   PROCEDURE FTS$MAKE_TRIGGERS_BY_INDEX (
     FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8,
     FTS$MULTI_ACTION BOOLEAN DEFAULT TRUE
@@ -403,6 +428,19 @@ BEGIN
     FTS$TRIGGER_SOURCE BLOB SUB_TYPE TEXT CHARACTER SET UTF8
   );
 
+
+  /**
+   * The FTS$MAKE_ALL_TRIGGERS procedure generates trigger source codes
+   * to keep all full-text indexes up to date.
+   *
+   * Input parameters:
+   *   FTS$MULTI_ACTION - universal trigger flag. If set to TRUE,
+   *      then a trigger for multiple actions will be created,
+   *      otherwise a separate trigger will be created for each action.
+   *
+   * Output parameters:
+   *   FTS$TRIGGER_SOURCE - the text of the source code of the trigger.
+  **/
   PROCEDURE FTS$MAKE_ALL_TRIGGERS (
     FTS$MULTI_ACTION BOOLEAN DEFAULT TRUE
   )
@@ -505,7 +543,7 @@ BEGIN
    *   FTS$FRAGMENT_SIZE - the length of the returned fragment.
    *       No less than is required to return whole words;
    *   FTS$LEFT_TAG - the left tag to highlight;
-   *   FTS$RIGHT_TAG - the left tag to highlight;
+   *   FTS$RIGHT_TAG - the right tag to highlight.
   **/
   FUNCTION FTS$BEST_FRAGMENT (
       FTS$TEXT BLOB SUB_TYPE TEXT CHARACTER SET UTF8,
@@ -517,6 +555,24 @@ BEGIN
       FTS$RIGHT_TAG VARCHAR(50) CHARACTER SET UTF8 NOT NULL DEFAULT '</b>')
   RETURNS VARCHAR(8191) CHARACTER SET UTF8;
 
+  /**
+   * The FTS$BEST_FRAGMENTS procedure returns text fragments with highlighted
+   * occurrences of words from the search query.
+   *
+   * Input parameters:
+   *   FTS$TEXT - the text in which the phrase is searched;
+   *   FTS$QUERY - full-text search expression;
+   *   FTS$ANALYZER - analyzer;
+   *   FTS$FIELD_NAME - the name of the field that is being searched;
+   *   FTS$FRAGMENT_SIZE - the length of the returned fragment.
+   *       No less than is required to return whole words;
+   *   FTS$MAX_NUM_FRAGMENTS - maximum number of fragments.
+   *   FTS$LEFT_TAG - the left tag to highlight;
+   *   FTS$RIGHT_TAG - the right tag to highlight.
+   *
+   * Output parameters:
+   *   FTS$FRAGMENT - text fragment in which the searched phrase was found. 
+  **/
   PROCEDURE FTS$BEST_FRAGMENTS (
       FTS$TEXT BLOB SUB_TYPE TEXT CHARACTER SET UTF8,
       FTS$QUERY VARCHAR(8191) CHARACTER SET UTF8,
@@ -556,7 +612,7 @@ BEGIN
   RETURNS (
       FTS$FRAGMENT VARCHAR(8191) CHARACTER SET UTF8)
   EXTERNAL NAME 'luceneudr!bestFragementsHighligh' ENGINE UDR;
-END  ^
+END^
 
 SET TERM ; ^
 

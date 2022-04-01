@@ -34,50 +34,106 @@ Lucene написан на языке Java. К сожалению плагин F
 CREATE OR ALTER PACKAGE FTS$MANAGEMENT
 AS
 BEGIN
+  /**
+   * Returns the directory where the files and folders
+   * of the full-text index for the current database are located.
+  **/
   FUNCTION FTS$GET_DIRECTORY ()
   RETURNS VARCHAR(255) CHARACTER SET UTF8;
 
-  PROCEDURE FTS$ANALYZERS 
+  /**
+   * Returns a list of available analyzers.
+   *
+   * Output parameters:
+   *   FTS$ANALYZER - analyzer name.
+  **/
+  PROCEDURE FTS$ANALYZERS
   RETURNS (
-     FTS$ANALYZER VARCHAR(63) CHARACTER SET UTF8
-  );
+      FTS$ANALYZER VARCHAR(63) CHARACTER SET UTF8);
 
+  /**
+   * Create a new full-text index.
+   *
+   * Input parameters:
+   *   FTS$INDEX_NAME - name of the index;
+   *   FTS$ANALYZER - analyzer name;
+   *   FTS$DESCRIPTION - description of the index.
+  **/
   PROCEDURE FTS$CREATE_INDEX (
-     FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
-     FTS$ANALYZER VARCHAR(63) CHARACTER SET UTF8 DEFAULT NULL,
-     FTS$DESCRIPTION BLOB SUB_TYPE TEXT CHARACTER SET UTF8 DEFAULT NULL
-  );
+      FTS$INDEX_NAME  VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+      FTS$ANALYZER    VARCHAR(63) CHARACTER SET UTF8 DEFAULT 'STANDARD',
+      FTS$DESCRIPTION BLOB SUB_TYPE TEXT CHARACTER SET UTF8 DEFAULT NULL);
 
+  /**
+   * Delete the full-text index.
+   *
+   * Input parameters:
+   *   FTS$INDEX_NAME - name of the index.
+  **/
   PROCEDURE FTS$DROP_INDEX (
-     FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL
-  );
+      FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL);
 
+  /**
+   * Allows to make the index active or inactive.
+   *
+   * Input parameters:
+   *   FTS$INDEX_NAME - name of the index;
+   *   FTS$INDEX_ACTIVE - activity flag.
+  **/
   PROCEDURE FTS$SET_INDEX_ACTIVE (
-	 FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
-	 FTS$INDEX_ACTIVE BOOLEAN NOT NULL
-  );
+      FTS$INDEX_NAME   VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+      FTS$INDEX_ACTIVE BOOLEAN NOT NULL);
 
+  /**
+   * Add a new segment (indexed table field) of the full-text index.
+   *
+   * Input parameters:
+   *   FTS$INDEX_NAME - name of the index;
+   *   FTS$RELATION_NAME - name of the table to be indexed;
+   *   FTS$FIELD_NAME - the name of the field to be indexed;
+   *   FTS$BOOST - the coefficient of increasing the significance of the segment.
+  **/
   PROCEDURE FTS$ADD_INDEX_FIELD (
-    FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
-    FTS$RELATION_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
-    FTS$FIELD_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
-    FTS$BOOST DOUBLE PRECISION DEFAULT NULL
-  );
+      FTS$INDEX_NAME    VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+      FTS$RELATION_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+      FTS$FIELD_NAME    VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+      FTS$BOOST         DOUBLE PRECISION DEFAULT NULL);
 
+  /**
+   * Delete a segment (indexed table field) of the full-text index.
+   *
+   * Input parameters:
+   *   FTS$INDEX_NAME - index name;
+   *   FTS$RELATION_NAME - table name;
+   *   FTS$FIELD_NAME - field name.
+  **/
   PROCEDURE FTS$DROP_INDEX_FIELD (
-    FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
-    FTS$RELATION_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
-    FTS$FIELD_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL
-  );
+      FTS$INDEX_NAME    VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+      FTS$RELATION_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+      FTS$FIELD_NAME    VARCHAR(63) CHARACTER SET UTF8 NOT NULL);
 
+
+  /**
+   * Rebuild the full-text index.
+   *
+   * Input parameters:
+   *   FTS$INDEX_NAME - index name.
+   **/
   PROCEDURE FTS$REBUILD_INDEX (
-     FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL
-  );
+      FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL);
 
-  PROCEDURE FTS$REINDEX_TABLE(
-     FTS$RELATION_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL
-  );
+  /**
+   * Rebuild all full-text indexes for the specified table.
+   *
+   * Input parameters:
+   *   FTS$RELATION_NAME - table name.
+  **/
+  PROCEDURE FTS$REINDEX_TABLE (
+      FTS$RELATION_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL);
 
+  /**
+   * Rebuild all full-text indexes in the database.
+  **/
   PROCEDURE FTS$FULL_REINDEX;
 END
 ```
@@ -103,8 +159,6 @@ END
 - FTS$INDEX_NAME - имя индекса. Должно быть уникальным среди имён полнотекстовых индексов;
 - FTS$ANALYZER - имя анализатора. Если не задано используется анализатор STANDARD (StandardAnalyzer);
 - FTS$DESCRIPTION - описание индекса.
-
-Замечание: в настоящее время FTS$ANALYZER не учитывается. Эта возможность будет добавлена позже.
 
 #### Процедура FTS$DROP_INDEX
 
@@ -173,7 +227,7 @@ END
 
 - FTS$INDEX_NAME - имя полнотекстового индекса, в котором осуществляется поиск;
 - FTS$SEARCH_RELATION - имя таблицы, ограничивает поиск только заданной таблицей. Если таблица не задана, то поиск делается по всем сегментам индекса;
-- FTS$FILTER - выражение для полнотекстового поиска;
+- FTS$QUERY - выражение для полнотекстового поиска;
 - FTS$LIMIT - ограничение на количество записей (результата поиска). По умолчанию 1000;
 - FTS$EXPLAIN - объяснять ли результат поиска. По умолчанию FALSE.
 
@@ -206,12 +260,162 @@ END
 
 ### Пакет FTS$HIGHLIGHTER
 
-Пакет `FTS$HIGHLIGHTER` содержит процедуры и функции для выделения найденных фрагментов
+Пакет `FTS$HIGHLIGHTER` содержит процедуры и функции возаращающие фрагменты текста, в котором найдена исходная фраза, и выделяет найденые слова.
 
 Заголовок этого пакета выглядит следующим образом:
 
 ```sql
+CREATE OR ALTER PACKAGE FTS$HIGHLIGHTER
+AS
+BEGIN
+  /**
+   * The FTS$BEST_FRAGMENT function returns a text fragment with highlighted
+   * occurrences of words from the search query.
+   *
+   * Input parameters:
+   *   FTS$TEXT - the text in which the phrase is searched;
+   *   FTS$QUERY - full-text search expression;
+   *   FTS$ANALYZER - analyzer;
+   *   FTS$FIELD_NAME - the name of the field that is being searched;
+   *   FTS$FRAGMENT_SIZE - the length of the returned fragment.
+   *       No less than is required to return whole words;
+   *   FTS$LEFT_TAG - the left tag to highlight;
+   *   FTS$RIGHT_TAG - the right tag to highlight.
+  **/
+  FUNCTION FTS$BEST_FRAGMENT (
+      FTS$TEXT BLOB SUB_TYPE TEXT CHARACTER SET UTF8,
+      FTS$QUERY VARCHAR(8191) CHARACTER SET UTF8,
+      FTS$ANALYZER VARCHAR(63) CHARACTER SET UTF8 NOT NULL DEFAULT 'STANDARD',
+      FTS$FIELD_NAME VARCHAR(63) CHARACTER SET UTF8 DEFAULT NULL,
+      FTS$FRAGMENT_SIZE SMALLINT NOT NULL DEFAULT 512,
+      FTS$LEFT_TAG VARCHAR(50) CHARACTER SET UTF8 NOT NULL DEFAULT '<b>',
+      FTS$RIGHT_TAG VARCHAR(50) CHARACTER SET UTF8 NOT NULL DEFAULT '</b>')
+  RETURNS VARCHAR(8191) CHARACTER SET UTF8;
 
+  /**
+   * The FTS$BEST_FRAGMENTS procedure returns text fragments with highlighted
+   * occurrences of words from the search query.
+   *
+   * Input parameters:
+   *   FTS$TEXT - the text in which the phrase is searched;
+   *   FTS$QUERY - full-text search expression;
+   *   FTS$ANALYZER - analyzer;
+   *   FTS$FIELD_NAME - the name of the field that is being searched;
+   *   FTS$FRAGMENT_SIZE - the length of the returned fragment.
+   *       No less than is required to return whole words;
+   *   FTS$MAX_NUM_FRAGMENTS - maximum number of fragments.
+   *   FTS$LEFT_TAG - the left tag to highlight;
+   *   FTS$RIGHT_TAG - the right tag to highlight.
+   *
+   * Output parameters:
+   *   FTS$FRAGMENT - text fragment in which the searched phrase was found. 
+  **/
+  PROCEDURE FTS$BEST_FRAGMENTS (
+      FTS$TEXT BLOB SUB_TYPE TEXT CHARACTER SET UTF8,
+      FTS$QUERY VARCHAR(8191) CHARACTER SET UTF8,
+      FTS$ANALYZER VARCHAR(63) CHARACTER SET UTF8 NOT NULL DEFAULT 'STANDARD',
+      FTS$FIELD_NAME VARCHAR(63) CHARACTER SET UTF8 DEFAULT NULL,
+      FTS$FRAGMENT_SIZE SMALLINT NOT NULL DEFAULT 512,
+      FTS$MAX_NUM_FRAGMENTS INTEGER NOT NULL DEFAULT 10,
+      FTS$LEFT_TAG VARCHAR(50) CHARACTER SET UTF8 NOT NULL DEFAULT '<b>',
+      FTS$RIGHT_TAG VARCHAR(50) CHARACTER SET UTF8 NOT NULL DEFAULT '</b>')
+  RETURNS (
+      FTS$FRAGMENT VARCHAR(8191) CHARACTER SET UTF8);
+END
+```
+
+#### Процедура FTS$BEST_FRAGMENT
+
+Функция `FTS$BEST_FRAGMENT()` возращает лучший фрагмент текста, который соответвует выражению полнотекстового поиска,
+и выделяет в нем найденные слова.
+
+Входные параметры:
+
+- FTS$TEXT - текст, в котором ищется фраза;
+- FTS$QUERY - выражение полнотекстового поиска;
+- FTS$ANALYZER - анализатор;
+- FTS$FIELD_NAME — имя поля, в котором выполняется поиск;
+- FTS$FRAGMENT_SIZE - длина возвращаемого фрагмента.
+- Не меньше, чем требуется для возврата целых слов;
+- FTS$MAX_NUM_FRAGMENTS - максимальное количество фрагментов.
+- FTS$LEFT_TAG - левый тег для выделения;
+- FTS$RIGHT_TAG - правильный тег для выделения. 
+
+
+
+### Пакет FTS$TRIGGER_HELPER
+
+Пакет `FTS$TRIGGER_HELPER` содержит процедуры и функции помогающие создавать триггеры для поддержки актуальности полнотекстовых индексов.
+
+Заголовок этого пакета выглядит следующим образом:
+
+```sql
+CREATE OR ALTER PACKAGE FTS$TRIGGER_HELPER
+AS
+BEGIN
+  /**
+   * The FTS$MAKE_TRIGGERS procedure generates trigger source codes for
+   * a given table to keep full-text indexes up-to-date.
+   *
+   * Input parameters:
+   *   FTS$RELATION_NAME - table name for which triggers are created;
+   *   FTS$MULTI_ACTION - universal trigger flag. If set to TRUE,
+   *      then a trigger for multiple actions will be created,
+   *      otherwise a separate trigger will be created for each action.
+   *
+   * Output parameters:
+   *   FTS$TRIGGER_SOURCE - the text of the source code of the trigger.
+  **/
+  PROCEDURE FTS$MAKE_TRIGGERS (
+    FTS$RELATION_NAME VARCHAR(63) CHARACTER SET UTF8,
+    FTS$MULTI_ACTION BOOLEAN DEFAULT TRUE
+  )
+  RETURNS (
+    FTS$TRIGGER_SOURCE BLOB SUB_TYPE TEXT CHARACTER SET UTF8
+  );
+
+  /**
+   * The FTS$MAKE_TRIGGERS_BY_INDEX procedure generates trigger source codes
+   * for a given index to keep the full-text index up to date.
+   *
+   * Input parameters:
+   *   FTS$INDEX_NAME - index name for which triggers are created; 
+   *   FTS$MULTI_ACTION - universal trigger flag. If set to TRUE,
+   *      then a trigger for multiple actions will be created,
+   *      otherwise a separate trigger will be created for each action.
+   *
+   * Output parameters:
+   *   FTS$TRIGGER_SOURCE - the text of the source code of the trigger.
+  **/
+  PROCEDURE FTS$MAKE_TRIGGERS_BY_INDEX (
+    FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8,
+    FTS$MULTI_ACTION BOOLEAN DEFAULT TRUE
+  )
+  RETURNS (
+    FTS$TRIGGER_SOURCE BLOB SUB_TYPE TEXT CHARACTER SET UTF8
+  );
+
+
+  /**
+   * The FTS$MAKE_ALL_TRIGGERS procedure generates trigger source codes
+   * to keep all full-text indexes up to date.
+   *
+   * Input parameters:
+   *   FTS$MULTI_ACTION - universal trigger flag. If set to TRUE,
+   *      then a trigger for multiple actions will be created,
+   *      otherwise a separate trigger will be created for each action.
+   *
+   * Output parameters:
+   *   FTS$TRIGGER_SOURCE - the text of the source code of the trigger.
+  **/
+  PROCEDURE FTS$MAKE_ALL_TRIGGERS (
+    FTS$MULTI_ACTION BOOLEAN DEFAULT TRUE
+  )
+  RETURNS (
+    FTS$TRIGGER_SOURCE BLOB SUB_TYPE TEXT CHARACTER SET UTF8
+  );
+   
+END
 ```
 
 ## Статусы индекса
