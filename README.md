@@ -567,7 +567,7 @@ FROM RDB$DATABASE
 ### Пример создания односегментного индекса для полнотекстового поиска на английском языке
 
 Ниже создаётся односегментный индекс для полнотекстового поиска на английском языке, поскольку по умолчанию
-используется анализатор STANDART.
+используется анализатор STANDARD.
 
 ```sql
 -- создание индекса
@@ -747,6 +747,44 @@ FROM FTS$SEARCH('IDX_HORSE_NOTE_2', NULL, 'паспорт') FTS
           FTS.FTS$RELATION_NAME = 'NOTE'
 ```
 
+### Пример выделения найденных фрагментов
+
+```sql
+-- создание индекса
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$CREATE_INDEX('IDX_HORSE_INFO', 'RUSSIAN');
+
+COMMIT;
+
+-- добавление сегмента (поля REMARK таблицы HORSE)
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD('IDX_HORSE_INFO', 'HORSE', 'REMARK');
+-- добавление сегмента (поля RUNTOTAL таблицы HORSE)
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD('IDX_HORSE_INFO', 'HORSE', 'RUNTOTAL');
+
+COMMIT;
+
+-- построение индекса
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$REBUILD_INDEX('IDX_HORSE_INFO');
+
+COMMIT;
+```
+
+Поиск по такому индексу и выделение найденных фрагментов можно сделать следующим образом:
+
+```sql
+SELECT
+    FTS.*,
+    HORSE.CODE_HORSE,
+    HORSE.REMARK,
+    HORSE.RUNTOTAL,
+    FTS$HIGHLIGHTER.FTS$BEST_FRAGMENT(HORSE.REMARK, 'паспорт', 'RUSSIAN', 'HORSE.REMARK') AS HIGHTLIGHT_REMARK,
+    FTS$HIGHLIGHTER.FTS$BEST_FRAGMENT(HORSE.RUNTOTAL, 'паспорт', 'RUSSIAN', 'HORSE.RUNTOTAL') AS HIGHTLIGHT_RUNTOTAL
+FROM FTS$SEARCH('IDX_HORSE_INFO', 'HORSE', 'паспорт') FTS
+    LEFT JOIN HORSE ON
+          HORSE.RDB$DB_KEY = FTS.FTS$REC_ID 
+```
+
+Обратите внимание, в качестве имени поля в функции `FTS$HIGHLIGHTER.FTS$BEST_FRAGMENT` используется полное имя сегмента, состоящее из имени таблицы и имени поля.
+
 ## Поддержание актуальности данных в полнотекстовых индексах
 
 Для поддержки актуальности полнотекстовых индексов существует несколлько способов:
@@ -763,36 +801,13 @@ FROM FTS$SEARCH('IDX_HORSE_NOTE_2', NULL, 'паспорт') FTS
 информацию необходимую для обновления полнотекстовых индексов (в процессе разработки).
 
 
-### Пример триггеров для поддержки актуальности полнотекстовых индексов
+### Триггеры для поддержки актуальности полнотекстовых индексов
 
-Для поддержки актуальности полнотекстовых индексов можно создать следующие триггеры:
+Для поддержки актуальности полнотекстовых индексов необходимо создать триггеры, которые при изменении
+любого из полей, входящих в полнотекстовый индекс, записывает информацию об изменении записи в специальную таблицу `FTS$LOG` (журнал).
 
-```sql
-SET TERM ^ ;
-
-CREATE OR ALTER TRIGGER TR_FTS$HORSE_AIUD FOR HORSE
-ACTIVE AFTER INSERT OR UPDATE OR DELETE POSITION 100
-AS
-BEGIN
-  IF (INSERTING AND (NEW.REMARK IS NOT NULL)) THEN
-    EXECUTE PROCEDURE FTS$LOG_CHANGE('HORSE', NEW.RDB$DB_KEY, 'I');
-  IF (UPDATING AND (NEW.REMARK IS DISTINCT FROM OLD.REMARK)) THEN
-    EXECUTE PROCEDURE FTS$LOG_CHANGE('HORSE', OLD.RDB$DB_KEY, 'U');
-  IF (DELETING AND (OLD.REMARK IS NOT NULL)) THEN
-    EXECUTE PROCEDURE FTS$LOG_CHANGE('HORSE', OLD.RDB$DB_KEY, 'D');
-END
-^
-
-SET TERM ; ^
-```
-
-В данном примере созданы триггеры для поддержки актуальности полнотекстового построенного на поле REMARK таблицы HORSE.
-
-Обновление индексов осуществляется в сцециальном скрипте `fts$update.sql`
-
-```sql
-EXECUTE PROCEDURE FTS$UPDATE_INDEXES;
-```
+Изменения из журнала переносятся в полнотекстовые индексы с помощью вызова процедуры `FTS$UPDATE_INDEXES`.
+Вызов этой процедуры необходимо делать в отдельном скрипте, который можно поставить в планировщик заданий (Windows) или cron (Linux) с некоторой периодичностью, например 5 минут.
 
 Правила написания триггеров для поддержки полнотекстовых индексов:
 
@@ -807,3 +822,44 @@ EXECUTE PROCEDURE FTS$UPDATE_INDEXES;
 
 4. Для операции DELETE необходимо проверять все поля, входящие в полнотекстовые индексы значение которых отличается от NULL.
 Если это условие соблюдается, то необходимо выполнить процедуру `FTS$LOG_CHANGE('<имя таблицы>', OLD.RDB$DB_KEY, 'D');`.
+
+Для облегчения задачи написания таких триггеров существует специальный пакет `FTS$TRIGGER_HELPER`, в котором инкапсулированы процедуры
+генерирования исходных текстов триггеров. Так напрмер, для того чтобы сгенерировать триггеры для поддержки полнотекстовых индексов созданных для таблицы `HORSE`, необходимо
+выполнить следующий запрос:
+
+```sql
+SELECT
+    FTS$TRIGGER_SOURCE
+FROM FTS$TRIGGER_HELPER.FTS$MAKE_TRIGGERS('HORSE', TRUE)
+```
+
+Этот запрос вернёт следующий текст триггера:
+
+```sql
+CREATE OR ALTER TRIGGER FTS$HORSE_AIUD FOR HORSE
+ACTIVE AFTER INSERT OR UPDATE OR DELETE POSITION 100
+AS
+BEGIN
+  IF (INSERTING AND (NEW.REMARK IS NOT NULL)) THEN
+    EXECUTE PROCEDURE FTS$LOG_CHANGE('HORSE', NEW.RDB$DB_KEY, 'I');
+  IF (UPDATING AND (NEW.REMARK IS DISTINCT FROM OLD.REMARK)) THEN
+    EXECUTE PROCEDURE FTS$LOG_CHANGE('HORSE', OLD.RDB$DB_KEY, 'U');
+  IF (DELITING AND (OLD.REMARK IS NOT NULL)) THEN
+    EXECUTE PROCEDURE FTS$LOG_CHANGE('HORSE', OLD.RDB$DB_KEY, 'D');
+END
+```
+
+В данном примере создан триггер для поддержки актуальности полнотекстового построенного на поле REMARK таблицы HORSE.
+
+Обновление всех полнотексовых индексов необходимо создать SQL скрипт `fts$update.sql`
+
+```sql
+EXECUTE PROCEDURE FTS$UPDATE_INDEXES;
+```
+
+Затем скрипт для вызова SQL скрипта через ISQL, примерно следующего содержания
+
+```bash
+isql -user SYSDBA -pas masterkey -i fts$update.sql inet://localhost/mydatabase
+```
+
