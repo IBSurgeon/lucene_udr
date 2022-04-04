@@ -34,11 +34,13 @@ namespace LuceneFTS {
 				return toupper(c1) < toupper(c2);
 			}
 		};
+
 		bool operator() (const std::string& s1, const std::string& s2) const {
-			return std::lexicographical_compare
-			(s1.begin(), s1.end(),   // source range
+			return std::lexicographical_compare (
+				s1.begin(), s1.end(),   // source range
 				s2.begin(), s2.end(),   // dest range
-				nocase_compare());  // comparison
+				nocase_compare()        // comparison
+			);     
 		}
 	};
 
@@ -80,7 +82,6 @@ namespace LuceneFTS {
 		{
 			auto pFactory = factories.find(analyzerName);
 			if (pFactory == factories.end()) {
-				// исключение
 				string error_message = string_format("Analyzer \"%s\" not found.", analyzerName);
 				ISC_STATUS statusVector[] = {
 				   isc_arg_gds, isc_random,

@@ -93,7 +93,7 @@ std::string getICICharset(const char* charset) {
 
 std::string to_utf8(const std::string& source_str, const std::string& charset)
 {
-	// если строка уже в utf-8, то нет смысла её перекодировать
+	// if the string is already in utf-8, then it makes no sense to re-encode it
 	if (charset == "utf-8") {
 		return source_str;
 	}

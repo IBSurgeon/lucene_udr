@@ -8,6 +8,13 @@ using namespace Firebird;
 using namespace std;
 using namespace LuceneFTS;
 
+/// <summary>
+/// Returns the directory where full-text indexes are located.
+/// </summary>
+/// 
+/// <param name="context">The context of the external routine.</param>
+/// 
+/// <returns>Full path to full-text index directory</returns>
 string LuceneFTS::getFtsDirectory(IExternalContext* context) {
 	IConfigManager* configManager = context->getMaster()->getConfigManager();
 	const string databaseName(context->getDatabaseName());
@@ -20,10 +27,18 @@ string LuceneFTS::getFtsDirectory(IExternalContext* context) {
 	return section["ftsDirectory"].as<string>();
 }
 
-//
-// Создание нового полнотекстового индекса
-//
-void FTSIndexRepository::createIndex(
+/// <summary>
+/// Create a new full-text index. 
+/// </summary>
+/// 
+/// <param name="status">Firebird status</param>
+/// <param name="att">Firebird attachment</param>
+/// <param name="tra">Firebird transaction</param>
+/// <param name="sqlDialect">SQL dialect</param>
+/// <param name="indexName">Index name</param>
+/// <param name="analyzer">Analyzer name</param>
+/// <param name="description">Custom index description</param>
+void FTSIndexRepository::createIndex (
 	ThrowStatusWrapper* status,
 	IAttachment* att,
 	ITransaction* tra,
@@ -68,7 +83,7 @@ void FTSIndexRepository::createIndex(
 	input->indexStatus.length = indexStatus.length();
 	indexStatus.copy(input->indexStatus.str, input->indexStatus.length);
 
-	// проверка существования индекса
+	// check for index existence
 	if (hasIndex(status, att, tra, sqlDialect, indexName)) {
 		string error_message = string_format("Index \"%s\" already exists", indexName);
 		ISC_STATUS statusVector[] = {
@@ -79,7 +94,7 @@ void FTSIndexRepository::createIndex(
 		throw FbException(status, statusVector);
 	}
 
-	// проверяем существование анализатора
+	// checking the existence of the analyzer
 	LuceneFTS::LuceneAnalyzerFactory analyzerFactory;
 	if (!analyzerFactory.hasAnalyzer(analyzer)) {
 		string error_message = string_format("Analyzer \"%s\" not exists", analyzer);
@@ -105,10 +120,16 @@ void FTSIndexRepository::createIndex(
 	);
 }
 
-//
-// Удаление полнотекстового индекса
-//
-void FTSIndexRepository::dropIndex(
+/// <summary>
+/// Remove a full-text index. 
+/// </summary>
+/// 
+/// <param name="status">Firebird status</param>
+/// <param name="att">Firebird attachment</param>
+/// <param name="tra">Firebird transaction</param>
+/// <param name="sqlDialect">SQL dialect</param>
+/// <param name="indexName">Index name</param>
+void FTSIndexRepository::dropIndex (
 	ThrowStatusWrapper* status,
 	IAttachment* att,
 	ITransaction* tra,
@@ -125,7 +146,7 @@ void FTSIndexRepository::dropIndex(
 	input->indexName.length = indexName.length();
 	indexName.copy(input->indexName.str, input->indexName.length);
 
-	// проверка существования индекса
+	// check for index existence
 	if (hasIndex(status, att, tra, sqlDialect, indexName)) {
 		string error_message = string_format("Index \"%s\" not exists", indexName);
 		ISC_STATUS statusVector[] = {
@@ -149,10 +170,17 @@ void FTSIndexRepository::dropIndex(
 	);
 }
 
-//
-// Устанавливает статус индекса
-//
-void FTSIndexRepository::setIndexStatus(
+/// <summary>
+/// Set the index status.
+/// </summary>
+/// 
+/// <param name="status">Firebird status</param>
+/// <param name="att">Firebird attachment</param>
+/// <param name="tra">Firebird transaction</param>
+/// <param name="sqlDialect">SQL dialect</param>
+/// <param name="indexName">Index name</param>
+/// <param name="indexStatus">Index Status</param>
+void FTSIndexRepository::setIndexStatus (
 	ThrowStatusWrapper* status,
 	IAttachment* att,
 	ITransaction* tra,
@@ -186,10 +214,18 @@ void FTSIndexRepository::setIndexStatus(
 	);
 }
 
-//
-// Возвращает существует ли индекс с заданным именем.
-//
-bool FTSIndexRepository::hasIndex(
+/// <summary>
+/// Checks if an index with the given name exists.
+/// </summary>
+/// 
+/// <param name="status">Firebird status</param>
+/// <param name="att">Firebird attachment</param>
+/// <param name="tra">Firebird transaction</param>
+/// <param name="sqlDialect">SQL dialect</param>
+/// <param name="indexName">Index name</param>
+/// 
+/// <returns>Returns true if the index exists, false otherwise</returns>
+bool FTSIndexRepository::hasIndex (
 	ThrowStatusWrapper* status, 
 	IAttachment* att, 
 	ITransaction* tra, 
@@ -240,11 +276,20 @@ bool FTSIndexRepository::hasIndex(
 
 
 
-//
-// Получает информацию об индексе с заданным именем, если он существует.
-// Бросает сиключение в случае его отсуствия.
-//
-FTSIndex FTSIndexRepository::getIndex(
+/// <summary>
+/// Returns index metadata by index name.
+/// 
+/// Throws an exception if the index does not exist. 
+/// </summary>
+/// 
+/// <param name="status">Firebird status</param>
+/// <param name="att">Firebird attachment</param>
+/// <param name="tra">Firebird transaction</param>
+/// <param name="sqlDialect">SQL dialect</param>
+/// <param name="indexName">Index name</param>
+/// 
+/// <returns>Index metadata</returns>
+FTSIndex FTSIndexRepository::getIndex (
 	ThrowStatusWrapper* status, 
 	IAttachment* att, 
 	ITransaction* tra, 
@@ -315,10 +360,17 @@ FTSIndex FTSIndexRepository::getIndex(
 	return ftsIndex;
 }
 
-//
-// Возвращет список всех индексов
-//
-list<FTSIndex> FTSIndexRepository::getAllIndexes(
+/// <summary>
+/// Returns a list of indexes. 
+/// </summary>
+/// 
+/// <param name="status">Firebird status</param>
+/// <param name="att">Firebird attachment</param>
+/// <param name="tra">Firebird transaction</param>
+/// <param name="sqlDialect">SQL dialect</param>
+/// 
+/// <returns>List of indexes</returns>
+list<FTSIndex> FTSIndexRepository::getAllIndexes (
 	ThrowStatusWrapper* status, 
 	IAttachment* att, 
 	ITransaction* tra, 
@@ -374,10 +426,18 @@ list<FTSIndex> FTSIndexRepository::getAllIndexes(
 	return indexes;
 }
 
-//
-// Возвращает сегменты индекса с заданным именем
-//
-list<FTSIndexSegment> FTSIndexRepository::getIndexSegments(
+/// <summary>
+/// Returns a list of index segments with the given name.
+/// </summary>
+/// 
+/// <param name="status">Firebird status</param>
+/// <param name="att">Firebird attachment</param>
+/// <param name="tra">Firebird transaction</param>
+/// <param name="sqlDialect">SQL dialect</param>
+/// <param name="indexName">Index name</param>
+/// 
+/// <returns>List of index segments</returns>
+list<FTSIndexSegment> FTSIndexRepository::getIndexSegments (
 	ThrowStatusWrapper* status, 
 	IAttachment* att, 
 	ITransaction* tra, 
@@ -438,10 +498,17 @@ list<FTSIndexSegment> FTSIndexRepository::getIndexSegments(
 	return segments;
 }
 
-//
-// Возвращает все сегменты всех индексов. Упорядочено по имеи индекса
-//
-list<FTSIndexSegment> FTSIndexRepository::getAllIndexSegments(
+/// <summary>
+/// Returns all segments of all indexes, ordered by index name. 
+/// </summary>
+/// 
+/// <param name="status">Firebird status</param>
+/// <param name="att">Firebird attachment</param>
+/// <param name="tra">Firebird transaction</param>
+/// <param name="sqlDialect">SQL dialect</param>
+/// 
+/// <returns>List of index segments</returns>
+list<FTSIndexSegment> FTSIndexRepository::getAllIndexSegments (
 	ThrowStatusWrapper* status, 
 	IAttachment* att, 
 	ITransaction* tra,
@@ -507,10 +574,18 @@ list<FTSIndexSegment> FTSIndexRepository::getAllIndexSegments(
 	return segments;
 }
 
-//
-// Возвращает сегменты индексов по имени таблицы
-//
-list<FTSIndexSegment> FTSIndexRepository::getIndexSegmentsByRelation(
+/// <summary>
+/// Returns index segments by relation name.
+/// </summary>
+/// 
+/// <param name="status">Firebird status</param>
+/// <param name="att">Firebird attachment</param>
+/// <param name="tra">Firebird transaction</param>
+/// <param name="sqlDialect">SQL dialect</param>
+/// <param name="relationName">Relation name</param>
+/// 
+/// <returns>List of index segments</returns>
+list<FTSIndexSegment> FTSIndexRepository::getIndexSegmentsByRelation (
 	ThrowStatusWrapper* status, 
 	IAttachment* att, 
 	ITransaction* tra, 
@@ -579,16 +654,25 @@ list<FTSIndexSegment> FTSIndexRepository::getIndexSegmentsByRelation(
 		indexSegment.index.analyzer.assign(output->analyzerName.str, output->analyzerName.length);
 		indexSegment.index.status.assign(output->indexStatus.str, output->indexStatus.length);
 
-		// замечание: описание индекса не требуется копировать
+		// note: index description does not need to be copied
 		segments.push_back(indexSegment);
 	}
 	rs->close(status);
 	return segments;
 }
 
-//
-// Добавление нового поля (сегмента) полнотекстового индекса
-//
+/// <summary>
+/// Adds a new field (segment) to the full-text index.
+/// </summary>
+/// 
+/// <param name="status">Firebird status</param>
+/// <param name="att">Firebird attachment</param>
+/// <param name="tra">Firebird transaction</param>
+/// <param name="sqlDialect">SQL dialect</param>
+/// <param name="indexName">Index name</param>
+/// <param name="relationName">Relation name</param>
+/// <param name="fieldName">Field name</param>
+/// <param name="boost">Significance multiplier</param>
 void FTSIndexRepository::addIndexField(
 	ThrowStatusWrapper* status,
 	IAttachment* att,
@@ -624,7 +708,7 @@ void FTSIndexRepository::addIndexField(
 		input->boost = boost;
 	}
 
-	// проверка существования индекса
+	// check for index existence
 	if (!hasIndex(status, att, tra, sqlDialect, indexName)) {
 		string error_message = string_format("Index \"%s\" not exists", indexName);
 		ISC_STATUS statusVector[] = {
@@ -635,7 +719,7 @@ void FTSIndexRepository::addIndexField(
 		throw FbException(status, statusVector);
 	}
 
-	// проверка существования сегмента
+	// segment existence check
 	if (hasIndexSegment(status, att, tra, sqlDialect, indexName, relationName, fieldName)) {
 		string error_message = string_format("Segment for \"%s\".\"%s\" already exists in index \"%s\"", relationName, fieldName, indexName);
 		ISC_STATUS statusVector[] = {
@@ -646,7 +730,7 @@ void FTSIndexRepository::addIndexField(
 		throw FbException(status, statusVector);
 	}
 
-	// проверка существования таблицы
+	// checking if a table exists
 	if (!relationHelper.relationExists(status, att, tra, sqlDialect, relationName)) {
 		string error_message = string_format("Table \"%s\" not exists.", relationName);
 		ISC_STATUS statusVector[] = {
@@ -657,7 +741,7 @@ void FTSIndexRepository::addIndexField(
 		throw FbException(status, statusVector);
 	}
 
-	// проверка существования поля
+	// field existence check
 	if (!relationHelper.fieldExists(status, att, tra, sqlDialect, relationName, fieldName)) {
 		string error_message = string_format("Field \"%s\" not exists in table \"%s\".", fieldName, relationName);
 		ISC_STATUS statusVector[] = {
@@ -680,13 +764,21 @@ void FTSIndexRepository::addIndexField(
 		nullptr,
 		nullptr
 	);
-	// устанавливаем статус что метаданые индекса обновлены
+	// set the status that the index metadata has been updated
 	setIndexStatus(status, att, tra, sqlDialect, indexName, "U");
 }
 
-//
-// Удаление поля (сегмента) из полнотекстового индекса
-//
+/// <summary>
+/// Removes a field (segment) from the full-text index.
+/// </summary>
+/// 
+/// <param name="status">Firebird status</param>
+/// <param name="att">Firebird attachment</param>
+/// <param name="tra">Firebird transaction</param>
+/// <param name="sqlDialect">SQL dialect</param>
+/// <param name="indexName">Index name</param>
+/// <param name="relationName">Relation name</param>
+/// <param name="fieldName">Field name</param>
 void FTSIndexRepository::dropIndexField(
 	ThrowStatusWrapper* status,
 	IAttachment* att,
@@ -713,7 +805,7 @@ void FTSIndexRepository::dropIndexField(
 	input->fieldName.length = fieldName.length();
 	fieldName.copy(input->fieldName.str, input->fieldName.length);
 
-	// проверка существования индекса
+	// check for index existence
 	if (!hasIndex(status, att, tra, sqlDialect, indexName)) {
 		string error_message = string_format("Index \"%s\" not exists", indexName);
 		ISC_STATUS statusVector[] = {
@@ -724,7 +816,7 @@ void FTSIndexRepository::dropIndexField(
 		throw FbException(status, statusVector);
 	}
 
-	// проверка существования сегмента
+	// segment existence check
 	if (!hasIndexSegment(status, att, tra, sqlDialect, indexName, relationName, fieldName)) {
 		string error_message = string_format("Segment for \"%s\".\"%s\" not exists in index \"%s\"", relationName, fieldName, indexName);
 		ISC_STATUS statusVector[] = {
@@ -747,13 +839,22 @@ void FTSIndexRepository::dropIndexField(
 		nullptr,
 		nullptr
 	);
-	// устанавливаем статус что метаданые индекса обновлены
+	// set the status that the index metadata has been updated
 	setIndexStatus(status, att, tra, sqlDialect, indexName, "U");
 }
 
-//
-// Проверка существования поля (сегмента) в полнотекстовом индексе
-//
+/// <summary>
+/// Checks for the existence of a field (segment) in a full-text index. 
+/// </summary>
+/// 
+/// <param name="status">Firebird status</param>
+/// <param name="att">Firebird attachment</param>
+/// <param name="tra">Firebird transaction</param>
+/// <param name="sqlDialect">SQL dialect</param>
+/// <param name="indexName">Index name</param>
+/// <param name="relationName">Relation name</param>
+/// <param name="fieldName">Field name</param>
+/// <returns>Returns true if the field (segment) exists in the index, false otherwise</returns>
 bool FTSIndexRepository::hasIndexSegment(
 	ThrowStatusWrapper* status,
 	IAttachment* att,
@@ -812,9 +913,17 @@ bool FTSIndexRepository::hasIndexSegment(
 	return foundFlag;
 }
 
-//
-// Список полей индексов по имени таблицы
-//
+/// <summary>
+/// Returns a list of full-text index field names given the relation name.
+/// </summary>
+/// 
+/// <param name="status">Firebird status</param>
+/// <param name="att">Firebird attachment</param>
+/// <param name="tra">Firebird transaction</param>
+/// <param name="sqlDialect">SQL dialect</param>
+/// <param name="relationName">Relation name</param>
+/// 
+/// <returns>List of full-text index field names</returns>
 list<string> FTSIndexRepository::getFieldsByRelation (
 	ThrowStatusWrapper* status,
 	IAttachment* att,
@@ -865,9 +974,18 @@ list<string> FTSIndexRepository::getFieldsByRelation (
 	return fieldNames;
 }
 
-//
-// Список исходных кодов триггеров по имени таблицы
-//
+/// <summary>
+/// Returns a list of trigger source codes to support full-text indexes by relation name. 
+/// </summary>
+/// 
+/// <param name="status">Firebird status</param>
+/// <param name="att">Firebird attachment</param>
+/// <param name="tra">Firebird transaction</param>
+/// <param name="sqlDialect">SQL dialect</param>
+/// <param name="relationName">Relation name</param>
+/// <param name="multiAction">Flag for generating multi-event triggers</param>
+/// 
+/// <returns>Trigger source code list</returns>
 list<string> FTSIndexRepository::makeTriggerSourceByRelation (
 	ThrowStatusWrapper* status,
 	IAttachment* att,
@@ -887,7 +1005,7 @@ list<string> FTSIndexRepository::makeTriggerSourceByRelation (
 	string updatingCondition;
 	string deletingCondition;
 	for (auto fieldName : fieldNames) {
-		string metaFieldName = makeMetaName(fieldName, sqlDialect);
+		string metaFieldName = escapeMetaName(sqlDialect, fieldName);
 
 		if (!insertingCondition.empty()) {
 			insertingCondition += "\n      OR ";
@@ -909,7 +1027,7 @@ list<string> FTSIndexRepository::makeTriggerSourceByRelation (
 	if (multiAction) {
 		string triggerName = "FTS$" + relationName + "_AIUD";
 		string triggerSource =
-			"CREATE OR ALTER TRIGGER " + makeMetaName(triggerName, sqlDialect) + " FOR " + makeMetaName(relationName, sqlDialect) + "\n"
+			"CREATE OR ALTER TRIGGER " + escapeMetaName(sqlDialect, triggerName) + " FOR " + escapeMetaName(sqlDialect, relationName) + "\n"
 			"ACTIVE AFTER INSERT OR UPDATE OR DELETE POSITION 100\n"
 			"AS\n"
 			"BEGIN\n"
@@ -917,7 +1035,7 @@ list<string> FTSIndexRepository::makeTriggerSourceByRelation (
 			"    EXECUTE PROCEDURE FTS$LOG_CHANGE('" + relationName + "', NEW.RDB$DB_KEY, 'I');\n"
 			"  IF (UPDATING AND (" + updatingCondition + ")) THEN\n"
 			"    EXECUTE PROCEDURE FTS$LOG_CHANGE('" + relationName + "', OLD.RDB$DB_KEY, 'U');\n"
-			"  IF (DELITING AND (" + deletingCondition + ")) THEN\n"
+			"  IF (DELETING AND (" + deletingCondition + ")) THEN\n"
 			"    EXECUTE PROCEDURE FTS$LOG_CHANGE('" + relationName + "', OLD.RDB$DB_KEY, 'D');\n"
 			"END";
 		triggerSources.push_back(triggerSource);
@@ -926,7 +1044,7 @@ list<string> FTSIndexRepository::makeTriggerSourceByRelation (
 		// INSERT
 		string triggerName = "FTS$" + relationName + "_AI";
 		string triggerSource =
-			"CREATE OR ALTER TRIGGER " + makeMetaName(triggerName, sqlDialect) + " FOR " + makeMetaName(relationName, sqlDialect) + "\n"
+			"CREATE OR ALTER TRIGGER " + escapeMetaName(sqlDialect, triggerName) + " FOR " + escapeMetaName(sqlDialect, relationName) + "\n"
 			"ACTIVE AFTER INSERT POSITION 100\n"
 			"AS\n"
 			"BEGIN\n"
@@ -937,7 +1055,7 @@ list<string> FTSIndexRepository::makeTriggerSourceByRelation (
 		// UPDATE
 		triggerName = "FTS$" + relationName + "_AU";
 		triggerSource =
-			"CREATE OR ALTER TRIGGER " + makeMetaName(triggerName, sqlDialect) + " FOR " + makeMetaName(relationName, sqlDialect) + "\n"
+			"CREATE OR ALTER TRIGGER " + escapeMetaName(sqlDialect, triggerName) + " FOR " + escapeMetaName(sqlDialect, relationName) + "\n"
 			"ACTIVE AFTER UPDATE POSITION 100\n"
 			"AS\n"
 			"BEGIN\n"
@@ -948,7 +1066,7 @@ list<string> FTSIndexRepository::makeTriggerSourceByRelation (
 		// DELETE
 		triggerName = "FTS$" + relationName + "_AD";
 		triggerSource =
-			"CREATE OR ALTER TRIGGER " + makeMetaName(triggerName, sqlDialect) + " FOR " + makeMetaName(relationName, sqlDialect) + "\n"
+			"CREATE OR ALTER TRIGGER " + escapeMetaName(sqlDialect, triggerName) + " FOR " + escapeMetaName(sqlDialect, relationName) + "\n"
 			"ACTIVE AFTER DELETE POSITION 100\n"
 			"AS\n"
 			"BEGIN\n"

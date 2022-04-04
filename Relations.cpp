@@ -5,6 +5,17 @@ using namespace Firebird;
 using namespace std;
 using namespace LuceneFTS;
 
+/// <summary>
+/// Checks if the given relation exists.
+/// </summary>
+/// 
+/// <param name="status">Firebird status</param>
+/// <param name="att">Firebird attachment</param>
+/// <param name="tra">Firebird transaction</param>
+/// <param name="sqlDialect">SQL dialect</param>
+/// <param name="relationName">Relation name</param>
+/// 
+/// <returns>Returns true if the relation exists, false otherwise.</returns>
 bool RelationHelper::relationExists(
 	ThrowStatusWrapper* status, 
 	IAttachment* att, 
@@ -53,6 +64,18 @@ bool RelationHelper::relationExists(
 	return foundFlag;
 }
 
+/// <summary>
+/// Checks if the specified column exists in the relation. 
+/// </summary>
+/// 
+/// <param name="status">Firebird status</param>
+/// <param name="att">Firebird attachment</param>
+/// <param name="tra">Firebird transaction</param>
+/// <param name="sqlDialect">SQL dialect</param>
+/// <param name="relationName">Relation name</param>
+/// <param name="fieldName">Field name</param>
+/// 
+/// <returns>Returns true if the column exists, false otherwise.</returns>
 bool RelationHelper::fieldExists(
 	ThrowStatusWrapper* status, 
 	IAttachment* att, 

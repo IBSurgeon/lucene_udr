@@ -40,7 +40,10 @@
     <None Include="defs\udr_plugin.def" />
     <None Include="fts$uninstall.sql" />
     <None Include="fts%24install.sql" />
+    <None Include="makefile" />
     <None Include="README.md" />
+    <None Include="write_build_no.bat" />
+    <None Include="write_build_no.sh" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="lucene_udr.rc" />

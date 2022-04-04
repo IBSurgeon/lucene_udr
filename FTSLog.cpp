@@ -4,16 +4,24 @@ using namespace Firebird;
 using namespace std;
 using namespace LuceneFTS;
 
-//
-// Добавлении записи в журнал изменений
-//
+/// <summary>
+/// Adds an entry from the changelog.
+/// </summary>
+/// 
+/// <param name="status">Firebird status</param>
+/// <param name="att">Firebird attachment</param>
+/// <param name="tra">Firebird transaction</param>
+/// <param name="sqlDialect">SQL dialect</param>
+/// <param name="relationName">Relation name</param>
+/// <param name="recId">Record ID</param>
+/// <param name="changeType">Type of change</param>
 void FTSLogRepository::appendLog(
 	ThrowStatusWrapper* status,
 	IAttachment* att,
 	ITransaction* tra,
 	unsigned int sqlDialect,
 	string relationName,
-	string dbKey,
+	string recId,
 	string changeType)
 {
 	FB_MESSAGE(Input, ThrowStatusWrapper,
@@ -27,8 +35,8 @@ void FTSLogRepository::appendLog(
 	input->relation_name.length = relationName.length();
 	relationName.copy(input->relation_name.str, input->relation_name.length);
 
-	input->rec_id.length = dbKey.length();
-	dbKey.copy(input->rec_id.str, input->rec_id.length);
+	input->rec_id.length = recId.length();
+	recId.copy(input->rec_id.str, input->rec_id.length);
 
 	input->change_type.length = changeType.length();
 	changeType.copy(input->change_type.str, input->change_type.length);
@@ -59,9 +67,15 @@ void FTSLogRepository::appendLog(
 	);
 }
 
-//
-// Удаление записи из журнала изменений
-//
+/// <summary>
+/// Removes an entry from the changelog.
+/// </summary>
+/// 
+/// <param name="status">Firebird status</param>
+/// <param name="att">Firebird attachment</param>
+/// <param name="tra">Firebird transaction</param>
+/// <param name="sqlDialect">SQL dialect</param>
+/// <param name="id">Identifier</param>
 void FTSLogRepository::deleteLog(
 	ThrowStatusWrapper* status,
 	IAttachment* att,
@@ -99,9 +113,14 @@ void FTSLogRepository::deleteLog(
 	);
 }
 
-//
-// Очистка журнала изменений
-//
+/// <summary>
+/// Clears the changelog.
+/// </summary>
+/// 
+/// <param name="status">Firebird status</param>
+/// <param name="att">Firebird attachment</param>
+/// <param name="tra">Firebird transaction</param>
+/// <param name="sqlDialect">SQL dialect</param>
 void FTSLogRepository::clearLog(
 	ThrowStatusWrapper* status,
 	IAttachment* att,

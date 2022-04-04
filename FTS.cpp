@@ -25,7 +25,7 @@ using namespace Lucene;
 IMessageMetadata* prepareTextMetaData(ThrowStatusWrapper* status, IMessageMetadata* meta)
 {
 	unsigned colCount = meta->getCount(status);
-	// делаем все поля строкового типа, кроме BLOB
+	// make all fields of string type except BLOB
 	AutoRelease<IMetadataBuilder> builder(meta->getBuilder(status));
 	for (unsigned i = 0; i < colCount; i++) {
 		unsigned dataType = meta->getType(status, i);
@@ -242,8 +242,7 @@ FB_UDR_BEGIN_PROCEDURE(createIndex)
 
 		procedure->indexRepository.createIndex(status, att, tra, sqlDialect, indexName, analyzerName, description);
 
-		// проверка существования директории для индекса
-        // и если она не существует создаём её
+		// Check if the index directory exists, and if it doesn't exist, create it. 
 		string ftsDirectory = LuceneFTS::getFtsDirectory(context);
 		string indexDir = ftsDirectory + "/" + indexName;
 		if (!createIndexDirectory(indexDir)) {
@@ -303,7 +302,7 @@ FB_UDR_BEGIN_PROCEDURE(dropIndex)
 
 		string ftsDirectory = LuceneFTS::getFtsDirectory(context);
 		string indexDir = ftsDirectory + "/" + indexName;
-		// если директория есть, то удаляем её
+		// If the directory exists, then delete it.
 		if (removeIndexDirectory(indexDir)) {
 			string error_message = string_format("Cannot delete index directory \"%s\".", indexDir);
 			ISC_STATUS statusVector[] = {
@@ -362,16 +361,16 @@ FB_UDR_BEGIN_PROCEDURE(setIndexActive)
 
 		auto ftsIndex = procedure->indexRepository.getIndex(status, att, tra, sqlDialect, indexName);
 		if (indexActive) {
-			// индекс неактивен
+			// index is inactive
 			if (ftsIndex.status == "I") {
-				// индекс активен, но требует перестройки
+				// index is active but needs to be rebuilt
 				procedure->indexRepository.setIndexStatus(status, att, tra, sqlDialect, indexName, "U");
 			}
 		}
 		else {
-			// индекс активен
+			// index is active
 			if (ftsIndex.isActive()) {
-				// делайем неактивным
+				// make inactive
 				procedure->indexRepository.setIndexStatus(status, att, tra, sqlDialect, indexName, "I");
 			}
 		}
@@ -450,7 +449,7 @@ FB_UDR_BEGIN_PROCEDURE(addIndexField)
 
 		unsigned int sqlDialect = getSqlDialect(status, att);
 
-		// добавление сегмента
+		// adding a segment
 		procedure->indexRepository.addIndexField(status, att, tra, sqlDialect, indexName, relationName, fieldName, boost);
 	}
 
@@ -520,7 +519,7 @@ FB_UDR_BEGIN_PROCEDURE(dropIndexField)
 
 		unsigned int sqlDialect = getSqlDialect(status, att);
 
-		// удаление сегмента
+		// deleting a segment 
 		procedure->indexRepository.dropIndexField(status, att, tra, sqlDialect, indexName, relationName, fieldName);
 	}
 
@@ -569,7 +568,7 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 		string indexName(in->index_name.str, in->index_name.length);
 
 		string ftsDirectory = LuceneFTS::getFtsDirectory(context);
-		// проверка есть ли директория для полнотекстовых индексов
+		// check if there is a directory for full-text indexes
 		if (!FileUtils::isDirectory(StringUtils::toUnicode(ftsDirectory))) {
 			string error_message = string_format("Fts directory \"%s\" not exists", ftsDirectory);
 			ISC_STATUS statusVector[] = {
@@ -583,10 +582,9 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 		unsigned int sqlDialect = getSqlDialect(status, att);
 
 	    try {
-			// проверка существования индекса
+			// check for index existence
 			auto ftsIndex = procedure->indexRepository.getIndex(status, att, tra, sqlDialect, indexName);
-			// проверка существования директории для индекса
-			// и если она не существует создаём её
+			// Check if the index directory exists, and if it doesn't exist, create it. 
 			string indexDir = ftsDirectory + "/" + indexName;
 			if (!createIndexDirectory(indexDir)) {
 				string error_message = string_format("Cannot create index directory \"%s\".", indexDir);
@@ -598,7 +596,7 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 				throw FbException(status, statusVector);
 			}
 
-			// получаем сегменты индекса и группируем их по именам таблиц
+			// get index segments and group them by table names
 			auto segments = procedure->indexRepository.getIndexSegments(status, att, tra, sqlDialect, indexName);
 			if (segments.size() == 0) {
 				string error_message = string_format("Cannot rebuild index \"%s\". The index does not contain segments.", indexName);
@@ -616,7 +614,7 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 			auto analyzer = procedure->analyzerFactory.createAnalyzer(status, ftsIndex.analyzer);
 		    IndexWriterPtr writer = newLucene<IndexWriter>(fsIndexDir, analyzer, true, IndexWriter::MaxFieldLengthLIMITED);
 
-			// очищаем директорию индекса
+			// clean up index directory
 		    writer->deleteAll();
 		    writer->commit();
 
@@ -660,7 +658,7 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 				));
 				AutoRelease<IMessageMetadata> outputMetadata(stmt->getOutputMetadata(status));
 				unsigned colCount = outputMetadata->getCount(status);
-				// делаем все поля строкового типа, кроме BLOB
+				// make all fields of string type except BLOB
 				AutoRelease<IMessageMetadata> newMeta(prepareTextMetaData(status, outputMetadata));
 				auto fields = getFieldsInfo(status, newMeta);
 
@@ -682,8 +680,8 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 						bool emptyFlag = true;
 						DocumentPtr doc = newLucene<Document>();
 						string dbKey = fields[0].getStringValue(status, att, tra, buffer); 
-						// RDB$DB_KEY имеет бинарный формат, который невозможно перекодировать в Unicode
-						// поэтому мы перобразуем строку в шестнацетиричное представление
+						// RDB$DB_KEY is in a binary format that cannot be converted to Unicode, 
+						// so we will convert the string to a hexadecimal representation.
 						string hexDbKey = string_to_hex(dbKey);
 						doc->add(newLucene<Field>(L"RDB$DB_KEY", StringUtils::toUnicode(hexDbKey), Field::STORE_YES, Field::INDEX_NOT_ANALYZED));
 						doc->add(newLucene<Field>(L"RDB$RELATION_NAME", StringUtils::toUnicode(relationName), Field::STORE_YES, Field::INDEX_NOT_ANALYZED));
@@ -697,7 +695,7 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 							auto fieldName = StringUtils::toUnicode(relationName + "." + field.fieldName);
 							Lucene::String unicodeValue;
 							if (!value.empty()) {
-								// перекодируем содержимое в Unicode только если строка не пустая
+								// re-encode content to Unicode only if the string is non-empty
 								unicodeValue = StringUtils::toUnicode(to_utf8(value, icuCharset));
 							}
 
@@ -715,7 +713,7 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 							doc->add(luceneField);
 							emptyFlag = emptyFlag && value.empty();
 						}
-						// если все индексируемые поля пусты, то не имеет смысла добавлять документ в индекс
+						// if all indexed fields are empty, then it makes no sense to add the document to the index
 						if (!emptyFlag) {
 							writer->addDocument(doc);
 						}
@@ -727,7 +725,7 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 			writer->optimize();
 			writer->close();
 
-			// если построение индекса прошло успешно, то выставляем статус завершённости индексации
+			// if the index building was successful, then set the indexing completion status
 			procedure->indexRepository.setIndexStatus(status, att, tra, sqlDialect, indexName, "C");
 	    }
 	    catch (const LuceneException& e) {
@@ -899,28 +897,30 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 		map<string, LuceneFTS::FTSRelation> relationsByName;
 		procedure->clearPreparedStatements();
 		
-		// получаем все индексы
+		// get all indexes
 		auto allIndexes = procedure->indexRepository.getAllIndexes(status, att, tra, sqlDialect);
 		for (auto& ftsIndex : allIndexes) {
-			// исключаем неактивные индексы
+			// exclude inactive indexes
 			if (!ftsIndex.isActive()) {
 				continue;
 			}
-		    // получаем сегменты индекса
+		    // get index segments
 			auto segments = procedure->indexRepository.getIndexSegments(status, att, tra, sqlDialect, ftsIndex.indexName);
 			for (auto& ftsSegment : segments) {
-			    // ищем таблицу по имени
+			    // looking for a table by name
 				auto r = relationsByName.find(ftsSegment.relationName);
 				
 				if (r != relationsByName.end()) {
+					// if the table is found, then add a new index and segment to it, and update the relations map.
 					auto ftsRelation = r->second;
 					ftsRelation.addIndex(ftsIndex);
 					ftsRelation.addSegment(ftsSegment);
 					relationsByName.insert_or_assign(ftsSegment.relationName, ftsRelation);
 				}
 				else {
-					// такой таблицы ещё не было
+					// if there is no such table yet, add it
 					LuceneFTS::FTSRelation ftsRelation(ftsSegment.relationName);
+					// add a new index and segment to it
 					ftsRelation.addIndex(ftsIndex);
 					ftsRelation.addSegment(ftsSegment);
 					relationsByName.insert_or_assign(ftsSegment.relationName, ftsRelation);
@@ -928,14 +928,14 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 			}
 		}
 		
-		// теперь необходимо для каждой таблицы по каждому индексу построить запросы для ивлечения записей
+		// now it is necessary for each table for each index to build queries to extract records
 		for (auto& p : relationsByName) {
 			string relationName = p.first;
 			auto ftsRelation = p.second;
 			auto ftsIndexes = ftsRelation.getIndexes();
 			for (auto& pIndex : ftsIndexes) {
 				auto ftsIndex = pIndex.second;
-				// исключаем неактивные индексы
+				// exclude inactive indexes
 				if (!ftsIndex.isActive()) {
 					continue;
 				}
@@ -946,10 +946,10 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 						fieldNames.push_back(segment.fieldName);
 					}
 					else {
-						// если поля не существует, то надо пометить индекс как требующий обновления
+						// if the field does not exist, then you need to mark the index as requiring updating
 						if (ftsIndex.status == "C") {
 							ftsIndex.status = "U";
-							// это делается в автономной транзакции
+							// this is done in an autonomous transaction
 							AutoRelease<ITransaction> aTra(att->startTransaction(status, 0, nullptr));
 							procedure->indexRepository.setIndexStatus(status, att, aTra, sqlDialect, ftsIndex.indexName, ftsIndex.status);
 							aTra->commit(status);
@@ -971,7 +971,7 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 		map<string, IndexWriterPtr> indexWriters;
 
 		
-		// получаем лог изменений записей для индекса
+		// get the log of changes of records for the index
 		AutoRelease<IStatement> logStmt(att->prepare(
 			status,
 			tra,
@@ -1010,38 +1010,36 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 
 			string hexDbKey = string_to_hex(dbKey);
 
-			// ищем таблицу в списке индексированных таблиц
+			// looking for a table in the list of indexed tables
 			auto r = relationsByName.find(relationName);
 			if (r != relationsByName.end()) {
-				// для каждой таблицы получаем список индексов
+				// for each table we get a list of indexes 
 				LuceneFTS::FTSRelation ftsRelation = r->second;
 				auto ftsIndexes = ftsRelation.getIndexes();
-				// по каждому индексу ищем подготовленный запрос
+				
 				for (auto& pIndex : ftsIndexes) {
 					string indexName = pIndex.first;
 					auto ftsIndex = pIndex.second;
-					// исключаем неактивные индексы
+					// exclude inactive indexes
 					if (!ftsIndex.isActive()) {
 						continue;
 					}
 					auto ftsSegments = ftsRelation.getSegmentsByIndexName(indexName);
-					// ищем IndexWriter
+					// looking for an IndexWriter
 					auto iWriter = indexWriters.find(ftsIndex.indexName);
-					// если не найден, то открываем такой
+					// if not found, then open this
 					if (iWriter == indexWriters.end()) {
-						// проверка существования директории для индекса
-						// и если она не существует создаём её
+						// Check if the index directory exists, and if it doesn't exist, create it. 
 						string indexDir = ftsDirectory + "/" + indexName;
 						auto indexDirUnicode = StringUtils::toUnicode(indexDir);
 						if (!FileUtils::isDirectory(indexDirUnicode)) {
 							if (ftsIndex.status == "C") {
-								// пометить индекс как требующий переиндексации 	
-							    // это делается в автономной транзакции
+								// If the index directory does not exist, then mark the index as requiring reindexing.
 								AutoRelease<ITransaction> aTra(att->startTransaction(status, 0, nullptr));
 								procedure->indexRepository.setIndexStatus(status, att, aTra, sqlDialect, ftsIndex.indexName, ftsIndex.status);
 								aTra->commit(status);
 							}
-							// и перейти к следующему индексу
+							// go to next index
 							continue;
 						}
 						auto fsIndexDir = FSDirectory::open(indexDirUnicode);
@@ -1052,7 +1050,7 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 					IndexWriterPtr writer = indexWriters[indexName];
 					if ((changeType == "I") || (changeType == "U")) {
 						string stmtName = relationName + "." + indexName;
-						// если его нет, то берём текст запроса и подготовливаем его
+						// looking for a prepared statement, and if it is not there, we prepare it
 						auto iStmt = procedure->prepareStmtMap.find(stmtName);
 						if (iStmt == procedure->prepareStmtMap.end()) {
 							IStatement* stmt = att->prepare(
@@ -1066,10 +1064,10 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 							procedure->prepareStmtMap[stmtName] = stmt;
 						}
 						auto stmt = procedure->prepareStmtMap[stmtName];
-						// получаем нужные значения полей
+						// get the desired field values
 						AutoRelease<IMessageMetadata> outputMetadata(stmt->getOutputMetadata(status));
 						unsigned colCount = outputMetadata->getCount(status);
-						// делаем все поля строкового типа, кроме BLOB
+						// make all fields of string type except BLOB
 						AutoRelease<IMessageMetadata> newMeta(prepareTextMetaData(status, outputMetadata));
 						auto fields = getFieldsInfo(status, newMeta);
 
@@ -1106,7 +1104,7 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 									auto fieldName = StringUtils::toUnicode(relationName + "." + field.fieldName);
 									Lucene::String unicodeValue;
 									if (!value.empty()) {
-										// перекодируем содержимое в Unicode только если строка не пустая
+										// re-encode content to Unicode only if the string is non-empty
 										unicodeValue = StringUtils::toUnicode(to_utf8(value, icuCharset));
 									}
 									auto luceneField = newLucene<Field>(fieldName, unicodeValue, Field::STORE_NO, Field::INDEX_ANALYZED);
@@ -1148,13 +1146,13 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 			procedure->logRepository.deleteLog(status, att, tra, sqlDialect, logId);
 		}
 		logRs->close(status);
-		// подтверждаем измения для всех индексов
+		// commit changes for all indexes
 		for (auto& pIndexWriter : indexWriters) {
 			auto indexWriter = pIndexWriter.second;
 			indexWriter->commit();
 			indexWriter->close();
 		}
-		// очищаем подготовленные запросы
+		// clean up prepared statements
 		procedure->clearPreparedStatements();
 	}
 
@@ -1246,7 +1244,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 
 		auto ftsIndex = procedure->indexRepository.getIndex(status, att, tra, sqlDialect, indexName);
 
-		// проверка существования директории для индекса
+		// check if directory exists for index
 		auto indexDir = StringUtils::toUnicode(ftsDirectory + "/" + indexName);
 		if (ftsIndex.status == "N" || !FileUtils::isDirectory(indexDir)) {			
 			string error_message = string_format("Index \"%s\" exists, but is not build. Please rebuild index.", indexName);
@@ -1265,7 +1263,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 			AnalyzerPtr analyzer = procedure->analyzerFactory.createAnalyzer(status, ftsIndex.analyzer);
 			auto segments = procedure->indexRepository.getIndexSegments(status, att, tra, sqlDialect, indexName);
 			if (!relationName.empty()) {
-				// если задано имя таблицы, то выбираем только сегменты с этой таблицей
+				// if a table name is given, then select only segments with this table
 				auto segmentsByRelation = LuceneFTS::FTSIndexRepository::groupIndexSegmentsByRelation(segments);
 				auto el = segmentsByRelation.find(relationName);
 				if (el == segmentsByRelation.end()) {
@@ -1326,8 +1324,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 		DocumentPtr doc = searcher->doc(scoreDoc->doc);
 		string relationName = StringUtils::toUTF8(doc->get(L"RDB$RELATION_NAME"));
 		string hexDbKey = StringUtils::toUTF8(doc->get(L"RDB$DB_KEY"));
-		// в Lucene индексе строка хранится в 16-ричном виде
-		// преобразуем её обратно в бинарный формат
+		// In the Lucene index, the string is stored in hexadecimal form, so let's convert it back to binary format.
 		string dbKey = hex_to_string(hexDbKey);
 		
         out->relation_nameNull = false;
@@ -1430,7 +1427,7 @@ FB_UDR_BEGIN_FUNCTION(bestFragementHighligh)
 		ISC_SHORT fragmentSize = in->fragment_size;
 
 		if (fragmentSize > 8191) {
-		    // превышает максимальный размер строки Firebird
+		    // exceeds Firebird's maximum string size
 			string error_message = "Fragment size cannot exceed 8191 characters";
 			ISC_STATUS statusVector[] = {
 				isc_arg_gds, isc_random,
@@ -1440,7 +1437,6 @@ FB_UDR_BEGIN_FUNCTION(bestFragementHighligh)
 			throw FbException(status, statusVector);
 		}
 		if (fragmentSize <= 0) {
-			// размер фрагмента должен быть больше 0
 			string error_message = "Fragment size must be greater than 0";
 			ISC_STATUS statusVector[] = {
 				isc_arg_gds, isc_random,
@@ -1571,7 +1567,7 @@ FB_UDR_BEGIN_PROCEDURE(bestFragementsHighligh)
 	    ISC_SHORT fragmentSize = in->fragment_size;
 
 	    if (fragmentSize > 8191) {
-		    // превышает максимальный размер строки Firebird
+			// exceeds Firebird's maximum string size
 		    string error_message = "Fragment size cannot exceed 8191 characters";
 		    ISC_STATUS statusVector[] = {
 			    isc_arg_gds, isc_random,
@@ -1581,7 +1577,6 @@ FB_UDR_BEGIN_PROCEDURE(bestFragementsHighligh)
 		    throw FbException(status, statusVector);
 	    }
 	    if (fragmentSize <= 0) {
-		    // размер фрагмента должен быть больше 0
 		    string error_message = "Fragment size must be greater than 0";
 		    ISC_STATUS statusVector[] = {
 			    isc_arg_gds, isc_random,
@@ -1713,6 +1708,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsMakeTrigger)
 
 
 		try {
+			// TODO: needs map source of trigger events
 			triggerSources = procedure->indexRepository.makeTriggerSourceByRelation(status, att, tra, sqlDialect, relationName, multiActionFlag);
 			it = triggerSources.begin();
 		}
@@ -1753,12 +1749,13 @@ FB_UDR_BEGIN_PROCEDURE(ftsMakeTrigger)
 	}
 FB_UDR_END_PROCEDURE
 
-/***
-CREATE OR ALTER TRIGGER FTS$TR_HORSE FOR HORSE
-ACTIVE AFTER INSERT OR UPDATE OR DELETE POSITION 100
-EXTERNAL NAME 'luceneudr!trFtsLog'
-ENGINE UDR;
-***/
+/*
+
+// CREATE OR ALTER TRIGGER FTS$TR_HORSE FOR HORSE
+// ACTIVE AFTER INSERT OR UPDATE OR DELETE POSITION 100
+// EXTERNAL NAME 'luceneudr!trFtsLog'
+// ENGINE UDR;
+
 FB_UDR_BEGIN_TRIGGER(trFtsLog)
 
     FB_UDR_CONSTRUCTOR
@@ -1830,5 +1827,6 @@ FB_UDR_BEGIN_TRIGGER(trFtsLog)
 	AutoRelease<IAttachment> att;
 	AutoRelease<ITransaction> tra;
 FB_UDR_END_TRIGGER
+*/
 
 FB_UDR_IMPLEMENT_ENTRY_POINT

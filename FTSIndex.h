@@ -12,7 +12,9 @@ using namespace std;
 
 namespace LuceneFTS
 {
-
+	/// <summary>
+	/// Full-text index metadata.
+	/// </summary>
 	struct FTSIndex
 	{
 		string indexName;
@@ -25,6 +27,9 @@ namespace LuceneFTS
 		}
 	};
 
+	/// <summary>
+	/// Metadata for a full-text index segment.
+	/// </summary>
 	struct FTSIndexSegment
 	{
 		string indexName;
@@ -40,18 +45,38 @@ namespace LuceneFTS
 		}
 	};
 
+	/// <summary>
+	/// Returns the directory where full-text indexes are located.
+	/// </summary>
+	/// 
+	/// <param name="context">The context of the external routine.</param>
+	/// 
+	/// <returns>Full path to full-text index directory</returns>
 	string getFtsDirectory(IExternalContext* context);
 
-	class FTSRelation {
+	using FTSIndexList = list<FTSIndex>;
+	using FTSIndexMap = map<string, FTSIndex>;
+	using FTSIndexSegmentList = list<FTSIndexSegment>;
+	using FTSIndexSegmentsMap = map<string, FTSIndexSegmentList>;
 
+	/// <summary>
+	/// Full-text index relation.
+	/// </summary>
+	class FTSRelation final {
 	private:
-		string _relationName;                   // имя таблицы
+		string _relationName;            // Relation name
 
-		map<string, FTSIndex> _indexes;         // индексы по имени
-		map<string, list<FTSIndexSegment>> _segments; // сегменты индекса для данной таблицы по индексам
-		map<string, string> _sqls;              // SQL запросы по именам индексов для данной таблицы
+		FTSIndexMap _indexes;  // Index map by index name
+		FTSIndexSegmentsMap _segments;   // Map of index segments by index name 
+		map<string, string> _sqls;       // Map of SQL query texts by index name 
 
-		void addRelationSegments(const string indexName)
+		/// <summary>
+		/// Creates a list of segments for the index with the given name, 
+		/// if the list has not already been created.
+		/// </summary>
+		/// 
+		/// <param name="indexName">Index name</param>
+		void createRelationSegmentsList(const string indexName)
 		{
 			auto r = _segments.find(indexName);
 			if (r == _segments.end()) {
@@ -59,7 +84,7 @@ namespace LuceneFTS
 			}
 		}
 	public:
-		FTSRelation(string relationName) 
+		FTSRelation(string relationName)
 			: _relationName(relationName),
 			_indexes(),
 			_segments(),
@@ -67,6 +92,11 @@ namespace LuceneFTS
 		{
 		}
 
+		/// <summary>
+		/// Adds an index if no index of the same name exists.
+		/// </summary>
+		/// 
+		/// <param name="index">A structure that describes the metadata of a full-text index</param>
 		void addIndex(FTSIndex index)
 		{
 			auto r = _indexes.find(index.indexName);
@@ -75,43 +105,84 @@ namespace LuceneFTS
 			}
 		}
 
+		/// <summary>
+		/// Updates an index.
+		/// </summary>
+		/// 
+		/// <param name="index">Structure describing the index </param>
 		void updateIndex(FTSIndex index)
 		{
 			_indexes[index.indexName] = index;
 		}
 
-		map<string, FTSIndex> getIndexes()
+		/// <summary>
+		/// Returns a map of indexes by index name.
+		/// </summary>
+		/// 
+		/// <returns>Map of indexes by index name</returns>
+		FTSIndexMap getIndexes()
 		{
 			return _indexes;
 		}
 
+		/// <summary>
+		/// Sets the SQL query for the given index name.
+		/// </summary>
+		/// 
+		/// <param name="indexName">Index name</param>
+		/// <param name="sql">SQL query text</param>
 		void setSql(const string indexName, const string sql)
 		{
 			_sqls[indexName] = sql;
 		}
 
+		/// <summary>
+		/// Returns the text of the SQL query for the index with the given name.
+		/// </summary>
+		/// 
+		/// <param name="indexName">Index name</param>
+		/// 
+		/// <returns>SQL query text</returns>
 		const string getSql(const string indexName) {
 			return _sqls[indexName];
 		}
 
+		/// <summary>
+		/// Adds a segment to the segment map by index name.
+		/// </summary>
+		/// 
+		/// <param name="segment">A structure that describes the metadata of a full-text index segment</param>
 		void addSegment(FTSIndexSegment segment)
 		{
-			addRelationSegments(segment.indexName);
+			createRelationSegmentsList(segment.indexName);
 			_segments[segment.indexName].push_back(segment);
 		}
 
-		list<FTSIndexSegment> getSegmentsByIndexName(const string indexName)
+		/// <summary>
+		/// Returns segments for the given index name. 
+		/// </summary>
+		/// 
+		/// <param name="indexName">Index name</param>
+		/// 
+		/// <returns>List of full-text index segments</returns>
+		FTSIndexSegmentList getSegmentsByIndexName(const string indexName)
 		{
 			return _segments[indexName];
 		}
 	};
 
+	/// <summary>
+	/// Repository of full-text indexes. 
+	/// 
+	/// Allows you to retrieve and manage full-text index metadata.
+	/// </summary>
 	class FTSIndexRepository final
 	{
+
 	private:
 		IMaster* m_master;
 		RelationHelper relationHelper;
-		// подготовленные запросы
+		// prepared statements
 		AutoRelease<IStatement> stmt_exists_index;
 		AutoRelease<IStatement> stmt_get_index;
 		AutoRelease<IStatement> stmt_index_segments;
@@ -131,10 +202,18 @@ namespace LuceneFTS
 		{
 		}
 
-		//
-		// Создание нового полнотекстового индекса
-		//
-		void createIndex(
+		/// <summary>
+		/// Create a new full-text index. 
+		/// </summary>
+		/// 
+		/// <param name="status">Firebird status</param>
+		/// <param name="att">Firebird attachment</param>
+		/// <param name="tra">Firebird transaction</param>
+		/// <param name="sqlDialect">SQL dialect</param>
+		/// <param name="indexName">Index name</param>
+		/// <param name="analyzer">Analyzer name</param>
+		/// <param name="description">Custom index description</param>
+		void createIndex (
 			ThrowStatusWrapper* status,
 			IAttachment* att,
 			ITransaction* tra,
@@ -143,20 +222,33 @@ namespace LuceneFTS
 			string analyzer,
 			string description);
 
-		//
-		// Удаление полнотекстового индекса
-		//
-		void dropIndex(
+		/// <summary>
+		/// Remove a full-text index. 
+		/// </summary>
+		/// 
+		/// <param name="status">Firebird status</param>
+		/// <param name="att">Firebird attachment</param>
+		/// <param name="tra">Firebird transaction</param>
+		/// <param name="sqlDialect">SQL dialect</param>
+		/// <param name="indexName">Index name</param>
+		void dropIndex (
 			ThrowStatusWrapper* status,
 			IAttachment* att,
 			ITransaction* tra,
 			unsigned int sqlDialect,
 			string indexName);
 
-		//
-		// Устанавливает статус индекса
-		//
-		void setIndexStatus(
+		/// <summary>
+		/// Set the index status.
+		/// </summary>
+		/// 
+		/// <param name="status">Firebird status</param>
+		/// <param name="att">Firebird attachment</param>
+		/// <param name="tra">Firebird transaction</param>
+		/// <param name="sqlDialect">SQL dialect</param>
+		/// <param name="indexName">Index name</param>
+		/// <param name="indexStatus">Index Status</param>
+		void setIndexStatus (
 			ThrowStatusWrapper* status,
 			IAttachment* att,
 			ITransaction* tra,
@@ -164,41 +256,126 @@ namespace LuceneFTS
 			string indexName,
 			string indexStatus);
 
-		//
-		// Возвращает существует ли индекс с заданным именем.
-		//
-		bool hasIndex(ThrowStatusWrapper* status, IAttachment* att, ITransaction* tra, unsigned int sqlDialect, string indexName);
+		/// <summary>
+		/// Checks if an index with the given name exists.
+		/// </summary>
+		/// 
+		/// <param name="status">Firebird status</param>
+		/// <param name="att">Firebird attachment</param>
+		/// <param name="tra">Firebird transaction</param>
+		/// <param name="sqlDialect">SQL dialect</param>
+		/// <param name="indexName">Index name</param>
+		/// 
+		/// <returns>Returns true if the index exists, false otherwise</returns>
+		bool hasIndex (
+			ThrowStatusWrapper* status, 
+			IAttachment* att, 
+			ITransaction* tra, 
+			unsigned int sqlDialect, 
+			string indexName);
 
-		//
-		// Получает информацию об индексе с заданным именем, если он существует.
-		// Возвращает true, если индекс существует, и false - в противном случае.
-		//
-		FTSIndex getIndex(ThrowStatusWrapper* status, IAttachment* att, ITransaction* tra, unsigned int sqlDialect, string indexName);
+		/// <summary>
+		/// Returns index metadata by index name.
+		/// 
+		/// Throws an exception if the index does not exist. 
+		/// </summary>
+		/// 
+		/// <param name="status">Firebird status</param>
+		/// <param name="att">Firebird attachment</param>
+		/// <param name="tra">Firebird transaction</param>
+		/// <param name="sqlDialect">SQL dialect</param>
+		/// <param name="indexName">Index name</param>
+		/// 
+		/// <returns>Index metadata</returns>
+		FTSIndex getIndex (
+			ThrowStatusWrapper* status, 
+			IAttachment* att, 
+			ITransaction* tra, 
+			unsigned int sqlDialect, 
+			string indexName);
 
-		//
-		// Возвращет список всех индексов
-		//
-		list<FTSIndex> getAllIndexes(ThrowStatusWrapper* status, IAttachment* att, ITransaction* tra, unsigned int sqlDialect);
+		/// <summary>
+		/// Returns a list of indexes. 
+		/// </summary>
+		/// 
+		/// <param name="status">Firebird status</param>
+		/// <param name="att">Firebird attachment</param>
+		/// <param name="tra">Firebird transaction</param>
+		/// <param name="sqlDialect">SQL dialect</param>
+		/// 
+		/// <returns>List of indexes</returns>
+		FTSIndexList getAllIndexes (
+			ThrowStatusWrapper* status, 
+			IAttachment* att, 
+			ITransaction* tra, 
+			unsigned int sqlDialect);
 
-		//
-		// Возвращает сегменты индекса с заданным именем
-		//
-		list<FTSIndexSegment> getIndexSegments(ThrowStatusWrapper* status, IAttachment* att, ITransaction* tra, unsigned int sqlDialect, string indexName);
+		/// <summary>
+		/// Returns a list of index segments with the given name.
+		/// </summary>
+		/// 
+		/// <param name="status">Firebird status</param>
+		/// <param name="att">Firebird attachment</param>
+		/// <param name="tra">Firebird transaction</param>
+		/// <param name="sqlDialect">SQL dialect</param>
+		/// <param name="indexName">Index name</param>
+		/// 
+		/// <returns>List of index segments</returns>
+		FTSIndexSegmentList getIndexSegments (
+			ThrowStatusWrapper* status, 
+			IAttachment* att, 
+			ITransaction* tra, 
+			unsigned int sqlDialect, 
+			string indexName);
 
-		//
-        // Возвращает все сегменты всех индексов. Упорядочено по имени индекса
-        //
-		list<FTSIndexSegment> getAllIndexSegments(ThrowStatusWrapper* status, IAttachment* att, ITransaction* tra, unsigned int sqlDialect);
+		/// <summary>
+		/// Returns all segments of all indexes, ordered by index name. 
+		/// </summary>
+		/// 
+		/// <param name="status">Firebird status</param>
+		/// <param name="att">Firebird attachment</param>
+		/// <param name="tra">Firebird transaction</param>
+		/// <param name="sqlDialect">SQL dialect</param>
+		/// 
+		/// <returns>List of index segments</returns>
+		FTSIndexSegmentList getAllIndexSegments (
+			ThrowStatusWrapper* status, 
+			IAttachment* att, 
+			ITransaction* tra, 
+			unsigned int sqlDialect);
 
-		//
-		// Возвращает сегменты индексов по имени таблицы
-		//
-		list<FTSIndexSegment> getIndexSegmentsByRelation(ThrowStatusWrapper* status, IAttachment* att, ITransaction* tra, unsigned int sqlDialect, string relationName);
+		/// <summary>
+		/// Returns index segments by relation name.
+		/// </summary>
+		/// 
+		/// <param name="status">Firebird status</param>
+		/// <param name="att">Firebird attachment</param>
+		/// <param name="tra">Firebird transaction</param>
+		/// <param name="sqlDialect">SQL dialect</param>
+		/// <param name="relationName">Relation name</param>
+		/// 
+		/// <returns>List of index segments</returns>
+		FTSIndexSegmentList getIndexSegmentsByRelation (
+			ThrowStatusWrapper* status, 
+			IAttachment* att, 
+			ITransaction* tra, 
+			unsigned int sqlDialect, 
+			string relationName);
 
-		//
-		// Добавление нового поля (сегмента) полнотекстового индекса
-		//
-		void addIndexField(
+
+		/// <summary>
+		/// Adds a new field (segment) to the full-text index.
+		/// </summary>
+		/// 
+		/// <param name="status">Firebird status</param>
+		/// <param name="att">Firebird attachment</param>
+		/// <param name="tra">Firebird transaction</param>
+		/// <param name="sqlDialect">SQL dialect</param>
+		/// <param name="indexName">Index name</param>
+		/// <param name="relationName">Relation name</param>
+		/// <param name="fieldName">Field name</param>
+		/// <param name="boost">Significance multiplier</param>
+		void addIndexField (
 			ThrowStatusWrapper* status,
 			IAttachment* att,
 			ITransaction* tra,
@@ -208,10 +385,18 @@ namespace LuceneFTS
 			string fieldName,
 			double boost);
 
-		//
-		// Удаление поля (сегмента) из полнотекстового индекса
-		//
-		void dropIndexField(
+		/// <summary>
+		/// Removes a field (segment) from the full-text index.
+		/// </summary>
+		/// 
+		/// <param name="status">Firebird status</param>
+		/// <param name="att">Firebird attachment</param>
+		/// <param name="tra">Firebird transaction</param>
+		/// <param name="sqlDialect">SQL dialect</param>
+		/// <param name="indexName">Index name</param>
+		/// <param name="relationName">Relation name</param>
+		/// <param name="fieldName">Field name</param>
+		void dropIndexField (
 			ThrowStatusWrapper* status,
 			IAttachment* att,
 			ITransaction* tra,
@@ -220,10 +405,20 @@ namespace LuceneFTS
 			string relationName,
 			string fieldName);
 
-		//
-		// Проверка существования поля (сегмента) в полнотекстовом индексе
-		//
-		bool hasIndexSegment(
+
+		/// <summary>
+		/// Checks for the existence of a field (segment) in a full-text index. 
+		/// </summary>
+		/// 
+		/// <param name="status">Firebird status</param>
+		/// <param name="att">Firebird attachment</param>
+		/// <param name="tra">Firebird transaction</param>
+		/// <param name="sqlDialect">SQL dialect</param>
+		/// <param name="indexName">Index name</param>
+		/// <param name="relationName">Relation name</param>
+		/// <param name="fieldName">Field name</param>
+		/// <returns>Returns true if the field (segment) exists in the index, false otherwise</returns>
+		bool hasIndexSegment (
 			ThrowStatusWrapper* status,
 			IAttachment* att,
 			ITransaction* tra,
@@ -232,12 +427,16 @@ namespace LuceneFTS
 			string relationName,
 			string fieldName);
 
-		//
-		// Группирует сегменты индекса по именам таблиц 
-		//
-		static inline map<string, list<FTSIndexSegment>> groupIndexSegmentsByRelation(list<FTSIndexSegment> segments)
+		/// <summary>
+		/// Groups index segments by relation names.
+		/// </summary>
+		/// 
+		/// <param name="segments">List of index segments</param>
+		/// 
+		/// <returns>Map of index segments by relation names</returns>
+		static inline FTSIndexSegmentsMap groupIndexSegmentsByRelation(FTSIndexSegmentList segments)
 		{
-			map<string, list<FTSIndexSegment>> segmentsByRelation;
+			FTSIndexSegmentsMap segmentsByRelation;
 			for (const auto& segment : segments) {
 				auto r = segmentsByRelation.find(segment.relationName);
 				if (r != segmentsByRelation.end()) {
@@ -254,12 +453,16 @@ namespace LuceneFTS
 			return segmentsByRelation;
 		}
 
-		//
-        // Группирует сегменты индексов по именам индекса 
-        //
-		static inline map<string, list<FTSIndexSegment>> groupSegmentsByIndex(list<FTSIndexSegment> segments)
+		/// <summary>
+		/// Groups index segments by index names.
+		/// </summary>
+		/// 
+		/// <param name="segments">List of index segments</param>
+		/// 
+		/// <returns>Map of index segments by index names</returns>
+		static inline FTSIndexSegmentsMap groupSegmentsByIndex(FTSIndexSegmentList segments)
 		{
-			map<string, list<FTSIndexSegment>> segmentsByIndex;
+			FTSIndexSegmentsMap segmentsByIndex;
 			for (const auto& segment : segments) {
 				auto r = segmentsByIndex.find(segment.indexName);
 				if (r != segmentsByIndex.end()) {
@@ -268,7 +471,7 @@ namespace LuceneFTS
 					segmentsByIndex[segment.indexName] = idxSegments;
 				}
 				else {
-					list<FTSIndexSegment> idxSegments;
+					FTSIndexSegmentList idxSegments;
 					idxSegments.push_back(segment);
 					segmentsByIndex[segment.indexName] = idxSegments;
 				}
@@ -276,16 +479,36 @@ namespace LuceneFTS
 			return segmentsByIndex;
 		}
 
-		string makeMetaName(string name, unsigned int sqlDialect) {
-			if (sqlDialect >= 3) {
+		/// <summary>
+		/// Escapes the name of the metadata object depending on the SQL dialect. 
+		/// </summary>
+		/// 
+		/// <param name="sqlDialect">SQL dialect</param>
+		/// <param name="name">Metadata object name</param>
+		/// 
+		/// <returns>Returns the escaped name of the metadata object.</returns>
+		static inline string escapeMetaName(unsigned int sqlDialect, const string name)
+		{
+			switch (sqlDialect) {
+			case 1:
+				return name;
+			case 3:
+			default:
 				return "\"" + name + "\"";
-			} 
-			return name;
+			}
 		}
 
-		//
-        // Список полей индексов по имени таблицы
-        //
+		/// <summary>
+		/// Returns a list of full-text index field names given the relation name.
+		/// </summary>
+		/// 
+		/// <param name="status">Firebird status</param>
+		/// <param name="att">Firebird attachment</param>
+		/// <param name="tra">Firebird transaction</param>
+		/// <param name="sqlDialect">SQL dialect</param>
+		/// <param name="relationName">Relation name</param>
+		/// 
+		/// <returns>List of full-text index field names</returns>
 		list<string> getFieldsByRelation (
 			ThrowStatusWrapper* status,
 			IAttachment* att,
@@ -293,9 +516,19 @@ namespace LuceneFTS
 			unsigned int sqlDialect,
 			string relationName);
 
-		//
-		// Список исходных кодов триггеров по имени таблицы
-		//
+
+		/// <summary>
+		/// Returns a list of trigger source codes to support full-text indexes by relation name. 
+		/// </summary>
+		/// 
+		/// <param name="status">Firebird status</param>
+		/// <param name="att">Firebird attachment</param>
+		/// <param name="tra">Firebird transaction</param>
+		/// <param name="sqlDialect">SQL dialect</param>
+		/// <param name="relationName">Relation name</param>
+		/// <param name="multiAction">Flag for generating multi-event triggers</param>
+		/// 
+		/// <returns>Trigger source code list</returns>
 		list<string> makeTriggerSourceByRelation (
 			ThrowStatusWrapper* status,
 			IAttachment* att,

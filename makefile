@@ -2,7 +2,7 @@
 # Firebird UDR Makefile for Linux GCC
 # ---------------------------------------------------------------------
 # File name   : makefile
-# Description : UDR for Lucene Full-Search
+# Description : UDR Lucene for Full Text Search
 # Author      : Simonov Denis
 # Copyright   : (C) 2022 IBase
 # All Rights Reserved.

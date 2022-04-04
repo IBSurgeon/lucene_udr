@@ -13,7 +13,7 @@ namespace LuceneFTS
 	{
 	private:
 		IMaster* m_master;
-		// подготовленные запросы
+		// prepared statements
 		AutoRelease<IStatement> stmt_append_log;
 		AutoRelease<IStatement> stmt_delete_log;
 	public:
@@ -27,21 +27,37 @@ namespace LuceneFTS
 		{
 		}
 
-		//
-		// Добавлении записи в журнал изменений
-		//
+
+		/// <summary>
+		/// Adds an entry from the changelog.
+		/// </summary>
+		/// 
+		/// <param name="status">Firebird status</param>
+		/// <param name="att">Firebird attachment</param>
+		/// <param name="tra">Firebird transaction</param>
+		/// <param name="sqlDialect">SQL dialect</param>
+		/// <param name="relationName">Relation name</param>
+		/// <param name="recId">Record ID</param>
+		/// <param name="changeType">Type of change</param>
 		void appendLog(
 			ThrowStatusWrapper* status,
 			IAttachment* att,
 			ITransaction* tra,
 			unsigned int sqlDialect,
 			string relationName,
-			string dbKey,
+			string recId,
 			string changeType);
 
-		//
-		// Удаление записи из журнала изменений
-		//
+
+		/// <summary>
+		/// Removes an entry from the changelog.
+		/// </summary>
+		/// 
+		/// <param name="status">Firebird status</param>
+		/// <param name="att">Firebird attachment</param>
+		/// <param name="tra">Firebird transaction</param>
+		/// <param name="sqlDialect">SQL dialect</param>
+		/// <param name="id">Identifier</param>
 		void deleteLog(
 			ThrowStatusWrapper* status,
 			IAttachment* att,
@@ -49,9 +65,14 @@ namespace LuceneFTS
 			unsigned int sqlDialect,
 			ISC_INT64 id);
 
-		//
-		// Очистка журнала изменений
-		//
+		/// <summary>
+		/// Clears the changelog.
+		/// </summary>
+		/// 
+		/// <param name="status">Firebird status</param>
+		/// <param name="att">Firebird attachment</param>
+		/// <param name="tra">Firebird transaction</param>
+		/// <param name="sqlDialect">SQL dialect</param>
 		void clearLog(
 			ThrowStatusWrapper* status,
 			IAttachment* att,

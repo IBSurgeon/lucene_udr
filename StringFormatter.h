@@ -3,7 +3,6 @@
 
 #include <string>
 #include <boost/format.hpp>
-//#include <boost/locale/format.hpp>
 
 template<typename First, typename... Args>
     inline std::string string_format(const std::string& formatString,
