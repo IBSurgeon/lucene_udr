@@ -483,14 +483,12 @@ END
 
 Поле `FTS$INDEX_STATUS` хранит статус индекса. Индекс может иметь 4 статуса:
 
-*N* - New index. Новый индекс. Устанавливается при создании индекса, в котором ещё нет ни одного сегмента.
-
-*U* - Updated metadata. Устанавливается каждый раз, когда изменяются метаданные индекса, например при добавлении или удалении сегмента индекса. 
+- *N* - New index. Новый индекс. Устанавливается при создании индекса, в котором ещё нет ни одного сегмента.
+- *U* - Updated metadata. Устанавливается каждый раз, когда изменяются метаданные индекса, например при добавлении или удалении сегмента индекса. 
 Если индекс имеет такой статус, то он требует перестроения, чтобы поиск по нему работал корректно.
-
-*I* - Inactive. Неактивный индекс. Неактивные индексы не обновляются процедурой `FTS$UPDATE_INDEXES`.
-
-*C* - Complete. Активный индекс. Такие индексы обновляются процедурой `FTS$UPDATE_INDEXES`. Индекс переходит в это состояние только после полного построения или перестроения.
+- *I* - Inactive. Неактивный индекс. Неактивные индексы не обновляются процедурой `FTS$UPDATE_INDEXES`.
+- *C* - Complete. Активный индекс. Такие индексы обновляются процедурой `FTS$UPDATE_INDEXES`. 
+Индекс переходит в это состояние только после полного построения или перестроения.
 
 ## Создание полнотекстовых индексов и поиск по ним
 
@@ -536,29 +534,17 @@ FROM RDB$DATABASE
 Список доступных анализаторов:
 
 * STANDARD - StandardAnalyzer (Английский язык);
-
 * ARABIC - ArabicAnalyzer (Арабский язык);
-
 * BRAZILIAN - BrazilianAnalyzer (Бразильский язык);
-
 * CHINESE - ChineseAnalyzer (Китайский язык);
-
 * CJK - CJKAnalyzer (Китайское письмо);
-
 * CZECH - CzechAnalyzer (Чешский язык);
-
 * DUTCH - DutchAnalyzer (Голландский язык);
-
 * ENGLISH - StandardAnalyzer (Английский язык);
-
 * FRENCH - FrenchAnalyzer (Французский язык);
-
 * GERMAN - GermanAnalyzer (Немецкий язык);
-
 * GREEK - GreekAnalyzer (Греческий язык);
-
 * PERSIAN - PersianAnalyzer (Персидский язык);
-
 * RUSSIAN - RussianAnalyzer (Русский язык).
 
 
@@ -594,7 +580,7 @@ SELECT
     HORSE.CODE_HORSE,
     HORSE.REMARK
 FROM FTS$SEARCH('IDX_HORSE_REMARK', 'HORSE', 'паспорт') FTS
-    LEFT JOIN HORSE ON
+    JOIN HORSE ON
           HORSE.RDB$DB_KEY = FTS.FTS$REC_ID  
 
 ```
@@ -607,7 +593,7 @@ SELECT
     HORSE.CODE_HORSE,
     HORSE.REMARK
 FROM FTS$SEARCH('IDX_HORSE_REMARK', NULL, 'паспорт') FTS
-    LEFT JOIN HORSE ON
+    JOIN HORSE ON
           HORSE.RDB$DB_KEY = FTS.FTS$REC_ID  
 
 ```
@@ -640,7 +626,7 @@ SELECT
     HORSE.CODE_HORSE,
     HORSE.REMARK
 FROM FTS$SEARCH('IDX_HORSE_REMARK_RU', 'HORSE', 'паспорт') FTS
-    LEFT JOIN HORSE ON
+    JOIN HORSE ON
           HORSE.RDB$DB_KEY = FTS.FTS$REC_ID 
 
 ```
@@ -678,7 +664,7 @@ SELECT
     NOTE.REMARK,
     NOTE.REMARK_EN
 FROM FTS$SEARCH('IDX_HORSE_NOTE', 'NOTE', 'неровно') FTS
-    LEFT JOIN NOTE ON
+    JOIN NOTE ON
           NOTE.RDB$DB_KEY = FTS.FTS$REC_ID  
 ```
 
@@ -715,7 +701,7 @@ SELECT
     NOTE.REMARK,
     NOTE.REMARK_EN
 FROM FTS$SEARCH('IDX_HORSE_NOTE_2', 'NOTE', 'неровно') FTS
-    LEFT JOIN NOTE ON
+    JOIN NOTE ON
           NOTE.RDB$DB_KEY = FTS.FTS$REC_ID 
   
 -- поиск в таблице HORSE          
@@ -724,7 +710,7 @@ SELECT
     HORSE.CODE_HORSE,
     HORSE.REMARK
 FROM FTS$SEARCH('IDX_HORSE_REMARK', 'HORSE', 'паспорт') FTS
-    LEFT JOIN HORSE ON
+    JOIN HORSE ON
           HORSE.RDB$DB_KEY = FTS.FTS$REC_ID  
 
 -- выдаст имя таблицы и DB_KEY из всех таблиц
@@ -771,16 +757,22 @@ COMMIT;
 Поиск по такому индексу и выделение найденных фрагментов можно сделать следующим образом:
 
 ```sql
+WITH PARAMS
+AS (SELECT
+        'паспорт' AS FTS$QUERY
+    FROM RDB$DATABASE)
 SELECT
-    FTS.*,
+    FTS.FTS$SCORE,
     HORSE.CODE_HORSE,
     HORSE.REMARK,
     HORSE.RUNTOTAL,
-    FTS$HIGHLIGHTER.FTS$BEST_FRAGMENT(HORSE.REMARK, 'паспорт', 'RUSSIAN', 'HORSE.REMARK') AS HIGHTLIGHT_REMARK,
-    FTS$HIGHLIGHTER.FTS$BEST_FRAGMENT(HORSE.RUNTOTAL, 'паспорт', 'RUSSIAN', 'HORSE.RUNTOTAL') AS HIGHTLIGHT_RUNTOTAL
-FROM FTS$SEARCH('IDX_HORSE_INFO', 'HORSE', 'паспорт') FTS
-    LEFT JOIN HORSE ON
-          HORSE.RDB$DB_KEY = FTS.FTS$REC_ID 
+    FTS$HIGHLIGHTER.FTS$BEST_FRAGMENT(HORSE.REMARK, PARAMS.FTS$QUERY, 'RUSSIAN', 'HORSE.REMARK') AS HIGHTLIGHT_REMARK,
+    FTS$HIGHLIGHTER.FTS$BEST_FRAGMENT(HORSE.RUNTOTAL, PARAMS.FTS$QUERY, 'RUSSIAN', 'HORSE.RUNTOTAL') AS HIGHTLIGHT_RUNTOTAL,
+    FTS.FTS$EXPLANATION
+FROM PARAMS
+    CROSS JOIN FTS$SEARCH('IDX_HORSE_INFO', 'HORSE', PARAMS.FTS$QUERY) FTS
+    JOIN HORSE ON
+          HORSE.RDB$DB_KEY = FTS.FTS$REC_ID  
 ```
 
 Обратите внимание, в качестве имени поля в функции `FTS$HIGHLIGHTER.FTS$BEST_FRAGMENT` используется полное имя сегмента, состоящее из имени таблицы и имени поля.
@@ -870,6 +862,45 @@ isql -user SYSDBA -pas masterkey -i fts$update.sql inet://localhost/mydatabase
 Поиковые запросы (фразы поиска) состоят из термов и операторов. Lucene поддерживает простые и сложные термы. Простые термы состоят из одного слова,
 сложные из нескольких. Первые из них, это обычные слова, например, "привет", "тест". Второй же тип термов это группа слов, например,
 "Привет как дела". Несколько термов можно связывать вместе при помощи логических операторов.
+
+### Поля
+
+Lucene поддерживает поиск по нескольким полям. По умолчанию поиск осуществляется во всех полях многосегментного индекса, выражение по каждому полю
+повторяется и соединяется выражением OR. То есть если у вас индекс содержащий поля `HORSE.REMARK` и `HORSE.RUNTOTAL`, то запрос
+
+```
+Привет мир
+```
+
+будет эксвивалентен запросу
+
+```
+HORSE.REMARK: (Привет мир) OR HORS.RUNTOTAL: (Привет мир)
+```
+
+Вы можете указать по какому полю вы хотите произвести поиск, для этого в запросе необходимо указать имя поля (<имя таблицы>.<имя столбца>), 
+символ двоеточия ":", после чего поисковую фразу для этого поля.
+
+Пример поиска слова "Россия" в поле RUNTOTAL таблицы HORSE и слов "паспорт выдан" в поле REMARK таблицы HORSE:
+
+```sql
+WITH PARAMS
+AS (SELECT
+        'HORSE.RUNTOTAL: (Россия) AND HORSE.REMARK: (паспорт выдан)' AS FTS$QUERY
+    FROM RDB$DATABASE)
+SELECT
+    FTS.FTS$SCORE,
+    HORSE.CODE_HORSE,
+    HORSE.REMARK,
+    HORSE.RUNTOTAL,
+    FTS$HIGHLIGHTER.FTS$BEST_FRAGMENT(HORSE.REMARK, PARAMS.FTS$QUERY, 'RUSSIAN', 'HORSE.REMARK') AS HIGHTLIGHT_REMARK,
+    FTS$HIGHLIGHTER.FTS$BEST_FRAGMENT(HORSE.RUNTOTAL, PARAMS.FTS$QUERY, 'RUSSIAN', 'HORSE.RUNTOTAL') AS HIGHTLIGHT_RUNTOTAL,
+    FTS.FTS$EXPLANATION
+FROM PARAMS
+    CROSS JOIN FTS$SEARCH('IDX_HORSE_INFO', 'HORSE', PARAMS.FTS$QUERY) FTS
+    JOIN HORSE ON
+          HORSE.RDB$DB_KEY = FTS.FTS$REC_ID 
+```
 
 ### Маска
 
