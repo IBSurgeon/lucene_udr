@@ -3,12 +3,15 @@
 
 #include "LuceneUdr.h"
 #include "Relations.h"
+#include "lucene++/LuceneHeaders.h"
+#include "lucene++/FileUtils.h"
 #include <string>
 #include <list>
 #include <map>
 
 using namespace Firebird;
 using namespace std;
+using namespace Lucene;
 
 namespace LuceneFTS
 {
@@ -53,6 +56,40 @@ namespace LuceneFTS
 	/// 
 	/// <returns>Full path to full-text index directory</returns>
 	string getFtsDirectory(IExternalContext* context);
+
+	inline bool createIndexDirectory(const string indexDir)
+	{
+		auto indexDirUnicode = StringUtils::toUnicode(indexDir);
+		if (!FileUtils::isDirectory(indexDirUnicode)) {
+			return FileUtils::createDirectory(indexDirUnicode);
+		}
+		return true;
+	}
+
+	inline bool createIndexDirectory(const String indexDir)
+	{
+		if (!FileUtils::isDirectory(indexDir)) {
+			return FileUtils::createDirectory(indexDir);
+		}
+		return true;
+	}
+
+	inline bool removeIndexDirectory(const string indexDir)
+	{
+		auto indexDirUnicode = StringUtils::toUnicode(indexDir);
+		if (FileUtils::isDirectory(indexDirUnicode)) {
+			return FileUtils::removeDirectory(indexDirUnicode);
+		}
+		return true;
+	}
+
+	inline bool removeIndexDirectory(const String indexDir)
+	{
+		if (FileUtils::isDirectory(indexDir)) {
+			return FileUtils::removeDirectory(indexDir);
+		}
+		return true;
+	}
 
 	using FTSIndexList = list<FTSIndex>;
 	using FTSIndexMap = map<string, FTSIndex>;
@@ -211,16 +248,16 @@ namespace LuceneFTS
 		/// <param name="tra">Firebird transaction</param>
 		/// <param name="sqlDialect">SQL dialect</param>
 		/// <param name="indexName">Index name</param>
-		/// <param name="analyzer">Analyzer name</param>
+		/// <param name="analyzerName">Analyzer name</param>
 		/// <param name="description">Custom index description</param>
 		void createIndex (
 			ThrowStatusWrapper* status,
 			IAttachment* att,
 			ITransaction* tra,
-			unsigned int sqlDialect,
-			string indexName,
-			string analyzer,
-			string description);
+			const unsigned int sqlDialect,
+			const string indexName,
+			const string analyzerName,
+			const string description);
 
 		/// <summary>
 		/// Remove a full-text index. 
@@ -235,8 +272,8 @@ namespace LuceneFTS
 			ThrowStatusWrapper* status,
 			IAttachment* att,
 			ITransaction* tra,
-			unsigned int sqlDialect,
-			string indexName);
+			const unsigned int sqlDialect,
+			const string indexName);
 
 		/// <summary>
 		/// Set the index status.
@@ -252,9 +289,9 @@ namespace LuceneFTS
 			ThrowStatusWrapper* status,
 			IAttachment* att,
 			ITransaction* tra,
-			unsigned int sqlDialect,
-			string indexName,
-			string indexStatus);
+			const unsigned int sqlDialect,
+			const string indexName,
+			const string indexStatus);
 
 		/// <summary>
 		/// Checks if an index with the given name exists.
@@ -271,8 +308,8 @@ namespace LuceneFTS
 			ThrowStatusWrapper* status, 
 			IAttachment* att, 
 			ITransaction* tra, 
-			unsigned int sqlDialect, 
-			string indexName);
+			const unsigned int sqlDialect, 
+			const string indexName);
 
 		/// <summary>
 		/// Returns index metadata by index name.
@@ -291,8 +328,8 @@ namespace LuceneFTS
 			ThrowStatusWrapper* status, 
 			IAttachment* att, 
 			ITransaction* tra, 
-			unsigned int sqlDialect, 
-			string indexName);
+			const unsigned int sqlDialect, 
+			const string indexName);
 
 		/// <summary>
 		/// Returns a list of indexes. 
@@ -308,7 +345,7 @@ namespace LuceneFTS
 			ThrowStatusWrapper* status, 
 			IAttachment* att, 
 			ITransaction* tra, 
-			unsigned int sqlDialect);
+			const unsigned int sqlDialect);
 
 		/// <summary>
 		/// Returns a list of index segments with the given name.
@@ -325,8 +362,8 @@ namespace LuceneFTS
 			ThrowStatusWrapper* status, 
 			IAttachment* att, 
 			ITransaction* tra, 
-			unsigned int sqlDialect, 
-			string indexName);
+			const unsigned int sqlDialect, 
+			const string indexName);
 
 		/// <summary>
 		/// Returns all segments of all indexes, ordered by index name. 
@@ -342,7 +379,7 @@ namespace LuceneFTS
 			ThrowStatusWrapper* status, 
 			IAttachment* att, 
 			ITransaction* tra, 
-			unsigned int sqlDialect);
+			const unsigned int sqlDialect);
 
 		/// <summary>
 		/// Returns index segments by relation name.
@@ -359,8 +396,8 @@ namespace LuceneFTS
 			ThrowStatusWrapper* status, 
 			IAttachment* att, 
 			ITransaction* tra, 
-			unsigned int sqlDialect, 
-			string relationName);
+			const unsigned int sqlDialect, 
+			const string relationName);
 
 
 		/// <summary>
@@ -379,11 +416,11 @@ namespace LuceneFTS
 			ThrowStatusWrapper* status,
 			IAttachment* att,
 			ITransaction* tra,
-			unsigned int sqlDialect,
-			string indexName,
-			string relationName,
-			string fieldName,
-			double boost);
+			const unsigned int sqlDialect,
+			const string indexName,
+			const string relationName,
+			const string fieldName,
+			const double boost);
 
 		/// <summary>
 		/// Removes a field (segment) from the full-text index.
@@ -400,10 +437,10 @@ namespace LuceneFTS
 			ThrowStatusWrapper* status,
 			IAttachment* att,
 			ITransaction* tra,
-			unsigned int sqlDialect,
-			string indexName,
-			string relationName,
-			string fieldName);
+			const unsigned int sqlDialect,
+			const string indexName,
+			const string relationName,
+			const string fieldName);
 
 
 		/// <summary>
@@ -422,10 +459,10 @@ namespace LuceneFTS
 			ThrowStatusWrapper* status,
 			IAttachment* att,
 			ITransaction* tra,
-			unsigned int sqlDialect,
-			string indexName,
-			string relationName,
-			string fieldName);
+			const unsigned int sqlDialect,
+			const string indexName,
+			const string relationName,
+			const string fieldName);
 
 		/// <summary>
 		/// Groups index segments by relation names.
@@ -487,7 +524,7 @@ namespace LuceneFTS
 		/// <param name="name">Metadata object name</param>
 		/// 
 		/// <returns>Returns the escaped name of the metadata object.</returns>
-		static inline string escapeMetaName(unsigned int sqlDialect, const string name)
+		static inline string escapeMetaName(const unsigned int sqlDialect, const string name)
 		{
 			switch (sqlDialect) {
 			case 1:
@@ -513,8 +550,8 @@ namespace LuceneFTS
 			ThrowStatusWrapper* status,
 			IAttachment* att,
 			ITransaction* tra,
-			unsigned int sqlDialect,
-			string relationName);
+			const unsigned int sqlDialect,
+			const string relationName);
 
 
 		/// <summary>
@@ -533,9 +570,9 @@ namespace LuceneFTS
 			ThrowStatusWrapper* status,
 			IAttachment* att,
 			ITransaction* tra,
-			unsigned int sqlDialect,
-			string relationName,
-			bool multiAction);
+			const unsigned int sqlDialect,
+			const string relationName,
+			const bool multiAction);
 	};
 }
 #endif	// FTS_INDEX_H

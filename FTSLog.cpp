@@ -19,10 +19,10 @@ void FTSLogRepository::appendLog(
 	ThrowStatusWrapper* status,
 	IAttachment* att,
 	ITransaction* tra,
-	unsigned int sqlDialect,
-	string relationName,
-	string recId,
-	string changeType)
+	const unsigned int sqlDialect,
+	const string relationName,
+	const string recId,
+	const string changeType)
 {
 	FB_MESSAGE(Input, ThrowStatusWrapper,
 		(FB_INTL_VARCHAR(252, CS_UTF8), relation_name)
@@ -32,13 +32,13 @@ void FTSLogRepository::appendLog(
 
 	input.clear();
 
-	input->relation_name.length = relationName.length();
+	input->relation_name.length = static_cast<ISC_USHORT>(relationName.length());
 	relationName.copy(input->relation_name.str, input->relation_name.length);
 
-	input->rec_id.length = recId.length();
+	input->rec_id.length = static_cast<ISC_USHORT>(recId.length());
 	recId.copy(input->rec_id.str, input->rec_id.length);
 
-	input->change_type.length = changeType.length();
+	input->change_type.length = static_cast<ISC_USHORT>(changeType.length());
 	changeType.copy(input->change_type.str, input->change_type.length);
 
 	if (!stmt_append_log.hasData()) {
@@ -80,8 +80,8 @@ void FTSLogRepository::deleteLog(
 	ThrowStatusWrapper* status,
 	IAttachment* att,
 	ITransaction* tra,
-	unsigned int sqlDialect,
-	ISC_INT64 id)
+	const unsigned int sqlDialect,
+	const ISC_INT64 id)
 {
 	FB_MESSAGE(Input, ThrowStatusWrapper,
 		(FB_BIGINT, id)
@@ -125,7 +125,7 @@ void FTSLogRepository::clearLog(
 	ThrowStatusWrapper* status,
 	IAttachment* att,
 	ITransaction* tra,
-	unsigned int sqlDialect)
+	const unsigned int sqlDialect)
 {
 	att->execute(
 		status,

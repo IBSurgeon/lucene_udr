@@ -3,7 +3,7 @@
 
 #include <string>
 #include <vector>
-#include "FBBlobUtils.h"
+#include "FBUtils.h"
 #include "FBAutoPtr.h"
 #include "firebird/UdrCppEngine.h"
 
@@ -11,7 +11,7 @@ using namespace std;
 using namespace Firebird;
 
 template <typename T>
-T as(unsigned char* ptr)
+inline T as(unsigned char* ptr)
 {
 	return *((T*)ptr);
 }
@@ -152,10 +152,12 @@ struct FbFieldInfo {
 		}
 	}
 
-	template <class StatusType> string getStringValue(StatusType* status, IAttachment* att, ITransaction* tra, unsigned char* buffer);
+	template <class StatusType> 
+	string getStringValue(StatusType* status, IAttachment* att, ITransaction* tra, unsigned char* buffer);
 };
 
-template <class StatusType> string FbFieldInfo::getStringValue(StatusType* status, IAttachment* att, ITransaction* tra, unsigned char* buffer)
+template <class StatusType> 
+string FbFieldInfo::getStringValue(StatusType* status, IAttachment* att, ITransaction* tra, unsigned char* buffer)
 {
 	switch (dataType) {
 	case SQL_TEXT:
@@ -178,38 +180,44 @@ template <class StatusType> string FbFieldInfo::getStringValue(StatusType* statu
 	}
 }
 
-template <class StatusType>  vector<FbFieldInfo> getFieldsInfo(StatusType* status, IMessageMetadata* meta)
-{
-	int colCount = meta->getCount(status);
-	vector<FbFieldInfo> fields(colCount);
-	for (unsigned i = 0; i < colCount; i++) { 
-		FbFieldInfo field;
-		field.fieldIndex = i;
-		field.nullable = meta->isNullable(status, i);
-		field.fieldName.assign(meta->getField(status, i));
-		field.relationName.assign(meta->getRelation(status, i));
-		field.owner.assign(meta->getOwner(status, i));
-		field.alias.assign(meta->getAlias(status, i));
-		field.dataType = meta->getType(status, i);
-		field.subType = meta->getSubType(status, i);
-		field.length = meta->getLength(status, i);
-		field.scale = meta->getScale(status, i);
-		field.charSet = meta->getCharSet(status, i);
-		field.offset = meta->getOffset(status, i);
-		field.nullOffset = meta->getNullOffset(status, i);
-		fields[i] = field;
-	}
-	return fields;
-}
+using FbFieldInfoVector = vector<FbFieldInfo>;
 
-int findFieldByName(vector<FbFieldInfo> fieldsInfo, string fieldName)
+class FbFieldsInfo : public FbFieldInfoVector
 {
-	for (const auto& fieldInfo : fieldsInfo) {
-		if (fieldInfo.fieldName == fieldName) {
-			return fieldInfo.fieldIndex;
+public:
+	template <class StatusType>
+	FbFieldsInfo(StatusType* status, IMessageMetadata* meta)
+		: FbFieldInfoVector(meta->getCount(status))
+	{
+		for (unsigned i = 0; i < size(); i++) {
+			FbFieldInfo field;
+			field.fieldIndex = i;
+			field.nullable = meta->isNullable(status, i);
+			field.fieldName.assign(meta->getField(status, i));
+			field.relationName.assign(meta->getRelation(status, i));
+			field.owner.assign(meta->getOwner(status, i));
+			field.alias.assign(meta->getAlias(status, i));
+			field.dataType = meta->getType(status, i);
+			field.subType = meta->getSubType(status, i);
+			field.length = meta->getLength(status, i);
+			field.scale = meta->getScale(status, i);
+			field.charSet = meta->getCharSet(status, i);
+			field.offset = meta->getOffset(status, i);
+			field.nullOffset = meta->getNullOffset(status, i);
+			at(i) = field;
 		}
 	}
-	return -1;
-}
 
-#endif	// FB_AUTO_PTR_H
+	int findFieldByName(const string fieldName)
+	{
+		for (const auto& fieldInfo : *this) {
+			if (fieldInfo.fieldName == fieldName) {
+				return fieldInfo.fieldIndex;
+			}
+		}
+		return -1;
+	}
+};
+
+
+#endif	// FB_FIELD_INFO_H

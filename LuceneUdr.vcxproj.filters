@@ -40,6 +40,21 @@
     <ClCompile Include="FTSLog.cpp">
       <Filter>Source files</Filter>
     </ClCompile>
+    <ClCompile Include="FTS_MANAGEMENT.cpp">
+      <Filter>Source files</Filter>
+    </ClCompile>
+    <ClCompile Include="EncodeUtils.cpp">
+      <Filter>Source files</Filter>
+    </ClCompile>
+    <ClCompile Include="FTS_STATISTICS.cpp">
+      <Filter>Source files</Filter>
+    </ClCompile>
+    <ClCompile Include="FTS_HIGHLIGHTER.cpp">
+      <Filter>Source files</Filter>
+    </ClCompile>
+    <ClCompile Include="FTS_TRIGGER_HELPER.cpp">
+      <Filter>Source files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="LuceneUdr.h">
@@ -57,7 +72,7 @@
     <ClInclude Include="FbFieldInfo.h">
       <Filter>Header files</Filter>
     </ClInclude>
-    <ClInclude Include="FBBlobUtils.h">
+    <ClInclude Include="FBUtils.h">
       <Filter>Header files</Filter>
     </ClInclude>
     <ClInclude Include="EncodeUtils.h">

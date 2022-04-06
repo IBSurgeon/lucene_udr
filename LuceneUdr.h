@@ -3,14 +3,10 @@
 
 #define FB_UDR_STATUS_TYPE ::Firebird::ThrowStatusWrapper
 
-#include "charsets.h"
 #include "FBAutoPtr.h"
 #include "StringFormatter.h"
 #include "firebird/UdrCppEngine.h"
-#include <assert.h>
-#include <stdio.h>
-#include <string>
-#include <sstream>
+#include "charsets.h"
 
 
 #endif	// UDR_LUCENE_H

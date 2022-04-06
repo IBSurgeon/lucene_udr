@@ -19,15 +19,20 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="EncodeUtils.cpp" />
+    <ClCompile Include="FTS_TRIGGER_HELPER.cpp" />
     <ClCompile Include="FTS.cpp" />
     <ClCompile Include="FTSIndex.cpp" />
     <ClCompile Include="FTSLog.cpp" />
+    <ClCompile Include="FTS_HIGHLIGHTER.cpp" />
+    <ClCompile Include="FTS_MANAGEMENT.cpp" />
+    <ClCompile Include="FTS_STATISTICS.cpp" />
     <ClCompile Include="Relations.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EncodeUtils.h" />
     <ClInclude Include="FBAutoPtr.h" />
-    <ClInclude Include="FBBlobUtils.h" />
+    <ClInclude Include="FBUtils.h" />
     <ClInclude Include="FbFieldInfo.h" />
     <ClInclude Include="FTSIndex.h" />
     <ClInclude Include="FTSLog.h" />

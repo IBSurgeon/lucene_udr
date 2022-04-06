@@ -20,8 +20,8 @@ bool RelationHelper::relationExists(
 	ThrowStatusWrapper* status, 
 	IAttachment* att, 
 	ITransaction* tra, 
-	unsigned int sqlDialect, 
-	string relationName)
+	const unsigned int sqlDialect, 
+	const string relationName)
 {
 	FB_MESSAGE(Input, ThrowStatusWrapper,
 		(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
@@ -32,7 +32,7 @@ bool RelationHelper::relationExists(
 	) output(status, m_master);
 
 	input.clear();
-	input->relationName.length = relationName.length();
+	input->relationName.length = static_cast<ISC_USHORT>(relationName.length());
 	relationName.copy(input->relationName.str, input->relationName.length);
 
 	if (!stmt_exists_relation.hasData()) {
@@ -80,9 +80,9 @@ bool RelationHelper::fieldExists(
 	ThrowStatusWrapper* status, 
 	IAttachment* att, 
 	ITransaction* tra, 
-	unsigned int sqlDialect, 
-	string relationName, 
-	string fieldName)
+	const unsigned int sqlDialect, 
+	const string relationName, 
+	const string fieldName)
 {
 	FB_MESSAGE(Input, ThrowStatusWrapper,
 		(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
@@ -94,9 +94,11 @@ bool RelationHelper::fieldExists(
 	) output(status, m_master);
 
 	input.clear();
-	input->relationName.length = relationName.length();
+
+	input->relationName.length = static_cast<ISC_USHORT>(relationName.length());
 	relationName.copy(input->relationName.str, input->relationName.length);
-	input->fieldName.length = fieldName.length();
+
+	input->fieldName.length = static_cast<ISC_USHORT>(fieldName.length());
 	fieldName.copy(input->fieldName.str, input->fieldName.length);
 
 	if (!stmt_exists_field.hasData()) {

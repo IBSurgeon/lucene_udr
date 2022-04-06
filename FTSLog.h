@@ -43,10 +43,10 @@ namespace LuceneFTS
 			ThrowStatusWrapper* status,
 			IAttachment* att,
 			ITransaction* tra,
-			unsigned int sqlDialect,
-			string relationName,
-			string recId,
-			string changeType);
+			const unsigned int sqlDialect,
+			const string relationName,
+			const string recId,
+			const string changeType);
 
 
 		/// <summary>
@@ -62,8 +62,8 @@ namespace LuceneFTS
 			ThrowStatusWrapper* status,
 			IAttachment* att,
 			ITransaction* tra,
-			unsigned int sqlDialect,
-			ISC_INT64 id);
+			const unsigned int sqlDialect,
+			const ISC_INT64 id);
 
 		/// <summary>
 		/// Clears the changelog.
@@ -77,7 +77,7 @@ namespace LuceneFTS
 			ThrowStatusWrapper* status,
 			IAttachment* att,
 			ITransaction* tra,
-			unsigned int sqlDialect);
+			const unsigned int sqlDialect);
 	};
 }
 

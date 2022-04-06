@@ -1,12 +1,12 @@
 #ifndef LUCENE_ANALYZER_FACTORY_H
 #define LUCENE_ANALYZER_FACTORY_H
 
+#include "LuceneUdr.h"
 #include <map>
 #include <list>
 #include <string>
 #include <functional>
 #include <stdexcept>
-#include "LuceneUdr.h"
 #include "lucene++/LuceneHeaders.h"
 #include "lucene++/ArabicAnalyzer.h"
 #include "lucene++/BrazilianAnalyzer.h"
@@ -35,8 +35,8 @@ namespace LuceneFTS {
 			}
 		};
 
-		bool operator() (const std::string& s1, const std::string& s2) const {
-			return std::lexicographical_compare (
+		bool operator() (const string& s1, const string& s2) const {
+			return lexicographical_compare (
 				s1.begin(), s1.end(),   // source range
 				s2.begin(), s2.end(),   // dest range
 				nocase_compare()        // comparison
@@ -48,7 +48,7 @@ namespace LuceneFTS {
 
 	class LuceneAnalyzerFactory {
 	private:
-		std::map<string, std::function<AnalyzerPtr()>, ci_more> factories;
+		map<string, function<AnalyzerPtr()>, ci_more> factories;
 	public:
 
 		LuceneAnalyzerFactory()
@@ -73,12 +73,12 @@ namespace LuceneFTS {
 			);
 		}
 
-		bool hasAnalyzer(string analyzerName)
+		bool hasAnalyzer(const string analyzerName)
 		{
 			return (factories.find(analyzerName) != factories.end());
 		}
 
-		AnalyzerPtr createAnalyzer(ThrowStatusWrapper* status, string analyzerName)
+		AnalyzerPtr createAnalyzer(ThrowStatusWrapper* status, const string analyzerName)
 		{
 			auto pFactory = factories.find(analyzerName);
 			if (pFactory == factories.end()) {
@@ -97,7 +97,7 @@ namespace LuceneFTS {
 		list<string> getAnalyzerNames()
 		{
 			list<string> names;
-			for (auto& pFactory : factories) {
+			for (const auto& pFactory : factories) {
 				names.push_back(pFactory.first);
 			}
 			return names;

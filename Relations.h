@@ -3,6 +3,7 @@
 
 #include "LuceneUdr.h"
 #include <string>
+#include <sstream>
 #include <list>
 
 using namespace Firebird;
@@ -41,8 +42,8 @@ namespace LuceneFTS
 			ThrowStatusWrapper* status,
 			IAttachment* att,
 			ITransaction* tra,
-			unsigned int sqlDialect,
-			string relationName);
+			const unsigned int sqlDialect,
+			const string relationName);
 
 		/// <summary>
 		/// Checks if the specified column exists in the relation. 
@@ -60,9 +61,9 @@ namespace LuceneFTS
 			ThrowStatusWrapper* status,
 			IAttachment* att,
 			ITransaction* tra,
-			unsigned int sqlDialect,
-			string relationName,
-			string fieldName);
+			const unsigned int sqlDialect,
+			const string relationName,
+			const string fieldName);
 
 		/// <summary>
 		/// Escapes the name of the metadata object depending on the SQL dialect. 
@@ -72,7 +73,7 @@ namespace LuceneFTS
 		/// <param name="name">Metadata object name</param>
 		/// 
 		/// <returns>Returns the escaped name of the metadata object.</returns>
-		static inline string escapeMetaName(unsigned int sqlDialect, const string name)
+		static inline string escapeMetaName(const unsigned int sqlDialect, const string name)
 		{
 			switch (sqlDialect) {
 			case 1:
@@ -94,16 +95,19 @@ namespace LuceneFTS
 		/// otherwise an SQL query will be built without filtering, that is, returning all records.</param>
 		/// 
 		/// <returns>Returns the text of the SQL query.</returns>
-		static inline string buildSqlSelectFieldValues(unsigned int sqlDialect, string relationName, list<string> fieldNames, bool whereDbKey = false)
+		static inline string buildSqlSelectFieldValues(
+			const unsigned int sqlDialect, 
+			const string relationName, 
+			list<string> fieldNames, 
+			const bool whereDbKey = false)
 		{
-			relationName = RelationHelper::escapeMetaName(sqlDialect, relationName);
 			std::stringstream ss;
 			ss << "SELECT\n";
 			ss << "  RDB$DB_KEY";
-			for (auto fieldName : fieldNames) {
+			for (const auto fieldName : fieldNames) {
 				ss << ",\n  " << RelationHelper::escapeMetaName(sqlDialect, fieldName);
 			}
-			ss << "\nFROM " << relationName;
+			ss << "\nFROM " << RelationHelper::escapeMetaName(sqlDialect, relationName);
 			if (whereDbKey) {
 				ss << "\nWHERE RDB$DB_KEY = ?";
 			}

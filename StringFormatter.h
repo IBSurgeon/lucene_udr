@@ -4,8 +4,10 @@
 #include <string>
 #include <boost/format.hpp>
 
+using namespace std;
+
 template<typename First, typename... Args>
-    inline std::string string_format(const std::string& formatString,
+    inline string string_format(const string& formatString,
         First&& firstArg, Args&&... arg)
 {
     boost::format formatter{ formatString };
@@ -14,12 +16,12 @@ template<typename First, typename... Args>
     return formatter.str();
 }
 
-inline std::string string_format(const std::string& string)
+inline string string_format(const string& string)
 {
     return string;
 }
 
-inline std::string string_format()
+inline string string_format()
 {
     BOOST_ASSERT_MSG(false, "Format may not be used without arguments");
     return {};

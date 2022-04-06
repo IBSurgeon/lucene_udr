@@ -1,21 +1,15 @@
 #ifndef ENCODE_UTILS_H
 #define ENCODE_UTILS_H
 
-#include <string>
-#include <vector>
-#include <algorithm>
-#include <stdexcept>
 #include "charsets.h"
-#include "unicode/uchar.h"
-#include "unicode/ucnv.h"
-#include "unicode/unistr.h"
+#include <string>
 
-using namespace icu;
+using namespace std;
 
 struct FBCharsetInfo {
 	unsigned charsetID;
-	std::string charsetName; 
-	std::string icuCharsetName;
+	string charsetName; 
+	string icuCharsetName;
 	unsigned codePage;
 };
 
@@ -74,88 +68,14 @@ static const FBCharsetInfo FBCharsetMap[] = {
 	{CS_GB18030, "GB18030", "windows-54936", 54936}
 };
 
-std::string getICICharset(unsigned charset) {
-	for (int i = 0; i < sizeof(FBCharsetMap); i++) {
-		if (FBCharsetMap[i].charsetID == charset)
-			return std::string(FBCharsetMap[i].icuCharsetName);
-	}
-	return "";
-}
+string getICICharset(const unsigned charset);
 
-std::string getICICharset(const char* charset) {
-	std::string fbCharset(charset);
-	for (int i = 0; i < sizeof(FBCharsetMap); i++) {
-		if (FBCharsetMap[i].charsetName == fbCharset)
-			return std::string(FBCharsetMap[i].icuCharsetName);
-	}
-	return "";
-}
+string getICICharset(const char* charset);
 
-std::string to_utf8(const std::string& source_str, const std::string& charset)
-{
-	// if the string is already in utf-8, then it makes no sense to re-encode it
-	if (charset == "utf-8") {
-		return source_str;
-	}
-	const std::string::size_type srclen = source_str.size();
-	std::vector<UChar> target(srclen);
+string to_utf8(const string& source_str, const string& charset);
 
-	UErrorCode status = U_ZERO_ERROR;
-	UConverter* conv = ucnv_open(charset.c_str(), &status);
-	if (!U_SUCCESS(status))
-		return std::string();
+string string_to_hex(const string& input);
 
-	int32_t len = ucnv_toUChars(conv, target.data(), srclen, source_str.c_str(), srclen, &status);
-	if (!U_SUCCESS(status))
-		return std::string();
-
-	ucnv_close(conv);
-
-	UnicodeString ustr(target.data(), len);
-
-	std::string retval;
-	ustr.toUTF8String(retval);
-
-	return retval;
-}
-
-std::string string_to_hex(const std::string& input)
-{
-	static const char* const lut = "0123456789ABCDEF";
-	size_t len = input.length();
-
-	std::string output;
-	output.reserve(2 * len);
-	for (size_t i = 0; i < len; ++i)
-	{
-		const unsigned char c = input[i];
-		output.push_back(lut[c >> 4]);
-		output.push_back(lut[c & 15]);
-	}
-	return output;
-}
-
-std::string hex_to_string(const std::string& input)
-{
-	static const char* const lut = "0123456789ABCDEF";
-	size_t len = input.length();
-	if (len & 1) throw std::invalid_argument("odd length");
-
-	std::string output;
-	output.reserve(len / 2);
-	for (size_t i = 0; i < len; i += 2)
-	{
-		char a = input[i];
-		const char* p = std::lower_bound(lut, lut + 16, a);
-		if (*p != a) throw std::invalid_argument("not a hex digit");
-
-		char b = input[i + 1];
-		const char* q = std::lower_bound(lut, lut + 16, b);
-		if (*q != b) throw std::invalid_argument("not a hex digit");
-
-		output.push_back(((p - lut) << 4) | (q - lut));
-	}
-	return output;
-}
+string hex_to_string(const string& input);
 
 #endif	// ENCODE_UTILS_H

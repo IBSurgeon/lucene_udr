@@ -1,7 +1,7 @@
 
 #include "FTSIndex.h"
 #include "inicpp.h"
-#include "FBBlobUtils.h"
+#include "FBUtils.h"
 #include "LuceneAnalyzerFactory.h"
 
 using namespace Firebird;
@@ -18,8 +18,7 @@ using namespace LuceneFTS;
 string LuceneFTS::getFtsDirectory(IExternalContext* context) {
 	IConfigManager* configManager = context->getMaster()->getConfigManager();
 	const string databaseName(context->getDatabaseName());
-
-	string rootDir(configManager->getRootDirectory());
+	const string rootDir(configManager->getRootDirectory());
 
 	ini::IniFile iniFile;
 	iniFile.load(rootDir + "/fts.ini");
@@ -36,16 +35,16 @@ string LuceneFTS::getFtsDirectory(IExternalContext* context) {
 /// <param name="tra">Firebird transaction</param>
 /// <param name="sqlDialect">SQL dialect</param>
 /// <param name="indexName">Index name</param>
-/// <param name="analyzer">Analyzer name</param>
+/// <param name="analyzerName">Analyzer name</param>
 /// <param name="description">Custom index description</param>
 void FTSIndexRepository::createIndex (
 	ThrowStatusWrapper* status,
 	IAttachment* att,
 	ITransaction* tra,
-	unsigned int sqlDialect,
-	string indexName,
-	string analyzer,
-	string description)
+	const unsigned int sqlDialect,
+	const string indexName,
+	const string analyzerName,
+	const string description)
 {
 	FB_MESSAGE(Input, ThrowStatusWrapper,
 		(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
@@ -56,21 +55,13 @@ void FTSIndexRepository::createIndex (
 
 	input.clear();
 
-	input->indexName.length = indexName.length();
+	input->indexName.length = static_cast<ISC_USHORT>(indexName.length());
 	indexName.copy(input->indexName.str, input->indexName.length);
 
-	if (analyzer.empty()) {
-		analyzer = LuceneFTS::DEFAULT_ANALYZER_NAME;
-	}
-	else {
-		std::transform(analyzer.begin(), analyzer.end(), analyzer.begin(), ::toupper);
-	}
-
-	input->analyzer.length = analyzer.length();
-	analyzer.copy(input->analyzer.str, input->analyzer.length);
+	input->analyzer.length = static_cast<ISC_USHORT>(analyzerName.length());
+	analyzerName.copy(input->analyzer.str, input->analyzer.length);
 
 	if (!description.empty()) {
-
 		AutoRelease<IBlob> blob(att->createBlob(status, tra, &input->description, 0, nullptr));
 		blob_set_string(status, blob, description);
 		blob->close(status);
@@ -79,13 +70,13 @@ void FTSIndexRepository::createIndex (
 		input->descriptionNull = true;
 	}
 
-	string indexStatus = "N";
-	input->indexStatus.length = indexStatus.length();
+	const string indexStatus = "N";
+	input->indexStatus.length = static_cast<ISC_USHORT>(indexStatus.length());
 	indexStatus.copy(input->indexStatus.str, input->indexStatus.length);
 
 	// check for index existence
 	if (hasIndex(status, att, tra, sqlDialect, indexName)) {
-		string error_message = string_format("Index \"%s\" already exists", indexName);
+		const string error_message = string_format("Index \"%s\" already exists", indexName);
 		ISC_STATUS statusVector[] = {
 	       isc_arg_gds, isc_random,
 	       isc_arg_string, (ISC_STATUS)error_message.c_str(),
@@ -96,8 +87,8 @@ void FTSIndexRepository::createIndex (
 
 	// checking the existence of the analyzer
 	LuceneFTS::LuceneAnalyzerFactory analyzerFactory;
-	if (!analyzerFactory.hasAnalyzer(analyzer)) {
-		string error_message = string_format("Analyzer \"%s\" not exists", analyzer);
+	if (!analyzerFactory.hasAnalyzer(analyzerName)) {
+		const string error_message = string_format("Analyzer \"%s\" not exists", analyzerName);
 		ISC_STATUS statusVector[] = {
 		   isc_arg_gds, isc_random,
 		   isc_arg_string, (ISC_STATUS)error_message.c_str(),
@@ -133,8 +124,8 @@ void FTSIndexRepository::dropIndex (
 	ThrowStatusWrapper* status,
 	IAttachment* att,
 	ITransaction* tra,
-	unsigned int sqlDialect,
-	string indexName)
+	const unsigned int sqlDialect,
+	const string indexName)
 {
 
 	FB_MESSAGE(Input, ThrowStatusWrapper,
@@ -143,12 +134,12 @@ void FTSIndexRepository::dropIndex (
 
 	input.clear();
 	
-	input->indexName.length = indexName.length();
+	input->indexName.length = static_cast<ISC_USHORT>(indexName.length());
 	indexName.copy(input->indexName.str, input->indexName.length);
 
 	// check for index existence
 	if (hasIndex(status, att, tra, sqlDialect, indexName)) {
-		string error_message = string_format("Index \"%s\" not exists", indexName);
+		const string error_message = string_format("Index \"%s\" not exists", indexName);
 		ISC_STATUS statusVector[] = {
 		   isc_arg_gds, isc_random,
 		   isc_arg_string, (ISC_STATUS)error_message.c_str(),
@@ -184,9 +175,9 @@ void FTSIndexRepository::setIndexStatus (
 	ThrowStatusWrapper* status,
 	IAttachment* att,
 	ITransaction* tra,
-	unsigned int sqlDialect,
-	string indexName,
-	string indexStatus)
+	const unsigned int sqlDialect,
+	const string indexName,
+	const string indexStatus)
 {
 	FB_MESSAGE(Input, ThrowStatusWrapper,
 		(FB_INTL_VARCHAR(4, CS_UTF8), indexStatus)
@@ -195,10 +186,10 @@ void FTSIndexRepository::setIndexStatus (
 
 	input.clear();
 
-	input->indexName.length = indexName.length();
+	input->indexName.length = static_cast<ISC_USHORT>(indexName.length());
 	indexName.copy(input->indexName.str, input->indexName.length);
 
-	input->indexStatus.length = indexStatus.length();
+	input->indexStatus.length = static_cast<ISC_USHORT>(indexStatus.length());
 	indexStatus.copy(input->indexStatus.str, input->indexStatus.length);
 
 	att->execute(
@@ -229,8 +220,8 @@ bool FTSIndexRepository::hasIndex (
 	ThrowStatusWrapper* status, 
 	IAttachment* att, 
 	ITransaction* tra, 
-	unsigned int sqlDialect, 
-	string indexName)
+	const unsigned int sqlDialect, 
+	const string indexName)
 {
 	FB_MESSAGE(Input, ThrowStatusWrapper,
 		(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
@@ -242,7 +233,7 @@ bool FTSIndexRepository::hasIndex (
 
 	input.clear();
 
-	input->indexName.length = indexName.length();
+	input->indexName.length = static_cast<ISC_USHORT>(indexName.length());
 	indexName.copy(input->indexName.str, input->indexName.length);
 
 	if (!stmt_exists_index.hasData()) {
@@ -293,8 +284,8 @@ FTSIndex FTSIndexRepository::getIndex (
 	ThrowStatusWrapper* status, 
 	IAttachment* att, 
 	ITransaction* tra, 
-	unsigned int sqlDialect, 
-	string indexName)
+	const unsigned int sqlDialect, 
+	const string indexName)
 {
 	FTSIndex ftsIndex;
 
@@ -311,7 +302,7 @@ FTSIndex FTSIndexRepository::getIndex (
 
 	input.clear();
 
-	input->indexName.length = indexName.length();
+	input->indexName.length = static_cast<ISC_USHORT>(indexName.length());
 	indexName.copy(input->indexName.str, input->indexName.length);
 
 	if (!stmt_get_index.hasData()) {
@@ -348,7 +339,7 @@ FTSIndex FTSIndexRepository::getIndex (
 	}
 	rs->close(status);
 	if (!foundFlag) {
-		string error_message = string_format("Index \"%s\" not exists", indexName);
+		const string error_message = string_format("Index \"%s\" not exists", indexName);
 		ISC_STATUS statusVector[] = {
 		   isc_arg_gds, isc_random,
 		   isc_arg_string, (ISC_STATUS)error_message.c_str(),
@@ -374,7 +365,7 @@ list<FTSIndex> FTSIndexRepository::getAllIndexes (
 	ThrowStatusWrapper* status, 
 	IAttachment* att, 
 	ITransaction* tra, 
-	unsigned int sqlDialect)
+	const unsigned int sqlDialect)
 {
 
 	FB_MESSAGE(Output, ThrowStatusWrapper,
@@ -441,8 +432,8 @@ list<FTSIndexSegment> FTSIndexRepository::getIndexSegments (
 	ThrowStatusWrapper* status, 
 	IAttachment* att, 
 	ITransaction* tra, 
-	unsigned int sqlDialect, 
-	string indexName)
+	const unsigned int sqlDialect, 
+	const string indexName)
 {
 	FB_MESSAGE(Input, ThrowStatusWrapper,
 		(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
@@ -457,7 +448,7 @@ list<FTSIndexSegment> FTSIndexRepository::getIndexSegments (
 
 	input.clear();
 
-	input->indexName.length = indexName.length();
+	input->indexName.length = static_cast<ISC_USHORT>(indexName.length());
 	indexName.copy(input->indexName.str, input->indexName.length);
 
 	if (!stmt_index_segments.hasData()) {
@@ -512,7 +503,7 @@ list<FTSIndexSegment> FTSIndexRepository::getAllIndexSegments (
 	ThrowStatusWrapper* status, 
 	IAttachment* att, 
 	ITransaction* tra,
-	unsigned int sqlDialect)
+	const unsigned int sqlDialect)
 {
 
 	FB_MESSAGE(Output, ThrowStatusWrapper,
@@ -589,8 +580,8 @@ list<FTSIndexSegment> FTSIndexRepository::getIndexSegmentsByRelation (
 	ThrowStatusWrapper* status, 
 	IAttachment* att, 
 	ITransaction* tra, 
-	unsigned int sqlDialect,
-	string relationName)
+	const unsigned int sqlDialect,
+	const string relationName)
 {
 	FB_MESSAGE(Input, ThrowStatusWrapper,
 		(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
@@ -607,7 +598,7 @@ list<FTSIndexSegment> FTSIndexRepository::getIndexSegmentsByRelation (
 
 	input.clear();
 
-	input->relationName.length = relationName.length();
+	input->relationName.length = static_cast<ISC_USHORT>(relationName.length());
 	relationName.copy(input->relationName.str, input->relationName.length);
 
 	if (!stmt_rel_segments.hasData()) {
@@ -677,11 +668,11 @@ void FTSIndexRepository::addIndexField(
 	ThrowStatusWrapper* status,
 	IAttachment* att,
 	ITransaction* tra,
-	unsigned int sqlDialect,
-	string indexName,
-	string relationName,
-	string fieldName,
-	double boost)
+	const unsigned int sqlDialect,
+	const string indexName,
+	const string relationName,
+	const string fieldName,
+	const double boost)
 {
 	FB_MESSAGE(Input, ThrowStatusWrapper,
 		(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
@@ -692,13 +683,13 @@ void FTSIndexRepository::addIndexField(
 
 	input.clear();
 
-	input->indexName.length = indexName.length();
+	input->indexName.length = static_cast<ISC_USHORT>(indexName.length());
 	indexName.copy(input->indexName.str, input->indexName.length);
 
-	input->relationName.length = relationName.length();
+	input->relationName.length = static_cast<ISC_USHORT>(relationName.length());
 	relationName.copy(input->relationName.str, input->relationName.length);
 
-	input->fieldName.length = fieldName.length();
+	input->fieldName.length = static_cast<ISC_USHORT>(fieldName.length());
 	fieldName.copy(input->fieldName.str, input->fieldName.length);
 
 	if (boost == 1.0) {
@@ -710,7 +701,7 @@ void FTSIndexRepository::addIndexField(
 
 	// check for index existence
 	if (!hasIndex(status, att, tra, sqlDialect, indexName)) {
-		string error_message = string_format("Index \"%s\" not exists", indexName);
+		const string error_message = string_format("Index \"%s\" not exists", indexName);
 		ISC_STATUS statusVector[] = {
 		   isc_arg_gds, isc_random,
 		   isc_arg_string, (ISC_STATUS)error_message.c_str(),
@@ -721,7 +712,7 @@ void FTSIndexRepository::addIndexField(
 
 	// segment existence check
 	if (hasIndexSegment(status, att, tra, sqlDialect, indexName, relationName, fieldName)) {
-		string error_message = string_format("Segment for \"%s\".\"%s\" already exists in index \"%s\"", relationName, fieldName, indexName);
+		const string error_message = string_format("Segment for \"%s\".\"%s\" already exists in index \"%s\"", relationName, fieldName, indexName);
 		ISC_STATUS statusVector[] = {
 		   isc_arg_gds, isc_random,
 		   isc_arg_string, (ISC_STATUS)error_message.c_str(),
@@ -732,7 +723,7 @@ void FTSIndexRepository::addIndexField(
 
 	// checking if a table exists
 	if (!relationHelper.relationExists(status, att, tra, sqlDialect, relationName)) {
-		string error_message = string_format("Table \"%s\" not exists.", relationName);
+		const string error_message = string_format("Table \"%s\" not exists.", relationName);
 		ISC_STATUS statusVector[] = {
 		   isc_arg_gds, isc_random,
 		   isc_arg_string, (ISC_STATUS)error_message.c_str(),
@@ -743,7 +734,7 @@ void FTSIndexRepository::addIndexField(
 
 	// field existence check
 	if (!relationHelper.fieldExists(status, att, tra, sqlDialect, relationName, fieldName)) {
-		string error_message = string_format("Field \"%s\" not exists in table \"%s\".", fieldName, relationName);
+		const string error_message = string_format("Field \"%s\" not exists in table \"%s\".", fieldName, relationName);
 		ISC_STATUS statusVector[] = {
 		   isc_arg_gds, isc_random,
 		   isc_arg_string, (ISC_STATUS)error_message.c_str(),
@@ -783,10 +774,10 @@ void FTSIndexRepository::dropIndexField(
 	ThrowStatusWrapper* status,
 	IAttachment* att,
 	ITransaction* tra,
-	unsigned int sqlDialect,
-	string indexName,
-	string relationName,
-	string fieldName)
+	const unsigned int sqlDialect,
+	const string indexName,
+	const string relationName,
+	const string fieldName)
 {
 	FB_MESSAGE(Input, ThrowStatusWrapper,
 		(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
@@ -796,18 +787,18 @@ void FTSIndexRepository::dropIndexField(
 
 	input.clear();
 
-	input->indexName.length = indexName.length();
+	input->indexName.length = static_cast<ISC_USHORT>(indexName.length());
 	indexName.copy(input->indexName.str, input->indexName.length);
 
-	input->relationName.length = relationName.length();
+	input->relationName.length = static_cast<ISC_USHORT>(relationName.length());
 	relationName.copy(input->relationName.str, input->relationName.length);
 
-	input->fieldName.length = fieldName.length();
+	input->fieldName.length = static_cast<ISC_USHORT>(fieldName.length());
 	fieldName.copy(input->fieldName.str, input->fieldName.length);
 
 	// check for index existence
 	if (!hasIndex(status, att, tra, sqlDialect, indexName)) {
-		string error_message = string_format("Index \"%s\" not exists", indexName);
+		const string error_message = string_format("Index \"%s\" not exists", indexName);
 		ISC_STATUS statusVector[] = {
 		   isc_arg_gds, isc_random,
 		   isc_arg_string, (ISC_STATUS)error_message.c_str(),
@@ -818,7 +809,7 @@ void FTSIndexRepository::dropIndexField(
 
 	// segment existence check
 	if (!hasIndexSegment(status, att, tra, sqlDialect, indexName, relationName, fieldName)) {
-		string error_message = string_format("Segment for \"%s\".\"%s\" not exists in index \"%s\"", relationName, fieldName, indexName);
+		const string error_message = string_format("Segment for \"%s\".\"%s\" not exists in index \"%s\"", relationName, fieldName, indexName);
 		ISC_STATUS statusVector[] = {
 		   isc_arg_gds, isc_random,
 		   isc_arg_string, (ISC_STATUS)error_message.c_str(),
@@ -859,10 +850,10 @@ bool FTSIndexRepository::hasIndexSegment(
 	ThrowStatusWrapper* status,
 	IAttachment* att,
 	ITransaction* tra,
-	unsigned int sqlDialect,
-	string indexName,
-	string relationName,
-	string fieldName)
+	const unsigned int sqlDialect,
+	const string indexName,
+	const string relationName,
+	const string fieldName)
 {
 	FB_MESSAGE(Input, ThrowStatusWrapper,
 		(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
@@ -876,13 +867,13 @@ bool FTSIndexRepository::hasIndexSegment(
 
 	input.clear();
 
-	input->indexName.length = indexName.length();
+	input->indexName.length = static_cast<ISC_USHORT>(indexName.length());
 	indexName.copy(input->indexName.str, input->indexName.length);
 
-	input->relationName.length = relationName.length();
+	input->relationName.length = static_cast<ISC_USHORT>(relationName.length());
 	relationName.copy(input->relationName.str, input->relationName.length);
 
-	input->fieldName.length = fieldName.length();
+	input->fieldName.length = static_cast<ISC_USHORT>(fieldName.length());
 	fieldName.copy(input->fieldName.str, input->fieldName.length);
 
 	AutoRelease<IStatement> stmt(att->prepare(
@@ -928,8 +919,8 @@ list<string> FTSIndexRepository::getFieldsByRelation (
 	ThrowStatusWrapper* status,
 	IAttachment* att,
 	ITransaction* tra,
-	unsigned int sqlDialect,
-	string relationName)
+	const unsigned int sqlDialect,
+	const string relationName)
 {
 	FB_MESSAGE(Input, ThrowStatusWrapper,
 		(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
@@ -941,7 +932,7 @@ list<string> FTSIndexRepository::getFieldsByRelation (
 
 	input.clear();
 
-	input->relationName.length = relationName.length();
+	input->relationName.length = static_cast<ISC_USHORT>(relationName.length());
 	relationName.copy(input->relationName.str, input->relationName.length);
 
 	AutoRelease<IStatement> stmt(att->prepare(
@@ -990,9 +981,9 @@ list<string> FTSIndexRepository::makeTriggerSourceByRelation (
 	ThrowStatusWrapper* status,
 	IAttachment* att,
 	ITransaction* tra,
-	unsigned int sqlDialect,
-	string relationName,
-	bool multiAction)
+	const unsigned int sqlDialect,
+	const string relationName,
+	const bool multiAction)
 {
 	list<string> triggerSources;
 
@@ -1005,7 +996,7 @@ list<string> FTSIndexRepository::makeTriggerSourceByRelation (
 	string updatingCondition;
 	string deletingCondition;
 	for (auto fieldName : fieldNames) {
-		string metaFieldName = escapeMetaName(sqlDialect, fieldName);
+		const string metaFieldName = escapeMetaName(sqlDialect, fieldName);
 
 		if (!insertingCondition.empty()) {
 			insertingCondition += "\n      OR ";
