@@ -700,10 +700,11 @@ FB_UDR_BEGIN_PROCEDURE(getFieldInfos)
 		}
 		const string indexName(in->indexName.str, in->indexName.length);
 
-		String segmentName;
+		String unicodeSegmentName;
+		string segmentName;
 		if (!in->segmentNameNull) {
-			string segName(in->segmentName.str, in->segmentName.length);
-			segmentName = StringUtils::toUnicode(segName);
+			segmentName.assign(in->segmentName.str, in->segmentName.length);
+			unicodeSegmentName = StringUtils::toUnicode(segmentName);
 		}
 
 		const string ftsDirectory = getFtsDirectory(context);
@@ -747,17 +748,37 @@ FB_UDR_BEGIN_PROCEDURE(getFieldInfos)
 			auto ftsIndexDir = FSDirectory::open(unicodeIndexDir);
 			auto segmentInfos = newLucene<SegmentInfos>();
 			segmentInfos->read(ftsIndexDir);
+		
 			SegmentInfoPtr segmentInfo = nullptr;
-			for (int32_t segNo = 0; segNo < segmentInfos->size(); segNo++) {
+			if (unicodeSegmentName.empty()) {
+				int32_t segNo = segmentInfos->size() - 1;
 				segmentInfo = segmentInfos->info(segNo);
-				if (segmentInfo->name == segmentName)
-					break;
 			}
+			else {
+				for (int32_t segNo = 0; segNo < segmentInfos->size(); segNo++) {
+					const auto curSegmentInfo = segmentInfos->info(segNo);
+					if (curSegmentInfo->name == unicodeSegmentName) {
+						segmentInfo = curSegmentInfo;
+						break;
+					}
+				}
+			}
+			
+			if (segmentInfo == nullptr) {
+				const string error_message = string_format("Segment \"%s\" not found", segmentName);
+				ISC_STATUS statusVector[] = {
+					isc_arg_gds, isc_random,
+					isc_arg_string, (ISC_STATUS)error_message.c_str(),
+					isc_arg_end
+				};
+				throw FbException(status, statusVector);
+			}
+			
 			DirectoryPtr ftsFieldDir(ftsIndexDir);
 			if (segmentInfo->getUseCompoundFile()) {
 				ftsFieldDir = newLucene<CompoundFileReader>(ftsIndexDir, segmentInfo->name + L"." + IndexFileNames::COMPOUND_FILE_EXTENSION());
 			}
-			fieldInfos = newLucene<FieldInfos>(ftsIndexDir, segmentInfo->name + L"." + IndexFileNames::FIELD_INFOS_EXTENSION());
+			fieldInfos = newLucene<FieldInfos>(ftsFieldDir, segmentInfo->name + L"." + IndexFileNames::FIELD_INFOS_EXTENSION());
 
 		}
 		catch (const LuceneException& e) {
@@ -790,6 +811,9 @@ FB_UDR_BEGIN_PROCEDURE(getFieldInfos)
 
 		out->fieldNumberNull = false;
 		out->fieldNumber = static_cast<ISC_SHORT>(fieldInfo->number);
+
+		out->isIndexedNull = false;
+		out->isIndexed = fieldInfo->isIndexed;
 
 		out->storeTermVectorNull = false;
 		out->storeTermVector = fieldInfo->storeTermVector;
