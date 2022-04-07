@@ -7,7 +7,6 @@
 #include <algorithm>
 
 using namespace std;
-using namespace Firebird;
 
 namespace Firebird
 {
@@ -38,7 +37,7 @@ namespace Firebird
 	}
 
 	template <class StatusType> 
-	void blob_set_string(StatusType* status, IBlob* blob, const string str)
+	void blob_set_string(StatusType* status, IBlob* blob, const string &str)
 	{
 		size_t str_len = str.length();
 		size_t offset = 0;
@@ -76,6 +75,25 @@ namespace Firebird
 			p += length;
 		};
 		return sql_dialect;
+	}
+
+	/// <summary>
+	/// Escapes the name of the metadata object depending on the SQL dialect. 
+	/// </summary>
+	/// 
+	/// <param name="sqlDialect">SQL dialect</param>
+	/// <param name="name">Metadata object name</param>
+	/// 
+	/// <returns>Returns the escaped name of the metadata object.</returns>
+	static inline string escapeMetaName(const unsigned int sqlDialect, const string& name)
+	{
+		switch (sqlDialect) {
+		case 1:
+			return name;
+		case 3:
+		default:
+			return "\"" + name + "\"";
+		}
 	}
 
 	template <class StatusType>

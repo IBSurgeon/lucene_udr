@@ -16,8 +16,7 @@
 
 using namespace Firebird;
 using namespace Lucene;
-
-
+using namespace LuceneUDR;
 
 /***
 PROCEDURE FTS$LOG_CHANGE (
@@ -40,7 +39,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogChange)
 	{
 	}
 
-	LuceneFTS::FTSLogRepository logRepository;
+	FTSLogRepository logRepository;
 
     FB_UDR_EXECUTE_PROCEDURE
 	{
@@ -101,7 +100,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsClearLog)
 	{
 	}
 
-	LuceneFTS::FTSLogRepository logRepository;
+	FTSLogRepository logRepository;
 
 	FB_UDR_EXECUTE_PROCEDURE
 	{
@@ -142,10 +141,10 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 		clearPreparedStatements();
 	}
 
-	LuceneFTS::FTSIndexRepository indexRepository;
-	LuceneFTS::RelationHelper relationHelper;
-	LuceneFTS::FTSLogRepository logRepository;
-	LuceneFTS::LuceneAnalyzerFactory analyzerFactory;
+	FTSIndexRepository indexRepository;
+	RelationHelper relationHelper;
+	FTSLogRepository logRepository;
+	LuceneAnalyzerFactory analyzerFactory;
 	map<string, IStatement*> prepareStmtMap;
 
 	void clearPreparedStatements() {
@@ -162,12 +161,12 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 
 		const unsigned int sqlDialect = getSqlDialect(status, att);
 
-		const string ftsDirectory = LuceneFTS::getFtsDirectory(context);
+		const string ftsDirectory = getFtsDirectory(context);
 
 		const char* fbCharset = context->getClientCharSet();
 		const string icuCharset = getICICharset(fbCharset);
 
-		map<string, LuceneFTS::FTSRelation> relationsByName;
+		map<string, FTSRelation> relationsByName;
 		procedure->clearPreparedStatements();
 		
 		// get all indexes
@@ -192,7 +191,7 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 				}
 				else {
 					// if there is no such table yet, add it
-					LuceneFTS::FTSRelation ftsRelation(ftsSegment.relationName);
+					FTSRelation ftsRelation(ftsSegment.relationName);
 					// add a new index and segment to it
 					ftsRelation.addIndex(ftsIndex);
 					ftsRelation.addSegment(ftsSegment);
@@ -230,7 +229,7 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 						}
 					}
 				}
-				const string sql = LuceneFTS::RelationHelper::buildSqlSelectFieldValues(sqlDialect, relationName, fieldNames, true);
+				const string sql = RelationHelper::buildSqlSelectFieldValues(sqlDialect, relationName, fieldNames, true);
 				ftsRelation.setSql(ftsIndex.indexName, sql);
 			}
 			relationsByName.insert_or_assign(relationName, ftsRelation);
@@ -287,7 +286,7 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 			auto r = relationsByName.find(relationName);
 			if (r != relationsByName.end()) {
 				// for each table we get a list of indexes 
-				LuceneFTS::FTSRelation ftsRelation = r->second;
+				FTSRelation ftsRelation = r->second;
 				auto ftsIndexes = ftsRelation.getIndexes();
 				
 				for (auto& pIndex : ftsIndexes) {
@@ -384,7 +383,7 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 									auto iSegment = std::find_if(
 										ftsSegments.begin(), 
 										ftsSegments.end(), 
-										[&field](LuceneFTS::FTSIndexSegment ftsSegment) { return ftsSegment.fieldName == field.fieldName; }
+										[&field](FTSIndexSegment ftsSegment) { return ftsSegment.fieldName == field.fieldName; }
 									);
 									if (iSegment != ftsSegments.end()) {
 										luceneField->setBoost((*iSegment).boost);
@@ -475,8 +474,8 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 	{
 	}
 
-	LuceneFTS::FTSIndexRepository indexRepository;
-	LuceneFTS::LuceneAnalyzerFactory analyzerFactory;
+	FTSIndexRepository indexRepository;
+	LuceneAnalyzerFactory analyzerFactory;
 
 	FB_UDR_EXECUTE_PROCEDURE
 	{
@@ -506,7 +505,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 			explainFlag = in->explain;
 		}
 
-		const string ftsDirectory = LuceneFTS::getFtsDirectory(context);
+		const string ftsDirectory = getFtsDirectory(context);
 
 
 		att.reset(context->getAttachment(status));
@@ -546,7 +545,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 			auto segments = procedure->indexRepository.getIndexSegments(status, att, tra, sqlDialect, indexName);
 			if (!relationName.empty()) {
 				// if a table name is given, then select only segments with this table
-				auto segmentsByRelation = LuceneFTS::FTSIndexRepository::groupIndexSegmentsByRelation(segments);
+				auto segmentsByRelation = FTSIndexRepository::groupIndexSegmentsByRelation(segments);
 				auto el = segmentsByRelation.find(relationName);
 				if (el == segmentsByRelation.end()) {
 					const string error_message = string_format("Relation \"%s\" not exists in index \"%s\".", relationName, indexName);

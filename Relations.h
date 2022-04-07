@@ -2,6 +2,7 @@
 #define FTS_RELATIONS_H
 
 #include "LuceneUdr.h"
+#include "FBUtils.h"
 #include <string>
 #include <sstream>
 #include <list>
@@ -9,7 +10,7 @@
 using namespace Firebird;
 using namespace std;
 
-namespace LuceneFTS
+namespace LuceneUDR
 {
 	class RelationHelper final
 	{
@@ -43,7 +44,7 @@ namespace LuceneFTS
 			IAttachment* att,
 			ITransaction* tra,
 			const unsigned int sqlDialect,
-			const string relationName);
+			const string &relationName);
 
 		/// <summary>
 		/// Checks if the specified column exists in the relation. 
@@ -62,27 +63,8 @@ namespace LuceneFTS
 			IAttachment* att,
 			ITransaction* tra,
 			const unsigned int sqlDialect,
-			const string relationName,
-			const string fieldName);
-
-		/// <summary>
-		/// Escapes the name of the metadata object depending on the SQL dialect. 
-		/// </summary>
-		/// 
-		/// <param name="sqlDialect">SQL dialect</param>
-		/// <param name="name">Metadata object name</param>
-		/// 
-		/// <returns>Returns the escaped name of the metadata object.</returns>
-		static inline string escapeMetaName(const unsigned int sqlDialect, const string name)
-		{
-			switch (sqlDialect) {
-			case 1:
-				return name;
-			case 3:
-			default:
-				return "\"" + name + "\"";
-			}
-		}
+			const string &relationName,
+			const string &fieldName);
 
 		/// <summary>
 		/// Builds an SQL query to retrieve field values. 
@@ -97,7 +79,7 @@ namespace LuceneFTS
 		/// <returns>Returns the text of the SQL query.</returns>
 		static inline string buildSqlSelectFieldValues(
 			const unsigned int sqlDialect, 
-			const string relationName, 
+			const string &relationName, 
 			list<string> fieldNames, 
 			const bool whereDbKey = false)
 		{
@@ -105,9 +87,9 @@ namespace LuceneFTS
 			ss << "SELECT\n";
 			ss << "  RDB$DB_KEY";
 			for (const auto fieldName : fieldNames) {
-				ss << ",\n  " << RelationHelper::escapeMetaName(sqlDialect, fieldName);
+				ss << ",\n  " << escapeMetaName(sqlDialect, fieldName);
 			}
-			ss << "\nFROM " << RelationHelper::escapeMetaName(sqlDialect, relationName);
+			ss << "\nFROM " << escapeMetaName(sqlDialect, relationName);
 			if (whereDbKey) {
 				ss << "\nWHERE RDB$DB_KEY = ?";
 			}

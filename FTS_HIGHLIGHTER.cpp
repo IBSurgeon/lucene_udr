@@ -17,6 +17,7 @@
 
 using namespace Firebird;
 using namespace Lucene;
+using namespace LuceneUDR;
 
 /***
 FUNCTION FTS$BEST_FRAGMENT (
@@ -52,7 +53,7 @@ FB_UDR_BEGIN_FUNCTION(bestFragementHighligh)
 	{
 	}
 
-	LuceneFTS::LuceneAnalyzerFactory analyzerFactory;
+	LuceneAnalyzerFactory analyzerFactory;
 
 	FB_UDR_EXECUTE_FUNCTION
 	{
@@ -73,7 +74,7 @@ FB_UDR_BEGIN_FUNCTION(bestFragementHighligh)
 			queryStr.assign(in->query.str, in->query.length);
 		}
 
-		string analyzerName = LuceneFTS::DEFAULT_ANALYZER_NAME;
+		string analyzerName = DEFAULT_ANALYZER_NAME;
 		if (!in->analyzer_nameNull) {
 			analyzerName.assign(in->analyzer_name.str, in->analyzer_name.length);
 		}
@@ -189,7 +190,7 @@ FB_UDR_BEGIN_PROCEDURE(bestFragementsHighligh)
 	{
 	}
 
-	LuceneFTS::LuceneAnalyzerFactory analyzerFactory;
+	LuceneAnalyzerFactory analyzerFactory;
 
 	FB_UDR_EXECUTE_PROCEDURE
 	{
@@ -210,7 +211,7 @@ FB_UDR_BEGIN_PROCEDURE(bestFragementsHighligh)
 			queryStr.assign(in->query.str, in->query.length);
 		}
 
-		string analyzerName = LuceneFTS::DEFAULT_ANALYZER_NAME;
+		string analyzerName = DEFAULT_ANALYZER_NAME;
 		if (!in->analyzer_nameNull) {
 			analyzerName.assign(in->analyzer_name.str, in->analyzer_name.length);
 		}

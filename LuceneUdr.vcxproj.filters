@@ -69,7 +69,7 @@
     <ClInclude Include="FBAutoPtr.h">
       <Filter>Header files</Filter>
     </ClInclude>
-    <ClInclude Include="FbFieldInfo.h">
+    <ClInclude Include="FBFieldInfo.h">
       <Filter>Header files</Filter>
     </ClInclude>
     <ClInclude Include="FBUtils.h">
@@ -85,6 +85,9 @@
       <Filter>Header files</Filter>
     </ClInclude>
     <ClInclude Include="StringFormatter.h">
+      <Filter>Header files</Filter>
+    </ClInclude>
+    <ClInclude Include="LuceneFiles.h">
       <Filter>Header files</Filter>
     </ClInclude>
   </ItemGroup>

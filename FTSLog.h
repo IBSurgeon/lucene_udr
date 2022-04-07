@@ -6,7 +6,7 @@
 using namespace Firebird;
 using namespace std;
 
-namespace LuceneFTS
+namespace LuceneUDR
 {
 
 	class FTSLogRepository final
@@ -44,9 +44,9 @@ namespace LuceneFTS
 			IAttachment* att,
 			ITransaction* tra,
 			const unsigned int sqlDialect,
-			const string relationName,
-			const string recId,
-			const string changeType);
+			const string &relationName,
+			const string &recId,
+			const string &changeType);
 
 
 		/// <summary>

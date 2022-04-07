@@ -23,7 +23,7 @@
 using namespace std;
 using namespace Lucene;
 
-namespace LuceneFTS {
+namespace LuceneUDR {
 
 	struct ci_more
 	{
@@ -73,12 +73,12 @@ namespace LuceneFTS {
 			);
 		}
 
-		bool hasAnalyzer(const string analyzerName)
+		bool hasAnalyzer(const string &analyzerName)
 		{
 			return (factories.find(analyzerName) != factories.end());
 		}
 
-		AnalyzerPtr createAnalyzer(ThrowStatusWrapper* status, const string analyzerName)
+		AnalyzerPtr createAnalyzer(ThrowStatusWrapper* status, const string &analyzerName)
 		{
 			auto pFactory = factories.find(analyzerName);
 			if (pFactory == factories.end()) {

@@ -13,7 +13,7 @@ using namespace Firebird;
 using namespace std;
 using namespace Lucene;
 
-namespace LuceneFTS
+namespace LuceneUDR
 {
 	/// <summary>
 	/// Full-text index metadata.
@@ -57,7 +57,7 @@ namespace LuceneFTS
 	/// <returns>Full path to full-text index directory</returns>
 	string getFtsDirectory(IExternalContext* context);
 
-	inline bool createIndexDirectory(const string indexDir)
+	inline bool createIndexDirectory(const string &indexDir)
 	{
 		auto indexDirUnicode = StringUtils::toUnicode(indexDir);
 		if (!FileUtils::isDirectory(indexDirUnicode)) {
@@ -66,7 +66,7 @@ namespace LuceneFTS
 		return true;
 	}
 
-	inline bool createIndexDirectory(const String indexDir)
+	inline bool createIndexDirectory(const String &indexDir)
 	{
 		if (!FileUtils::isDirectory(indexDir)) {
 			return FileUtils::createDirectory(indexDir);
@@ -74,7 +74,7 @@ namespace LuceneFTS
 		return true;
 	}
 
-	inline bool removeIndexDirectory(const string indexDir)
+	inline bool removeIndexDirectory(const string &indexDir)
 	{
 		auto indexDirUnicode = StringUtils::toUnicode(indexDir);
 		if (FileUtils::isDirectory(indexDirUnicode)) {
@@ -83,7 +83,7 @@ namespace LuceneFTS
 		return true;
 	}
 
-	inline bool removeIndexDirectory(const String indexDir)
+	inline bool removeIndexDirectory(const String &indexDir)
 	{
 		if (FileUtils::isDirectory(indexDir)) {
 			return FileUtils::removeDirectory(indexDir);
@@ -113,7 +113,7 @@ namespace LuceneFTS
 		/// </summary>
 		/// 
 		/// <param name="indexName">Index name</param>
-		void createRelationSegmentsList(const string indexName)
+		void createRelationSegmentsList(const string &indexName)
 		{
 			auto r = _segments.find(indexName);
 			if (r == _segments.end()) {
@@ -180,7 +180,7 @@ namespace LuceneFTS
 		/// <param name="indexName">Index name</param>
 		/// 
 		/// <returns>SQL query text</returns>
-		const string getSql(const string indexName) {
+		const string getSql(const string &indexName) {
 			return _sqls[indexName];
 		}
 
@@ -202,7 +202,7 @@ namespace LuceneFTS
 		/// <param name="indexName">Index name</param>
 		/// 
 		/// <returns>List of full-text index segments</returns>
-		FTSIndexSegmentList getSegmentsByIndexName(const string indexName)
+		FTSIndexSegmentList getSegmentsByIndexName(const string &indexName)
 		{
 			return _segments[indexName];
 		}
@@ -255,9 +255,9 @@ namespace LuceneFTS
 			IAttachment* att,
 			ITransaction* tra,
 			const unsigned int sqlDialect,
-			const string indexName,
-			const string analyzerName,
-			const string description);
+			const string &indexName,
+			const string &analyzerName,
+			const string &description);
 
 		/// <summary>
 		/// Remove a full-text index. 
@@ -273,7 +273,7 @@ namespace LuceneFTS
 			IAttachment* att,
 			ITransaction* tra,
 			const unsigned int sqlDialect,
-			const string indexName);
+			const string &indexName);
 
 		/// <summary>
 		/// Set the index status.
@@ -290,8 +290,8 @@ namespace LuceneFTS
 			IAttachment* att,
 			ITransaction* tra,
 			const unsigned int sqlDialect,
-			const string indexName,
-			const string indexStatus);
+			const string &indexName,
+			const string &indexStatus);
 
 		/// <summary>
 		/// Checks if an index with the given name exists.
@@ -309,7 +309,7 @@ namespace LuceneFTS
 			IAttachment* att, 
 			ITransaction* tra, 
 			const unsigned int sqlDialect, 
-			const string indexName);
+			const string &indexName);
 
 		/// <summary>
 		/// Returns index metadata by index name.
@@ -329,7 +329,7 @@ namespace LuceneFTS
 			IAttachment* att, 
 			ITransaction* tra, 
 			const unsigned int sqlDialect, 
-			const string indexName);
+			const string &indexName);
 
 		/// <summary>
 		/// Returns a list of indexes. 
@@ -363,7 +363,7 @@ namespace LuceneFTS
 			IAttachment* att, 
 			ITransaction* tra, 
 			const unsigned int sqlDialect, 
-			const string indexName);
+			const string &indexName);
 
 		/// <summary>
 		/// Returns all segments of all indexes, ordered by index name. 
@@ -397,7 +397,7 @@ namespace LuceneFTS
 			IAttachment* att, 
 			ITransaction* tra, 
 			const unsigned int sqlDialect, 
-			const string relationName);
+			const string &relationName);
 
 
 		/// <summary>
@@ -417,9 +417,9 @@ namespace LuceneFTS
 			IAttachment* att,
 			ITransaction* tra,
 			const unsigned int sqlDialect,
-			const string indexName,
-			const string relationName,
-			const string fieldName,
+			const string &indexName,
+			const string &relationName,
+			const string &fieldName,
 			const double boost);
 
 		/// <summary>
@@ -438,9 +438,9 @@ namespace LuceneFTS
 			IAttachment* att,
 			ITransaction* tra,
 			const unsigned int sqlDialect,
-			const string indexName,
-			const string relationName,
-			const string fieldName);
+			const string &indexName,
+			const string &relationName,
+			const string &fieldName);
 
 
 		/// <summary>
@@ -460,9 +460,9 @@ namespace LuceneFTS
 			IAttachment* att,
 			ITransaction* tra,
 			const unsigned int sqlDialect,
-			const string indexName,
-			const string relationName,
-			const string fieldName);
+			const string &indexName,
+			const string &relationName,
+			const string &fieldName);
 
 		/// <summary>
 		/// Groups index segments by relation names.
@@ -517,25 +517,6 @@ namespace LuceneFTS
 		}
 
 		/// <summary>
-		/// Escapes the name of the metadata object depending on the SQL dialect. 
-		/// </summary>
-		/// 
-		/// <param name="sqlDialect">SQL dialect</param>
-		/// <param name="name">Metadata object name</param>
-		/// 
-		/// <returns>Returns the escaped name of the metadata object.</returns>
-		static inline string escapeMetaName(const unsigned int sqlDialect, const string name)
-		{
-			switch (sqlDialect) {
-			case 1:
-				return name;
-			case 3:
-			default:
-				return "\"" + name + "\"";
-			}
-		}
-
-		/// <summary>
 		/// Returns a list of full-text index field names given the relation name.
 		/// </summary>
 		/// 
@@ -551,7 +532,7 @@ namespace LuceneFTS
 			IAttachment* att,
 			ITransaction* tra,
 			const unsigned int sqlDialect,
-			const string relationName);
+			const string &relationName);
 
 
 		/// <summary>
@@ -571,7 +552,7 @@ namespace LuceneFTS
 			IAttachment* att,
 			ITransaction* tra,
 			const unsigned int sqlDialect,
-			const string relationName,
+			const string &relationName,
 			const bool multiAction);
 	};
 }

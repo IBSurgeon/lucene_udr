@@ -12,7 +12,7 @@
 
 using namespace Firebird;
 using namespace Lucene;
-
+using namespace LuceneUDR;
 
 
 /***
@@ -41,7 +41,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsMakeTrigger)
 	{
 	}
 
-	LuceneFTS::FTSIndexRepository indexRepository;
+	FTSIndexRepository indexRepository;
 
 	FB_UDR_EXECUTE_PROCEDURE
 	{
@@ -134,7 +134,7 @@ FB_UDR_BEGIN_TRIGGER(trFtsLog)
 		triggerMetadata.reset(builder->getMetadata(status));
 	}
 
-	LuceneFTS::FTSIndexRepository indexRepository;
+	FTSIndexRepository indexRepository;
 
 	FB_UDR_EXECUTE_TRIGGER
 	{

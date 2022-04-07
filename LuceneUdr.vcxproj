@@ -33,10 +33,11 @@
     <ClInclude Include="EncodeUtils.h" />
     <ClInclude Include="FBAutoPtr.h" />
     <ClInclude Include="FBUtils.h" />
-    <ClInclude Include="FbFieldInfo.h" />
+    <ClInclude Include="FBFieldInfo.h" />
     <ClInclude Include="FTSIndex.h" />
     <ClInclude Include="FTSLog.h" />
     <ClInclude Include="LuceneAnalyzerFactory.h" />
+    <ClInclude Include="LuceneFiles.h" />
     <ClInclude Include="LuceneUdr.h" />
     <ClInclude Include="Relations.h" />
     <ClInclude Include="StringFormatter.h" />

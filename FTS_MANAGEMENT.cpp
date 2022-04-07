@@ -15,10 +15,12 @@
 
 using namespace Firebird;
 using namespace Lucene;
+using namespace LuceneUDR;
 
 /***
 FUNCTION FTS$GET_DIRECTORY ()
 RETURNS VARCHAR(255) CHARACTER SET UTF8
+DETERMINISTIC
 EXTERNAL NAME 'luceneudr!getFTSDirectory'
 ENGINE UDR;
 ***/
@@ -30,7 +32,7 @@ FB_UDR_BEGIN_FUNCTION(getFTSDirectory)
 
     FB_UDR_EXECUTE_FUNCTION
     {
-	    const string ftsDirectory = LuceneFTS::getFtsDirectory(context);
+	    const string ftsDirectory = getFtsDirectory(context);
 
 	    out->directoryNull = false;
 	    out->directory.length = static_cast<ISC_USHORT>(ftsDirectory.length());
@@ -58,7 +60,7 @@ FB_UDR_BEGIN_PROCEDURE(getAnalyzers)
     {
     }
 
-    LuceneFTS::LuceneAnalyzerFactory analyzerFactory;
+    LuceneAnalyzerFactory analyzerFactory;
 
 	FB_UDR_EXECUTE_PROCEDURE
 	{
@@ -108,8 +110,8 @@ FB_UDR_BEGIN_PROCEDURE(createIndex)
 	{
 	}
 
-	LuceneFTS::FTSIndexRepository indexRepository;
-	LuceneFTS::LuceneAnalyzerFactory analyzerFactory;
+	FTSIndexRepository indexRepository;
+	LuceneAnalyzerFactory analyzerFactory;
 
 	FB_UDR_EXECUTE_PROCEDURE
 	{
@@ -128,7 +130,7 @@ FB_UDR_BEGIN_PROCEDURE(createIndex)
 			analyzerName.assign(in->analyzer.str, in->analyzer.length);
 		}
 		if (analyzerName.empty()) {
-			analyzerName = LuceneFTS::DEFAULT_ANALYZER_NAME;
+			analyzerName = DEFAULT_ANALYZER_NAME;
 		}
 		else {
 			std::transform(analyzerName.begin(), analyzerName.end(), analyzerName.begin(), ::toupper);
@@ -151,9 +153,9 @@ FB_UDR_BEGIN_PROCEDURE(createIndex)
 		procedure->indexRepository.createIndex(status, att, tra, sqlDialect, indexName, analyzerName, description);
 
 		// Check if the index directory exists, and if it doesn't exist, create it. 
-		const string ftsDirectory = LuceneFTS::getFtsDirectory(context);
+		const string ftsDirectory = getFtsDirectory(context);
 		const auto unicodeIndexDir = FileUtils::joinPath(StringUtils::toUnicode(ftsDirectory), StringUtils::toUnicode(indexName));
-		if (!LuceneFTS::createIndexDirectory(unicodeIndexDir)) {
+		if (!createIndexDirectory(unicodeIndexDir)) {
 			    const string indexDir = StringUtils::toUTF8(unicodeIndexDir);
 				const string error_message = string_format("Cannot create index directory \"%s\".", indexDir);
 				ISC_STATUS statusVector[] = {
@@ -188,7 +190,7 @@ FB_UDR_BEGIN_PROCEDURE(dropIndex)
 	{
 	}
 
-	LuceneFTS::FTSIndexRepository indexRepository;
+	FTSIndexRepository indexRepository;
 
 	FB_UDR_EXECUTE_PROCEDURE
 	{
@@ -209,10 +211,10 @@ FB_UDR_BEGIN_PROCEDURE(dropIndex)
 
 		procedure->indexRepository.dropIndex(status, att, tra, sqlDialect, indexName);
 
-		const string ftsDirectory = LuceneFTS::getFtsDirectory(context);
+		const string ftsDirectory = getFtsDirectory(context);
 		const auto unicodeIndexDir = FileUtils::joinPath(StringUtils::toUnicode(ftsDirectory), StringUtils::toUnicode(indexName));
 		// If the directory exists, then delete it.
-		if (LuceneFTS::removeIndexDirectory(unicodeIndexDir)) {
+		if (removeIndexDirectory(unicodeIndexDir)) {
 			const string indexDir = StringUtils::toUTF8(unicodeIndexDir);
 			const string error_message = string_format("Cannot delete index directory \"%s\".", indexDir);
 			ISC_STATUS statusVector[] = {
@@ -250,7 +252,7 @@ FB_UDR_BEGIN_PROCEDURE(setIndexActive)
 	{
 	}
 
-	LuceneFTS::FTSIndexRepository indexRepository;
+	FTSIndexRepository indexRepository;
 
 	FB_UDR_EXECUTE_PROCEDURE
 	{
@@ -317,7 +319,7 @@ FB_UDR_BEGIN_PROCEDURE(addIndexField)
 	{
 	}
 
-	LuceneFTS::FTSIndexRepository indexRepository;
+	FTSIndexRepository indexRepository;
 
 	FB_UDR_EXECUTE_PROCEDURE
 	{
@@ -393,7 +395,7 @@ FB_UDR_BEGIN_PROCEDURE(dropIndexField)
 	{
 	}
 
-	LuceneFTS::FTSIndexRepository indexRepository;
+	FTSIndexRepository indexRepository;
 
 	FB_UDR_EXECUTE_PROCEDURE
 	{
@@ -462,9 +464,9 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 	{
 	}
 
-	LuceneFTS::FTSIndexRepository indexRepository;
-	LuceneFTS::RelationHelper relationHelper;
-	LuceneFTS::LuceneAnalyzerFactory analyzerFactory;
+	FTSIndexRepository indexRepository;
+	RelationHelper relationHelper;
+	LuceneAnalyzerFactory analyzerFactory;
 
 	FB_UDR_EXECUTE_PROCEDURE
 	{
@@ -481,7 +483,7 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 		}
 		const string indexName(in->index_name.str, in->index_name.length);
 
-		const string ftsDirectory = LuceneFTS::getFtsDirectory(context);
+		const string ftsDirectory = getFtsDirectory(context);
 		// check if there is a directory for full-text indexes
 		if (!FileUtils::isDirectory(StringUtils::toUnicode(ftsDirectory))) {
 			const string error_message = string_format("Fts directory \"%s\" not exists", ftsDirectory);
@@ -500,7 +502,7 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 			auto ftsIndex = procedure->indexRepository.getIndex(status, att, tra, sqlDialect, indexName);
 			// Check if the index directory exists, and if it doesn't exist, create it. 
 			const auto unicodeIndexDir = FileUtils::joinPath(StringUtils::toUnicode(ftsDirectory), StringUtils::toUnicode(indexName));
-			if (!LuceneFTS::createIndexDirectory(unicodeIndexDir)) {
+			if (!createIndexDirectory(unicodeIndexDir)) {
 				const string indexDir = StringUtils::toUTF8(unicodeIndexDir);
 				const string error_message = string_format("Cannot create index directory \"%s\".", indexDir);
 				ISC_STATUS statusVector[] = {
@@ -523,7 +525,7 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 				throw FbException(status, statusVector);
 			}
 
-			auto segmentsByRelation = LuceneFTS::FTSIndexRepository::groupIndexSegmentsByRelation(segments);
+			auto segmentsByRelation = FTSIndexRepository::groupIndexSegmentsByRelation(segments);
 
 			auto fsIndexDir = FSDirectory::open(unicodeIndexDir);
 			auto analyzer = procedure->analyzerFactory.createAnalyzer(status, ftsIndex.analyzer);
@@ -561,7 +563,7 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 					}
 					fieldNames.push_back(segment.fieldName);
 				}
-				const string sql = LuceneFTS::RelationHelper::buildSqlSelectFieldValues(sqlDialect, relationName, fieldNames);
+				const string sql = RelationHelper::buildSqlSelectFieldValues(sqlDialect, relationName, fieldNames);
 				const auto unicodeRelationName = StringUtils::toUnicode(relationName);
 
 				AutoRelease<IStatement> stmt(att->prepare(
@@ -620,7 +622,7 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 							auto iSegment = std::find_if(
 								segments.begin(),
 								segments.end(),
-								[&field](LuceneFTS::FTSIndexSegment segment) { return segment.fieldName == field.fieldName; }
+								[&field](FTSIndexSegment segment) { return segment.fieldName == field.fieldName; }
 							);
 							if (iSegment != segments.end()) {
 								auto segment = *iSegment;
@@ -679,8 +681,8 @@ FB_UDR_MESSAGE(InMessage,
 	{
 	}
 
-	LuceneFTS::FTSIndexRepository indexRepository;
-	LuceneFTS::LuceneAnalyzerFactory analyzerFactory;
+	FTSIndexRepository indexRepository;
+	LuceneAnalyzerFactory analyzerFactory;
 
 	FB_UDR_EXECUTE_PROCEDURE
 	{
@@ -697,7 +699,7 @@ FB_UDR_MESSAGE(InMessage,
 		}
 		const string indexName(in->index_name.str, in->index_name.length);
 
-		const string ftsDirectory = LuceneFTS::getFtsDirectory(context);
+		const string ftsDirectory = getFtsDirectory(context);
 		// check if there is a directory for full-text indexes
 		if (!FileUtils::isDirectory(StringUtils::toUnicode(ftsDirectory))) {
 			const string error_message = string_format("Fts directory \"%s\" not exists", ftsDirectory);
