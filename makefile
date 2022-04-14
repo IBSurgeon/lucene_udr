@@ -16,24 +16,20 @@ FIREBIRD=		/opt/firebird
 
 
 # ---------------------------------------------------------------------
-# GCC Installation Directory
-# ---------------------------------------------------------------------
-GCCDIR=		
-
-# ---------------------------------------------------------------------
 # General Compiler and linker Defines for Linux
 # ---------------------------------------------------------------------
-ARCH	:= $(shell arch)	
-CC=		    gcc
-CXX=		g++
-LINK=		g++
-LIB_LINK=   cc
+ARCH	 := $(shell arch)	
+CC       :=	gcc
+CXX      :=	g++
+LINK     :=	g++
+LIB_LINK := cc
 
 ifeq ($(ARCH),x86_64)
 CFLAGS= -pthread -ggdb -O3 -DLINUX -DAMD64 -fno-omit-frame-pointer -fno-builtin -pipe -MMD -fPIC -c -I. -I./include -DFIREBIRD -DHAVE_CONFIG_H -std=c++1z
 else
 CFLAGS=	-pthread -ggdb -O3 -fno-omit-frame-pointer -fno-builtin -pipe -MMD -fPIC -c -I. -I./include -DFIREBIRD -DHAVE_CONFIG_H -std=c++1z
 endif
+
 LINK_FLAGS=	-L. ./defs/udr_plugin.def -L$(FIREBIRD)/lib
 LIB_LINK_FLAGS=	-shared -fPIC -Wl,-s -Wl,-x
 LIB_LINK_SONAME:= -Wl,-soname,

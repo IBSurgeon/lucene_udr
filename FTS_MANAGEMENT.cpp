@@ -671,9 +671,9 @@ EXTERNAL NAME 'luceneudr!optimizeIndex'
 ENGINE UDR;
 ***/
 FB_UDR_BEGIN_PROCEDURE(optimizeIndex)
-FB_UDR_MESSAGE(InMessage,
-	(FB_INTL_VARCHAR(252, CS_UTF8), index_name)
-);
+	FB_UDR_MESSAGE(InMessage,
+		(FB_INTL_VARCHAR(252, CS_UTF8), index_name)
+	);
 
 	FB_UDR_CONSTRUCTOR
 		, indexRepository(context->getMaster())
