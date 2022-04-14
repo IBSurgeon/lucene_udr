@@ -27,7 +27,7 @@ ARCH	:= $(shell arch)
 CC=		    gcc
 CXX=		g++
 LINK=		g++
-LIB_LINK       = cc
+LIB_LINK=   cc
 
 ifeq ($(ARCH),x86_64)
 CFLAGS= -pthread -ggdb -O3 -DLINUX -DAMD64 -fno-omit-frame-pointer -fno-builtin -pipe -MMD -fPIC -c -I. -I./include -DFIREBIRD -DHAVE_CONFIG_H -std=c++1z
@@ -48,7 +48,7 @@ CHMOD = chmod a+rwx
 # ---------------------------------------------------------------------
 # Generic Compilation Rules 
 # ---------------------------------------------------------------------
-lucene_udr_objects = FTS.o FTSIndex.o FTSLog.o Relations.o
+lucene_udr_objects = $(patsubst %.cpp,%.o,$(wildcard *.cpp))
 
 .SUFFIXES: .o .cpp .c
 
