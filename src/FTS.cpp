@@ -3,7 +3,7 @@
 #include "FTSLog.h"
 #include "Relations.h"
 #include "FBUtils.h"
-#include "FbFieldInfo.h"
+#include "FBFieldInfo.h"
 #include "EncodeUtils.h"
 #include "lucene++/LuceneHeaders.h"
 #include "lucene++/FileUtils.h"

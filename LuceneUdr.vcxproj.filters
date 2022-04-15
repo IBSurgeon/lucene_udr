@@ -28,66 +28,69 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="FTS.cpp">
+    <ClCompile Include="src\FTS.cpp">
       <Filter>Source files</Filter>
     </ClCompile>
-    <ClCompile Include="FTSIndex.cpp">
+    <ClCompile Include="src\FTSIndex.cpp">
       <Filter>Source files</Filter>
     </ClCompile>
-    <ClCompile Include="Relations.cpp">
+    <ClCompile Include="src\Relations.cpp">
       <Filter>Source files</Filter>
     </ClCompile>
-    <ClCompile Include="FTSLog.cpp">
+    <ClCompile Include="src\FTSLog.cpp">
       <Filter>Source files</Filter>
     </ClCompile>
-    <ClCompile Include="FTS_MANAGEMENT.cpp">
+    <ClCompile Include="src\FTS_MANAGEMENT.cpp">
       <Filter>Source files</Filter>
     </ClCompile>
-    <ClCompile Include="EncodeUtils.cpp">
+    <ClCompile Include="src\EncodeUtils.cpp">
       <Filter>Source files</Filter>
     </ClCompile>
-    <ClCompile Include="FTS_STATISTICS.cpp">
+    <ClCompile Include="src\FTS_STATISTICS.cpp">
       <Filter>Source files</Filter>
     </ClCompile>
-    <ClCompile Include="FTS_HIGHLIGHTER.cpp">
+    <ClCompile Include="src\FTS_HIGHLIGHTER.cpp">
       <Filter>Source files</Filter>
     </ClCompile>
-    <ClCompile Include="FTS_TRIGGER_HELPER.cpp">
+    <ClCompile Include="src\FTS_TRIGGER_HELPER.cpp">
       <Filter>Source files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="LuceneUdr.h">
+    <ClInclude Include="src\LuceneUdr.h">
       <Filter>Header files</Filter>
     </ClInclude>
-    <ClInclude Include="FTSIndex.h">
+    <ClInclude Include="src\FTSIndex.h">
       <Filter>Header files</Filter>
     </ClInclude>
-    <ClInclude Include="Relations.h">
+    <ClInclude Include="src\Relations.h">
       <Filter>Header files</Filter>
     </ClInclude>
-    <ClInclude Include="FBAutoPtr.h">
+    <ClInclude Include="src\FBAutoPtr.h">
       <Filter>Header files</Filter>
     </ClInclude>
-    <ClInclude Include="FBFieldInfo.h">
+    <ClInclude Include="src\FBFieldInfo.h">
       <Filter>Header files</Filter>
     </ClInclude>
-    <ClInclude Include="FBUtils.h">
+    <ClInclude Include="src\FBUtils.h">
       <Filter>Header files</Filter>
     </ClInclude>
-    <ClInclude Include="EncodeUtils.h">
+    <ClInclude Include="src\EncodeUtils.h">
       <Filter>Header files</Filter>
     </ClInclude>
-    <ClInclude Include="FTSLog.h">
+    <ClInclude Include="src\FTSLog.h">
       <Filter>Header files</Filter>
     </ClInclude>
-    <ClInclude Include="LuceneAnalyzerFactory.h">
+    <ClInclude Include="src\LuceneAnalyzerFactory.h">
       <Filter>Header files</Filter>
     </ClInclude>
-    <ClInclude Include="StringFormatter.h">
+    <ClInclude Include="src\StringFormatter.h">
       <Filter>Header files</Filter>
     </ClInclude>
-    <ClInclude Include="LuceneFiles.h">
+    <ClInclude Include="src\LuceneFiles.h">
+      <Filter>Header files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\udr_build_no.h">
       <Filter>Header files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -95,13 +98,13 @@
     <None Include="defs\udr_plugin.def">
       <Filter>Source files</Filter>
     </None>
-    <None Include="fts%24install.sql">
+    <None Include="sql\fts%24install.sql">
       <Filter>SQL scripts</Filter>
     </None>
     <None Include="README.md">
       <Filter>Documentation</Filter>
     </None>
-    <None Include="fts$uninstall.sql">
+    <None Include="sql\fts$uninstall.sql">
       <Filter>SQL scripts</Filter>
     </None>
     <None Include="makefile">
@@ -115,7 +118,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="lucene_udr.rc">
+    <ResourceCompile Include="src\lucene_udr.rc">
       <Filter>Resource files</Filter>
     </ResourceCompile>
   </ItemGroup>

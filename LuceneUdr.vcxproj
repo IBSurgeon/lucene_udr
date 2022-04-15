@@ -19,40 +19,41 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="EncodeUtils.cpp" />
-    <ClCompile Include="FTS_TRIGGER_HELPER.cpp" />
-    <ClCompile Include="FTS.cpp" />
-    <ClCompile Include="FTSIndex.cpp" />
-    <ClCompile Include="FTSLog.cpp" />
-    <ClCompile Include="FTS_HIGHLIGHTER.cpp" />
-    <ClCompile Include="FTS_MANAGEMENT.cpp" />
-    <ClCompile Include="FTS_STATISTICS.cpp" />
-    <ClCompile Include="Relations.cpp" />
+    <ClCompile Include="src\EncodeUtils.cpp" />
+    <ClCompile Include="src\FTS_TRIGGER_HELPER.cpp" />
+    <ClCompile Include="src\FTS.cpp" />
+    <ClCompile Include="src\FTSIndex.cpp" />
+    <ClCompile Include="src\FTSLog.cpp" />
+    <ClCompile Include="src\FTS_HIGHLIGHTER.cpp" />
+    <ClCompile Include="src\FTS_MANAGEMENT.cpp" />
+    <ClCompile Include="src\FTS_STATISTICS.cpp" />
+    <ClCompile Include="src\Relations.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="EncodeUtils.h" />
-    <ClInclude Include="FBAutoPtr.h" />
-    <ClInclude Include="FBUtils.h" />
-    <ClInclude Include="FBFieldInfo.h" />
-    <ClInclude Include="FTSIndex.h" />
-    <ClInclude Include="FTSLog.h" />
-    <ClInclude Include="LuceneAnalyzerFactory.h" />
-    <ClInclude Include="LuceneFiles.h" />
-    <ClInclude Include="LuceneUdr.h" />
-    <ClInclude Include="Relations.h" />
-    <ClInclude Include="StringFormatter.h" />
+    <ClInclude Include="src\EncodeUtils.h" />
+    <ClInclude Include="src\FBAutoPtr.h" />
+    <ClInclude Include="src\FBUtils.h" />
+    <ClInclude Include="src\FBFieldInfo.h" />
+    <ClInclude Include="src\FTSIndex.h" />
+    <ClInclude Include="src\FTSLog.h" />
+    <ClInclude Include="src\LuceneAnalyzerFactory.h" />
+    <ClInclude Include="src\LuceneFiles.h" />
+    <ClInclude Include="src\LuceneUdr.h" />
+    <ClInclude Include="src\Relations.h" />
+    <ClInclude Include="src\StringFormatter.h" />
+    <ClInclude Include="src\udr_build_no.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="defs\udr_plugin.def" />
-    <None Include="fts$uninstall.sql" />
-    <None Include="fts%24install.sql" />
+    <None Include="sql\fts$uninstall.sql" />
+    <None Include="sql\fts%24install.sql" />
     <None Include="makefile" />
     <None Include="README.md" />
     <None Include="write_build_no.bat" />
     <None Include="write_build_no.sh" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="lucene_udr.rc" />
+    <ResourceCompile Include="src\lucene_udr.rc" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

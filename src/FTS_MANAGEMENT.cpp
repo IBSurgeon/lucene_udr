@@ -3,7 +3,7 @@
 #include "Relations.h"
 #include "FBUtils.h"
 #include "EncodeUtils.h"
-#include "FbFieldInfo.h"
+#include "FBFieldInfo.h"
 #include "lucene++/LuceneHeaders.h"
 #include "lucene++/FileUtils.h"
 #include "lucene++/QueryScorer.h"

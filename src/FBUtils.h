@@ -7,8 +7,9 @@
 #include <algorithm>
 
 using namespace std;
+using namespace Firebird;
 
-namespace Firebird
+namespace LuceneUDR
 {
 
 	const size_t MAX_SEGMENT_SIZE = 65535;

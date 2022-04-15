@@ -23,7 +23,7 @@
  *  Contributor(s): ______________________________________.
  */
 
-namespace
+namespace LuceneUDR
 {
 	template <typename T>
 	class AutoReleaseClear

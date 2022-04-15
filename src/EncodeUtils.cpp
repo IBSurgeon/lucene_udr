@@ -11,7 +11,7 @@ using namespace icu;
 using namespace std;
 
 string getICICharset(const unsigned charset) {
-	for (int i = 0; i < sizeof(FBCharsetMap); i++) {
+	for (unsigned int i = 0; i < sizeof(FBCharsetMap); i++) {
 		if (FBCharsetMap[i].charsetID == charset)
 			return string(FBCharsetMap[i].icuCharsetName);
 	}
@@ -20,7 +20,7 @@ string getICICharset(const unsigned charset) {
 
 string getICICharset(const char* charset) {
 	string fbCharset(charset);
-	for (int i = 0; i < sizeof(FBCharsetMap); i++) {
+	for (unsigned int i = 0; i < sizeof(FBCharsetMap); i++) {
 		if (FBCharsetMap[i].charsetName == fbCharset)
 			return string(FBCharsetMap[i].icuCharsetName);
 	}
