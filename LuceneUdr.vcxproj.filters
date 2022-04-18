@@ -122,4 +122,9 @@
       <Filter>Resource files</Filter>
     </ResourceCompile>
   </ItemGroup>
+  <ItemGroup>
+    <Text Include="CMakeLists.txt">
+      <Filter>Makefile</Filter>
+    </Text>
+  </ItemGroup>
 </Project>

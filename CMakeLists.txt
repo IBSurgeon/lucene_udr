@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.0)
+cmake_minimum_required (VERSION 3.5)
 
 project (luceneudr VERSION 0.9.5)
 
@@ -23,6 +23,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 message(STATUS "luceneudr compile: C++${CMAKE_CXX_STANDARD}")
 
+add_compile_definitions(HAVE_CONFIG_H)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_COMPILER_IS_GNUCXX)
   	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wnarrowing -Werror")
@@ -63,21 +64,29 @@ endif()
 ####################################
 file(GLOB_RECURSE luceneudr_sources "src/*")
 
+set(FIREBIRD_DIR /opt/firebird)
+set(FIREBIRD_LIB_DIR ${FIREBIRD_DIR}/lib)
+set(FIREBIRD_UDR_DIR ${FIREBIRD_DIR}/plugins/udr)
+
 ####################################
 # library target
 ####################################
 add_library(luceneudr SHARED ${luceneudr_sources})
 
-find_package(ICU 50.2 COMPONENTS uc i18n REQUIRED)
-find_package(Boost 1.53.0 COMPONENTS date_time filesystem iostreams regex system thread REQUIRED)
-find_package(ZLIB REQUIRED)
+find_package(ICU COMPONENTS uc REQUIRED)
+find_package(Boost REQUIRED)
+find_package(liblucene++ REQUIRED)
+find_package(liblucene++-contrib REQUIRED)
 
 include_directories(${Boost_INCLUDE_DIR})
 link_directories(${Boost_LIBRARY_DIR})
 include_directories(${ICU_INCLUDE_DIRS})
 link_directories(${ICU_LIBRARY_DIRS})
-include_directories(${ZLIB_INCLUDE_DIRS})
-link_directories(${ZLIB_LIBRARY_DIRS})
+include_directories(${liblucene++_INCLUDE_DIRS})
+link_directories(${liblucene++_LIBRARY_DIRS})
+include_directories(${liblucene++-contrib_INCLUDE_DIRS})
+link_directories(${liblucene++-contrib_LIBRARY_DIRS})
+link_directories(${FIREBIRD_LIB_DIR})
 
 ####################################
 # include directories
@@ -87,4 +96,10 @@ target_include_directories(luceneudr
      "include"
 )
 
-target_link_libraries(luceneudr ICU::uc ICU::i18n)
+target_link_libraries(luceneudr ICU::uc)
+target_link_libraries(luceneudr fbclient)
+
+target_link_libraries(luceneudr ${liblucene++_LIBRARIES})
+target_link_libraries(luceneudr ${liblucene++-contrib_LIBRARIES})
+
+install(TARGETS luceneudr DESTINATION ${FIREBIRD_UDR_DIR})
