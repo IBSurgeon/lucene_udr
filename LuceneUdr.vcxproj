@@ -47,7 +47,6 @@
     <None Include="defs\udr_plugin.def" />
     <None Include="sql\fts$uninstall.sql" />
     <None Include="sql\fts%24install.sql" />
-    <None Include="makefile" />
     <None Include="README.md" />
     <None Include="write_build_no.bat" />
     <None Include="write_build_no.sh" />

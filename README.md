@@ -34,7 +34,7 @@ $ make
 $ sudo make install
 ```
 
-Более подробно сбока библиотеки lucene++ описана в [BUILDING.md](https://github.com/luceneplusplus/LucenePlusPlus/blob/master/doc/BUILDING.md).
+Более подробно сборка библиотеки lucene++ описана в [BUILDING.md](https://github.com/luceneplusplus/LucenePlusPlus/blob/master/doc/BUILDING.md).
 
 Теперь можно приступать к сборке UDR Lucene.
 
