@@ -795,7 +795,7 @@ BEGIN
   RETURNS (
       FTS$FILE_NAME VARCHAR(127) CHARACTER SET UTF8,
       FTS$FILE_TYPE VARCHAR(63) CHARACTER SET UTF8,
-      FTS$FILE_SIZE BIGINT /*INTEGER*/);
+      FTS$FILE_SIZE /*BIGINT*/ INTEGER);
 
   /**
    * Returns information about index fields.

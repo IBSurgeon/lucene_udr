@@ -34,6 +34,8 @@ $ make
 $ sudo make install
 ```
 
+Чтобы lucene++ была установлена в `/usr/lib`, а не в `/usr/local/lib`, выполните `cmake -DCMAKE_INSTALL_PREFIX=/usr ..` вместо `cmake ..`
+
 Более подробно сборка библиотеки lucene++ описана в [BUILDING.md](https://github.com/luceneplusplus/LucenePlusPlus/blob/master/doc/BUILDING.md).
 
 Теперь можно приступать к сборке UDR Lucene.
@@ -45,6 +47,31 @@ $ mkdir build; cd build
 $ cmake ..
 $ make
 $ sudo make install
+```
+
+В процессе выполнения `cmake ..` может возникнуть следующая ошибка
+
+```
+CMake Error at /usr/lib64/cmake/liblucene++/liblucene++Config.cmake:41 (message):
+  File or directory /usr/lib64/usr/include/lucene++/ referenced by variable
+  liblucene++_INCLUDE_DIRS does not exist !
+Call Stack (most recent call first):
+  /usr/lib64/cmake/liblucene++/liblucene++Config.cmake:47 (set_and_check)
+  CMakeLists.txt:78 (find_package)
+```
+
+Для её исправления необходимо исправить файл `liblucene++Config.cmake` и `liblucene++-contribConfig.cmake` 
+
+заменить строчку
+
+```
+get_filename_component(PACKAGE_PREFIX_DIR "${CMAKE_CURRENT_LIST_DIR}/../../usr" ABSOLUTE)
+```
+
+на
+
+```
+get_filename_component(PACKAGE_PREFIX_DIR "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
 ```
 
 ## Описание процедур и функций для работы с полнотекстовым поиском

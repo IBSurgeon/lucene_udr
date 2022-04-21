@@ -103,3 +103,7 @@ target_link_libraries(luceneudr ${liblucene++_LIBRARIES})
 target_link_libraries(luceneudr ${liblucene++-contrib_LIBRARIES})
 
 install(TARGETS luceneudr DESTINATION ${FIREBIRD_UDR_DIR})
+install(FILES "sql/fts\$install.sql"
+              "sql/fts\$uninstall.sql"
+              DESTINATION ${FIREBIRD_UDR_DIR})
+
