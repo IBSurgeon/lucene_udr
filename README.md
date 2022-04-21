@@ -18,8 +18,34 @@ Lucene написан на языке Java. К сожалению плагин F
 * [LuceneUdr_Win_x64.zip](https://github.com/sim1984/lucene_udr/releases/download/0.9/LuceneUdr_Win_x64.zip)
 * [LuceneUdr_Win_x86.zip](https://github.com/sim1984/lucene_udr/releases/download/0.9/LuceneUdr_Win_x86.zip)
 
-В настоящий момент других сборок нет.
+Под ОС Linux вы можете скопилировать библиотеку самосточтельно.
 
+## Сборка и установка библиотеки под Linux
+
+Поскольку Lucene UDR построена на основе [Lucene++](https://github.com/luceneplusplus/LucenePlusPlus) вам предварительно 
+потребуется скачать и собрать её из исходников. 
+
+```
+$ git clone https://github.com/luceneplusplus/LucenePlusPlus.git
+$ cd LucenePlusPlus
+$ mkdir build; cd build
+$ cmake ..
+$ make
+$ sudo make install
+```
+
+Более подробно сбока библиотеки lucene++ описана в [BUILDING.md](https://github.com/luceneplusplus/LucenePlusPlus/blob/master/doc/BUILDING.md).
+
+Теперь можно приступать к сборке UDR Lucene.
+
+```
+$ git clone https://github.com/sim1984/lucene_udr.git
+$ cd lucene_udr
+$ mkdir build; cd build
+$ cmake ..
+$ make
+$ sudo make install
+```
 
 ## Описание процедур и функций для работы с полнотекстовым поиском
 
@@ -39,7 +65,8 @@ BEGIN
    * of the full-text index for the current database are located.
   **/
   FUNCTION FTS$GET_DIRECTORY ()
-  RETURNS VARCHAR(255) CHARACTER SET UTF8;
+  RETURNS VARCHAR(255) CHARACTER SET UTF8
+  DETERMINISTIC;
 
   /**
    * Returns a list of available analyzers.
@@ -135,6 +162,21 @@ BEGIN
    * Rebuild all full-text indexes in the database.
   **/
   PROCEDURE FTS$FULL_REINDEX;
+
+  /**
+   * Optimize the full-text index.
+   *
+   * Input parameters:
+   *   FTS$INDEX_NAME - index name.
+   **/
+  PROCEDURE FTS$OPTIMIZE_INDEX (
+      FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL
+  );
+
+  /**
+   * Optimize all full-text indexes.
+   **/
+  PROCEDURE FTS$OPTIMIZE_INDEXES;
 END
 ```
 
@@ -477,12 +519,323 @@ END
 
 - FTS$TRIGGER_SOURCE - текст исходного кода триггера. 
 
+### Пакет FTS$STATISTICS
+
+Пакет `FTS$STATISTICS` содержит процедуры и функции для получения информации о полнотекстовых индексах и их статистике.
+Этот пакет предназначен прежде всего для администраторов баз данных.
+
+Заголовок этого пакета выглядит следующим образом:
+
+```sql
+CREATE OR ALTER PACKAGE FTS$STATISTICS
+AS
+BEGIN
+  /**
+   * Returns the version of the lucene++ library.
+  **/
+  FUNCTION FTS$LUCENE_VERSION ()
+  RETURNS VARCHAR(20) CHARACTER SET UTF8 DETERMINISTIC;
+
+  /**
+   * Returns the directory where the files and folders
+   * of the full-text index for the current database are located.
+  **/
+  FUNCTION FTS$GET_DIRECTORY ()
+  RETURNS VARCHAR(255) CHARACTER SET UTF8 DETERMINISTIC;
+
+  /**
+   * Returns information and statistics for the specified full-text index.
+   *
+   * Input parameters:
+   *   FTS$INDEX_NAME - name of the index.
+   *
+   * Output parameters:
+   *   FTS$ANALYZER - analyzer name;
+   *   FTS$INDEX_STATUS - index status
+   *       I - Inactive,
+   *       N - New index (need rebuild),
+   *       C - complete and active,
+   *       U - updated metadata (need rebuild);
+   *   FTS$INDEX_DIRECTORY - index location directory;
+   *   FTS$INDEX_EXISTS - does the index physically exist;
+   *   FTS$HAS_DELETIONS - there have been deletions of documents from the index;
+   *   FTS$NUM_DOCS - number of indexed documents;
+   *   FTS$NUM_DELETED_DOCS - number of deleted documents (before optimization);
+   *   FTS$NUM_FIELDS - number of internal index fields;
+   *   FTS$INDEX_SIZE - index size in bytes.
+  **/
+  PROCEDURE FTS$INDEX_STATISITCS (
+      FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL)
+  RETURNS (
+      FTS$ANALYZER         VARCHAR(63) CHARACTER SET UTF8,
+      FTS$INDEX_STATUS     TYPE OF FTS$D_INDEX_STATUS,
+      FTS$INDEX_DIRECTORY  VARCHAR(255) CHARACTER SET UTF8,
+      FTS$INDEX_EXISTS     BOOLEAN,
+      FTS$INDEX_OPTIMIZED  BOOLEAN,
+      FTS$HAS_DELETIONS    BOOLEAN,
+      FTS$NUM_DOCS         INTEGER,
+      FTS$NUM_DELETED_DOCS INTEGER,
+      FTS$NUM_FIELDS       SMALLINT,
+      FTS$INDEX_SIZE       /*BIGINT*/ INTEGER);
+
+  /**
+   * Returns information and statistics for all full-text indexes.
+   *
+   * Output parameters:
+   *   FTS$INDEX_NAME - index name;
+   *   FTS$ANALYZER - analyzer name;
+   *   FTS$INDEX_STATUS - index status
+   *       I - Inactive,
+   *       N - New index (need rebuild),
+   *       C - complete and active,
+   *       U - updated metadata (need rebuild);
+   *   FTS$INDEX_DIRECTORY - index location directory;
+   *   FTS$INDEX_EXISTS - does the index physically exist;
+   *   FTS$HAS_DELETIONS - there have been deletions of documents from the index;
+   *   FTS$NUM_DOCS - number of indexed documents;
+   *   FTS$NUM_DELETED_DOCS - number of deleted documents (before optimization);
+   *   FTS$NUM_FIELDS - number of internal index fields;
+   *   FTS$INDEX_SIZE - index size in bytes.
+  **/
+  PROCEDURE FTS$INDICES_STATISITCS
+  RETURNS (
+      FTS$INDEX_NAME       VARCHAR(63) CHARACTER SET UTF8,
+      FTS$ANALYZER         VARCHAR(63) CHARACTER SET UTF8,
+      FTS$INDEX_STATUS     TYPE OF FTS$D_INDEX_STATUS,
+      FTS$INDEX_DIRECTORY  VARCHAR(255) CHARACTER SET UTF8,
+      FTS$INDEX_EXISTS     BOOLEAN,
+      FTS$INDEX_OPTIMIZED  BOOLEAN,
+      FTS$HAS_DELETIONS    BOOLEAN,
+      FTS$NUM_DOCS         INTEGER,
+      FTS$NUM_DELETED_DOCS INTEGER,
+      FTS$NUM_FIELDS       SMALLINT,
+      FTS$INDEX_SIZE       /*BIGINT*/ INTEGER);
+
+  /**
+   * Returns information about index segments.
+   * Here the segment is defined in terms of Lucene.
+   *
+   * Input parameters:
+   *   FTS$INDEX_NAME - name of the index.
+   *
+   * Output parameters:
+   *   FTS$SEGMENT_NAME - segment name;
+   *   FTS$DOC_COUNT - number of documents in the segment;
+   *   FTS$SEGMENT_SIZE - segment size in bytes;
+   *   FTS$USE_COMPOUND_FILE - segment use compound file;
+   *   FTS$HAS_DELETIONS - there have been deletions of documents from the segment;
+   *   FTS$DEL_COUNT - number of deleted documents (before optimization);
+   *   FTS$DEL_FILENAME - file with deleted documents.
+  **/
+  PROCEDURE FTS$INDEX_SEGMENT_INFOS (
+      FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL)
+  RETURNS (
+      FTS$SEGMENT_NAME      VARCHAR(63) CHARACTER SET UTF8,
+      FTS$DOC_COUNT         INTEGER,
+      FTS$SEGMENT_SIZE      /*BIGINT*/ INTEGER,
+      FTS$USE_COMPOUND_FILE BOOLEAN,
+      FTS$HAS_DELETIONS     BOOLEAN,
+      FTS$DEL_COUNT         INTEGER,
+      FTS$DEL_FILENAME      VARCHAR(255) CHARACTER SET UTF8);
+
+  /**
+   * Returns the names of the index's internal fields.
+   *
+   * Input parameters:
+   *   FTS$INDEX_NAME - name of the index.
+   *
+   * Output parameters:
+   *   FTS$FIELD_NAME - field name.
+  **/
+  PROCEDURE FTS$INDEX_FIELDS (
+      FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL)
+  RETURNS (
+      FTS$FIELD_NAME VARCHAR(127) CHARACTER SET UTF8);
+
+  /**
+   * Returns information about index files.
+   *
+   * Input parameters:
+   *   FTS$INDEX_NAME - name of the index.
+   *
+   * Output parameters:
+   *   FTS$FILE_NAME - file name;
+   *   FTS$FILE_TYPE - file type;
+   *   FTS$FILE_SIZE - file size in bytes
+  **/
+  PROCEDURE FTS$INDEX_FILES (
+      FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL)
+  RETURNS (
+      FTS$FILE_NAME VARCHAR(127) CHARACTER SET UTF8,
+      FTS$FILE_TYPE VARCHAR(63) CHARACTER SET UTF8,
+      FTS$FILE_SIZE /*BIGINT*/ INTEGER);
+
+  /**
+   * Returns information about index fields.
+   *
+   * Input parameters:
+   *   FTS$INDEX_NAME - name of the index;
+   *   FTS$SEGMENT_NAME - name of the index segment,
+   *      if not specified, then the active segment is taken.
+   *
+   * Output parameters:
+   *   FTS$FIELD_NAME - field name;
+   *   FTS$FIELD_NUMBER - field number;
+   *   FTS$IS_INDEXED - field is indexed;
+   *   FTS$STORE_TERM_VECTOR - reserved;
+   *   FTS$STORE_OFFSET_TERM_VECTOR - reserved;
+   *   FTS$STORE_POSITION_TERM_VECTOR - reserved;
+   *   FTS$OMIT_NORMS - reserved;
+   *   FTS$OMIT_TERM_FREQ_AND_POS - reserved;
+   *   FTS$STORE_PAYLOADS - reserved.
+  **/
+  PROCEDURE FTS$INDEX_FIELD_INFOS (
+      FTS$INDEX_NAME   VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+      FTS$SEGMENT_NAME VARCHAR(63) CHARACTER SET UTF8 DEFAULT NULL)
+  RETURNS (
+      FTS$FIELD_NAME                      VARCHAR(127) CHARACTER SET UTF8,
+      FTS$FIELD_NUMBER                    SMALLINT,
+      FTS$IS_INDEXED                      BOOLEAN,
+      FTS$STORE_TERM_VECTOR               BOOLEAN,
+      FTS$STORE_OFFSET_TERM_VECTOR        BOOLEAN,
+      FTS$STORE_POSITION_TERM_VECTOR      BOOLEAN,
+      FTS$OMIT_NORMS                      BOOLEAN,
+      FTS$OMIT_TERM_FREQ_AND_POS          BOOLEAN,
+      FTS$STORE_PAYLOADS                  BOOLEAN);
+END
+```
+
+#### Функция FTS$LUCENE_VERSION
+
+Функция `FTS$LUCENE_VERSION` возвращает версию библиотеки lucene++ на основе которой построен полнотектосовый поиск.
+
+#### Функция FTS$GET_DIRECTORY
+
+Функция `FTS$GET_DIRECTORY()` возвращает директорию в которой расположены файлы и папки полнотекстового индекса для текущей базы данных.
+
+#### Процедура FTS$INDEX_STATISITCS
+
+Процедура `FTS$INDEX_STATISITCS` возвращает низкоуровневую информацию и статистику для указанного индекса. 
+
+Входные параметры:
+
+- FTS$INDEX_NAME - имя индекса.
+
+Выходные параметры:
+
+- FTS$ANALYZER - имя анализатора;
+- FTS$INDEX_STATUS - статус индекса:
+    - I - неактивный;
+    - N - новый индекс (требуется перестроение);
+    - С - завершённый и активный;
+    - U - обновлены метаданные (требуется перестроение);
+- FTS$INDEX_DIRECTORY - каталог расположения индекса;
+- FTS$INDEX_EXISTS - существует ли индекс физически;
+- FTS$HAS_DELETIONS - были ли удаления документов из индекса;
+- FTS$NUM_DOCS - количество проиндексированных документов;
+- FTS$NUM_DELETED_DOCS - количество удаленных документов (до оптимизации);
+- FTS$NUM_FIELDS - количество полей внутреннего индекса;
+- FTS$INDEX_SIZE - размер индекса в байтах.
+
+
+#### Процедура FTS$INDICES_STATISITCS
+
+Процедура `FTS$INDICES_STATISITCS` возвращает низкоуровневую информацию и статистику для всех полнотекстовых индексов. 
+
+Выходные параметры:
+
+- FTS$INDEX_NAME - имя индекса;
+- FTS$ANALYZER - имя анализатора;
+- FTS$INDEX_STATUS - статус индекса:
+    - I - неактивный;
+    - N - новый индекс (требуется перестроение);
+    - С - завершённый и активный;
+    - U - обновлены метаданные (требуется перестроение);
+- FTS$INDEX_DIRECTORY - каталог расположения индекса;
+- FTS$INDEX_EXISTS - существует ли индекс физически;
+- FTS$HAS_DELETIONS - были ли удаления документов из индекса;
+- FTS$NUM_DOCS - количество проиндексированных документов;
+- FTS$NUM_DELETED_DOCS - количество удаленных документов (до оптимизации);
+- FTS$NUM_FIELDS - количество полей внутреннего индекса;
+- FTS$INDEX_SIZE - размер индекса в байтах.
+
+
+#### Процедура FTS$INDEX_SEGMENT_INFOS
+
+Процедура `FTS$INDEX_SEGMENT_INFOS` возвращает информацию о сегментах индекса.
+Здесь сегмент определяется с точки зрения Lucene.
+   
+Входные параметры:
+
+- FTS$INDEX_NAME - имя индекса.
+   
+Выходные параметры:
+
+- FTS$SEGMENT_NAME - имя сегмента;
+- FTS$DOC_COUNT - количество документов в сегменте;
+- FTS$SEGMENT_SIZE - размер сегмента в байтах;
+- FTS$USE_COMPOUND_FILE - сегмент использует составной файл;
+- FTS$HAS_DELETIONS - были удаления документов из сегмента;
+- FTS$DEL_COUNT - количество удаленных документов (до оптимизации);
+- FTS$DEL_FILENAME - файл с удаленными документами.
+
+
+#### Процедура FTS$INDEX_FIELDS
+
+Процедура `FTS$INDEX_FIELDS` возвращает имена внутренних полей индекса.
+   
+Входные параметры:
+
+- FTS$INDEX_NAME - имя индекса.
+   
+Выходные параметры:
+
+- FTS$FIELD_NAME - имя поля.
+
+
+#### Процедура FTS$INDEX_FILES
+
+Процедура `FTS$INDEX_FILES` возвращает информацию об индексных файлах.
+   
+Входные параметры:
+
+- FTS$INDEX_NAME - имя индекса.
+   
+Выходные параметры:
+
+- FTS$FILE_NAME - имя файла;
+- FTS$FILE_TYPE - тип файла;
+- FTS$FILE_SIZE - размер файла в байтах.
+
+
+#### Процедура FTS$INDEX_FIELD_INFOS
+
+Процедура `FTS$INDEX_FIELD_INFOS` возвращает информацию о полях индекса.
+   
+Входные параметры:
+
+- FTS$INDEX_NAME - название индекса;
+- FTS$SEGMENT_NAME - имя сегмента индекса,
+          если не указано, то берется активный сегмент.
+   
+Выходные параметры:
+
+- FTS$FIELD_NAME - имя поля;
+- FTS$FIELD_NUMBER - номер поля;
+- FTS$IS_INDEXED - поле проиндексировано;
+- FTS$STORE_TERM_VECTOR - зарезервировано;
+- FTS$STORE_OFFSET_TERM_VECTOR - зарезервировано;
+- FTS$STORE_POSITION_TERM_VECTOR - зарезервировано;
+- FTS$OMIT_NORMS - зарезервировано;
+- FTS$OMIT_TERM_FREQ_AND_POS - зарезервировано;
+- FTS$STORE_PAYLOADS - зарезервировано.
+
+
 ## Статусы индекса
 
 Описание индексов хранится в служебной таблице `FTS$INDICES`.
 
 Поле `FTS$INDEX_STATUS` хранит статус индекса. Индекс может иметь 4 статуса:
-
 - *N* - New index. Новый индекс. Устанавливается при создании индекса, в котором ещё нет ни одного сегмента.
 - *U* - Updated metadata. Устанавливается каждый раз, когда изменяются метаданные индекса, например при добавлении или удалении сегмента индекса. 
 Если индекс имеет такой статус, то он требует перестроения, чтобы поиск по нему работал корректно.

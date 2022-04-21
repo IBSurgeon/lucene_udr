@@ -19,9 +19,9 @@ COMMENT ON DOMAIN FTS$D_REC_ID IS
 'Record ID (RDB$DB_KEY).';
 
 CREATE TABLE FTS$INDICES(
-   FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
-   FTS$ANALYZER VARCHAR(63) CHARACTER SET UTF8 DEFAULT 'STANDARD' NOT NULL,
-   FTS$DESCRIPTION BLOB SUB_TYPE TEXT CHARACTER SET UTF8,
+   FTS$INDEX_NAME   VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+   FTS$ANALYZER     VARCHAR(63) CHARACTER SET UTF8 DEFAULT 'STANDARD' NOT NULL,
+   FTS$DESCRIPTION  BLOB SUB_TYPE TEXT CHARACTER SET UTF8,
    FTS$INDEX_STATUS FTS$D_INDEX_STATUS DEFAULT 'N' NOT NULL,
    CONSTRAINT PK_FTS$INDEX_NAME PRIMARY KEY(FTS$INDEX_NAME)
 );
@@ -202,9 +202,20 @@ BEGIN
   **/
   PROCEDURE FTS$FULL_REINDEX;
 
+  /**
+   * Optimize the full-text index.
+   *
+   * Input parameters:
+   *   FTS$INDEX_NAME - index name.
+   **/
   PROCEDURE FTS$OPTIMIZE_INDEX (
       FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL
   );
+
+  /**
+   * Optimize all full-text indexes.
+   **/
+  PROCEDURE FTS$OPTIMIZE_INDEXES;
 END^
 
 RECREATE PACKAGE BODY FTS$MANAGEMENT
@@ -271,7 +282,7 @@ BEGIN
       WHERE FTS$RELATION_NAME = :FTS$RELATION_NAME
       AS CURSOR C
     DO
-      EXECUTE PROCEDURE FTS$REBUILD_INDEX(:C.FTS$INDEX_NAME);
+      EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$REBUILD_INDEX(:C.FTS$INDEX_NAME);
    END
 
   PROCEDURE FTS$FULL_REINDEX
@@ -283,7 +294,7 @@ BEGIN
       FROM FTS$INDICES
       AS CURSOR C
     DO
-      EXECUTE PROCEDURE FTS$REBUILD_INDEX(:C.FTS$INDEX_NAME);
+      EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$REBUILD_INDEX(:C.FTS$INDEX_NAME);
   END
 
   PROCEDURE FTS$OPTIMIZE_INDEX (
@@ -291,6 +302,18 @@ BEGIN
   )
   EXTERNAL NAME 'luceneudr!optimizeIndex'
   ENGINE UDR;
+
+  PROCEDURE FTS$OPTIMIZE_INDEXES
+  AS
+  BEGIN
+    FOR
+      SELECT
+        FTS$INDEX_NAME
+      FROM FTS$INDICES
+      AS CURSOR C
+    DO
+      EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$OPTIMIZE_INDEX(:C.FTS$INDEX_NAME);
+  END
 END^
 
 SET TERM ; ^
@@ -302,17 +325,17 @@ GRANT ALL ON TABLE FTS$INDICES TO PACKAGE FTS$MANAGEMENT;
 GRANT ALL ON TABLE FTS$INDEX_SEGMENTS TO PACKAGE FTS$MANAGEMENT;
 
 CREATE OR ALTER PROCEDURE FTS$SEARCH (
-   FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+   FTS$INDEX_NAME      VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
    FTS$SEARCH_RELATION VARCHAR(63) CHARACTER SET UTF8,
-   FTS$QUERY VARCHAR(8191) CHARACTER SET UTF8,
-   FTS$LIMIT INT /*BIGINT*/ NOT NULL DEFAULT 1000,
-   FTS$EXPLAIN BOOLEAN DEFAULT FALSE
+   FTS$QUERY           VARCHAR(8191) CHARACTER SET UTF8,
+   FTS$LIMIT           INT NOT NULL DEFAULT 1000,
+   FTS$EXPLAIN         BOOLEAN DEFAULT FALSE
 )
 RETURNS (
    FTS$RELATION_NAME VARCHAR(63) CHARACTER SET UTF8,
-   FTS$REC_ID FTS$D_REC_ID,
-   FTS$SCORE DOUBLE PRECISION,
-   FTS$EXPLANATION BLOB SUB_TYPE TEXT CHARACTER SET UTF8
+   FTS$REC_ID        FTS$D_REC_ID,
+   FTS$SCORE         DOUBLE PRECISION,
+   FTS$EXPLANATION   BLOB SUB_TYPE TEXT CHARACTER SET UTF8
 )
 EXTERNAL NAME 'luceneudr!ftsSearch'
 ENGINE UDR;
@@ -464,7 +487,6 @@ END^
 RECREATE PACKAGE BODY FTS$TRIGGER_HELPER
 AS
 BEGIN
-
   PROCEDURE FTS$MAKE_TRIGGERS (
     FTS$RELATION_NAME VARCHAR(63) CHARACTER SET UTF8,
     FTS$MULTI_ACTION BOOLEAN
@@ -635,17 +657,40 @@ SET TERM ^ ;
 CREATE OR ALTER PACKAGE FTS$STATISTICS
 AS
 BEGIN
+  /**
+   * Returns the version of the lucene++ library.
+  **/
   FUNCTION FTS$LUCENE_VERSION ()
   RETURNS VARCHAR(20) CHARACTER SET UTF8 DETERMINISTIC;
 
-/**
+  /**
    * Returns the directory where the files and folders
    * of the full-text index for the current database are located.
   **/
-
   FUNCTION FTS$GET_DIRECTORY ()
   RETURNS VARCHAR(255) CHARACTER SET UTF8 DETERMINISTIC;
 
+  /**
+   * Returns information and statistics for the specified full-text index.
+   *
+   * Input parameters:
+   *   FTS$INDEX_NAME - name of the index.
+   *
+   * Output parameters:
+   *   FTS$ANALYZER - analyzer name;
+   *   FTS$INDEX_STATUS - index status
+   *       I - Inactive,
+   *       N - New index (need rebuild),
+   *       C - complete and active,
+   *       U - updated metadata (need rebuild);
+   *   FTS$INDEX_DIRECTORY - index location directory;
+   *   FTS$INDEX_EXISTS - does the index physically exist;
+   *   FTS$HAS_DELETIONS - there have been deletions of documents from the index;
+   *   FTS$NUM_DOCS - number of indexed documents;
+   *   FTS$NUM_DELETED_DOCS - number of deleted documents (before optimization);
+   *   FTS$NUM_FIELDS - number of internal index fields;
+   *   FTS$INDEX_SIZE - index size in bytes.
+  **/
   PROCEDURE FTS$INDEX_STATISITCS (
       FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL)
   RETURNS (
@@ -658,8 +703,27 @@ BEGIN
       FTS$NUM_DOCS         INTEGER,
       FTS$NUM_DELETED_DOCS INTEGER,
       FTS$NUM_FIELDS       SMALLINT,
-      FTS$INDEX_SIZE       INTEGER);
+      FTS$INDEX_SIZE       /*BIGINT*/ INTEGER);
 
+  /**
+   * Returns information and statistics for all full-text indexes.
+   *
+   * Output parameters:
+   *   FTS$INDEX_NAME - index name;
+   *   FTS$ANALYZER - analyzer name;
+   *   FTS$INDEX_STATUS - index status
+   *       I - Inactive,
+   *       N - New index (need rebuild),
+   *       C - complete and active,
+   *       U - updated metadata (need rebuild);
+   *   FTS$INDEX_DIRECTORY - index location directory;
+   *   FTS$INDEX_EXISTS - does the index physically exist;
+   *   FTS$HAS_DELETIONS - there have been deletions of documents from the index;
+   *   FTS$NUM_DOCS - number of indexed documents;
+   *   FTS$NUM_DELETED_DOCS - number of deleted documents (before optimization);
+   *   FTS$NUM_FIELDS - number of internal index fields;
+   *   FTS$INDEX_SIZE - index size in bytes.
+  **/
   PROCEDURE FTS$INDICES_STATISITCS
   RETURNS (
       FTS$INDEX_NAME       VARCHAR(63) CHARACTER SET UTF8,
@@ -674,41 +738,96 @@ BEGIN
       FTS$NUM_FIELDS       SMALLINT,
       FTS$INDEX_SIZE       /*BIGINT*/ INTEGER);
 
+  /**
+   * Returns information about index segments.
+   * Here the segment is defined in terms of Lucene.
+   *
+   * Input parameters:
+   *   FTS$INDEX_NAME - name of the index.
+   *
+   * Output parameters:
+   *   FTS$SEGMENT_NAME - segment name;
+   *   FTS$DOC_COUNT - number of documents in the segment;
+   *   FTS$SEGMENT_SIZE - segment size in bytes;
+   *   FTS$USE_COMPOUND_FILE - segment use compound file;
+   *   FTS$HAS_DELETIONS - there have been deletions of documents from the segment;
+   *   FTS$DEL_COUNT - number of deleted documents (before optimization);
+   *   FTS$DEL_FILENAME - file with deleted documents.
+  **/
   PROCEDURE FTS$INDEX_SEGMENT_INFOS (
       FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL)
   RETURNS (
-      FTS$SEGMENT_NAME  VARCHAR(255) CHARACTER SET UTF8,
-      FTS$DOC_COUNT     INTEGER,
-      FTS$SEGMENT_SIZE  /*BIGINT*/ INTEGER,
+      FTS$SEGMENT_NAME      VARCHAR(63) CHARACTER SET UTF8,
+      FTS$DOC_COUNT         INTEGER,
+      FTS$SEGMENT_SIZE      /*BIGINT*/ INTEGER,
       FTS$USE_COMPOUND_FILE BOOLEAN,
-      FTS$HAS_DELETIONS BOOLEAN,
-      FTS$DEL_COUNT     INTEGER,
-      FTS$DEL_FILENAME  VARCHAR(255) CHARACTER SET UTF8);
+      FTS$HAS_DELETIONS     BOOLEAN,
+      FTS$DEL_COUNT         INTEGER,
+      FTS$DEL_FILENAME      VARCHAR(255) CHARACTER SET UTF8);
 
+  /**
+   * Returns the names of the index's internal fields.
+   *
+   * Input parameters:
+   *   FTS$INDEX_NAME - name of the index.
+   *
+   * Output parameters:
+   *   FTS$FIELD_NAME - field name.
+  **/
   PROCEDURE FTS$INDEX_FIELDS (
       FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL)
   RETURNS (
       FTS$FIELD_NAME VARCHAR(127) CHARACTER SET UTF8);
 
+  /**
+   * Returns information about index files.
+   *
+   * Input parameters:
+   *   FTS$INDEX_NAME - name of the index.
+   *
+   * Output parameters:
+   *   FTS$FILE_NAME - file name;
+   *   FTS$FILE_TYPE - file type;
+   *   FTS$FILE_SIZE - file size in bytes.
+  **/
   PROCEDURE FTS$INDEX_FILES (
       FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL)
   RETURNS (
       FTS$FILE_NAME VARCHAR(127) CHARACTER SET UTF8,
       FTS$FILE_TYPE VARCHAR(63) CHARACTER SET UTF8,
-      FTS$FILE_SIZE /*BIGINT*/ INTEGER);
+      FTS$FILE_SIZE BIGINT /*INTEGER*/);
 
+  /**
+   * Returns information about index fields.
+   *
+   * Input parameters:
+   *   FTS$INDEX_NAME - name of the index;
+   *   FTS$SEGMENT_NAME - name of the index segment,
+   *      if not specified, then the active segment is taken.
+   *
+   * Output parameters:
+   *   FTS$FIELD_NAME - field name;
+   *   FTS$FIELD_NUMBER - field number;
+   *   FTS$IS_INDEXED - field is indexed;
+   *   FTS$STORE_TERM_VECTOR - reserved;
+   *   FTS$STORE_OFFSET_TERM_VECTOR - reserved;
+   *   FTS$STORE_POSITION_TERM_VECTOR - reserved;
+   *   FTS$OMIT_NORMS - reserved;
+   *   FTS$OMIT_TERM_FREQ_AND_POS - reserved;
+   *   FTS$STORE_PAYLOADS - reserved.
+  **/
   PROCEDURE FTS$INDEX_FIELD_INFOS (
-      FTS$INDEX_NAME     VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
-      FTS$SEGMENT_NAME   VARCHAR(255) CHARACTER SET UTF8 DEFAULT NULL)
+      FTS$INDEX_NAME   VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+      FTS$SEGMENT_NAME VARCHAR(63) CHARACTER SET UTF8 DEFAULT NULL)
   RETURNS (
       FTS$FIELD_NAME                      VARCHAR(127) CHARACTER SET UTF8,
       FTS$FIELD_NUMBER                    SMALLINT,
       FTS$IS_INDEXED                      BOOLEAN,
       FTS$STORE_TERM_VECTOR               BOOLEAN,
-      FTS$STORE_OFFSET_WITH_TERM_VECTOR   BOOLEAN,
-      FTS$STORE_POSITION_WITH_TERM_VECTOR BOOLEAN,
+      FTS$STORE_OFFSET_TERM_VECTOR        BOOLEAN,
+      FTS$STORE_POSITION_TERM_VECTOR      BOOLEAN,
       FTS$OMIT_NORMS                      BOOLEAN,
-      FTS$OMIT_TERM_FREQ_AND_POSITIONS    BOOLEAN,
+      FTS$OMIT_TERM_FREQ_AND_POS          BOOLEAN,
       FTS$STORE_PAYLOADS                  BOOLEAN);
 END^
 
@@ -791,13 +910,13 @@ BEGIN
   PROCEDURE FTS$INDEX_SEGMENT_INFOS (
       FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL)
   RETURNS (
-      FTS$SEGMENT_NAME  VARCHAR(255) CHARACTER SET UTF8,
-      FTS$DOC_COUNT     INTEGER,
-      FTS$SEGMENT_SIZE  /*BIGINT*/ INTEGER,
+      FTS$SEGMENT_NAME      VARCHAR(63) CHARACTER SET UTF8,
+      FTS$DOC_COUNT         INTEGER,
+      FTS$SEGMENT_SIZE      /*BIGINT*/ INTEGER,
       FTS$USE_COMPOUND_FILE BOOLEAN,
-      FTS$HAS_DELETIONS BOOLEAN,
-      FTS$DEL_COUNT     INTEGER,
-      FTS$DEL_FILENAME  VARCHAR(255) CHARACTER SET UTF8)
+      FTS$HAS_DELETIONS     BOOLEAN,
+      FTS$DEL_COUNT         INTEGER,
+      FTS$DEL_FILENAME      VARCHAR(255) CHARACTER SET UTF8)
   EXTERNAL NAME 'luceneudr!getIndexSegments'
   ENGINE UDR;
 
@@ -819,17 +938,17 @@ BEGIN
   ENGINE UDR;
 
   PROCEDURE FTS$INDEX_FIELD_INFOS (
-      FTS$INDEX_NAME     VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
-      FTS$SEGMENT_NAME   VARCHAR(255) CHARACTER SET UTF8)
+      FTS$INDEX_NAME   VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+      FTS$SEGMENT_NAME VARCHAR(63) CHARACTER SET UTF8)
   RETURNS (
       FTS$FIELD_NAME                      VARCHAR(127) CHARACTER SET UTF8,
       FTS$FIELD_NUMBER                    SMALLINT,
       FTS$IS_INDEXED                      BOOLEAN,
       FTS$STORE_TERM_VECTOR               BOOLEAN,
-      FTS$STORE_OFFSET_WITH_TERM_VECTOR   BOOLEAN,
-      FTS$STORE_POSITION_WITH_TERM_VECTOR BOOLEAN,
+      FTS$STORE_OFFSET_TERM_VECTOR        BOOLEAN,
+      FTS$STORE_POSITION_TERM_VECTOR      BOOLEAN,
       FTS$OMIT_NORMS                      BOOLEAN,
-      FTS$OMIT_TERM_FREQ_AND_POSITIONS    BOOLEAN,
+      FTS$OMIT_TERM_FREQ_AND_POS          BOOLEAN,
       FTS$STORE_PAYLOADS                  BOOLEAN)
   EXTERNAL NAME 'luceneudr!getFieldInfos'
   ENGINE UDR;
@@ -839,7 +958,6 @@ SET TERM ; ^
 
 COMMENT ON PACKAGE FTS$STATISTICS IS
 'Low-level full-text index statistics';
-
 
 GRANT SELECT ON FTS$INDICES TO PACKAGE FTS$STATISTICS;
 
