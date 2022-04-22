@@ -127,7 +127,9 @@ namespace LuceneUDR
 			case SQL_SHORT:
 			case SQL_LONG:
 			case SQL_INT64:
+#if FB_API_VER >= 40
 			case SQL_INT128:
+#endif
 				builder->setType(status, i, SQL_VARYING);
 				builder->setLength(status, i, 40 * 4);
 				break;
@@ -147,6 +149,7 @@ namespace LuceneUDR
 				builder->setType(status, i, SQL_VARYING);
 				builder->setLength(status, i, 35 * 4);
 				break;
+#if FB_API_VER >= 40
 			case SQL_TIME_TZ:
 			case SQL_TIMESTAMP_TZ:
 				builder->setType(status, i, SQL_VARYING);
@@ -157,6 +160,7 @@ namespace LuceneUDR
 				builder->setType(status, i, SQL_VARYING);
 				builder->setLength(status, i, 60 * 4);
 				break;
+#endif
 			}
 		}
 		return builder->getMetadata(status);
