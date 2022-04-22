@@ -214,7 +214,7 @@ FB_UDR_BEGIN_PROCEDURE(dropIndex)
 		const string ftsDirectory = getFtsDirectory(context);
 		const auto unicodeIndexDir = FileUtils::joinPath(StringUtils::toUnicode(ftsDirectory), StringUtils::toUnicode(indexName));
 		// If the directory exists, then delete it.
-		if (removeIndexDirectory(unicodeIndexDir)) {
+		if (!removeIndexDirectory(unicodeIndexDir)) {
 			const string indexDir = StringUtils::toUTF8(unicodeIndexDir);
 			const string error_message = string_format("Cannot delete index directory \"%s\".", indexDir);
 			ISC_STATUS statusVector[] = {

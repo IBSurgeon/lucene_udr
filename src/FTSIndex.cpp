@@ -140,7 +140,7 @@ namespace LuceneUDR
 		indexName.copy(input->indexName.str, input->indexName.length);
 
 		// check for index existence
-		if (hasIndex(status, att, tra, sqlDialect, indexName)) {
+		if (!hasIndex(status, att, tra, sqlDialect, indexName)) {
 			const string error_message = string_format("Index \"%s\" not exists", indexName);
 			ISC_STATUS statusVector[] = {
 			   isc_arg_gds, isc_random,
