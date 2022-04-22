@@ -1,6 +1,19 @@
 #ifndef FB_FIELD_INFO_H
 #define FB_FIELD_INFO_H
 
+/**
+ *  Utilities for getting information about query fields and their values.
+ *
+ *  The original code was created by Simonov Denis
+ *  for the open source Lucene UDR full-text search library for Firebird DBMS.
+ *
+ *  Copyright (c) 2022 Simonov Denis <sim-mail@list.ru>
+ *  and all contributors signed below.
+ *
+ *  All Rights Reserved.
+ *  Contributor(s): ______________________________________.
+**/
+
 #include <string>
 #include <vector>
 #include "FBUtils.h"
@@ -79,24 +92,12 @@ namespace LuceneUDR
 			return as<ISC_INT64>(buffer + offset);
 		}
 
-		inline FB_I128 getInt128Value(unsigned char* buffer) {
-			return as<FB_I128>(buffer + offset);
-		}
-
 		inline float getFloatValue(unsigned char* buffer) {
 			return as<float>(buffer + offset);
 		}
 
 		inline double getDoubleValue(unsigned char* buffer) {
 			return as<double>(buffer + offset);
-		}
-
-		inline FB_DEC16 getDecFloat16Value(unsigned char* buffer) {
-			return as<FB_DEC16>(buffer + offset);
-		}
-
-		inline FB_DEC34 getDecFloat34Value(unsigned char* buffer) {
-			return as<FB_DEC34>(buffer + offset);
 		}
 
 		inline ISC_DATE getDateValue(unsigned char* buffer) {
@@ -107,16 +108,33 @@ namespace LuceneUDR
 			return as<ISC_TIME>(buffer + offset);
 		}
 
+		inline ISC_TIMESTAMP getTimestampValue(unsigned char* buffer) {
+			return as<ISC_TIMESTAMP>(buffer + offset);
+		}
+
+		inline ISC_QUAD getQuadValue(unsigned char* buffer) {
+			return as<ISC_QUAD>(buffer + offset);
+		}
+
+#if FB_API_VER >= 40
+		inline FB_I128 getInt128Value(unsigned char* buffer) {
+			return as<FB_I128>(buffer + offset);
+		}
+
+		inline FB_DEC16 getDecFloat16Value(unsigned char* buffer) {
+			return as<FB_DEC16>(buffer + offset);
+		}
+
+		inline FB_DEC34 getDecFloat34Value(unsigned char* buffer) {
+			return as<FB_DEC34>(buffer + offset);
+		}
+
 		inline ISC_TIME_TZ getTimeTzValue(unsigned char* buffer) {
 			return as<ISC_TIME_TZ>(buffer + offset);
 		}
 
 		inline ISC_TIME_TZ_EX getTimeTzExValue(unsigned char* buffer) {
 			return as<ISC_TIME_TZ_EX>(buffer + offset);
-		}
-
-		inline ISC_TIMESTAMP getTimestampValue(unsigned char* buffer) {
-			return as<ISC_TIMESTAMP>(buffer + offset);
 		}
 
 		inline ISC_TIMESTAMP_TZ getTimestampTzValue(unsigned char* buffer) {
@@ -126,10 +144,7 @@ namespace LuceneUDR
 		inline ISC_TIMESTAMP_TZ_EX getTimestampTzExValue(unsigned char* buffer) {
 			return as<ISC_TIMESTAMP_TZ_EX>(buffer + offset);
 		}
-
-		inline ISC_QUAD getQuadValue(unsigned char* buffer) {
-			return as<ISC_QUAD>(buffer + offset);
-		}
+#endif
 
 		inline short getOctetsLength(unsigned char* buffer) {
 			switch (dataType)

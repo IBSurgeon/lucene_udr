@@ -110,8 +110,8 @@
     <None Include="write_build_no.bat">
       <Filter>Shell scripts</Filter>
     </None>
-    <None Include="write_build_no.sh">
-      <Filter>Shell scripts</Filter>
+    <None Include="sql\fts$install_1.sql">
+      <Filter>SQL scripts</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

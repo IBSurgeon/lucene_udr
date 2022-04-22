@@ -1,6 +1,19 @@
 #ifndef LUCENE_FILES_H
 #define LUCENE_FILES_H
 
+/**
+ *  Lucene full-text index file helper.
+ *
+ *  The original code was created by Simonov Denis
+ *  for the open source Lucene UDR full-text search library for Firebird DBMS.
+ *
+ *  Copyright (c) 2022 Simonov Denis <sim-mail@list.ru>
+ *  and all contributors signed below.
+ *
+ *  All Rights Reserved.
+ *  Contributor(s): ______________________________________.
+**/
+
 #include "lucene++/LuceneHeaders.h"
 #include "lucene++/FileUtils.h"
 #include "lucene++/IndexFileNameFilter.h"

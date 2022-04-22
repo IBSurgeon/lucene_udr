@@ -1,6 +1,19 @@
 #ifndef FTS_INDEX_H
 #define FTS_INDEX_H
 
+/**
+ *  Utilities for getting and managing metadata for full-text indexes.
+ *
+ *  The original code was created by Simonov Denis
+ *  for the open source Lucene UDR full-text search library for Firebird DBMS.
+ *
+ *  Copyright (c) 2022 Simonov Denis <sim-mail@list.ru>
+ *  and all contributors signed below.
+ *
+ *  All Rights Reserved.
+ *  Contributor(s): ______________________________________.
+**/
+
 #include "LuceneUdr.h"
 #include "Relations.h"
 #include "lucene++/LuceneHeaders.h"

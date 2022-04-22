@@ -1,6 +1,19 @@
 #ifndef LUCENE_ANALYZER_FACTORY_H
 #define LUCENE_ANALYZER_FACTORY_H
 
+/**
+ *  Factory for creating Lucene analyzers.
+ *
+ *  The original code was created by Simonov Denis
+ *  for the open source Lucene UDR full-text search library for Firebird DBMS.
+ *
+ *  Copyright (c) 2022 Simonov Denis <sim-mail@list.ru>
+ *  and all contributors signed below.
+ *
+ *  All Rights Reserved.
+ *  Contributor(s): ______________________________________.
+**/
+
 #include "LuceneUdr.h"
 #include <map>
 #include <list>

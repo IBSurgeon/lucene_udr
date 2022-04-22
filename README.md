@@ -12,7 +12,8 @@ Lucene написан на языке Java. К сожалению плагин F
 Для установки Lucene UDR необходимо:
 
 1. Распаковать zip архив с динамическими библиотеками в каталог `plugins\udr`
-2. Выполнить скрипт [fts$install.sql](https://github.com/sim1984/lucene_udr/blob/main/fts%24install.sql) для регистрации процедур и функций в индексируемой БД.
+2. Выполнить скрипт [fts$install.sql](https://github.com/sim1984/lucene_udr/blob/main/sql/fts%24install.sql) 
+для регистрации процедур и функций в индексируемой БД. Для баз данных 1 SQL диалекта [fts$install_1.sql](https://github.com/sim1984/lucene_udr/blob/main/sql/fts%24install_1.sql) 
 
 Скачать готовые сборки можно по ссылкам:
 * [LuceneUdr_Win_x64.zip](https://github.com/sim1984/lucene_udr/releases/download/0.9/LuceneUdr_Win_x64.zip)

@@ -1,3 +1,16 @@
+# ---------------------------------------------------------------------------
+# Lucene UDR full text search library.
+#
+# The original code was created by Simonov Denis
+# for UDR open source full-text search library for Firebird DBMS.
+#
+# Copyright (c) 2022 Simonov Denis <sim-mail@list.ru>
+# and all contributors signed below.
+#
+# All Rights Reserved.
+# Contributor(s): ______________________________________.
+# ----------------------------------------------------------------------------
+
 cmake_minimum_required (VERSION 3.5)
 
 project (luceneudr VERSION 0.9.5)
@@ -104,6 +117,7 @@ target_link_libraries(luceneudr ${liblucene++-contrib_LIBRARIES})
 
 install(TARGETS luceneudr DESTINATION ${FIREBIRD_UDR_DIR})
 install(FILES "sql/fts\$install.sql"
+              "sql/fts\$install_1.sql"
               "sql/fts\$uninstall.sql"
               DESTINATION ${FIREBIRD_UDR_DIR})
 
