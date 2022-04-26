@@ -14,10 +14,10 @@
  *  Contributor(s): ______________________________________.
 **/
 
-#include "lucene++/LuceneHeaders.h"
-#include "lucene++/FileUtils.h"
-#include "lucene++/IndexFileNameFilter.h"
-#include "lucene++/IndexFileNames.h"
+#include "LuceneHeaders.h"
+#include "FileUtils.h"
+#include "IndexFileNameFilter.h"
+#include "IndexFileNames.h"
 #include <list>
 
 using namespace Lucene;

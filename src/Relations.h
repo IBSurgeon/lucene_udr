@@ -106,6 +106,17 @@ namespace LuceneUDR
 			if (whereDbKey) {
 				ss << "\nWHERE RDB$DB_KEY = ?";
 			}
+			else {
+				string where;
+				for (const auto fieldName : fieldNames) {
+					if (where.empty())
+						where += escapeMetaName(sqlDialect, fieldName) + " IS NOT NULL";
+					else
+						where += " OR " + escapeMetaName(sqlDialect, fieldName) + " IS NOT NULL";
+				}
+				if (!where.empty())
+				   ss << "\nWHERE (" << where << ")";
+			}
 			return ss.str();
 		}
 	};

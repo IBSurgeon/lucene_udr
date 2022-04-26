@@ -16,8 +16,8 @@
 
 #include "LuceneUdr.h"
 #include "Relations.h"
-#include "lucene++/LuceneHeaders.h"
-#include "lucene++/FileUtils.h"
+#include "LuceneHeaders.h"
+#include "FileUtils.h"
 #include <string>
 #include <list>
 #include <map>

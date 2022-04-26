@@ -15,9 +15,9 @@
 #include "FTSIndex.h"
 #include "FBUtils.h"
 #include "EncodeUtils.h"
-#include "lucene++/LuceneHeaders.h"
-#include "lucene++/FileUtils.h"
-#include "lucene++/QueryScorer.h"
+#include "LuceneHeaders.h"
+#include "FileUtils.h"
+#include "QueryScorer.h"
 #include <sstream>
 #include <vector>
 #include <memory>

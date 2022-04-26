@@ -135,13 +135,14 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;WIN32_LEAN_AND_MEAN;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(BOOST_ROOT);C:\Firebird\4.0\include;include;c:\dev\vcpkg\packages\icu_x86-windows\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(BOOST_ROOT);C:\Firebird\4.0\include;c:\lucene++\include;c:\dev\vcpkg\packages\icu_x86-windows\include;include</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
+      <AdditionalLibraryDirectories>c:\Firebird\4.0\WOW64\lib;c:\lucene++\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -153,14 +154,14 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>
       </PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(BOOST_ROOT);C:\Firebird\4.0\include;include;c:\dev\vcpkg\packages\icu_x64-windows\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(BOOST_ROOT);C:\Firebird\4.0\include;c:\lucene++\include;c:\dev\vcpkg\packages\icu_x64-windows\include;include</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <AdditionalLibraryDirectories>lib\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>c:\Firebird\4.0\lib;c:\lucene++\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>fbclient_ms.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>defs\udr_plugin.def</ModuleDefinitionFile>
     </Link>
@@ -176,7 +177,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>
       </PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(BOOST_ROOT);C:\Firebird\4.0\include;include;c:\dev\vcpkg\packages\icu_x86-windows\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(BOOST_ROOT);C:\Firebird\4.0\include;c:\lucene++\include;c:\dev\vcpkg\packages\icu_x86-windows\include;include</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
@@ -185,7 +186,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <AdditionalLibraryDirectories>lib\Win32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>c:\Firebird\4.0\WOW64\lib;c:\lucene++\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <ModuleDefinitionFile>defs\udr_plugin.def</ModuleDefinitionFile>
       <AdditionalDependencies>fbclient_ms.lib;lucene++.lib;lucene++-contrib.lib;$(BOOST_ROOT)\stage\x86\lib\libboost_filesystem-vc143-mt-x32-1_78.lib;$(BOOST_ROOT)\stage\x86\lib\libboost_thread-vc143-mt-x32-1_78.lib;$(BOOST_ROOT)\stage\x86\lib\libboost_chrono-vc143-mt-x32-1_78.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
@@ -201,7 +202,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>
       </PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(BOOST_ROOT);C:\Firebird\4.0\include;include;c:\dev\vcpkg\packages\icu_x64-windows\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(BOOST_ROOT);C:\Firebird\4.0\include;c:\lucene++\include;c:\dev\vcpkg\packages\icu_x64-windows\include;include</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
@@ -210,7 +211,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <AdditionalLibraryDirectories>lib\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>c:\Firebird\4.0\lib;c:\lucene++\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>fbclient_ms.lib;lucene++.lib;lucene++-contrib.lib;$(BOOST_ROOT)\stage\x64\lib\libboost_filesystem-vc143-mt-x64-1_78.lib;$(BOOST_ROOT)\stage\x64\lib\libboost_thread-vc143-mt-x64-1_78.lib;$(BOOST_ROOT)\stage\x64\lib\libboost_chrono-vc143-mt-x64-1_78.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>defs\udr_plugin.def</ModuleDefinitionFile>
     </Link>

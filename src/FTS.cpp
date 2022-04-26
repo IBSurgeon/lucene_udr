@@ -18,9 +18,9 @@
 #include "FBUtils.h"
 #include "FBFieldInfo.h"
 #include "EncodeUtils.h"
-#include "lucene++/LuceneHeaders.h"
-#include "lucene++/FileUtils.h"
-#include "lucene++/QueryScorer.h"
+#include "LuceneHeaders.h"
+#include "FileUtils.h"
+#include "QueryScorer.h"
 #include "LuceneAnalyzerFactory.h"
 #include <sstream>
 #include <vector>

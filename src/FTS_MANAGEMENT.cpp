@@ -17,9 +17,9 @@
 #include "FBUtils.h"
 #include "EncodeUtils.h"
 #include "FBFieldInfo.h"
-#include "lucene++/LuceneHeaders.h"
-#include "lucene++/FileUtils.h"
-#include "lucene++/QueryScorer.h"
+#include "LuceneHeaders.h"
+#include "FileUtils.h"
+#include "QueryScorer.h"
 #include "LuceneAnalyzerFactory.h"
 #include <sstream>
 #include <vector>
@@ -576,6 +576,7 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 					}
 					fieldNames.push_back(segment.fieldName);
 				}
+				
 				const string sql = RelationHelper::buildSqlSelectFieldValues(sqlDialect, relationName, fieldNames);
 				const auto unicodeRelationName = StringUtils::toUnicode(relationName);
 
@@ -588,7 +589,6 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 					IStatement::PREPARE_PREFETCH_METADATA
 				));
 				AutoRelease<IMessageMetadata> outputMetadata(stmt->getOutputMetadata(status));
-				const unsigned colCount = outputMetadata->getCount(status);
 				// make all fields of string type except BLOB
 				AutoRelease<IMessageMetadata> newMeta(prepareTextMetaData(status, outputMetadata));
 				auto fields = FbFieldsInfo(status, newMeta);
@@ -601,23 +601,31 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 					newMeta,
 					0
 				));
-
+				
+				const unsigned colCount = newMeta->getCount(status);
 				const unsigned msgLength = newMeta->getMessageLength(status);
 				{
 					// allocate output buffer
 					auto b = make_unique<unsigned char[]>(msgLength);
 					unsigned char* buffer = b.get();
-					while (rs->fetchNext(status, buffer) == IStatus::RESULT_OK) {
+					memset(buffer, 0, msgLength);
+					while (rs->fetchNext(status, buffer) == IStatus::RESULT_OK) {						
 						bool emptyFlag = true;
 						DocumentPtr doc = newLucene<Document>();
 						const string dbKey = fields[0].getStringValue(status, att, tra, buffer);
 						// RDB$DB_KEY is in a binary format that cannot be converted to Unicode, 
 						// so we will convert the string to a hexadecimal representation.
+						
 						const string hexDbKey = string_to_hex(dbKey);
-						doc->add(newLucene<Field>(L"RDB$DB_KEY", StringUtils::toUnicode(hexDbKey), Field::STORE_YES, Field::INDEX_NOT_ANALYZED));
-						doc->add(newLucene<Field>(L"RDB$RELATION_NAME", unicodeRelationName, Field::STORE_YES, Field::INDEX_NOT_ANALYZED));
+						// TODO: Проверить ошибка на Linux где то здесь
+						auto dbKeyField = newLucene<Field>(L"RDB$DB_KEY", StringUtils::toUnicode(hexDbKey), Field::STORE_YES, Field::INDEX_NOT_ANALYZED);
+						auto relationField = newLucene<Field>(L"RDB$RELATION_NAME", unicodeRelationName, Field::STORE_YES, Field::INDEX_NOT_ANALYZED);
+						doc->add(dbKeyField);
+						doc->add(relationField);
+						
 						for (unsigned int i = 1; i < colCount; i++) {
 							auto field = fields[i];
+
 							bool nullFlag = field.isNull(buffer);
 							string value;
 							if (!nullFlag) {
@@ -625,6 +633,7 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 							}
 							auto fieldName = StringUtils::toUnicode(relationName + "." + field.fieldName);
 							Lucene::String unicodeValue;
+							
 							if (!value.empty()) {
 								// re-encode content to Unicode only if the string is non-empty
 								unicodeValue = StringUtils::toUnicode(to_utf8(value, icuCharset));
@@ -648,12 +657,14 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 						if (!emptyFlag) {
 							writer->addDocument(doc);
 						}
+						memset(buffer, 0, msgLength);
 					}
 					rs->close(status);
 				}
 				writer->commit();
 			}
 			writer->optimize();
+			writer->commit();
 			writer->close();
 
 			// if the index building was successful, then set the indexing completion status
