@@ -12,45 +12,38 @@
 **/
 
 #include "EncodeUtils.h"
+#ifndef WIN32_LEAN_AND_MEAN
 #include "unicode/uchar.h"
 #include "unicode/ucnv.h"
 #include "unicode/unistr.h"
+#endif
 #include <vector>
 #include <algorithm>
 #include <stdexcept>
 #include <string>
 
+#ifndef WIN32_LEAN_AND_MEAN
 using namespace icu;
+#endif
+
 using namespace std;
 
-string getICICharset(const unsigned charset) {
-	for (unsigned int i = 0; i < sizeof(FBCharsetMap); i++) {
-		if (FBCharsetMap[i].charsetID == charset)
-			return string(FBCharsetMap[i].icuCharsetName);
-	}
-	return "";
-}
 
-string getICICharset(const char* charset) {
-	string fbCharset(charset);
-	for (unsigned int i = 0; i < sizeof(FBCharsetMap); i++) {
-		if (FBCharsetMap[i].charsetName == fbCharset)
-			return string(FBCharsetMap[i].icuCharsetName);
-	}
-	return "";
-}
 
-string to_utf8(const string& source_str, const string& charset)
+string FBStringEncoder::toUtf8(const string& source_str)
 {
 	// if the string is already in utf-8, then it makes no sense to re-encode it
-	if (charset == "utf-8") {
+	if (sourceCharsetInfo.codePage == 65001) {
 		return source_str;
 	}
+#ifdef WIN32_LEAN_AND_MEAN
+	return StringUtils::toUTF8(toUnicode(source_str));
+#else
 	const auto srclen = static_cast<int32_t>(source_str.size());
 	vector<UChar> target(srclen);
 
 	UErrorCode status = U_ZERO_ERROR;
-	UConverter* conv = ucnv_open(charset.c_str(), &status);
+	UConverter* conv = ucnv_open(sourceCharsetInfo.charsetName.c_str(), &status);
 	if (!U_SUCCESS(status))
 		return string();
 
@@ -66,6 +59,32 @@ string to_utf8(const string& source_str, const string& charset)
 	ustr.toUTF8String(retval);
 
 	return retval;
+#endif
+}
+
+String FBStringEncoder::toUnicode(const string& source_str) 
+{
+	// if the string is already in utf-8, then it makes no sense to re-encode it
+	if (sourceCharsetInfo.codePage == 65001) {
+		return StringUtils::toUnicode(source_str);
+	}
+#ifdef WIN32_LEAN_AND_MEAN
+	int res_len = MultiByteToWideChar(sourceCharsetInfo.codePage, 0, source_str.c_str(), source_str.size(), nullptr, 0);
+
+	if (!res_len)
+		return String();
+
+	unique_ptr<wchar_t[]> pRes = make_unique<wchar_t[]>(res_len);
+	wchar_t* buffer = pRes.get();
+
+	if (!MultiByteToWideChar(sourceCharsetInfo.codePage, 0, source_str.c_str(), source_str.size(), buffer, res_len))
+	{
+		return String();
+	}
+	return String(buffer, res_len);
+#else
+	return StringUtils::toUnicode(toUtf8(source_str));
+#endif
 }
 
 string string_to_hex(const string& input)

@@ -177,7 +177,7 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 		const string ftsDirectory = getFtsDirectory(context);
 
 		const char* fbCharset = context->getClientCharSet();
-		const string icuCharset = getICICharset(fbCharset);
+		FBStringEncoder fbStringEncoder(fbCharset);
 
 		map<string, FTSRelation> relationsByName;
 		procedure->clearPreparedStatements();
@@ -389,7 +389,7 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 									Lucene::String unicodeValue;
 									if (!value.empty()) {
 										// re-encode content to Unicode only if the string is non-empty
-										unicodeValue = StringUtils::toUnicode(to_utf8(value, icuCharset));
+										unicodeValue = fbStringEncoder.toUnicode(value);
 									}
 									auto luceneField = newLucene<Field>(fieldName, unicodeValue, Field::STORE_NO, Field::INDEX_ANALYZED);
 									

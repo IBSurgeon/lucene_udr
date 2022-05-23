@@ -16,9 +16,11 @@
 
 
 #include "charsets.h"
+#include "StringUtils.h"
 #include <string>
 
 using namespace std;
+using namespace Lucene;
 
 struct FBCharsetInfo {
 	unsigned charsetID;
@@ -82,11 +84,28 @@ static const FBCharsetInfo FBCharsetMap[] = {
 	{CS_GB18030, "GB18030", "windows-54936", 54936}
 };
 
-string getICICharset(const unsigned charset);
+class FBStringEncoder {
+private:
+	FBCharsetInfo sourceCharsetInfo;
+public:
+	inline static FBCharsetInfo getCharsetInfo(const char* charsetName)
+	{
+		for (unsigned int i = 0; i < sizeof(FBCharsetMap); i++) {
+			if (FBCharsetMap[i].charsetName == charsetName)
+				return FBCharsetMap[i];
+		}
+		return FBCharsetMap[0];
+	}
 
-string getICICharset(const char* charset);
+	FBStringEncoder(const char* sourceCharsetName) {
+		sourceCharsetInfo = FBStringEncoder::getCharsetInfo(sourceCharsetName);
+	}
 
-string to_utf8(const string& source_str, const string& charset);
+	string toUtf8(const string& source_str);
+
+	String toUnicode(const string& source_str);
+};
+
 
 string string_to_hex(const string& input);
 

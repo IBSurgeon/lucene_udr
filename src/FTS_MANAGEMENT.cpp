@@ -549,7 +549,7 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 			writer->commit();
 
 			const char* fbCharset = context->getClientCharSet();
-			const string icuCharset = getICICharset(fbCharset);
+			FBStringEncoder fbStringEncoder(fbCharset);
 
 			for (const auto& p : segmentsByRelation) {
 				const string relationName = p.first;
@@ -636,7 +636,7 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 							
 							if (!value.empty()) {
 								// re-encode content to Unicode only if the string is non-empty
-								unicodeValue = StringUtils::toUnicode(to_utf8(value, icuCharset));
+								unicodeValue = fbStringEncoder.toUnicode(value);
 							}
 
 							auto luceneField = newLucene<Field>(fieldName, unicodeValue, Field::STORE_NO, Field::INDEX_ANALYZED);
