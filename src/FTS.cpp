@@ -616,18 +616,29 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 		}
 	    ScoreDocPtr scoreDoc = *it;
 		DocumentPtr doc = searcher->doc(scoreDoc->doc);
-		const string relationName = StringUtils::toUTF8(doc->get(L"RDB$RELATION_NAME"));
-		const string hexDbKey = StringUtils::toUTF8(doc->get(L"RDB$DB_KEY"));
-		// In the Lucene index, the string is stored in hexadecimal form, so let's convert it back to binary format.
-		const string dbKey = hex_to_string(hexDbKey);
 		
-        out->relation_nameNull = false;
+		try {
+			const string hexDbKey = StringUtils::toUTF8(doc->get(L"RDB$DB_KEY"));
+			// In the Lucene index, the string is stored in hexadecimal form, so let's convert it back to binary format.
+			const string dbKey = hex_to_string(hexDbKey);
+			out->rec_idNull = false;
+			out->rec_id.length = static_cast<ISC_USHORT>(dbKey.length());
+			dbKey.copy(out->rec_id.str, out->rec_id.length);
+		}
+		catch (invalid_argument& e) {			
+			ISC_STATUS statusVector[] = {
+				isc_arg_gds, isc_random,
+				isc_arg_string, (ISC_STATUS)e.what(),
+				isc_arg_end
+			};
+			throw FbException(status, statusVector);
+		}
+		
+		const string relationName = StringUtils::toUTF8(doc->get(L"RDB$RELATION_NAME"));
+		out->relation_nameNull = false;
 		out->relation_name.length = static_cast<ISC_USHORT>(relationName.length());
 		relationName.copy(out->relation_name.str, out->relation_name.length);
-		
-		out->rec_idNull = false;
-		out->rec_id.length = static_cast<ISC_USHORT>(dbKey.length());
-		dbKey.copy(out->rec_id.str, out->rec_id.length);
+
 
         out->scoreNull = false;
 		out->score = scoreDoc->score;

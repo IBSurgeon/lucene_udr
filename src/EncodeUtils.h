@@ -19,6 +19,11 @@
 #include "StringUtils.h"
 #include <string>
 
+
+#ifndef WIN32_LEAN_AND_MEAN
+#include "unicode/ucnv.h"
+#endif
+
 using namespace std;
 using namespace Lucene;
 
@@ -85,8 +90,13 @@ static const FBCharsetInfo FBCharsetMap[] = {
 };
 
 class FBStringEncoder {
+
 private:
 	FBCharsetInfo sourceCharsetInfo;
+#ifndef WIN32_LEAN_AND_MEAN
+	UConverter* uConverter;
+#endif
+
 public:
 	inline static FBCharsetInfo getCharsetInfo(const char* charsetName)
 	{
@@ -97,9 +107,21 @@ public:
 		return FBCharsetMap[0];
 	}
 
-	FBStringEncoder(const char* sourceCharsetName) {
+	FBStringEncoder(const char* sourceCharsetName) 
+#ifndef WIN32_LEAN_AND_MEAN
+		: uConverter(nullptr)
+#endif
+	{
 		sourceCharsetInfo = FBStringEncoder::getCharsetInfo(sourceCharsetName);
 	}
+
+#ifndef WIN32_LEAN_AND_MEAN
+	~FBStringEncoder() {
+		if (uConverter) {
+			ucnv_close(uConverter);
+		}
+	}
+#endif
 
 	string toUtf8(const string& source_str);
 

@@ -13,7 +13,7 @@
 
 cmake_minimum_required (VERSION 3.5)
 
-project (luceneudr VERSION 0.9.5)
+project (luceneudr VERSION 0.9.6)
 
 set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/build)
 
