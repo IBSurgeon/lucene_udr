@@ -412,6 +412,26 @@ namespace LuceneUDR
 			const unsigned int sqlDialect, 
 			const string &relationName);
 
+		/// <summary>
+		/// Checks if an index key field exists for given relation.
+		/// </summary>
+		/// 
+		/// <param name="status">Firebird status</param>
+		/// <param name="att">Firebird attachment</param>
+		/// <param name="tra">Firebird transaction</param>
+		/// <param name="sqlDialect">SQL dialect</param>
+		/// <param name="indexName">Index name</param>
+		/// <param name="relationName">Relation name</param>
+		/// 
+		/// <returns>Returns true if the index field exists, false otherwise</returns>
+		bool hasKeyIndexField(
+			ThrowStatusWrapper* status,
+			IAttachment* att,
+			ITransaction* tra,
+			const unsigned int sqlDialect,
+			const string& indexName,
+			const string& relationName
+		);
 
 		/// <summary>
 		/// Adds a new field (segment) to the full-text index.
@@ -435,7 +455,7 @@ namespace LuceneUDR
 			const string &relationName,
 			const string &fieldName,
 			const bool key,
-			const double boost);
+			const double boost = 1.0);
 
 		/// <summary>
 		/// Removes a field (segment) from the full-text index.

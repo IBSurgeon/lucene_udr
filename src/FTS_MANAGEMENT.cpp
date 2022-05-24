@@ -386,6 +386,76 @@ FB_UDR_BEGIN_PROCEDURE(addIndexField)
 	}
 FB_UDR_END_PROCEDURE
 
+/***
+PROCEDURE FTS$ADD_INDEX_KEY_FIELD (
+	 FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+	 FTS$RELATION_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+	 FTS$FIELD_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL
+)
+EXTERNAL NAME 'luceneudr!addIndexKeyField'
+ENGINE UDR;
+***/
+FB_UDR_BEGIN_PROCEDURE(addIndexKeyField)
+	FB_UDR_MESSAGE(InMessage,
+		(FB_INTL_VARCHAR(252, CS_UTF8), index_name)
+		(FB_INTL_VARCHAR(252, CS_UTF8), relation_name)
+		(FB_INTL_VARCHAR(252, CS_UTF8), field_name)
+	);
+
+	FB_UDR_CONSTRUCTOR
+		, indexRepository(context->getMaster())
+	{
+	}
+
+	FTSIndexRepository indexRepository;
+
+	FB_UDR_EXECUTE_PROCEDURE
+	{
+		if (in->index_nameNull) {
+			ISC_STATUS statusVector[] = {
+				isc_arg_gds, isc_random,
+				isc_arg_string, (ISC_STATUS)"Index name can not be NULL",
+				isc_arg_end
+			};
+			throw FbException(status, statusVector);
+		}
+		const string indexName(in->index_name.str, in->index_name.length);
+
+		if (in->relation_nameNull) {
+			ISC_STATUS statusVector[] = {
+				isc_arg_gds, isc_random,
+				isc_arg_string, (ISC_STATUS)"Relation name can not be NULL",
+				isc_arg_end
+			};
+			throw FbException(status, statusVector);
+		}
+		const string relationName(in->relation_name.str, in->relation_name.length);
+
+		if (in->field_nameNull) {
+			ISC_STATUS statusVector[] = {
+				isc_arg_gds, isc_random,
+				isc_arg_string, (ISC_STATUS)"Field name can not be NULL",
+				isc_arg_end
+			};
+			throw FbException(status, statusVector);
+		}
+		const string fieldName(in->field_name.str, in->field_name.length);
+
+
+		AutoRelease<IAttachment> att(context->getAttachment(status));
+		AutoRelease<ITransaction> tra(context->getTransaction(status));
+
+		const unsigned int sqlDialect = getSqlDialect(status, att);
+
+		// adding a segment
+		procedure->indexRepository.addIndexField(status, att, tra, sqlDialect, indexName, relationName, fieldName, true);
+	}
+
+	FB_UDR_FETCH_PROCEDURE
+	{
+		return false;
+	}
+FB_UDR_END_PROCEDURE
 
 /***
 PROCEDURE FTS$DROP_INDEX_FIELD (
@@ -645,8 +715,7 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 								}
 							}
 
-							auto luceneField = newLucene<Field>(fieldName, unicodeValue, Field::STORE_NO, Field::INDEX_ANALYZED);
-
+							FieldPtr luceneField = nullptr;
 							auto iSegment = std::find_if(
 								segments.begin(),
 								segments.end(),
@@ -654,7 +723,16 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 							);
 							if (iSegment != segments.end()) {
 								auto segment = *iSegment;
+								if (segment.key) {
+									luceneField = newLucene<Field>(fieldName, unicodeValue, Field::STORE_YES, Field::INDEX_NOT_ANALYZED);
+								}
+								else {
+									luceneField = newLucene<Field>(fieldName, unicodeValue, Field::STORE_NO, Field::INDEX_ANALYZED);
+								}
 								luceneField->setBoost(segment.boost);
+							}
+							else {
+								luceneField = newLucene<Field>(fieldName, unicodeValue, Field::STORE_NO, Field::INDEX_ANALYZED);
 							}
 							doc->add(luceneField);
 							emptyFlag = emptyFlag && value.empty();

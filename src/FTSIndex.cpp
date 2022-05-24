@@ -674,6 +674,73 @@ namespace LuceneUDR
 	}
 
 	/// <summary>
+	/// Checks if an index key field exists for given relation.
+	/// </summary>
+	/// 
+	/// <param name="status">Firebird status</param>
+	/// <param name="att">Firebird attachment</param>
+	/// <param name="tra">Firebird transaction</param>
+	/// <param name="sqlDialect">SQL dialect</param>
+	/// <param name="indexName">Index name</param>
+	/// <param name="relationName">Relation name</param>
+	/// 
+	/// <returns>Returns true if the index field exists, false otherwise</returns>
+	bool FTSIndexRepository::hasKeyIndexField(
+		ThrowStatusWrapper* status,
+		IAttachment* att,
+		ITransaction* tra,
+		const unsigned int sqlDialect,
+		const string& indexName,
+		const string& relationName
+	)
+	{
+		FB_MESSAGE(Input, ThrowStatusWrapper,
+			(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
+			(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
+		) input(status, m_master);
+
+		FB_MESSAGE(Output, ThrowStatusWrapper,
+			(FB_INTEGER, cnt)
+		) output(status, m_master);
+
+		input.clear();
+
+		input->indexName.length = static_cast<ISC_USHORT>(indexName.length());
+		indexName.copy(input->indexName.str, input->indexName.length);
+
+		input->relationName.length = static_cast<ISC_USHORT>(relationName.length());
+		relationName.copy(input->relationName.str, input->relationName.length);
+
+
+		AutoRelease<IStatement> stmt(att->prepare(
+			status,
+			tra,
+			0,
+			"SELECT COUNT(*) AS CNT\n"
+			"FROM FTS$INDEX_SEGMENTS\n"
+			"WHERE FTS$INDEX_NAME = ? AND FTS$RELATION_NAME = ? AND FTS$KEY IS TRUE",
+			sqlDialect,
+			IStatement::PREPARE_PREFETCH_METADATA
+		));
+
+		AutoRelease<IResultSet> rs(stmt->openCursor(
+			status,
+			tra,
+			input.getMetadata(),
+			input.getData(),
+			output.getMetadata(),
+			0
+		));
+		bool foundFlag = false;
+		if (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
+			foundFlag = (output->cnt > 0);
+		}
+		rs->close(status);
+
+		return foundFlag;
+	}
+
+	/// <summary>
 	/// Adds a new field (segment) to the full-text index.
 	/// </summary>
 	/// 
@@ -735,8 +802,19 @@ namespace LuceneUDR
 			throw FbException(status, statusVector);
 		}
 
+		// check key exists
+		if (key && hasKeyIndexField(status, att, tra, sqlDialect, indexName, relationName)) {
+			const string error_message = string_format("The key field in the \"%s\" index already exists for the \"%s\" relation.", indexName, relationName);
+			ISC_STATUS statusVector[] = {
+			   isc_arg_gds, isc_random,
+			   isc_arg_string, (ISC_STATUS)error_message.c_str(),
+			   isc_arg_end
+			};
+			throw FbException(status, statusVector);
+		}
+
 		// segment existence check
-		if (hasIndexSegment(status, att, tra, sqlDialect, indexName, relationName, fieldName)) {
+		if (hasIndexSegment(status, att, tra, sqlDialect, indexName, relationName, fieldName)) {			
 			const string error_message = string_format("Segment for \"%s\".\"%s\" already exists in index \"%s\"", relationName, fieldName, indexName);
 			ISC_STATUS statusVector[] = {
 			   isc_arg_gds, isc_random,
@@ -748,7 +826,7 @@ namespace LuceneUDR
 
 		// checking if a table exists
 		if (!relationHelper.relationExists(status, att, tra, sqlDialect, relationName)) {
-			const string error_message = string_format("Table \"%s\" not exists.", relationName);
+			const string error_message = string_format("Relation \"%s\" not exists.", relationName);
 			ISC_STATUS statusVector[] = {
 			   isc_arg_gds, isc_random,
 			   isc_arg_string, (ISC_STATUS)error_message.c_str(),
@@ -759,7 +837,7 @@ namespace LuceneUDR
 
 		// field existence check
 		if (!relationHelper.fieldExists(status, att, tra, sqlDialect, relationName, fieldName)) {
-			const string error_message = string_format("Field \"%s\" not exists in table \"%s\".", fieldName, relationName);
+			const string error_message = string_format("Field \"%s\" not exists in relation \"%s\".", fieldName, relationName);
 			ISC_STATUS statusVector[] = {
 			   isc_arg_gds, isc_random,
 			   isc_arg_string, (ISC_STATUS)error_message.c_str(),
