@@ -51,7 +51,7 @@ namespace LuceneUDR
 		string indexName;
 		string relationName;
 		string fieldName;
-		bool storeData;
+		bool key = false;
 		double boost = 1.0;
 
 		FTSIndex index;
@@ -424,6 +424,7 @@ namespace LuceneUDR
 		/// <param name="indexName">Index name</param>
 		/// <param name="relationName">Relation name</param>
 		/// <param name="fieldName">Field name</param>
+		/// <param name="key">Field is key</param>
 		/// <param name="boost">Significance multiplier</param>
 		void addIndexField (
 			ThrowStatusWrapper* status,
@@ -433,6 +434,7 @@ namespace LuceneUDR
 			const string &indexName,
 			const string &relationName,
 			const string &fieldName,
+			const bool key,
 			const double boost);
 
 		/// <summary>

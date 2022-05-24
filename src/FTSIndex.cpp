@@ -457,6 +457,7 @@ namespace LuceneUDR
 			(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
 			(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
 			(FB_INTL_VARCHAR(252, CS_UTF8), fieldName)
+			(FB_BOOLEAN, key)
 			(FB_DOUBLE, boost)
 		) output(status, m_master);
 
@@ -470,7 +471,7 @@ namespace LuceneUDR
 				status,
 				tra,
 				0,
-				"SELECT FTS$INDEX_NAME, FTS$RELATION_NAME, FTS$FIELD_NAME, FTS$BOOST\n"
+				"SELECT FTS$INDEX_NAME, FTS$RELATION_NAME, FTS$FIELD_NAME, FTS$KEY, FTS$BOOST\n"
 				"FROM FTS$INDEX_SEGMENTS\n"
 				"WHERE FTS$INDEX_NAME = ?",
 				sqlDialect,
@@ -524,6 +525,7 @@ namespace LuceneUDR
 			(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
 			(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
 			(FB_INTL_VARCHAR(252, CS_UTF8), fieldName)
+			(FB_BOOLEAN, key)
 			(FB_DOUBLE, boost)
 			(FB_INTL_VARCHAR(252, CS_UTF8), analyzerName)
 			(FB_INTL_VARCHAR(4, CS_UTF8), indexStatus)
@@ -538,6 +540,7 @@ namespace LuceneUDR
 				"  FTS$INDEX_SEGMENTS.FTS$INDEX_NAME,\n"
 				"  FTS$INDEX_SEGMENTS.FTS$RELATION_NAME,\n"
 				"  FTS$INDEX_SEGMENTS.FTS$FIELD_NAME,\n"
+			    "  FTS$INDEX_SEGMENTS.FTS$KEY,\n"
 				"  FTS$INDEX_SEGMENTS.FTS$BOOST,\n"
 				"  FTS$INDICES.FTS$ANALYZER,\n"
 				"  FTS$INDICES.FTS$INDEX_STATUS\n"
@@ -562,6 +565,7 @@ namespace LuceneUDR
 			indexSegment.indexName.assign(output->indexName.str, output->indexName.length);
 			indexSegment.relationName.assign(output->relationName.str, output->relationName.length);
 			indexSegment.fieldName.assign(output->fieldName.str, output->fieldName.length);
+			indexSegment.key = output->key;
 			if (output->boostNull) {
 				indexSegment.boost = 1.0;
 			}
@@ -605,6 +609,7 @@ namespace LuceneUDR
 			(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
 			(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
 			(FB_INTL_VARCHAR(252, CS_UTF8), fieldName)
+			(FB_BOOLEAN, key)
 			(FB_DOUBLE, boost)
 			(FB_INTL_VARCHAR(252, CS_UTF8), analyzerName)
 			(FB_INTL_VARCHAR(4, CS_UTF8), indexStatus)
@@ -624,6 +629,7 @@ namespace LuceneUDR
 				"  FTS$INDEX_SEGMENTS.FTS$INDEX_NAME,\n" 
 				"  FTS$INDEX_SEGMENTS.FTS$RELATION_NAME,\n" 
 				"  FTS$INDEX_SEGMENTS.FTS$FIELD_NAME,\n"
+				"  FTS$INDEX_SEGMENTS.FTS$KEY,\n"
 				"  FTS$INDEX_SEGMENTS.FTS$BOOST,\n"
 				"  FTS$INDICES.FTS$ANALYZER,\n"
 				"  FTS$INDICES.FTS$INDEX_STATUS\n"
@@ -649,6 +655,7 @@ namespace LuceneUDR
 			indexSegment.indexName.assign(output->indexName.str, output->indexName.length);
 			indexSegment.relationName.assign(output->relationName.str, output->relationName.length);
 			indexSegment.fieldName.assign(output->fieldName.str, output->fieldName.length);
+			indexSegment.key = output->key;
 			if (output->boostNull) {
 				indexSegment.boost = 1.0;
 			}
@@ -686,12 +693,14 @@ namespace LuceneUDR
 		const string &indexName,
 		const string &relationName,
 		const string &fieldName,
+		const bool key,
 		const double boost)
 	{
 		FB_MESSAGE(Input, ThrowStatusWrapper,
 			(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
 			(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
 			(FB_INTL_VARCHAR(252, CS_UTF8), fieldName)
+			(FB_BOOLEAN, key)
 			(FB_DOUBLE, boost)
 		) input(status, m_master);
 
@@ -705,6 +714,8 @@ namespace LuceneUDR
 
 		input->fieldName.length = static_cast<ISC_USHORT>(fieldName.length());
 		fieldName.copy(input->fieldName.str, input->fieldName.length);
+
+		input->key = key;
 
 		if (boost == 1.0) {
 			input->boostNull = true;
@@ -761,8 +772,8 @@ namespace LuceneUDR
 			status,
 			tra,
 			0,
-			"INSERT INTO FTS$INDEX_SEGMENTS(FTS$INDEX_NAME, FTS$RELATION_NAME, FTS$FIELD_NAME, FTS$BOOST)\n"
-			"VALUES(?, ?, ?, ?)",
+			"INSERT INTO FTS$INDEX_SEGMENTS(FTS$INDEX_NAME, FTS$RELATION_NAME, FTS$FIELD_NAME, FTS$KEY, FTS$BOOST)\n"
+			"VALUES(?, ?, ?, ?, ?)",
 			sqlDialect,
 			input.getMetadata(),
 			input.getData(),

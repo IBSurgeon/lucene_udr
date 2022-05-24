@@ -377,7 +377,7 @@ FB_UDR_BEGIN_PROCEDURE(addIndexField)
 		const unsigned int sqlDialect = getSqlDialect(status, att);
 
 		// adding a segment
-		procedure->indexRepository.addIndexField(status, att, tra, sqlDialect, indexName, relationName, fieldName, boost);
+		procedure->indexRepository.addIndexField(status, att, tra, sqlDialect, indexName, relationName, fieldName, false, boost);
 	}
 
 	FB_UDR_FETCH_PROCEDURE
@@ -617,7 +617,7 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 						// so we will convert the string to a hexadecimal representation.
 						
 						const string hexDbKey = string_to_hex(dbKey);
-						// TODO: Проверить ошибка на Linux где то здесь
+				
 						auto dbKeyField = newLucene<Field>(L"RDB$DB_KEY", StringUtils::toUnicode(hexDbKey), Field::STORE_YES, Field::INDEX_NOT_ANALYZED);
 						auto relationField = newLucene<Field>(L"RDB$RELATION_NAME", unicodeRelationName, Field::STORE_YES, Field::INDEX_NOT_ANALYZED);
 						doc->add(dbKeyField);
@@ -635,8 +635,14 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 							Lucene::String unicodeValue;
 							
 							if (!value.empty()) {
-								// re-encode content to Unicode only if the string is non-empty
-								unicodeValue = fbStringEncoder.toUnicode(value);
+								// re-encode content to Unicode only if the string is non-binary
+								if (!field.isBinary()) {
+									unicodeValue = fbStringEncoder.toUnicode(value);
+								}
+								else {
+									// convert the binary string to a hexadecimal representation
+									unicodeValue = StringUtils::toUnicode(string_to_hex(value));
+								}
 							}
 
 							auto luceneField = newLucene<Field>(fieldName, unicodeValue, Field::STORE_NO, Field::INDEX_ANALYZED);

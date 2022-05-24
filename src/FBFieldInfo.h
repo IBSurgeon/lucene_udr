@@ -170,6 +170,22 @@ namespace LuceneUDR
 			}
 		}
 
+		inline bool isBinary() {
+			switch (dataType) {
+			case SQL_TEXT:
+			case SQL_VARYING:
+			{
+				return (charSet == CS_BINARY);
+			}
+			case SQL_BLOB:
+			{
+				return (subType == 0);
+			}
+			default:
+				return false;
+			}
+		}
+
 		template <class StatusType>
 		string getStringValue(StatusType* status, IAttachment* att, ITransaction* tra, unsigned char* buffer);
 	};
@@ -191,6 +207,24 @@ namespace LuceneUDR
 			string s = blob_get_string(status, blob);
 			blob->close(status);
 			return s;
+		}
+		case SQL_SHORT:
+		{
+			if (!scale) {
+				return std::to_string(getShortValue(buffer));
+			}
+		}
+		case SQL_LONG:
+		{
+			if (!scale) {
+				return std::to_string(getLongValue(buffer));
+			}
+		}
+		case SQL_INT64:
+		{
+			if (!scale) {
+				return std::to_string(getInt64Value(buffer));
+			}
 		}
 		default:
 			// Other types are not considered yet.
