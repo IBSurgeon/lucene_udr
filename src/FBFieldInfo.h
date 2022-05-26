@@ -56,6 +56,9 @@ namespace LuceneUDR
 		unsigned offset;
 		unsigned nullOffset;
 
+		bool ftsKey;
+		double ftsBoost;
+
 		FbFieldInfo()
 			: fieldIndex(0)
 			, fieldName("")
@@ -69,6 +72,8 @@ namespace LuceneUDR
 			, charSet(0)
 			, offset(0)
 			, nullOffset(0)
+			, ftsKey(false)
+			, ftsBoost(1.0)
 		{
 		}
 

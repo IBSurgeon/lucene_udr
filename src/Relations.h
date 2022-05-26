@@ -25,21 +25,105 @@ using namespace std;
 
 namespace LuceneUDR
 {
+	enum class RelationType {
+	   RT_REGULAR,
+	   RT_VIEW,
+	   RT_EXTERNAL,
+	   RT_VIRTUAL,
+	   RT_GTT_PRESERVE_ROWS,
+	   RT_GTT_DELETE_ROWS
+	};
+
+	struct RelationInfo
+	{
+		string relationName;
+		RelationType relationType;
+		bool systemFlag;
+
+		bool findKeyFieldSupported() {
+			return (relationType == RelationType::RT_REGULAR || relationType == RelationType::RT_GTT_PRESERVE_ROWS || relationType == RelationType::RT_GTT_DELETE_ROWS);
+		}
+	};
+
+	struct RelationFieldInfo
+	{
+		string relationName;
+		string fieldName;
+		short  fieldType;
+		short fieldLength;
+		short charLength;
+		short charsetId;
+		short fieldSubType;
+		short fieldPrecision;
+		short fieldScale;
+
+		bool isInt() {
+			return (fieldScale == 0) && (fieldType == 7 || fieldType == 8 || fieldType == 16 || fieldType == 26);
+		}
+
+		bool isFixedChar() {
+			return (fieldType == 14);
+		}
+
+		bool isVarChar() {
+			return (fieldType == 37);
+		}
+
+		bool isBlob() {
+			return (fieldType == 261);
+		}
+
+		bool isBinary() {
+			return (isBlob() && fieldSubType == 0) || ((isFixedChar() || isVarChar()) && charsetId == 1);
+		}
+	};
+
+	using RelationFieldList = list<RelationFieldInfo>;
+
 	class RelationHelper final
 	{
 	private:
 		IMaster* m_master;
 		// prepared statements
+		AutoRelease<IStatement> stmt_get_relation;
 		AutoRelease<IStatement> stmt_exists_relation;
+		AutoRelease<IStatement> stmt_relation_fields;
+		AutoRelease<IStatement> stmt_pk_fields;
+		AutoRelease<IStatement> stmt_get_field;
 		AutoRelease<IStatement> stmt_exists_field;
 	public:
 		RelationHelper()
-			: m_master(nullptr)
+			: RelationHelper(nullptr)
 		{}
 
 		RelationHelper(IMaster* master)
 			: m_master(master)
+			, stmt_get_relation(nullptr)
+			, stmt_exists_relation(nullptr)
+			, stmt_relation_fields(nullptr)
+			, stmt_pk_fields(nullptr)
+			, stmt_get_field(nullptr)
+			, stmt_exists_field(nullptr)
 		{}
+
+		/// <summary>
+		/// Returns information about the relation.
+		/// </summary>
+		/// 
+		/// <param name="status">Firebird status</param>
+		/// <param name="att">Firebird attachment</param>
+		/// <param name="tra">Firebird transaction</param>
+		/// <param name="sqlDialect">SQL dialect</param>
+		/// <param name="relationName">Relation name</param>
+		/// 
+		/// <returns>Returns information about the relation.</returns>
+		RelationInfo getRelationInfo(
+			ThrowStatusWrapper* status,
+			IAttachment* att,
+			ITransaction* tra,
+			const unsigned int sqlDialect,
+			const string& relationName
+		);
 
 		/// <summary>
 		/// Checks if the given relation exists.
@@ -58,6 +142,65 @@ namespace LuceneUDR
 			ITransaction* tra,
 			const unsigned int sqlDialect,
 			const string &relationName);
+
+		/// <summary>
+		/// Returns a list of relations fields.
+		/// </summary>
+		/// 
+		/// <param name="status">Firebird status</param>
+		/// <param name="att">Firebird attachment</param>
+		/// <param name="tra">Firebird transaction</param>
+		/// <param name="sqlDialect">SQL dialect</param>
+		/// <param name="relationName">Relation name</param>
+		/// 
+		/// <returns>Returns a list of relations fields.</returns>
+		RelationFieldList getFields(
+			ThrowStatusWrapper* status,
+			IAttachment* att,
+			ITransaction* tra,
+			const unsigned int sqlDialect,
+			const string& relationName
+		);
+
+		/// <summary>
+		/// Returns a list of relations primary key fields.
+		/// </summary>
+		/// 
+		/// <param name="status">Firebird status</param>
+		/// <param name="att">Firebird attachment</param>
+		/// <param name="tra">Firebird transaction</param>
+		/// <param name="sqlDialect">SQL dialect</param>
+		/// <param name="relationName">Relation name</param>
+		/// 
+		/// <returns>Returns a list of relations primary key fields.</returns>
+		RelationFieldList getPrimaryKeyFields(
+			ThrowStatusWrapper* status,
+			IAttachment* att,
+			ITransaction* tra,
+			const unsigned int sqlDialect,
+			const string& relationName
+		);
+
+		/// <summary>
+		/// Returns information about the field.
+		/// </summary>
+		/// 
+		/// <param name="status">Firebird status</param>
+		/// <param name="att">Firebird attachment</param>
+		/// <param name="tra">Firebird transaction</param>
+		/// <param name="sqlDialect">SQL dialect</param>
+		/// <param name="relationName">Relation name</param>
+		/// <param name="fieldName">Field name</param>
+		/// 
+		/// <returns>Returns information about the field.</returns>
+		RelationFieldInfo getField(
+			ThrowStatusWrapper* status,
+			IAttachment* att,
+			ITransaction* tra,
+			const unsigned int sqlDialect,
+			const string& relationName,
+			const string& fieldName
+		);
 
 		/// <summary>
 		/// Checks if the specified column exists in the relation. 
@@ -86,36 +229,47 @@ namespace LuceneUDR
 		/// <param name="sqlDialect">SQL dialect</param>
 		/// <param name="relationName">Relation name</param>
 		/// <param name="fieldNames">List of field names </param>
-		/// <param name="whereDbKey">If true, then a filtering condition by RDB$DB_KEY is added, 
+		/// <param name="keyFieldName">Key field name</param>
+		/// <param name="whereKey">If true, then a filtering condition by key field is added, 
 		/// otherwise an SQL query will be built without filtering, that is, returning all records.</param>
 		/// 
 		/// <returns>Returns the text of the SQL query.</returns>
 		static inline string buildSqlSelectFieldValues(
 			const unsigned int sqlDialect, 
-			const string &relationName, 
+			const string& relationName, 
 			list<string> fieldNames, 
-			const bool whereDbKey = false)
+			const string& keyFieldName,
+			const bool whereKey = false)
 		{
 			std::stringstream ss;
 			ss << "SELECT\n";
-			ss << "  RDB$DB_KEY";
+			int field_cnt = 0;
 			for (const auto fieldName : fieldNames) {
-				ss << ",\n  " << escapeMetaName(sqlDialect, fieldName);
+				if (field_cnt == 0) {
+					ss << "  " << escapeMetaName(sqlDialect, fieldName);
+				}
+				else {
+					ss << ",\n  " << escapeMetaName(sqlDialect, fieldName);
+				}
+				field_cnt++;
 			}
 			ss << "\nFROM " << escapeMetaName(sqlDialect, relationName);
-			if (whereDbKey) {
-				ss << "\nWHERE RDB$DB_KEY = ?";
+			ss << "\nWHERE ";
+			if (whereKey) {
+				ss << escapeMetaName(sqlDialect, keyFieldName) << " = ?";
 			}
 			else {
+				ss << escapeMetaName(sqlDialect, keyFieldName) << " IS NOT NULL";
 				string where;
 				for (const auto fieldName : fieldNames) {
+					if (fieldName == keyFieldName) continue;
 					if (where.empty())
 						where += escapeMetaName(sqlDialect, fieldName) + " IS NOT NULL";
 					else
 						where += " OR " + escapeMetaName(sqlDialect, fieldName) + " IS NOT NULL";
 				}
 				if (!where.empty())
-				   ss << "\nWHERE (" << where << ")";
+				   ss << "\nAND (" << where << ")";
 			}
 			return ss.str();
 		}

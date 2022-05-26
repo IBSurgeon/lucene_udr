@@ -34,7 +34,8 @@ namespace LuceneUDR
 	struct FTSIndex
 	{
 		string indexName;
-		string analyzer;
+		string relationName;
+		string analyzer;		
 		string description;
 		string status; // N - new index, I - inactive, U - need rebuild, C - complete
 
@@ -48,17 +49,12 @@ namespace LuceneUDR
 	/// </summary>
 	struct FTSIndexSegment
 	{
-		string indexName;
-		string relationName;
+		string indexName;		
 		string fieldName;
 		bool key = false;
 		double boost = 1.0;
 
 		FTSIndex index;
-
-		string getFullFieldName() {
-			return relationName + "." + fieldName;
-		}
 	};
 
 	/// <summary>
@@ -230,27 +226,31 @@ namespace LuceneUDR
 	{
 
 	private:
-		IMaster* m_master;
-		RelationHelper relationHelper;
+		IMaster* m_master;	
 		// prepared statements
 		AutoRelease<IStatement> stmt_exists_index;
 		AutoRelease<IStatement> stmt_get_index;
 		AutoRelease<IStatement> stmt_index_segments;
 		AutoRelease<IStatement> stmt_rel_segments;
+		AutoRelease<IStatement> stmt_key_segment;
 	public:
+		RelationHelper relationHelper;
+
 		FTSIndexRepository()
 			: FTSIndexRepository(nullptr)
 		{}
 
 		FTSIndexRepository(IMaster* master)
-			: m_master(master),
-			relationHelper(master),
-			stmt_exists_index(nullptr),
-			stmt_get_index(nullptr),
-			stmt_index_segments(nullptr),
-			stmt_rel_segments(nullptr)
+			: m_master(master)
+			, relationHelper(master)
+			, stmt_exists_index(nullptr)
+			, stmt_get_index(nullptr)
+			, stmt_index_segments(nullptr)
+			, stmt_rel_segments(nullptr)
+			, stmt_key_segment(nullptr)
 		{
 		}
+
 
 		/// <summary>
 		/// Create a new full-text index. 
@@ -261,6 +261,7 @@ namespace LuceneUDR
 		/// <param name="tra">Firebird transaction</param>
 		/// <param name="sqlDialect">SQL dialect</param>
 		/// <param name="indexName">Index name</param>
+		/// <param name="relationName">Relation name</param>
 		/// <param name="analyzerName">Analyzer name</param>
 		/// <param name="description">Custom index description</param>
 		void createIndex (
@@ -268,9 +269,10 @@ namespace LuceneUDR
 			IAttachment* att,
 			ITransaction* tra,
 			const unsigned int sqlDialect,
-			const string &indexName,
-			const string &analyzerName,
-			const string &description);
+			const string& indexName,
+			const string& relationName,
+			const string& analyzerName,
+			const string& description);
 
 		/// <summary>
 		/// Remove a full-text index. 
@@ -286,7 +288,7 @@ namespace LuceneUDR
 			IAttachment* att,
 			ITransaction* tra,
 			const unsigned int sqlDialect,
-			const string &indexName);
+			const string& indexName);
 
 		/// <summary>
 		/// Set the index status.
@@ -303,8 +305,8 @@ namespace LuceneUDR
 			IAttachment* att,
 			ITransaction* tra,
 			const unsigned int sqlDialect,
-			const string &indexName,
-			const string &indexStatus);
+			const string& indexName,
+			const string& indexStatus);
 
 		/// <summary>
 		/// Checks if an index with the given name exists.
@@ -322,7 +324,7 @@ namespace LuceneUDR
 			IAttachment* att, 
 			ITransaction* tra, 
 			const unsigned int sqlDialect, 
-			const string &indexName);
+			const string& indexName);
 
 		/// <summary>
 		/// Returns index metadata by index name.
@@ -342,7 +344,7 @@ namespace LuceneUDR
 			IAttachment* att, 
 			ITransaction* tra, 
 			const unsigned int sqlDialect, 
-			const string &indexName);
+			const string& indexName);
 
 		/// <summary>
 		/// Returns a list of indexes. 
@@ -376,7 +378,7 @@ namespace LuceneUDR
 			IAttachment* att, 
 			ITransaction* tra, 
 			const unsigned int sqlDialect, 
-			const string &indexName);
+			const string& indexName);
 
 		/// <summary>
 		/// Returns all segments of all indexes, ordered by index name. 
@@ -410,7 +412,7 @@ namespace LuceneUDR
 			IAttachment* att, 
 			ITransaction* tra, 
 			const unsigned int sqlDialect, 
-			const string &relationName);
+			const string& relationName);
 
 		/// <summary>
 		/// Checks if an index key field exists for given relation.
@@ -421,7 +423,6 @@ namespace LuceneUDR
 		/// <param name="tra">Firebird transaction</param>
 		/// <param name="sqlDialect">SQL dialect</param>
 		/// <param name="indexName">Index name</param>
-		/// <param name="relationName">Relation name</param>
 		/// 
 		/// <returns>Returns true if the index field exists, false otherwise</returns>
 		bool hasKeyIndexField(
@@ -429,8 +430,26 @@ namespace LuceneUDR
 			IAttachment* att,
 			ITransaction* tra,
 			const unsigned int sqlDialect,
-			const string& indexName,
-			const string& relationName
+			const string& indexName
+		);
+
+		/// <summary>
+		/// Returns segment with key field.
+		/// </summary>
+		/// 
+		/// <param name="status">Firebird status</param>
+		/// <param name="att">Firebird attachment</param>
+		/// <param name="tra">Firebird transaction</param>
+		/// <param name="sqlDialect">SQL dialect</param>
+		/// <param name="indexName">Index name</param>
+		/// 
+		/// <returns>Returns segment with key field.</returns>
+		FTSIndexSegment getKeyIndexField (
+			ThrowStatusWrapper* status,
+			IAttachment* att,
+			ITransaction* tra,
+			const unsigned int sqlDialect,
+			const string& indexName
 		);
 
 		/// <summary>
@@ -442,7 +461,6 @@ namespace LuceneUDR
 		/// <param name="tra">Firebird transaction</param>
 		/// <param name="sqlDialect">SQL dialect</param>
 		/// <param name="indexName">Index name</param>
-		/// <param name="relationName">Relation name</param>
 		/// <param name="fieldName">Field name</param>
 		/// <param name="key">Field is key</param>
 		/// <param name="boost">Significance multiplier</param>
@@ -451,9 +469,8 @@ namespace LuceneUDR
 			IAttachment* att,
 			ITransaction* tra,
 			const unsigned int sqlDialect,
-			const string &indexName,
-			const string &relationName,
-			const string &fieldName,
+			const string& indexName,
+			const string& fieldName,
 			const bool key,
 			const double boost = 1.0);
 
@@ -466,16 +483,14 @@ namespace LuceneUDR
 		/// <param name="tra">Firebird transaction</param>
 		/// <param name="sqlDialect">SQL dialect</param>
 		/// <param name="indexName">Index name</param>
-		/// <param name="relationName">Relation name</param>
 		/// <param name="fieldName">Field name</param>
 		void dropIndexField (
 			ThrowStatusWrapper* status,
 			IAttachment* att,
 			ITransaction* tra,
 			const unsigned int sqlDialect,
-			const string &indexName,
-			const string &relationName,
-			const string &fieldName);
+			const string& indexName,
+			const string& fieldName);
 
 
 		/// <summary>
@@ -487,7 +502,6 @@ namespace LuceneUDR
 		/// <param name="tra">Firebird transaction</param>
 		/// <param name="sqlDialect">SQL dialect</param>
 		/// <param name="indexName">Index name</param>
-		/// <param name="relationName">Relation name</param>
 		/// <param name="fieldName">Field name</param>
 		/// <returns>Returns true if the field (segment) exists in the index, false otherwise</returns>
 		bool hasIndexSegment (
@@ -495,9 +509,8 @@ namespace LuceneUDR
 			IAttachment* att,
 			ITransaction* tra,
 			const unsigned int sqlDialect,
-			const string &indexName,
-			const string &relationName,
-			const string &fieldName);
+			const string& indexName,
+			const string& fieldName);
 
 		/// <summary>
 		/// Groups index segments by relation names.
@@ -510,16 +523,16 @@ namespace LuceneUDR
 		{
 			FTSIndexSegmentsMap segmentsByRelation;
 			for (const auto& segment : segments) {
-				auto r = segmentsByRelation.find(segment.relationName);
+				auto r = segmentsByRelation.find(segment.index.relationName);
 				if (r != segmentsByRelation.end()) {
 					auto relSegments = r->second;
 					relSegments.push_back(segment);
-					segmentsByRelation[segment.relationName] = relSegments;
+					segmentsByRelation[segment.index.relationName] = relSegments;
 				}
 				else {
 					list<FTSIndexSegment> relSegments;
 					relSegments.push_back(segment);
-					segmentsByRelation[segment.relationName] = relSegments;
+					segmentsByRelation[segment.index.relationName] = relSegments;
 				}
 			}
 			return segmentsByRelation;
@@ -587,7 +600,7 @@ namespace LuceneUDR
 			IAttachment* att,
 			ITransaction* tra,
 			const unsigned int sqlDialect,
-			const string &relationName,
+			const string& relationName,
 			const bool multiAction);
 	};
 }

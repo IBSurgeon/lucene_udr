@@ -104,7 +104,9 @@ FB_UDR_END_PROCEDURE
 /***
 PROCEDURE FTS$CREATE_INDEX (
 	 FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+	 FTS$RELATION_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
 	 FTS$ANALYZER VARCHAR(63) CHARACTER SET UTF8,
+	 FTS$KEY_FIELD_NAME VARCHAR(63) CHARACTER SET UTF8,
 	 FTS$DESCRIPTION BLOB SUB_TYPE TEXT CHARACTER SET UTF8
 )
 EXTERNAL NAME 'luceneudr!createIndex'
@@ -112,8 +114,10 @@ ENGINE UDR;
 ***/
 FB_UDR_BEGIN_PROCEDURE(createIndex)
 	FB_UDR_MESSAGE(InMessage,
-		(FB_INTL_VARCHAR(252, CS_UTF8), index_name)
+		(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
+		(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
 		(FB_INTL_VARCHAR(252, CS_UTF8), analyzer)
+		(FB_INTL_VARCHAR(252, CS_UTF8), keyFieldName)
 		(FB_BLOB, description)
 	);
 
@@ -128,7 +132,7 @@ FB_UDR_BEGIN_PROCEDURE(createIndex)
 
 	FB_UDR_EXECUTE_PROCEDURE
 	{
-		if (in->index_nameNull) {
+		if (in->indexNameNull) {
 			ISC_STATUS statusVector[] = {
 				isc_arg_gds, isc_random,
 				isc_arg_string, (ISC_STATUS)"Index name can not be NULL",
@@ -136,7 +140,17 @@ FB_UDR_BEGIN_PROCEDURE(createIndex)
 			};
 			throw FbException(status, statusVector);
 		}
-		const string indexName(in->index_name.str, in->index_name.length);
+		const string indexName(in->indexName.str, in->indexName.length);
+
+		if (in->relationNameNull) {
+			ISC_STATUS statusVector[] = {
+				isc_arg_gds, isc_random,
+				isc_arg_string, (ISC_STATUS)"Relation name can not be NULL",
+				isc_arg_end
+			};
+			throw FbException(status, statusVector);
+		}
+		const string relationName(in->relationName.str, in->relationName.length);
 
 		string analyzerName;
 		if (!in->analyzerNull) {
@@ -162,22 +176,84 @@ FB_UDR_BEGIN_PROCEDURE(createIndex)
 			blob->close(status);
 		}
 
+		auto relationInfo = procedure->indexRepository.relationHelper.getRelationInfo(status, att, tra, sqlDialect, relationName);
 
-		procedure->indexRepository.createIndex(status, att, tra, sqlDialect, indexName, analyzerName, description);
 
-		// Check if the index directory exists, and if it doesn't exist, create it. 
-		const string ftsDirectory = getFtsDirectory(context);
-		const auto unicodeIndexDir = FileUtils::joinPath(StringUtils::toUnicode(ftsDirectory), StringUtils::toUnicode(indexName));
-		if (!createIndexDirectory(unicodeIndexDir)) {
-			    const string indexDir = StringUtils::toUTF8(unicodeIndexDir);
-				const string error_message = string_format("Cannot create index directory \"%s\".", indexDir);
+		procedure->indexRepository.createIndex(status, att, tra, sqlDialect, indexName, relationName, analyzerName, description);
+
+		string keyFieldName;
+		if (in->keyFieldNameNull) {
+			if (relationInfo.findKeyFieldSupported()) {
+				auto keyFields = procedure->indexRepository.relationHelper.getPrimaryKeyFields(status, att, tra, sqlDialect, relationName);
+				if (keyFields.size() == 0) {
+				   // There is no primary key constraint.
+					if (relationInfo.relationType == RelationType::RT_REGULAR) {
+						keyFieldName = "RDB$DB_KEY";
+					}
+					else {
+						ISC_STATUS statusVector[] = {
+							isc_arg_gds, isc_random,
+							isc_arg_string, (ISC_STATUS)"The key field is not specified.",
+							isc_arg_end
+						};
+						throw FbException(status, statusVector);
+					}
+				}
+				else if (keyFields.size() == 1) {
+				    // OK
+					auto keyFieldInfo = *keyFields.begin();
+					keyFieldName = keyFieldInfo.fieldName;
+				}
+				else {
+					ISC_STATUS statusVector[] = {
+						isc_arg_gds, isc_random,
+						isc_arg_string, (ISC_STATUS)"The primary key of the relation is composite. The FTS index does not support composite keys. " 
+						                            "Please specify the key field explicitly.",
+						isc_arg_end
+					};
+					throw FbException(status, statusVector);				
+				}
+			}
+			else {
 				ISC_STATUS statusVector[] = {
 					isc_arg_gds, isc_random,
-					isc_arg_string, (ISC_STATUS)error_message.c_str(),
+					isc_arg_string, (ISC_STATUS)"It is not possible to automatically determine the key field for this type of relation. Please specify this explicitly.",
 					isc_arg_end
 				};
 				throw FbException(status, statusVector);
+			}
 		}
+		else {
+			keyFieldName.assign(in->keyFieldName.str, in->keyFieldName.length);
+		}
+
+		if (keyFieldName == "RDB$DB_KEY") {
+			if (relationInfo.relationType != RelationType::RT_REGULAR) {
+				ISC_STATUS statusVector[] = {
+					isc_arg_gds, isc_random,
+					isc_arg_string, (ISC_STATUS)"Using \"RDB$DB_KEY\" as a key is supported only for regular tables.",
+					isc_arg_end
+				};
+				throw FbException(status, statusVector);
+			}
+		}
+		else {
+			auto keyFieldInfo = procedure->indexRepository.relationHelper.getField(status, att, tra, sqlDialect, relationName, keyFieldName);
+		    // check field type
+			// Supported types SMALLINT, INTEGER, BIGINT, CHAR(16) CHARACTER SET OCTETS, BINARY(16) 
+			if (!(keyFieldInfo.isInt() || (keyFieldInfo.isFixedChar() && keyFieldInfo.isBinary() && keyFieldInfo.fieldLength == 16))) {
+				ISC_STATUS statusVector[] = {
+					isc_arg_gds, isc_random,
+					isc_arg_string, (ISC_STATUS)"Unsupported data type for the key field. Supported data types: SMALLINT, INTEGER, BIGINT, CHAR(16) CHARACTER SET OCTETS, BINARY(16).",
+					isc_arg_end
+				};
+				throw FbException(status, statusVector);
+			}
+		}
+
+		// Add index key field
+		procedure->indexRepository.addIndexField(status, att, tra, sqlDialect, indexName, keyFieldName, true);
+
 	}
 
 	FB_UDR_FETCH_PROCEDURE
@@ -312,7 +388,6 @@ FB_UDR_END_PROCEDURE
 /***
 PROCEDURE FTS$ADD_INDEX_FIELD (
 	 FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
-	 FTS$RELATION_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
 	 FTS$FIELD_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
 	 FTS$BOOST DOUBLE PRECISION DEFAULT NULL
 )
@@ -322,7 +397,6 @@ ENGINE UDR;
 FB_UDR_BEGIN_PROCEDURE(addIndexField)
 	FB_UDR_MESSAGE(InMessage,
 		(FB_INTL_VARCHAR(252, CS_UTF8), index_name)
-		(FB_INTL_VARCHAR(252, CS_UTF8), relation_name)
 		(FB_INTL_VARCHAR(252, CS_UTF8), field_name)
 		(FB_DOUBLE, boost)
 	);
@@ -346,15 +420,6 @@ FB_UDR_BEGIN_PROCEDURE(addIndexField)
 		}
 		const string indexName(in->index_name.str, in->index_name.length);
 
-		if (in->relation_nameNull) {
-			ISC_STATUS statusVector[] = {
-				isc_arg_gds, isc_random,
-				isc_arg_string, (ISC_STATUS)"Relation name can not be NULL",
-				isc_arg_end
-			};
-			throw FbException(status, statusVector);
-		}
-		const string relationName(in->relation_name.str, in->relation_name.length);
 
 		if (in->field_nameNull) {
 			ISC_STATUS statusVector[] = {
@@ -376,8 +441,8 @@ FB_UDR_BEGIN_PROCEDURE(addIndexField)
 
 		const unsigned int sqlDialect = getSqlDialect(status, att);
 
-		// adding a segment
-		procedure->indexRepository.addIndexField(status, att, tra, sqlDialect, indexName, relationName, fieldName, false, boost);
+		// Adding a field to the index.
+		procedure->indexRepository.addIndexField(status, att, tra, sqlDialect, indexName, fieldName, false, boost);
 	}
 
 	FB_UDR_FETCH_PROCEDURE
@@ -386,81 +451,10 @@ FB_UDR_BEGIN_PROCEDURE(addIndexField)
 	}
 FB_UDR_END_PROCEDURE
 
-/***
-PROCEDURE FTS$ADD_INDEX_KEY_FIELD (
-	 FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
-	 FTS$RELATION_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
-	 FTS$FIELD_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL
-)
-EXTERNAL NAME 'luceneudr!addIndexKeyField'
-ENGINE UDR;
-***/
-FB_UDR_BEGIN_PROCEDURE(addIndexKeyField)
-	FB_UDR_MESSAGE(InMessage,
-		(FB_INTL_VARCHAR(252, CS_UTF8), index_name)
-		(FB_INTL_VARCHAR(252, CS_UTF8), relation_name)
-		(FB_INTL_VARCHAR(252, CS_UTF8), field_name)
-	);
-
-	FB_UDR_CONSTRUCTOR
-		, indexRepository(context->getMaster())
-	{
-	}
-
-	FTSIndexRepository indexRepository;
-
-	FB_UDR_EXECUTE_PROCEDURE
-	{
-		if (in->index_nameNull) {
-			ISC_STATUS statusVector[] = {
-				isc_arg_gds, isc_random,
-				isc_arg_string, (ISC_STATUS)"Index name can not be NULL",
-				isc_arg_end
-			};
-			throw FbException(status, statusVector);
-		}
-		const string indexName(in->index_name.str, in->index_name.length);
-
-		if (in->relation_nameNull) {
-			ISC_STATUS statusVector[] = {
-				isc_arg_gds, isc_random,
-				isc_arg_string, (ISC_STATUS)"Relation name can not be NULL",
-				isc_arg_end
-			};
-			throw FbException(status, statusVector);
-		}
-		const string relationName(in->relation_name.str, in->relation_name.length);
-
-		if (in->field_nameNull) {
-			ISC_STATUS statusVector[] = {
-				isc_arg_gds, isc_random,
-				isc_arg_string, (ISC_STATUS)"Field name can not be NULL",
-				isc_arg_end
-			};
-			throw FbException(status, statusVector);
-		}
-		const string fieldName(in->field_name.str, in->field_name.length);
-
-
-		AutoRelease<IAttachment> att(context->getAttachment(status));
-		AutoRelease<ITransaction> tra(context->getTransaction(status));
-
-		const unsigned int sqlDialect = getSqlDialect(status, att);
-
-		// adding a segment
-		procedure->indexRepository.addIndexField(status, att, tra, sqlDialect, indexName, relationName, fieldName, true);
-	}
-
-	FB_UDR_FETCH_PROCEDURE
-	{
-		return false;
-	}
-FB_UDR_END_PROCEDURE
 
 /***
 PROCEDURE FTS$DROP_INDEX_FIELD (
 	 FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
-	 FTS$RELATION_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
 	 FTS$FIELD_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL
 )
 EXTERNAL NAME 'luceneudr!dropIndexField'
@@ -469,7 +463,6 @@ ENGINE UDR;
 FB_UDR_BEGIN_PROCEDURE(dropIndexField)
 	FB_UDR_MESSAGE(InMessage,
 		(FB_INTL_VARCHAR(252, CS_UTF8), index_name)
-		(FB_INTL_VARCHAR(252, CS_UTF8), relation_name)
 		(FB_INTL_VARCHAR(252, CS_UTF8), field_name)
 	);
 
@@ -492,16 +485,6 @@ FB_UDR_BEGIN_PROCEDURE(dropIndexField)
 		}
 		const string indexName(in->index_name.str, in->index_name.length);
 
-		if (in->relation_nameNull) {
-			ISC_STATUS statusVector[] = {
-				isc_arg_gds, isc_random,
-				isc_arg_string, (ISC_STATUS)"Relation name can not be NULL",
-				isc_arg_end
-			};
-			throw FbException(status, statusVector);
-		}
-		const string relationName(in->relation_name.str, in->relation_name.length);
-
 		if (in->field_nameNull) {
 			ISC_STATUS statusVector[] = {
 				isc_arg_gds, isc_random,
@@ -517,8 +500,8 @@ FB_UDR_BEGIN_PROCEDURE(dropIndexField)
 
 		const unsigned int sqlDialect = getSqlDialect(status, att);
 
-		// deleting a segment 
-		procedure->indexRepository.dropIndexField(status, att, tra, sqlDialect, indexName, relationName, fieldName);
+		// Deleting a field from the index.
+		procedure->indexRepository.dropIndexField(status, att, tra, sqlDialect, indexName, fieldName);
 	}
 
 	FB_UDR_FETCH_PROCEDURE
@@ -542,13 +525,11 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 
 	FB_UDR_CONSTRUCTOR
 		, indexRepository(context->getMaster())
-		, relationHelper(context->getMaster())
 		, analyzerFactory()
 	{
 	}
 
 	FTSIndexRepository indexRepository;
-	RelationHelper relationHelper;
 	LuceneAnalyzerFactory analyzerFactory;
 
 	FB_UDR_EXECUTE_PROCEDURE
@@ -596,6 +577,17 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 				throw FbException(status, statusVector);
 			}
 
+			// check relation exists
+			if (!procedure->indexRepository.relationHelper.relationExists(status, att, tra, sqlDialect, ftsIndex.relationName)) {
+				const string error_message = string_format("Cannot rebuild index \"%s\". Table \"%s\" not exists.", indexName, ftsIndex.relationName);
+				ISC_STATUS statusVector[] = {
+					isc_arg_gds, isc_random,
+					isc_arg_string, (ISC_STATUS)error_message.c_str(),
+					isc_arg_end
+				};
+				throw FbException(status, statusVector);
+			}
+
 			// get index segments and group them by table names
 			auto segments = procedure->indexRepository.getIndexSegments(status, att, tra, sqlDialect, indexName);
 			if (segments.size() == 0) {
@@ -608,8 +600,6 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 				throw FbException(status, statusVector);
 			}
 
-			auto segmentsByRelation = FTSIndexRepository::groupIndexSegmentsByRelation(segments);
-
 			auto fsIndexDir = FSDirectory::open(unicodeIndexDir);
 			auto analyzer = procedure->analyzerFactory.createAnalyzer(status, ftsIndex.analyzer);
 			IndexWriterPtr writer = newLucene<IndexWriter>(fsIndexDir, analyzer, true, IndexWriter::MaxFieldLengthLIMITED);
@@ -621,22 +611,13 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 			const char* fbCharset = context->getClientCharSet();
 			FBStringEncoder fbStringEncoder(fbCharset);
 
-			for (const auto& p : segmentsByRelation) {
-				const string relationName = p.first;
-				if (!procedure->relationHelper.relationExists(status, att, tra, sqlDialect, relationName)) {
-					const string error_message = string_format("Cannot rebuild index \"%s\". Table \"%s\" not exists. Please delete the index segments containing it.", indexName, relationName);
-					ISC_STATUS statusVector[] = {
-						isc_arg_gds, isc_random,
-						isc_arg_string, (ISC_STATUS)error_message.c_str(),
-						isc_arg_end
-					};
-					throw FbException(status, statusVector);
-				}
-				const auto segments = p.second;
-				list<string> fieldNames;
-				for (const auto& segment : segments) {
-					if (!procedure->relationHelper.fieldExists(status, att, tra, sqlDialect, segment.relationName, segment.fieldName)) {
-						const string error_message = string_format("Cannot rebuild index \"%s\". Field \"%s\" not exists in table \"%s\". Please delete the index segments containing it.", indexName, segment.fieldName, segment.relationName);
+
+			list<string> fieldNames;
+			string keyFieldName;
+			for (const auto& segment : segments) {
+				if (segment.fieldName != "RDB$DB_KEY") {
+					if (!procedure->indexRepository.relationHelper.fieldExists(status, att, tra, sqlDialect, ftsIndex.relationName, segment.fieldName)) {
+						const string error_message = string_format("Cannot rebuild index \"%s\". Field \"%s\" not exists in relation \"%s\".", indexName, segment.fieldName, ftsIndex.relationName);
 						ISC_STATUS statusVector[] = {
 							isc_arg_gds, isc_random,
 							isc_arg_string, (ISC_STATUS)error_message.c_str(),
@@ -644,66 +625,80 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 						};
 						throw FbException(status, statusVector);
 					}
-					fieldNames.push_back(segment.fieldName);
 				}
+				if (segment.key) {
+					keyFieldName = segment.fieldName;
+				}
+				fieldNames.push_back(segment.fieldName);
+			}
 				
-				const string sql = RelationHelper::buildSqlSelectFieldValues(sqlDialect, relationName, fieldNames);
-				const auto unicodeRelationName = StringUtils::toUnicode(relationName);
+			const string sql = RelationHelper::buildSqlSelectFieldValues(sqlDialect, ftsIndex.relationName, fieldNames, keyFieldName);
+			const auto unicodeRelationName = StringUtils::toUnicode(ftsIndex.relationName);
 
-				AutoRelease<IStatement> stmt(att->prepare(
-					status,
-					tra,
-					0,
-					sql.c_str(),
-					sqlDialect,
-					IStatement::PREPARE_PREFETCH_METADATA
-				));
-				AutoRelease<IMessageMetadata> outputMetadata(stmt->getOutputMetadata(status));
-				// make all fields of string type except BLOB
-				AutoRelease<IMessageMetadata> newMeta(prepareTextMetaData(status, outputMetadata));
-				auto fields = FbFieldsInfo(status, newMeta);
+			AutoRelease<IStatement> stmt(att->prepare(
+				status,
+				tra,
+				0,
+				sql.c_str(),
+				sqlDialect,
+				IStatement::PREPARE_PREFETCH_METADATA
+			));
+			AutoRelease<IMessageMetadata> outputMetadata(stmt->getOutputMetadata(status));
+			// make all fields of string type except BLOB
+			AutoRelease<IMessageMetadata> newMeta(prepareTextMetaData(status, outputMetadata));
+			auto fields = FbFieldsInfo(status, newMeta);
 
-				AutoRelease<IResultSet> rs(stmt->openCursor(
-					status,
-					tra,
-					nullptr,
-					nullptr,
-					newMeta,
-					0
-				));
+			// initial specific FTS property for fields
+			for (int i = 0; i < fields.size(); i++) {
+				auto field = fields[i];
+				auto iSegment = std::find_if(
+					segments.begin(),
+					segments.end(),
+					[&field](FTSIndexSegment segment) { return segment.fieldName == field.fieldName; }
+				);
+				if (iSegment == segments.end()) {
+					const string error_message = string_format("Cannot rebuild index \"%s\". Field \"%s\" not found.", indexName, field.fieldName);
+					ISC_STATUS statusVector[] = {
+						isc_arg_gds, isc_random,
+						isc_arg_string, (ISC_STATUS)error_message.c_str(),
+						isc_arg_end
+					};
+					throw FbException(status, statusVector);
+				}
+				auto const segment = *iSegment;
+				field.ftsKey = segment.key;
+				field.ftsBoost = segment.boost;
+				fields[i] = field;
+			}
+
+			AutoRelease<IResultSet> rs(stmt->openCursor(
+				status,
+				tra,
+				nullptr,
+				nullptr,
+				newMeta,
+				0
+			));
 				
-				const unsigned colCount = newMeta->getCount(status);
-				const unsigned msgLength = newMeta->getMessageLength(status);
-				{
-					// allocate output buffer
-					auto b = make_unique<unsigned char[]>(msgLength);
-					unsigned char* buffer = b.get();
-					memset(buffer, 0, msgLength);
-					while (rs->fetchNext(status, buffer) == IStatus::RESULT_OK) {						
-						bool emptyFlag = true;
-						DocumentPtr doc = newLucene<Document>();
-						const string dbKey = fields[0].getStringValue(status, att, tra, buffer);
-						// RDB$DB_KEY is in a binary format that cannot be converted to Unicode, 
-						// so we will convert the string to a hexadecimal representation.
+			const unsigned colCount = newMeta->getCount(status);
+			const unsigned msgLength = newMeta->getMessageLength(status);
+			{
+				// allocate output buffer
+				auto b = make_unique<unsigned char[]>(msgLength);
+				unsigned char* buffer = b.get();
+				memset(buffer, 0, msgLength);
+				while (rs->fetchNext(status, buffer) == IStatus::RESULT_OK) {						
+					bool emptyFlag = true;
+					DocumentPtr doc = newLucene<Document>();
 						
-						const string hexDbKey = string_to_hex(dbKey);
-				
-						auto dbKeyField = newLucene<Field>(L"RDB$DB_KEY", StringUtils::toUnicode(hexDbKey), Field::STORE_YES, Field::INDEX_NOT_ANALYZED);
-						auto relationField = newLucene<Field>(L"RDB$RELATION_NAME", unicodeRelationName, Field::STORE_YES, Field::INDEX_NOT_ANALYZED);
-						doc->add(dbKeyField);
-						doc->add(relationField);
-						
-						for (unsigned int i = 1; i < colCount; i++) {
-							auto field = fields[i];
+					for (unsigned int i = 0; i < colCount; i++) {
+						auto field = fields[i];
 
-							bool nullFlag = field.isNull(buffer);
-							string value;
-							if (!nullFlag) {
-								value = field.getStringValue(status, att, tra, buffer);
-							}
-							auto fieldName = StringUtils::toUnicode(relationName + "." + field.fieldName);
-							Lucene::String unicodeValue;
-							
+						Lucene::String unicodeFieldName = StringUtils::toUnicode(field.fieldName);
+
+						Lucene::String unicodeValue;	
+						if (!field.isNull(buffer)) {
+							const string value = field.getStringValue(status, att, tra, buffer);
 							if (!value.empty()) {
 								// re-encode content to Unicode only if the string is non-binary
 								if (!field.isBinary()) {
@@ -714,39 +709,29 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 									unicodeValue = StringUtils::toUnicode(string_to_hex(value));
 								}
 							}
-
-							FieldPtr luceneField = nullptr;
-							auto iSegment = std::find_if(
-								segments.begin(),
-								segments.end(),
-								[&field](FTSIndexSegment segment) { return segment.fieldName == field.fieldName; }
-							);
-							if (iSegment != segments.end()) {
-								auto segment = *iSegment;
-								if (segment.key) {
-									luceneField = newLucene<Field>(fieldName, unicodeValue, Field::STORE_YES, Field::INDEX_NOT_ANALYZED);
-								}
-								else {
-									luceneField = newLucene<Field>(fieldName, unicodeValue, Field::STORE_NO, Field::INDEX_ANALYZED);
-								}
-								luceneField->setBoost(segment.boost);
-							}
-							else {
-								luceneField = newLucene<Field>(fieldName, unicodeValue, Field::STORE_NO, Field::INDEX_ANALYZED);
-							}
-							doc->add(luceneField);
-							emptyFlag = emptyFlag && value.empty();
 						}
-						// if all indexed fields are empty, then it makes no sense to add the document to the index
-						if (!emptyFlag) {
-							writer->addDocument(doc);
+                        // add field to document
+						FieldPtr luceneField = nullptr;
+						if (field.ftsKey) {
+							luceneField = newLucene<Field>(unicodeFieldName, unicodeValue, Field::STORE_YES, Field::INDEX_NOT_ANALYZED);
 						}
-						memset(buffer, 0, msgLength);
+						else {
+							luceneField = newLucene<Field>(unicodeFieldName, unicodeValue, Field::STORE_NO, Field::INDEX_ANALYZED);
+							luceneField->setBoost(field.ftsBoost);
+							emptyFlag = emptyFlag && unicodeValue.empty();
+						}						
+						doc->add(luceneField);
 					}
-					rs->close(status);
+					// if all indexed fields are empty, then it makes no sense to add the document to the index
+					if (!emptyFlag) {
+						writer->addDocument(doc);
+					}
+					memset(buffer, 0, msgLength);
 				}
-				writer->commit();
+				rs->close(status);
 			}
+			writer->commit();
+
 			writer->optimize();
 			writer->commit();
 			writer->close();

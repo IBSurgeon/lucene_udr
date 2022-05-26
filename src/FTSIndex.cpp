@@ -49,6 +49,7 @@ namespace LuceneUDR
 	/// <param name="tra">Firebird transaction</param>
 	/// <param name="sqlDialect">SQL dialect</param>
 	/// <param name="indexName">Index name</param>
+	/// <param name="relationName">Relation name</param>
 	/// <param name="analyzerName">Analyzer name</param>
 	/// <param name="description">Custom index description</param>
 	void FTSIndexRepository::createIndex (
@@ -56,12 +57,14 @@ namespace LuceneUDR
 		IAttachment* att,
 		ITransaction* tra,
 		const unsigned int sqlDialect,
-		const string &indexName,
-		const string &analyzerName,
-		const string &description)
+		const string& indexName,
+		const string& relationName,
+		const string& analyzerName,
+		const string& description)
 	{
 		FB_MESSAGE(Input, ThrowStatusWrapper,
 			(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
+			(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
 			(FB_INTL_VARCHAR(252, CS_UTF8), analyzer)
 			(FB_BLOB, description)
 			(FB_INTL_VARCHAR(4, CS_UTF8), indexStatus)
@@ -71,6 +74,9 @@ namespace LuceneUDR
 
 		input->indexName.length = static_cast<ISC_USHORT>(indexName.length());
 		indexName.copy(input->indexName.str, input->indexName.length);
+
+		input->relationName.length = static_cast<ISC_USHORT>(relationName.length());
+		relationName.copy(input->relationName.str, input->relationName.length);
 
 		input->analyzer.length = static_cast<ISC_USHORT>(analyzerName.length());
 		analyzerName.copy(input->analyzer.str, input->analyzer.length);
@@ -115,8 +121,8 @@ namespace LuceneUDR
 			status,
 			tra,
 			0,
-			"INSERT INTO FTS$INDICES(FTS$INDEX_NAME, FTS$ANALYZER, FTS$DESCRIPTION, FTS$INDEX_STATUS)\n"
-			"VALUES(?, ?, ?, ?)",
+			"INSERT INTO FTS$INDICES(FTS$INDEX_NAME, FTS$RELATION_NAME, FTS$ANALYZER, FTS$DESCRIPTION, FTS$INDEX_STATUS)\n"
+			"VALUES(?, ?, ?, ?, ?)",
 			sqlDialect,
 			input.getMetadata(),
 			input.getData(),
@@ -139,7 +145,7 @@ namespace LuceneUDR
 		IAttachment* att,
 		ITransaction* tra,
 		const unsigned int sqlDialect,
-		const string &indexName)
+		const string& indexName)
 	{
 
 		FB_MESSAGE(Input, ThrowStatusWrapper,
@@ -190,8 +196,8 @@ namespace LuceneUDR
 		IAttachment* att,
 		ITransaction* tra,
 		const unsigned int sqlDialect,
-		const string &indexName,
-		const string &indexStatus)
+		const string& indexName,
+		const string& indexStatus)
 	{
 		FB_MESSAGE(Input, ThrowStatusWrapper,
 			(FB_INTL_VARCHAR(4, CS_UTF8), indexStatus)
@@ -235,7 +241,7 @@ namespace LuceneUDR
 		IAttachment* att, 
 		ITransaction* tra, 
 		const unsigned int sqlDialect, 
-		const string &indexName)
+		const string& indexName)
 	{
 		FB_MESSAGE(Input, ThrowStatusWrapper,
 			(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
@@ -299,7 +305,7 @@ namespace LuceneUDR
 		IAttachment* att, 
 		ITransaction* tra, 
 		const unsigned int sqlDialect, 
-		const string &indexName)
+		const string& indexName)
 	{
 		FTSIndex ftsIndex;
 
@@ -309,6 +315,7 @@ namespace LuceneUDR
 
 		FB_MESSAGE(Output, ThrowStatusWrapper,
 			(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
+			(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
 			(FB_INTL_VARCHAR(252, CS_UTF8), analyzer)
 			(FB_BLOB, description)
 			(FB_INTL_VARCHAR(4, CS_UTF8), indexStatus)
@@ -324,7 +331,7 @@ namespace LuceneUDR
 				status,
 				tra,
 				0,
-				"SELECT FTS$INDEX_NAME, FTS$ANALYZER, FTS$DESCRIPTION, FTS$INDEX_STATUS\n"
+				"SELECT FTS$INDEX_NAME, FTS$RELATION_NAME, FTS$ANALYZER, FTS$DESCRIPTION, FTS$INDEX_STATUS\n"
 				"FROM FTS$INDICES\n"
 				"WHERE FTS$INDEX_NAME = ?",
 				sqlDialect,
@@ -343,6 +350,7 @@ namespace LuceneUDR
 		if (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
 			foundFlag = true;
 			ftsIndex.indexName.assign(output->indexName.str, output->indexName.length);
+			ftsIndex.relationName.assign(output->relationName.str, output->relationName.length);
 			ftsIndex.analyzer.assign(output->analyzer.str, output->analyzer.length);
 			if (!output->descriptionNull) {
 				AutoRelease<IBlob> blob(att->openBlob(status, tra, &output->description, 0, nullptr));
@@ -384,6 +392,7 @@ namespace LuceneUDR
 
 		FB_MESSAGE(Output, ThrowStatusWrapper,
 			(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
+			(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
 			(FB_INTL_VARCHAR(252, CS_UTF8), analyzer)
 			(FB_BLOB, description)
 			(FB_INTL_VARCHAR(4, CS_UTF8), indexStatus)
@@ -394,7 +403,7 @@ namespace LuceneUDR
 				status,
 				tra,
 				0,
-				"SELECT FTS$INDEX_NAME, FTS$ANALYZER, FTS$DESCRIPTION, FTS$INDEX_STATUS\n"
+				"SELECT FTS$INDEX_NAME, FTS$RELATION_NAME, FTS$ANALYZER, FTS$DESCRIPTION, FTS$INDEX_STATUS\n"
 				"FROM FTS$INDICES\n"
 				"ORDER BY FTS$INDEX_NAME",
 				sqlDialect,
@@ -414,6 +423,7 @@ namespace LuceneUDR
 		while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
 			FTSIndex ftsIndex;
 			ftsIndex.indexName.assign(output->indexName.str, output->indexName.length);
+			ftsIndex.relationName.assign(output->relationName.str, output->relationName.length);
 			ftsIndex.analyzer.assign(output->analyzer.str, output->analyzer.length);
 
 			if (!output->descriptionNull) {
@@ -455,7 +465,6 @@ namespace LuceneUDR
 
 		FB_MESSAGE(Output, ThrowStatusWrapper,
 			(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
-			(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
 			(FB_INTL_VARCHAR(252, CS_UTF8), fieldName)
 			(FB_BOOLEAN, key)
 			(FB_DOUBLE, boost)
@@ -471,7 +480,7 @@ namespace LuceneUDR
 				status,
 				tra,
 				0,
-				"SELECT FTS$INDEX_NAME, FTS$RELATION_NAME, FTS$FIELD_NAME, FTS$KEY, FTS$BOOST\n"
+				"SELECT FTS$INDEX_NAME, FTS$FIELD_NAME, FTS$KEY, FTS$BOOST\n"
 				"FROM FTS$INDEX_SEGMENTS\n"
 				"WHERE FTS$INDEX_NAME = ?",
 				sqlDialect,
@@ -490,8 +499,8 @@ namespace LuceneUDR
 		while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
 			FTSIndexSegment indexSegment;
 			indexSegment.indexName.assign(output->indexName.str, output->indexName.length);
-			indexSegment.relationName.assign(output->relationName.str, output->relationName.length);
 			indexSegment.fieldName.assign(output->fieldName.str, output->fieldName.length);
+			indexSegment.key = output->key;
 			if (output->boostNull) {
 				indexSegment.boost = 1.0;
 			}
@@ -538,7 +547,7 @@ namespace LuceneUDR
 				0,
 				"SELECT\n"
 				"  FTS$INDEX_SEGMENTS.FTS$INDEX_NAME,\n"
-				"  FTS$INDEX_SEGMENTS.FTS$RELATION_NAME,\n"
+				"  FTS$INDICES.FTS$RELATION_NAME,\n"
 				"  FTS$INDEX_SEGMENTS.FTS$FIELD_NAME,\n"
 			    "  FTS$INDEX_SEGMENTS.FTS$KEY,\n"
 				"  FTS$INDEX_SEGMENTS.FTS$BOOST,\n"
@@ -563,7 +572,6 @@ namespace LuceneUDR
 		while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
 			FTSIndexSegment indexSegment;
 			indexSegment.indexName.assign(output->indexName.str, output->indexName.length);
-			indexSegment.relationName.assign(output->relationName.str, output->relationName.length);
 			indexSegment.fieldName.assign(output->fieldName.str, output->fieldName.length);
 			indexSegment.key = output->key;
 			if (output->boostNull) {
@@ -572,11 +580,13 @@ namespace LuceneUDR
 			else {
 				indexSegment.boost = output->boost;
 			}
+			// index 
 			indexSegment.index.indexName.assign(output->indexName.str, output->indexName.length);
+			indexSegment.index.relationName.assign(output->relationName.str, output->relationName.length);
 			indexSegment.index.analyzer.assign(output->analyzerName.str, output->analyzerName.length);
 			indexSegment.index.status.assign(output->indexStatus.str, output->indexStatus.length);
 
-			// замечание: описание индекса не требуется копировать
+			// Note: The index description is not required for internal needs.
 			segments.push_back(indexSegment);
 		}
 		rs->close(status);
@@ -627,7 +637,7 @@ namespace LuceneUDR
 				0,
 				"SELECT\n" 
 				"  FTS$INDEX_SEGMENTS.FTS$INDEX_NAME,\n" 
-				"  FTS$INDEX_SEGMENTS.FTS$RELATION_NAME,\n" 
+				"  FTS$INDICES.FTS$RELATION_NAME,\n" 
 				"  FTS$INDEX_SEGMENTS.FTS$FIELD_NAME,\n"
 				"  FTS$INDEX_SEGMENTS.FTS$KEY,\n"
 				"  FTS$INDEX_SEGMENTS.FTS$BOOST,\n"
@@ -635,7 +645,7 @@ namespace LuceneUDR
 				"  FTS$INDICES.FTS$INDEX_STATUS\n"
 				"FROM FTS$INDEX_SEGMENTS\n"
 				"JOIN FTS$INDICES ON FTS$INDEX_SEGMENTS.FTS$INDEX_NAME = FTS$INDICES.FTS$INDEX_NAME\n"
-				"WHERE FTS$INDEX_SEGMENTS.FTS$RELATION_NAME = ?\n"
+				"WHERE FTS$INDICES.FTS$RELATION_NAME = ?\n"
 				"ORDER BY FTS$INDEX_SEGMENTS.FTS$INDEX_NAME",
 				sqlDialect,
 				IStatement::PREPARE_PREFETCH_METADATA
@@ -653,7 +663,6 @@ namespace LuceneUDR
 		while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
 			FTSIndexSegment indexSegment;
 			indexSegment.indexName.assign(output->indexName.str, output->indexName.length);
-			indexSegment.relationName.assign(output->relationName.str, output->relationName.length);
 			indexSegment.fieldName.assign(output->fieldName.str, output->fieldName.length);
 			indexSegment.key = output->key;
 			if (output->boostNull) {
@@ -662,11 +671,13 @@ namespace LuceneUDR
 			else {
 				indexSegment.boost = output->boost;
 			}
+			// index
 			indexSegment.index.indexName.assign(output->indexName.str, output->indexName.length);
+			indexSegment.index.relationName.assign(output->relationName.str, output->relationName.length);
 			indexSegment.index.analyzer.assign(output->analyzerName.str, output->analyzerName.length);
 			indexSegment.index.status.assign(output->indexStatus.str, output->indexStatus.length);
 
-			// note: index description does not need to be copied
+			// Note: The index description is not required for internal needs.
 			segments.push_back(indexSegment);
 		}
 		rs->close(status);
@@ -682,7 +693,6 @@ namespace LuceneUDR
 	/// <param name="tra">Firebird transaction</param>
 	/// <param name="sqlDialect">SQL dialect</param>
 	/// <param name="indexName">Index name</param>
-	/// <param name="relationName">Relation name</param>
 	/// 
 	/// <returns>Returns true if the index field exists, false otherwise</returns>
 	bool FTSIndexRepository::hasKeyIndexField(
@@ -690,13 +700,11 @@ namespace LuceneUDR
 		IAttachment* att,
 		ITransaction* tra,
 		const unsigned int sqlDialect,
-		const string& indexName,
-		const string& relationName
+		const string& indexName
 	)
 	{
 		FB_MESSAGE(Input, ThrowStatusWrapper,
 			(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
-			(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
 		) input(status, m_master);
 
 		FB_MESSAGE(Output, ThrowStatusWrapper,
@@ -708,17 +716,14 @@ namespace LuceneUDR
 		input->indexName.length = static_cast<ISC_USHORT>(indexName.length());
 		indexName.copy(input->indexName.str, input->indexName.length);
 
-		input->relationName.length = static_cast<ISC_USHORT>(relationName.length());
-		relationName.copy(input->relationName.str, input->relationName.length);
-
 
 		AutoRelease<IStatement> stmt(att->prepare(
 			status,
 			tra,
 			0,
 			"SELECT COUNT(*) AS CNT\n"
-			"FROM FTS$INDEX_SEGMENTS\n"
-			"WHERE FTS$INDEX_NAME = ? AND FTS$RELATION_NAME = ? AND FTS$KEY IS TRUE",
+			"FROM  FTS$INDEX_SEGMENTS\n"
+			"WHERE FTS$INDEX_NAME = ? AND FTS$KEY IS TRUE",
 			sqlDialect,
 			IStatement::PREPARE_PREFETCH_METADATA
 		));
@@ -741,6 +746,85 @@ namespace LuceneUDR
 	}
 
 	/// <summary>
+	/// Returns segment with key field.
+	/// </summary>
+	/// 
+	/// <param name="status">Firebird status</param>
+	/// <param name="att">Firebird attachment</param>
+	/// <param name="tra">Firebird transaction</param>
+	/// <param name="sqlDialect">SQL dialect</param>
+	/// <param name="indexName">Index name</param>
+	/// 
+	/// <returns>Returns segment with key field.</returns>
+	FTSIndexSegment FTSIndexRepository::getKeyIndexField(
+		ThrowStatusWrapper* status,
+		IAttachment* att,
+		ITransaction* tra,
+		const unsigned int sqlDialect,
+		const string& indexName)
+	{
+		FB_MESSAGE(Input, ThrowStatusWrapper,
+			(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
+		) input(status, m_master);
+
+		FB_MESSAGE(Output, ThrowStatusWrapper,
+			(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
+			(FB_INTL_VARCHAR(252, CS_UTF8), fieldName)
+			(FB_BOOLEAN, key)
+			(FB_DOUBLE, boost)
+		) output(status, m_master);
+
+		input.clear();
+
+		input->indexName.length = static_cast<ISC_USHORT>(indexName.length());
+		indexName.copy(input->indexName.str, input->indexName.length);
+
+		if (!stmt_key_segment.hasData()) {
+			stmt_key_segment.reset(att->prepare(
+				status,
+				tra,
+				0,
+				"SELECT FTS$INDEX_NAME, FTS$FIELD_NAME, FTS$KEY, FTS$BOOST\n"
+				"FROM FTS$INDEX_SEGMENTS\n"
+				"WHERE FTS$INDEX_NAME = ? AND FTS$KEY IS TRUE",
+				sqlDialect,
+				IStatement::PREPARE_PREFETCH_METADATA
+			));
+		}
+		AutoRelease<IResultSet> rs(stmt_key_segment->openCursor(
+			status,
+			tra,
+			input.getMetadata(),
+			input.getData(),
+			output.getMetadata(),
+			0
+		));
+		bool foundFlag = false;
+		FTSIndexSegment keyIndexSegment;
+		if (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
+			keyIndexSegment.indexName.assign(output->indexName.str, output->indexName.length);
+			keyIndexSegment.fieldName.assign(output->fieldName.str, output->fieldName.length);
+			keyIndexSegment.key = true;
+			keyIndexSegment.boost = 0;
+
+			foundFlag = true;
+		}
+		rs->close(status);
+
+		if (!foundFlag) {
+			const string error_message = string_format("Key field not exists in index \"%s\".", indexName);
+			ISC_STATUS statusVector[] = {
+			   isc_arg_gds, isc_random,
+			   isc_arg_string, (ISC_STATUS)error_message.c_str(),
+			   isc_arg_end
+			};
+			throw FbException(status, statusVector);
+		}
+
+		return keyIndexSegment;
+	}
+
+	/// <summary>
 	/// Adds a new field (segment) to the full-text index.
 	/// </summary>
 	/// 
@@ -749,7 +833,6 @@ namespace LuceneUDR
 	/// <param name="tra">Firebird transaction</param>
 	/// <param name="sqlDialect">SQL dialect</param>
 	/// <param name="indexName">Index name</param>
-	/// <param name="relationName">Relation name</param>
 	/// <param name="fieldName">Field name</param>
 	/// <param name="boost">Significance multiplier</param>
 	void FTSIndexRepository::addIndexField(
@@ -758,14 +841,12 @@ namespace LuceneUDR
 		ITransaction* tra,
 		const unsigned int sqlDialect,
 		const string &indexName,
-		const string &relationName,
 		const string &fieldName,
 		const bool key,
 		const double boost)
 	{
 		FB_MESSAGE(Input, ThrowStatusWrapper,
 			(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
-			(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
 			(FB_INTL_VARCHAR(252, CS_UTF8), fieldName)
 			(FB_BOOLEAN, key)
 			(FB_DOUBLE, boost)
@@ -775,9 +856,6 @@ namespace LuceneUDR
 
 		input->indexName.length = static_cast<ISC_USHORT>(indexName.length());
 		indexName.copy(input->indexName.str, input->indexName.length);
-
-		input->relationName.length = static_cast<ISC_USHORT>(relationName.length());
-		relationName.copy(input->relationName.str, input->relationName.length);
 
 		input->fieldName.length = static_cast<ISC_USHORT>(fieldName.length());
 		fieldName.copy(input->fieldName.str, input->fieldName.length);
@@ -791,9 +869,11 @@ namespace LuceneUDR
 			input->boost = boost;
 		}
 
-		// check for index existence
-		if (!hasIndex(status, att, tra, sqlDialect, indexName)) {
-			const string error_message = string_format("Index \"%s\" not exists", indexName);
+		auto index = getIndex(status, att, tra, sqlDialect, indexName);
+
+		// Checking whether the key field exists in the index.
+		if (key && hasKeyIndexField(status, att, tra, sqlDialect, indexName)) {
+			const string error_message = string_format("The key field already exists in the \"%s\" index.", indexName);
 			ISC_STATUS statusVector[] = {
 			   isc_arg_gds, isc_random,
 			   isc_arg_string, (ISC_STATUS)error_message.c_str(),
@@ -802,9 +882,9 @@ namespace LuceneUDR
 			throw FbException(status, statusVector);
 		}
 
-		// check key exists
-		if (key && hasKeyIndexField(status, att, tra, sqlDialect, indexName, relationName)) {
-			const string error_message = string_format("The key field in the \"%s\" index already exists for the \"%s\" relation.", indexName, relationName);
+		// Checking whether the field exists in the index.
+		if (hasIndexSegment(status, att, tra, sqlDialect, indexName, fieldName)) {			
+			const string error_message = string_format("Field \"%s\" already exists in index \"%s\"", fieldName, indexName);
 			ISC_STATUS statusVector[] = {
 			   isc_arg_gds, isc_random,
 			   isc_arg_string, (ISC_STATUS)error_message.c_str(),
@@ -813,31 +893,9 @@ namespace LuceneUDR
 			throw FbException(status, statusVector);
 		}
 
-		// segment existence check
-		if (hasIndexSegment(status, att, tra, sqlDialect, indexName, relationName, fieldName)) {			
-			const string error_message = string_format("Segment for \"%s\".\"%s\" already exists in index \"%s\"", relationName, fieldName, indexName);
-			ISC_STATUS statusVector[] = {
-			   isc_arg_gds, isc_random,
-			   isc_arg_string, (ISC_STATUS)error_message.c_str(),
-			   isc_arg_end
-			};
-			throw FbException(status, statusVector);
-		}
-
-		// checking if a table exists
-		if (!relationHelper.relationExists(status, att, tra, sqlDialect, relationName)) {
-			const string error_message = string_format("Relation \"%s\" not exists.", relationName);
-			ISC_STATUS statusVector[] = {
-			   isc_arg_gds, isc_random,
-			   isc_arg_string, (ISC_STATUS)error_message.c_str(),
-			   isc_arg_end
-			};
-			throw FbException(status, statusVector);
-		}
-
-		// field existence check
-		if (!relationHelper.fieldExists(status, att, tra, sqlDialect, relationName, fieldName)) {
-			const string error_message = string_format("Field \"%s\" not exists in relation \"%s\".", fieldName, relationName);
+		// Checking whether the field exists in relation.
+		if (!relationHelper.fieldExists(status, att, tra, sqlDialect, index.relationName, fieldName)) {
+			const string error_message = string_format("Field \"%s\" not exists in relation \"%s\".", fieldName, index.relationName);
 			ISC_STATUS statusVector[] = {
 			   isc_arg_gds, isc_random,
 			   isc_arg_string, (ISC_STATUS)error_message.c_str(),
@@ -850,16 +908,18 @@ namespace LuceneUDR
 			status,
 			tra,
 			0,
-			"INSERT INTO FTS$INDEX_SEGMENTS(FTS$INDEX_NAME, FTS$RELATION_NAME, FTS$FIELD_NAME, FTS$KEY, FTS$BOOST)\n"
-			"VALUES(?, ?, ?, ?, ?)",
+			"INSERT INTO FTS$INDEX_SEGMENTS(FTS$INDEX_NAME, FTS$FIELD_NAME, FTS$KEY, FTS$BOOST)\n"
+			"VALUES(?, ?, ?, ?)",
 			sqlDialect,
 			input.getMetadata(),
 			input.getData(),
 			nullptr,
 			nullptr
 		);
-		// set the status that the index metadata has been updated
-		setIndexStatus(status, att, tra, sqlDialect, indexName, "U");
+		if (index.status != "N") {
+			// set the status that the index metadata has been updated
+			setIndexStatus(status, att, tra, sqlDialect, indexName, "U");
+		}
 	}
 
 	/// <summary>
@@ -871,7 +931,6 @@ namespace LuceneUDR
 	/// <param name="tra">Firebird transaction</param>
 	/// <param name="sqlDialect">SQL dialect</param>
 	/// <param name="indexName">Index name</param>
-	/// <param name="relationName">Relation name</param>
 	/// <param name="fieldName">Field name</param>
 	void FTSIndexRepository::dropIndexField(
 		ThrowStatusWrapper* status,
@@ -879,12 +938,10 @@ namespace LuceneUDR
 		ITransaction* tra,
 		const unsigned int sqlDialect,
 		const string &indexName,
-		const string &relationName,
 		const string &fieldName)
 	{
 		FB_MESSAGE(Input, ThrowStatusWrapper,
 			(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
-			(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
 			(FB_INTL_VARCHAR(252, CS_UTF8), fieldName)
 		) input(status, m_master);
 
@@ -893,13 +950,10 @@ namespace LuceneUDR
 		input->indexName.length = static_cast<ISC_USHORT>(indexName.length());
 		indexName.copy(input->indexName.str, input->indexName.length);
 
-		input->relationName.length = static_cast<ISC_USHORT>(relationName.length());
-		relationName.copy(input->relationName.str, input->relationName.length);
-
 		input->fieldName.length = static_cast<ISC_USHORT>(fieldName.length());
 		fieldName.copy(input->fieldName.str, input->fieldName.length);
 
-		// check for index existence
+		// Checking whether the index exists.
 		if (!hasIndex(status, att, tra, sqlDialect, indexName)) {
 			const string error_message = string_format("Index \"%s\" not exists", indexName);
 			ISC_STATUS statusVector[] = {
@@ -910,9 +964,9 @@ namespace LuceneUDR
 			throw FbException(status, statusVector);
 		}
 
-		// segment existence check
-		if (!hasIndexSegment(status, att, tra, sqlDialect, indexName, relationName, fieldName)) {
-			const string error_message = string_format("Segment for \"%s\".\"%s\" not exists in index \"%s\"", relationName, fieldName, indexName);
+		// Checking whether the field exists in the index.
+		if (!hasIndexSegment(status, att, tra, sqlDialect, indexName, fieldName)) {
+			const string error_message = string_format("Field \"%s\" not exists in index \"%s\"", fieldName, indexName);
 			ISC_STATUS statusVector[] = {
 			   isc_arg_gds, isc_random,
 			   isc_arg_string, (ISC_STATUS)error_message.c_str(),
@@ -926,7 +980,7 @@ namespace LuceneUDR
 			tra,
 			0,
 			"DELETE FROM FTS$INDEX_SEGMENTS\n"
-			"WHERE FTS$INDEX_NAME = ? AND FTS$RELATION_NAME = ? AND FTS$FIELD_NAME = ?",
+			"WHERE FTS$INDEX_NAME = ? AND FTS$FIELD_NAME = ?",
 			sqlDialect,
 			input.getMetadata(),
 			input.getData(),
@@ -946,7 +1000,6 @@ namespace LuceneUDR
 	/// <param name="tra">Firebird transaction</param>
 	/// <param name="sqlDialect">SQL dialect</param>
 	/// <param name="indexName">Index name</param>
-	/// <param name="relationName">Relation name</param>
 	/// <param name="fieldName">Field name</param>
 	/// <returns>Returns true if the field (segment) exists in the index, false otherwise</returns>
 	bool FTSIndexRepository::hasIndexSegment(
@@ -955,12 +1008,10 @@ namespace LuceneUDR
 		ITransaction* tra,
 		const unsigned int sqlDialect,
 		const string &indexName,
-		const string &relationName,
 		const string &fieldName)
 	{
 		FB_MESSAGE(Input, ThrowStatusWrapper,
 			(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
-			(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
 			(FB_INTL_VARCHAR(252, CS_UTF8), fieldName)
 		) input(status, m_master);
 
@@ -973,9 +1024,6 @@ namespace LuceneUDR
 		input->indexName.length = static_cast<ISC_USHORT>(indexName.length());
 		indexName.copy(input->indexName.str, input->indexName.length);
 
-		input->relationName.length = static_cast<ISC_USHORT>(relationName.length());
-		relationName.copy(input->relationName.str, input->relationName.length);
-
 		input->fieldName.length = static_cast<ISC_USHORT>(fieldName.length());
 		fieldName.copy(input->fieldName.str, input->fieldName.length);
 
@@ -985,7 +1033,7 @@ namespace LuceneUDR
 			0,
 			"SELECT COUNT(*) AS CNT\n"
 			"FROM FTS$INDEX_SEGMENTS\n"
-			"WHERE FTS$INDEX_NAME = ? AND FTS$RELATION_NAME = ? AND FTS$FIELD_NAME = ?",
+			"WHERE FTS$INDEX_NAME = ? AND FTS$FIELD_NAME = ?",
 			sqlDialect,
 			IStatement::PREPARE_PREFETCH_METADATA
 		));
