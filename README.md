@@ -76,6 +76,642 @@ get_filename_component(PACKAGE_PREFIX_DIR "${CMAKE_CURRENT_LIST_DIR}/../../usr" 
 get_filename_component(PACKAGE_PREFIX_DIR "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
 ```
 
+
+## Настройка Lucene UDR
+
+Перед использованием полнотекстового поиска в вашей базе данных необходимо произвести предварительную настройку.
+Настройки Lucene UDR находятся в файле `$(root)\fts.ini`. Если этого файла нет, то создайте его самостоятельно.
+
+В этом файле задаётся путь к папке в которой будут создаваться полнотекстовые индексы для конкретной базы данных.
+
+В качестве имени секции ini файла должен быть задан полный путь к базе данных или алиас (в зависимости от значения 
+параметра `DatabaseAccess` в `firebird.conf`). Путь к директории полнотекстовых индексов указывается в ключе `ftsDirectory`. 
+
+```ini
+[horses]
+ftsDirectory=f:\fbdata\3.0\fts\horses
+
+[f:\fbdata\3.0\horses.fdb]
+ftsDirectory=f:\fbdata\3.0\fts\horses
+```
+
+Важно: пользователь или группа, под которым выполняется служба Firebird, должен иметь права на чтение и запись для 
+директории с полнотекстовыми индексами.
+
+Получить расположение директории для полнотекстовых индексов можно с помощью запроса:
+
+```sql
+SELECT FTS$MANAGEMENT.FTS$GET_DIRECTORY() AS DIR_NAME
+FROM RDB$DATABASE
+```
+
+## Создание полнотекстовых индексов
+
+Для создания полнотекстового индекса необходимо выполнить последовательно три шага:
+
+1. Создание полнотекстового индекса для таблицы с помощью процедуры `FTS$MANAGEMENT.FTS$CREATE_INDEX()`;
+
+2. Добавление индексируемых полей с помощью процедуры `FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD()`;
+
+3. Построение индекса с помощью процедуры `FTS$MANAGEMENT.FTS$REBUILD_INDEX()`.
+
+
+### Создание полнотекстового индекса для таблицы
+
+Для создания полнотекстового индекса для таблицы необходимо вызвать процедуру `FTS$MANAGEMENT.FTS$CREATE_INDEX()`.
+
+Первым параметром задаёт имя полнотекстового индекса, вторым - имя индексируемой таблицы. Остальные параметры являются 
+необязательными.
+
+Третьим параметром задаётся имя анализатора. Анализатор задаёт для какого языка будет сделан анализ индексируемых полей.
+Если параметр не задан, то будет использован анализатор STANDARD (для англйского языка). Список доступных анализаторов 
+можно узнать с помощью процедуры `FTS$MANAGEMENT.FTS$ANALYZERS()`.
+
+Список доступных анализаторов:
+
+* STANDARD - StandardAnalyzer (Английский язык);
+* ARABIC - ArabicAnalyzer (Арабский язык);
+* BRAZILIAN - BrazilianAnalyzer (Бразильский язык);
+* CHINESE - ChineseAnalyzer (Китайский язык);
+* CJK - CJKAnalyzer (Китайское письмо);
+* CZECH - CzechAnalyzer (Чешский язык);
+* DUTCH - DutchAnalyzer (Голландский язык);
+* ENGLISH - StandardAnalyzer (Английский язык);
+* FRENCH - FrenchAnalyzer (Французский язык);
+* GERMAN - GermanAnalyzer (Немецкий язык);
+* GREEK - GreekAnalyzer (Греческий язык);
+* PERSIAN - PersianAnalyzer (Персидский язык);
+* RUSSIAN - RussianAnalyzer (Русский язык).
+
+Четвёртым параметром задаётся имя поля таблицы, которое будет возвращено в качестве результата поиска. Обычно это
+поле первичного или уникального ключа. Также поддерживается задание специального псевдорполя `RDB$DB_KEY`.
+Может быть возвращено значение только одного поля одного из типов:
+
+* `SMALLINT`, `INTEGER`, `BIGINT` - поля этих типов часто используются в качестве исскуственного первичного 
+ключа на основе генераторов (последовательностей);
+
+* `CHAR(16) CHARACTER SET OCTETS` или `BINARY(16)` - поля этих типов используются в качестве исскуственного первичного
+ключа на основе GUID, то есть сгенерированных с помощью `GEN_UUID()`;
+
+* поле `RDB$DB_KEY` типа `CHAR(8) CHARACTER SET OCTETS`.
+
+Если этот параметр не задан (значение NULL), то для постоянных таблиц и GTT будет произведена попытка найти поле в первичном ключе.
+Эта попытка будет удачной, если ключ не является составным и поле, на котором он построен имеет один из типов данных описаных выше.
+Если первчиного ключа не существует будет использовано псевдополе `RDB$DB_KEY`.
+
+Пятым параметром можно задать описание поля.
+
+Пример ниже создаёт индекс `IDX_HORSE_REMARK` для таблицы `HORSE` с использованием анализатора `STANDARD`. 
+Возвращается поле `CODE_HORSE`. Его имя было автоматически извлечено из первичного ключа таблицы `HORSE`.
+
+```sql
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$CREATE_INDEX('IDX_HORSE_REMARK', 'HORSE');
+
+COMMIT;
+```
+
+Следующий пример создаст индекс `IDX_HORSE_REMARK_RU` с использованием анализатора `RUSSIAN`.
+
+```sql
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$CREATE_INDEX('IDX_HORSE_REMARK_RU', 'HORSE', 'RUSSIAN');
+
+COMMIT;
+```
+
+Можно указать конкретное имя поля которое будет возвращено в качестве результата поиска.
+
+```sql
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$CREATE_INDEX('IDX_HORSE_REMARK_2_RU', 'HORSE', 'RUSSIAN', 'CODE_HORSE');
+
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$CREATE_INDEX('IDX_HORSE_REMARK_DBKEY_RU', 'HORSE', 'RUSSIAN', 'RDB$DB_KEY');
+
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$CREATE_INDEX('IDX_HORSE_REMARK_UUID_RU', 'HORSE', 'RUSSIAN', 'UUID');
+
+COMMIT;
+```
+
+### Добавление полей для индексирования
+
+После создания индекса, необходимо добавить поля по которым будет производится поиск с помощью
+процедуры `FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD()`
+
+```sql
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD('IDX_HORSE_REMARK_RU', 'REMARK');
+
+COMMIT;
+
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD('IDX_HORSE_REMARK_2_RU', 'REMARK');
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD('IDX_HORSE_REMARK_2_RU', 'RUNTOTAL');
+
+COMMIT;
+```
+
+В индексе `IDX_HORSE_REMARK_RU` одно поле `REMARK`, а в индексе `IDX_HORSE_REMARK_2_RU` два поля `REMARK` и `RUNTOTAL`.
+
+### Построение индекса
+
+Для построения индекса используется процедура `FTS$MANAGEMENT.FTS$REBUILD_INDEX()`.
+
+```sql
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$REBUILD_INDEX('IDX_HORSE_REMARK_RU');
+
+COMMIT;
+
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$REBUILD_INDEX('IDX_HORSE_REMARK_2_RU');
+
+COMMIT;
+```
+
+## Статусы индекса
+
+Описание индексов хранится в служебной таблице `FTS$INDICES`.
+
+Поле `FTS$INDEX_STATUS` хранит статус индекса. Индекс может иметь 4 статуса:
+- *N* - New index. Новый индекс. Устанавливается при создании индекса, в котором ещё нет ни одного сегмента.
+- *U* - Updated metadata. Устанавливается каждый раз, когда изменяются метаданные индекса, например при добавлении 
+или удалении сегмента индекса. Если индекс имеет такой статус, то он требует перестроения, чтобы поиск по нему 
+работал корректно.
+- *I* - Inactive. Неактивный индекс. Неактивные индексы не обновляются процедурой `FTS$UPDATE_INDEXES`.
+- *C* - Complete. Активный индекс. Такие индексы обновляются процедурой `FTS$UPDATE_INDEXES`. 
+Индекс переходит в это состояние только после полного построения или перестроения.
+
+
+### Пример создания односегментного индекса для полнотекстового поиска на английском языке
+
+Ниже создаётся односегментный индекс для полнотекстового поиска на английском языке, поскольку по умолчанию
+используется анализатор STANDARD.
+
+```sql
+-- создание индекса
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$CREATE_INDEX('IDX_HORSE_REMARK', 'HORSE');
+
+COMMIT;
+
+-- добавление поля REMARK
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD('IDX_HORSE_REMARK', 'REMARK');
+
+COMMIT;
+
+-- построение индекса
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$REBUILD_INDEX('IDX_HORSE_REMARK');
+
+COMMIT;
+```
+
+Поиск по такому индексу можно делать следующим образом:
+
+```sql
+SELECT
+    FTS.FTS$SCORE,
+    HORSE.CODE_HORSE,
+    HORSE.REMARK
+FROM FTS$SEARCH('IDX_HORSE_REMARK', 'паспорт') FTS
+    JOIN HORSE ON
+          HORSE.CODE_HORSE = FTS.FTS$ID
+
+```
+
+
+
+### Пример создания односегментного индекса для полнотекстового поиска на русском языке
+
+
+```sql
+-- создание индекса
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$CREATE_INDEX('IDX_HORSE_REMARK_RU', 'HORSE', 'RUSSIAN');
+
+COMMIT;
+
+-- добавление сегмента (поля REMARK таблицы HORSE)
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD('IDX_HORSE_REMARK_RU', 'REMARK');
+
+COMMIT;
+
+-- построение индекса
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$REBUILD_INDEX('IDX_HORSE_REMARK_RU');
+
+COMMIT;
+```
+
+Поиск по такому индексу можно делать следующим образом:
+
+```sql
+SELECT
+    FTS.FTS$SCORE,
+    HORSE.CODE_HORSE,
+    HORSE.REMARK
+FROM FTS$SEARCH('IDX_HORSE_REMARK_RU', 'паспорт') FTS
+    JOIN HORSE ON
+          HORSE.CODE_HORSE = FTS.FTS$ID
+
+```
+
+Обратите внимание. Результаты поиска по индексам IDX_HORSE_REMARK и IDX_HORSE_REMARK_RU будут отличаться.
+
+### Пример полнотекстового индекса с двумя полями одной таблицы
+
+```sql
+-- создание индекса
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$CREATE_INDEX('IDX_HORSE_NOTES', 'RUSSIAN');
+
+COMMIT;
+
+-- добавление сегмента (поля REMARK таблицы NOTE)
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD('IDX_HORSE_NOTES', 'NOTE', 'REMARK');
+-- добавление сегмента (поля REMARK_EN таблицы NOTE)
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD('IDX_HORSE_NOTES', 'NOTE', 'REMARK_EN');
+
+COMMIT;
+
+-- построение индекса
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$REBUILD_INDEX('IDX_HORSE_NOTES');
+
+COMMIT;
+```
+
+Поиск по такому индексу можно делать следующим образом:
+
+```sql
+SELECT
+    FTS.*,
+    NOTE.CODE_HORSE,
+    NOTE.CODE_NOTETYPE,
+    NOTE.REMARK,
+    NOTE.REMARK_EN
+FROM FTS$SEARCH('IDX_HORSE_NOTE', 'NOTE', 'неровно') FTS
+    JOIN NOTE ON
+          NOTE.RDB$DB_KEY = FTS.FTS$REC_ID  
+```
+
+### Пример полнотекстового индекса с двумя таблицами
+
+```sql
+-- создание индекса
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$CREATE_INDEX('IDX_HORSE_NOTE_2', 'RUSSIAN');
+
+COMMIT;
+
+-- добавление сегмента (поля REMARK таблицы NOTE)
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD('IDX_HORSE_NOTE_2', 'NOTE', 'REMARK');
+-- добавление сегмента (поля REMARK таблицы HORSE)
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD('IDX_HORSE_NOTE_2', 'HORSE', 'REMARK');
+
+COMMIT;
+
+-- построение индекса
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$REBUILD_INDEX('IDX_HORSE_NOTE_2');
+
+COMMIT;
+```
+
+Поиск по такому индексу можно делать следующим образом:
+
+
+```sql
+-- поиск в таблице NOTE
+SELECT
+    FTS.*,
+    NOTE.CODE_HORSE,
+    NOTE.CODE_NOTETYPE,
+    NOTE.REMARK,
+    NOTE.REMARK_EN
+FROM FTS$SEARCH('IDX_HORSE_NOTE_2', 'NOTE', 'неровно') FTS
+    JOIN NOTE ON
+          NOTE.RDB$DB_KEY = FTS.FTS$REC_ID 
+  
+-- поиск в таблице HORSE          
+SELECT
+    FTS.*,
+    HORSE.CODE_HORSE,
+    HORSE.REMARK
+FROM FTS$SEARCH('IDX_HORSE_REMARK', 'HORSE', 'паспорт') FTS
+    JOIN HORSE ON
+          HORSE.RDB$DB_KEY = FTS.FTS$REC_ID  
+
+-- выдаст имя таблицы и DB_KEY из всех таблиц
+SELECT
+    FTS.*
+FROM FTS$SEARCH('IDX_HORSE_NOTE_2', NULL, 'паспорт') FTS
+
+-- Получение записей из двух таблиц
+SELECT
+    FTS.*,
+    COALESCE(HORSE.CODE_HORSE, NOTE.CODE_HORSE) AS CODE_HORSE,
+    HORSE.REMARK AS HORSEREMARK,
+    NOTE.REMARK AS NOTEREMARK
+FROM FTS$SEARCH('IDX_HORSE_NOTE_2', NULL, 'паспорт') FTS
+    LEFT JOIN HORSE ON
+          HORSE.RDB$DB_KEY = FTS.FTS$REC_ID AND
+          FTS.FTS$RELATION_NAME = 'HORSE'
+    LEFT JOIN NOTE ON
+          NOTE.RDB$DB_KEY = FTS.FTS$REC_ID AND
+          FTS.FTS$RELATION_NAME = 'NOTE'
+```
+
+### Пример выделения найденных фрагментов
+
+```sql
+-- создание индекса
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$CREATE_INDEX('IDX_HORSE_INFO', 'RUSSIAN');
+
+COMMIT;
+
+-- добавление сегмента (поля REMARK таблицы HORSE)
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD('IDX_HORSE_INFO', 'HORSE', 'REMARK');
+-- добавление сегмента (поля RUNTOTAL таблицы HORSE)
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD('IDX_HORSE_INFO', 'HORSE', 'RUNTOTAL');
+
+COMMIT;
+
+-- построение индекса
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$REBUILD_INDEX('IDX_HORSE_INFO');
+
+COMMIT;
+```
+
+Поиск по такому индексу и выделение найденных фрагментов можно сделать следующим образом:
+
+```sql
+WITH PARAMS
+AS (SELECT
+        'паспорт' AS FTS$QUERY
+    FROM RDB$DATABASE)
+SELECT
+    FTS.FTS$SCORE,
+    HORSE.CODE_HORSE,
+    HORSE.REMARK,
+    HORSE.RUNTOTAL,
+    FTS$HIGHLIGHTER.FTS$BEST_FRAGMENT(HORSE.REMARK, PARAMS.FTS$QUERY, 'RUSSIAN', 'HORSE.REMARK') AS HIGHTLIGHT_REMARK,
+    FTS$HIGHLIGHTER.FTS$BEST_FRAGMENT(HORSE.RUNTOTAL, PARAMS.FTS$QUERY, 'RUSSIAN', 'HORSE.RUNTOTAL') AS HIGHTLIGHT_RUNTOTAL,
+    FTS.FTS$EXPLANATION
+FROM PARAMS
+    CROSS JOIN FTS$SEARCH('IDX_HORSE_INFO', 'HORSE', PARAMS.FTS$QUERY) FTS
+    JOIN HORSE ON
+          HORSE.RDB$DB_KEY = FTS.FTS$REC_ID  
+```
+
+Обратите внимание, в качестве имени поля в функции `FTS$HIGHLIGHTER.FTS$BEST_FRAGMENT` используется полное имя сегмента, 
+состоящее из имени таблицы и имени поля.
+
+## Поддержание актуальности данных в полнотекстовых индексах
+
+Для поддержки актуальности полнотекстовых индексов существует несколько способов:
+
+1. Периодически вызывать процедуру `FTS$MANAGEMENT.FTS$REBUILD_INDEX` для заданного индекса. 
+Этот способ полностью перестраивает полнотекстовый индекс. В этом случае читаются все записи всех таблиц входящих 
+в заданный индекс.
+
+2. Поддерживать полнотекстовые индексы можно с помощью триггеров и вызова процедуры `FTS$LOG_CHANGE`.
+В этом случае запись об изменении добавляется в специальную таблицу `FTS$LOG` (журнал изменений).
+Изменения из журнала переносятся в полнотекстовые индексы с помощью вызова процедуры `FTS$UPDATE_INDEXES`.
+Вызов этой процедуры необходимо делать в отдельном скрипте, который можно поставить в планировщик заданий (Windows) 
+или cron (Linux) с некоторой периодичностью, например 5 минут.
+
+3. Отложенное обновление полнотекстовых индексов, с помощью технологии FirebirdStreaming. В этом случае специальная 
+служба читает логи репликации и извлекает из них информацию необходимую для обновления полнотекстовых индексов 
+(в процессе разработки).
+
+
+### Триггеры для поддержки актуальности полнотекстовых индексов
+
+Для поддержки актуальности полнотекстовых индексов необходимо создать триггеры, которые при изменении
+любого из полей, входящих в полнотекстовый индекс, записывает информацию об изменении записи в специальную таблицу 
+`FTS$LOG` (журнал).
+
+Изменения из журнала переносятся в полнотекстовые индексы с помощью вызова процедуры `FTS$UPDATE_INDEXES`.
+Вызов этой процедуры необходимо делать в отдельном скрипте, который можно поставить в планировщик заданий (Windows) 
+или cron (Linux) с некоторой периодичностью, например 5 минут.
+
+Правила написания триггеров для поддержки полнотекстовых индексов:
+
+1. В триггер должны быть условия по всем поля которые участвуют хотя бы в одном полнотекстовом индексе.
+Такие условия должны быть объединены через `OR`.
+
+2. Для операции `INSERT` необходимо проверять все поля, входящие в полнотекстовые индексы значение которых отличается 
+от `NULL`. Если это условие соблюдается, то необходимо выполнить процедуру 
+`FTS$LOG_CHANGE('<имя таблицы>', NEW.RDB$DB_KEY, 'I');`.
+
+3. Для операции `UPDATE` необходимо проверять все поля, входящие в полнотекстовые индексы значение которых изменилось.
+Если это условие соблюдается, то необходимо выполнить процедуру `FTS$LOG_CHANGE('<имя таблицы>', OLD.RDB$DB_KEY, 'U');`.
+
+4. Для операции `DELETE` необходимо проверять все поля, входящие в полнотекстовые индексы значение которых отличается 
+от `NULL`. Если это условие соблюдается, то необходимо выполнить процедуру 
+`FTS$LOG_CHANGE('<имя таблицы>', OLD.RDB$DB_KEY, 'D');`.
+
+Для облегчения задачи написания таких триггеров существует специальный пакет `FTS$TRIGGER_HELPER`, в котором 
+расположены процедуры генерирования исходных текстов триггеров. Так например, для того чтобы сгенерировать триггеры 
+для поддержки полнотекстовых индексов созданных для таблицы `HORSE`, необходимо выполнить следующий запрос:
+
+```sql
+SELECT
+    FTS$TRIGGER_SOURCE
+FROM FTS$TRIGGER_HELPER.FTS$MAKE_TRIGGERS('HORSE', TRUE)
+```
+
+Этот запрос вернёт следующий текст триггера:
+
+```sql
+CREATE OR ALTER TRIGGER FTS$HORSE_AIUD FOR HORSE
+ACTIVE AFTER INSERT OR UPDATE OR DELETE POSITION 100
+AS
+BEGIN
+  IF (INSERTING AND (NEW.REMARK IS NOT NULL)) THEN
+    EXECUTE PROCEDURE FTS$LOG_CHANGE('HORSE', NEW.RDB$DB_KEY, 'I');
+  IF (UPDATING AND (NEW.REMARK IS DISTINCT FROM OLD.REMARK)) THEN
+    EXECUTE PROCEDURE FTS$LOG_CHANGE('HORSE', OLD.RDB$DB_KEY, 'U');
+  IF (DELETING AND (OLD.REMARK IS NOT NULL)) THEN
+    EXECUTE PROCEDURE FTS$LOG_CHANGE('HORSE', OLD.RDB$DB_KEY, 'D');
+END
+```
+
+В данном примере создан триггер для поддержки актуальности полнотекстового построенного на поле REMARK таблицы HORSE.
+
+Обновление всех полнотекстовых индексов необходимо создать SQL скрипт `fts$update.sql`
+
+```sql
+EXECUTE PROCEDURE FTS$UPDATE_INDEXES;
+```
+
+Затем скрипт для вызова SQL скрипта через ISQL, примерно следующего содержания
+
+```bash
+isql -user SYSDBA -pas masterkey -i fts$update.sql inet://localhost/mydatabase
+```
+
+## Синтаксис поисковых запросов
+
+### Термы
+
+Поисковые запросы (фразы поиска) состоят из термов и операторов. Lucene поддерживает простые и сложные термы. 
+Простые термы состоят из одного слова, сложные из нескольких. Первые из них, это обычные слова, 
+например, "привет", "тест". Второй же тип термов это группа слов, например, "Привет как дела". 
+Несколько термов можно связывать вместе при помощи логических операторов.
+
+### Поля
+
+Lucene поддерживает поиск по нескольким полям. По умолчанию поиск осуществляется во всех полях многосегментного индекса, 
+выражение по каждому полю повторяется и соединяется оператором `OR`. Например, если у вас индекс содержащий 
+поля `HORSE.REMARK` и `HORSE.RUNTOTAL`, то запрос
+
+```
+Привет мир
+```
+
+будет эквивалентен запросу
+
+```
+(HORSE.REMARK: "Привет мир") OR (HORSE.RUNTOTAL: "Привет мир")
+```
+
+Вы можете указать по какому полю вы хотите произвести поиск, для этого в запросе необходимо указать имя поля 
+(<имя таблицы>.<имя столбца>), символ двоеточия ":", после чего поисковую фразу для этого поля.
+
+Пример поиска слова "Россия" в поле RUNTOTAL таблицы HORSE и слов "паспорт выдан" в поле REMARK таблицы HORSE:
+
+```sql
+WITH PARAMS
+AS (SELECT
+        'HORSE.RUNTOTAL: (Россия) AND HORSE.REMARK: (паспорт выдан)' AS FTS$QUERY
+    FROM RDB$DATABASE)
+SELECT
+    FTS.FTS$SCORE,
+    HORSE.CODE_HORSE,
+    HORSE.REMARK,
+    HORSE.RUNTOTAL,
+    FTS$HIGHLIGHTER.FTS$BEST_FRAGMENT(HORSE.REMARK, PARAMS.FTS$QUERY, 'RUSSIAN', 'HORSE.REMARK') AS HIGHTLIGHT_REMARK,
+    FTS$HIGHLIGHTER.FTS$BEST_FRAGMENT(HORSE.RUNTOTAL, PARAMS.FTS$QUERY, 'RUSSIAN', 'HORSE.RUNTOTAL') AS HIGHTLIGHT_RUNTOTAL,
+    FTS.FTS$EXPLANATION
+FROM PARAMS
+    CROSS JOIN FTS$SEARCH('IDX_HORSE_INFO', 'HORSE', PARAMS.FTS$QUERY) FTS
+    JOIN HORSE ON
+          HORSE.RDB$DB_KEY = FTS.FTS$REC_ID 
+```
+
+### Маска
+
+Lucene позволяет производить поиск документов по маске, используя в термах символы "?" и "\*". В этом случае символ "?" 
+заменяет один любой символ, а "\*" - любое количество символов, например
+
+```
+"te?t" "test*" "tes*t"
+```
+
+Поисковый запрос нельзя начинать с символов "?" или "\*".
+
+### Нечёткий поиск
+
+Для выполнения нечёткого поиска в конец терма следует добавить тильду "~". В этом случае будут искаться все 
+похожие слова, например при поиске "roam\~" будут также найдены слова "foam" и "roams".
+
+### Усиление термов
+
+Lucene позволяет изменять значимость термов во фразе поиска. Например, вы ищете фразу "Hello world" и хотите, 
+чтобы слово «world» было более значимым. Значимость терма во фразе поиска можно увеличить, используя символ «ˆ», 
+после которого указывается коэффициент усиления. В следующем примере значимость слова «world» в четыре раза больше 
+значимости слова «Hello», которая по умолчанию равна единице.
+
+```
+"Hello worldˆ4"
+```
+
+### Логические операторы
+
+Логические операторы позволяют использовать логические конструкции при задании условий
+поиска, и позволяют комбинировать несколько термов. 
+Lucene поддерживает следующие логические операторы: `AND`, `+`, `OR`, `NOT`, `-`.
+
+Логические операторы должны указываться заглавными буквами.
+
+#### Оператор OR
+
+`OR` является логическим оператором по умолчанию, это означает, что если между двумя термами
+фразы поиска не указан другой логический оператор, то подставляется оператор `OR`. При этом система поиска находит 
+документ, если одна из указанных во фразе поиска терм в нем присутствует.
+Альтернативным обозначением оператора `OR` является `||`.
+
+```
+"Hello world" "world"
+```
+
+Эквивалентно:
+
+```
+"Hello world" OR "world"
+```
+
+#### Оператор AND
+
+Оператор `AND` указывает на то, что в тексте должны присутствовать все, объединенные оператором термы поиска. 
+Альтернативным обозначением оператора является `&&`.
+
+```
+"Hello" AND "world"
+```
+
+#### Оператор +
+
+Оператор `+` указывает на то, что следующее за ним слово должно обязательно присутствовать в тексте. 
+Например, для поиска записей, которые должны содержать слово "hello" и могут
+содержать слово "world", фраза поиска может иметь вид:
+
+```
++Hello world
+```
+
+#### Оператор NOT
+
+Оператор `NOT` позволяет исключить из результатов поиска те, в которых встречается терм,
+следующий за оператором. Вместо слова `NOT` может использоваться символ "!". Например, для
+поиска записей, которые должны содержать слово "hello", и не должны содержать слово "world",
+фраза поиска может иметь вид:
+
+```
+"Hello" NOT "world"
+```
+
+Замечание: Оператор `NOT` не может использоваться только с одним термом. Например, поиск с таким
+условием не вернет результатов:
+
+```
+NOT "world"
+```
+
+#### Оператор –
+
+Этот оператор является аналогичным оператору `NOT`. Пример использования:
+
+```
+"Hello" -"world"
+```
+
+#### Группировка логических операторов
+
+Анализатор запросов Lucene поддерживает группировку логических операторов. Допустим, требуется найти либо слово "word", 
+либо слово "dolly" и обязательно слово "hello", для этого используется такой запрос:
+
+```
+"Hello" && ("world" || "dolly")
+```
+
+### Экранирование специальных символов
+
+Для включения специальных символов во фразу поиска выполняется их экранирование обратным слешем "\". 
+Ниже приведен список специальных символов, используемых в Lucene на данный момент:
+
+```
++ - && || ! ( ) { } [ ] ˆ " ˜ * ? : \
+```
+
+Фраза поиска для выражения "(1 + 1) : 2" будет иметь вид:
+
+```
+\( 1 \+ 1 \) \: 2
+```
+
+Более подробное англоязычное описание синтаксиса расположено на официальном сайте
+Lucene: [https://lucene.apache.org](https://lucene.apache.org).
+
+
 ## Описание процедур и функций для работы с полнотекстовым поиском
 
 ### Пакет FTS$MANAGEMENT
@@ -112,12 +748,16 @@ BEGIN
    *
    * Input parameters:
    *   FTS$INDEX_NAME - name of the index;
+   *   FTS$RELATION_NAME - name of the table to be indexed;
    *   FTS$ANALYZER - analyzer name;
+   *   FTS$KEY_FIELD_NAME - key field name;
    *   FTS$DESCRIPTION - description of the index.
   **/
   PROCEDURE FTS$CREATE_INDEX (
-      FTS$INDEX_NAME  VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
-      FTS$ANALYZER    VARCHAR(63) CHARACTER SET UTF8 DEFAULT 'STANDARD',
+      FTS$INDEX_NAME     VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+      FTS$RELATION_NAME  VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+      FTS$ANALYZER       VARCHAR(63) CHARACTER SET UTF8 DEFAULT 'STANDARD',
+      FTS$KEY_FIELD_NAME VARCHAR(63) CHARACTER SET UTF8 DEFAULT NULL,
       FTS$DESCRIPTION BLOB SUB_TYPE TEXT CHARACTER SET UTF8 DEFAULT NULL);
 
   /**
@@ -145,13 +785,11 @@ BEGIN
    *
    * Input parameters:
    *   FTS$INDEX_NAME - name of the index;
-   *   FTS$RELATION_NAME - name of the table to be indexed;
    *   FTS$FIELD_NAME - the name of the field to be indexed;
    *   FTS$BOOST - the coefficient of increasing the significance of the segment.
   **/
   PROCEDURE FTS$ADD_INDEX_FIELD (
       FTS$INDEX_NAME    VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
-      FTS$RELATION_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
       FTS$FIELD_NAME    VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
       FTS$BOOST         DOUBLE PRECISION DEFAULT NULL);
 
@@ -160,12 +798,10 @@ BEGIN
    *
    * Input parameters:
    *   FTS$INDEX_NAME - index name;
-   *   FTS$RELATION_NAME - table name;
    *   FTS$FIELD_NAME - field name.
   **/
   PROCEDURE FTS$DROP_INDEX_FIELD (
       FTS$INDEX_NAME    VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
-      FTS$RELATION_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
       FTS$FIELD_NAME    VARCHAR(63) CHARACTER SET UTF8 NOT NULL);
 
 
@@ -228,6 +864,7 @@ END
 Входные параметры:
 
 - FTS$INDEX_NAME - имя индекса. Должно быть уникальным среди имён полнотекстовых индексов;
+- FTS$RELATION_NAME - имя таблицы, которая должна быть проиндексирована;
 - FTS$ANALYZER - имя анализатора. Если не задано используется анализатор STANDARD (StandardAnalyzer);
 - FTS$DESCRIPTION - описание индекса.
 
@@ -250,23 +887,21 @@ END
 
 #### Процедура FTS$ADD_INDEX_FIELD
 
-Процедура `FTS$ADD_INDEX_FIELD()` добавляет новый сегмент (индексируемое поле таблицы) полнотекстового индекса. 
+Процедура `FTS$ADD_INDEX_FIELD()` добавляет новый поле в полнотекстовый индекс. 
 
 Входные параметры:
 
 - FTS$INDEX_NAME - имя индекса;
-- FTS$RELATION_NAME - имя таблицы, которая должна быть проиндексирована;
 - FTS$FIELD_NAME - имя поля, которое должно быть проиндексировано;
 - FTS$BOOST - коэффициент увеличения значимости сегмента (по умолчанию 1.0).
 
 #### Процедура FTS$DROP_INDEX_FIELD
 
-Процедура `FTS$DROP_INDEX_FIELD()` удаляет сегмент (индексируемое поле таблицы) полнотекстового индекса. 
+Процедура `FTS$DROP_INDEX_FIELD()` удаляет поле из полнотекстового индекса. 
 
 Входные параметры:
 
 - FTS$INDEX_NAME - имя индекса;
-- FTS$RELATION_NAME - имя таблицы;
 - FTS$FIELD_NAME - имя поля.
 
 #### Процедура FTS$REBUILD_INDEX
@@ -294,11 +929,27 @@ END
 
 Процедура `FTS$SEARCH` осуществляет полнотекстовый поиск по заданному индексу.
 
+```sql
+PROCEDURE FTS$SEARCH (
+    FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+    FTS$QUERY VARCHAR(8191) CHARACTER SET UTF8,
+    FTS$LIMIT INT NOT NULL DEFAULT 1000,
+    FTS$EXPLAIN BOOLEAN DEFAULT FALSE
+)
+RETURNS (
+    FTS$RELATION_NAME VARCHAR(63) CHARACTER SET UTF8,
+    FTS$KEY_FIELD_NAME VARCHAR(63) CHARACTER SET UTF8,
+    FTS$DB_KEY CHAR(8) CHARACTER SET OCTETS,
+    FTS$ID BIGINT,
+    FTS$UUID CHAR(16) CHARACTER SET OCTETS,
+    FTS$SCORE DOUBLE PRECISION,
+    FTS$EXPLANATION BLOB SUB_TYPE TEXT CHARACTER SET UTF8
+)
+```
+
 Входные параметры:
 
 - FTS$INDEX_NAME - имя полнотекстового индекса, в котором осуществляется поиск;
-- FTS$SEARCH_RELATION - имя таблицы, ограничивает поиск только заданной таблицей. Если таблица не задана, 
-то поиск делается по всем сегментам индекса;
 - FTS$QUERY - выражение для полнотекстового поиска;
 - FTS$LIMIT - ограничение на количество записей (результата поиска). По умолчанию 1000;
 - FTS$EXPLAIN - объяснять ли результат поиска. По умолчанию FALSE.
@@ -306,7 +957,10 @@ END
 Выходные параметры:
 
 - FTS$RELATION_NAME - имя таблицы в которой найден документ;
-- FTS$REC_ID - ссылка на запись в таблице в которой был найден документ (соответствует псевдо полю RDB$DB_KEY);
+- FTS$KEY_FIELD_NAME - имя ключевого поля в таблице;
+- FTS$DB_KEY - значение ключевого поля в формате RDB$DB_KEY;
+- FTS$ID - значение ключевого поля типа BIGINT или INTEGER;
+- FTS$UUID - значение ключевого поля типа BINARY(16). Такой тип используется для хранения GUID;
 - FTS$SCORE - степень соответствия поисковому запросу;
 - FTS$EXPLANATION - объяснение результата запроса.
 
@@ -864,564 +1518,4 @@ END
 - FTS$STORE_PAYLOADS - зарезервировано.
 
 
-## Статусы индекса
-
-Описание индексов хранится в служебной таблице `FTS$INDICES`.
-
-Поле `FTS$INDEX_STATUS` хранит статус индекса. Индекс может иметь 4 статуса:
-- *N* - New index. Новый индекс. Устанавливается при создании индекса, в котором ещё нет ни одного сегмента.
-- *U* - Updated metadata. Устанавливается каждый раз, когда изменяются метаданные индекса, например при добавлении 
-или удалении сегмента индекса. Если индекс имеет такой статус, то он требует перестроения, чтобы поиск по нему 
-работал корректно.
-- *I* - Inactive. Неактивный индекс. Неактивные индексы не обновляются процедурой `FTS$UPDATE_INDEXES`.
-- *C* - Complete. Активный индекс. Такие индексы обновляются процедурой `FTS$UPDATE_INDEXES`. 
-Индекс переходит в это состояние только после полного построения или перестроения.
-
-## Создание полнотекстовых индексов и поиск по ним
-
-Перед использованием полнотекстового поиска в вашей базе данных необходимо произвести предварительную настройку.
-Настройки Lucene UDR находятся в файле `$(root)\fts.ini`. Если этого файла нет, то создайте его самостоятельно.
-
-В этом файле задаётся путь к папке в которой будут создаваться полнотекстовые индексы для конкретной базы данных.
-
-В качестве имени секции ini файла должен быть задан полный путь к базе данных или алиас (в зависимости от значения 
-параметра `DatabaseAccess` в `firebird.conf`). Путь к директории полнотекстовых индексов указывается в ключе `ftsDirectory`. 
-
-```ini
-[horses]
-ftsDirectory=f:\fbdata\3.0\fts\horses
-
-[f:\fbdata\3.0\horses.fdb]
-ftsDirectory=f:\fbdata\3.0\fts\horses
-```
-
-Важно: пользователь или группа, под которым выполняется служба Firebird, должен иметь права на чтение и запись для 
-директории с полнотекстовыми индексами.
-
-Получить расположение директории для полнотекстовых индексов можно с помощью запроса:
-
-```sql
-SELECT FTS$MANAGEMENT.FTS$GET_DIRECTORY() AS DIR_NAME
-FROM RDB$DATABASE
-```
-
-Для создания полнотекстового индекса необходимо выполнить последовательно три шага:
-
-1. Создание индекса с помощью процедуры `FTS$MANAGEMENT.FTS$CREATE_INDEX()`. На этом
-шаге задаётся имя индекса, используемый анализатор и описание индекса. Список доступных анализаторов 
-можно узнать с помощью процедуры `FTS$MANAGEMENT.FTS$ANALYZERS()`
-
-2. Добавление сегментов индекса с помощью процедуры `FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD()`.
-Под сегментом индекса понимается имя таблицы и имя индексируемого поля. 
-Один полнотекстовый индекс может индексировать сразу несколько таблиц.
-
-3. Построение индекса с помощью процедуру `FTS$MANAGEMENT.FTS$REBUILD_INDEX()`.
-На этом этапе читается все таблицы, которые были указаны в сегментах индекса и содержимое полей, указанных в сегментах
-обрабатывается и попадает в индекс. При повторном вызове, файлы индекса полностью уничтожаются и происходит повторная 
-индексация.
-
-Список доступных анализаторов:
-
-* STANDARD - StandardAnalyzer (Английский язык);
-* ARABIC - ArabicAnalyzer (Арабский язык);
-* BRAZILIAN - BrazilianAnalyzer (Бразильский язык);
-* CHINESE - ChineseAnalyzer (Китайский язык);
-* CJK - CJKAnalyzer (Китайское письмо);
-* CZECH - CzechAnalyzer (Чешский язык);
-* DUTCH - DutchAnalyzer (Голландский язык);
-* ENGLISH - StandardAnalyzer (Английский язык);
-* FRENCH - FrenchAnalyzer (Французский язык);
-* GERMAN - GermanAnalyzer (Немецкий язык);
-* GREEK - GreekAnalyzer (Греческий язык);
-* PERSIAN - PersianAnalyzer (Персидский язык);
-* RUSSIAN - RussianAnalyzer (Русский язык).
-
-
-Далее будут приведены примеры полнотекстовых индексов.
-
-### Пример создания односегментного индекса для полнотекстового поиска на английском языке
-
-Ниже создаётся односегментный индекс для полнотекстового поиска на английском языке, поскольку по умолчанию
-используется анализатор STANDARD.
-
-```sql
--- создание индекса
-EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$CREATE_INDEX('IDX_HORSE_REMARK');
-
-COMMIT;
-
--- добавление сегмента (поля REMARK таблицы HORSE)
-EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD('IDX_HORSE_REMARK', 'HORSE', 'REMARK');
-
-COMMIT;
-
--- построение индекса
-EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$REBUILD_INDEX('IDX_HORSE_REMARK');
-
-COMMIT;
-```
-
-Поиск по такому индексу можно делать следующим образом:
-
-```sql
-SELECT
-    FTS.*,
-    HORSE.CODE_HORSE,
-    HORSE.REMARK
-FROM FTS$SEARCH('IDX_HORSE_REMARK', 'HORSE', 'паспорт') FTS
-    JOIN HORSE ON
-          HORSE.RDB$DB_KEY = FTS.FTS$REC_ID  
-
-```
-
-В качестве второго параметра можно указать NULL, поскольку индекс обрабатывает только одну таблицу.
-
-```sql
-SELECT
-    FTS.*,
-    HORSE.CODE_HORSE,
-    HORSE.REMARK
-FROM FTS$SEARCH('IDX_HORSE_REMARK', NULL, 'паспорт') FTS
-    JOIN HORSE ON
-          HORSE.RDB$DB_KEY = FTS.FTS$REC_ID  
-
-```
-
-### Пример создания односегментного индекса для полнотекстового поиска на русском языке
-
-
-```sql
--- создание индекса
-EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$CREATE_INDEX('IDX_HORSE_REMARK_RU', 'RUSSIAN');
-
-COMMIT;
-
--- добавление сегмента (поля REMARK таблицы HORSE)
-EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD('IDX_HORSE_REMARK_RU', 'HORSE', 'REMARK');
-
-COMMIT;
-
--- построение индекса
-EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$REBUILD_INDEX('IDX_HORSE_REMARK_RU');
-
-COMMIT;
-```
-
-Поиск по такому индексу можно делать следующим образом:
-
-```sql
-SELECT
-    FTS.*,
-    HORSE.CODE_HORSE,
-    HORSE.REMARK
-FROM FTS$SEARCH('IDX_HORSE_REMARK_RU', 'HORSE', 'паспорт') FTS
-    JOIN HORSE ON
-          HORSE.RDB$DB_KEY = FTS.FTS$REC_ID 
-
-```
-
-Обратите внимание. Результаты поиска по индексам IDX_HORSE_REMARK и IDX_HORSE_REMARK_RU будут отличаться.
-
-### Пример полнотекстового индекса с двумя полями одной таблицы
-
-```sql
--- создание индекса
-EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$CREATE_INDEX('IDX_HORSE_NOTES', 'RUSSIAN');
-
-COMMIT;
-
--- добавление сегмента (поля REMARK таблицы NOTE)
-EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD('IDX_HORSE_NOTES', 'NOTE', 'REMARK');
--- добавление сегмента (поля REMARK_EN таблицы NOTE)
-EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD('IDX_HORSE_NOTES', 'NOTE', 'REMARK_EN');
-
-COMMIT;
-
--- построение индекса
-EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$REBUILD_INDEX('IDX_HORSE_NOTES');
-
-COMMIT;
-```
-
-Поиск по такому индексу можно делать следующим образом:
-
-```sql
-SELECT
-    FTS.*,
-    NOTE.CODE_HORSE,
-    NOTE.CODE_NOTETYPE,
-    NOTE.REMARK,
-    NOTE.REMARK_EN
-FROM FTS$SEARCH('IDX_HORSE_NOTE', 'NOTE', 'неровно') FTS
-    JOIN NOTE ON
-          NOTE.RDB$DB_KEY = FTS.FTS$REC_ID  
-```
-
-### Пример полнотекстового индекса с двумя таблицами
-
-```sql
--- создание индекса
-EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$CREATE_INDEX('IDX_HORSE_NOTE_2', 'RUSSIAN');
-
-COMMIT;
-
--- добавление сегмента (поля REMARK таблицы NOTE)
-EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD('IDX_HORSE_NOTE_2', 'NOTE', 'REMARK');
--- добавление сегмента (поля REMARK таблицы HORSE)
-EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD('IDX_HORSE_NOTE_2', 'HORSE', 'REMARK');
-
-COMMIT;
-
--- построение индекса
-EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$REBUILD_INDEX('IDX_HORSE_NOTE_2');
-
-COMMIT;
-```
-
-Поиск по такому индексу можно делать следующим образом:
-
-
-```sql
--- поиск в таблице NOTE
-SELECT
-    FTS.*,
-    NOTE.CODE_HORSE,
-    NOTE.CODE_NOTETYPE,
-    NOTE.REMARK,
-    NOTE.REMARK_EN
-FROM FTS$SEARCH('IDX_HORSE_NOTE_2', 'NOTE', 'неровно') FTS
-    JOIN NOTE ON
-          NOTE.RDB$DB_KEY = FTS.FTS$REC_ID 
-  
--- поиск в таблице HORSE          
-SELECT
-    FTS.*,
-    HORSE.CODE_HORSE,
-    HORSE.REMARK
-FROM FTS$SEARCH('IDX_HORSE_REMARK', 'HORSE', 'паспорт') FTS
-    JOIN HORSE ON
-          HORSE.RDB$DB_KEY = FTS.FTS$REC_ID  
-
--- выдаст имя таблицы и DB_KEY из всех таблиц
-SELECT
-    FTS.*
-FROM FTS$SEARCH('IDX_HORSE_NOTE_2', NULL, 'паспорт') FTS
-
--- Получение записей из двух таблиц
-SELECT
-    FTS.*,
-    COALESCE(HORSE.CODE_HORSE, NOTE.CODE_HORSE) AS CODE_HORSE,
-    HORSE.REMARK AS HORSEREMARK,
-    NOTE.REMARK AS NOTEREMARK
-FROM FTS$SEARCH('IDX_HORSE_NOTE_2', NULL, 'паспорт') FTS
-    LEFT JOIN HORSE ON
-          HORSE.RDB$DB_KEY = FTS.FTS$REC_ID AND
-          FTS.FTS$RELATION_NAME = 'HORSE'
-    LEFT JOIN NOTE ON
-          NOTE.RDB$DB_KEY = FTS.FTS$REC_ID AND
-          FTS.FTS$RELATION_NAME = 'NOTE'
-```
-
-### Пример выделения найденных фрагментов
-
-```sql
--- создание индекса
-EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$CREATE_INDEX('IDX_HORSE_INFO', 'RUSSIAN');
-
-COMMIT;
-
--- добавление сегмента (поля REMARK таблицы HORSE)
-EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD('IDX_HORSE_INFO', 'HORSE', 'REMARK');
--- добавление сегмента (поля RUNTOTAL таблицы HORSE)
-EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD('IDX_HORSE_INFO', 'HORSE', 'RUNTOTAL');
-
-COMMIT;
-
--- построение индекса
-EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$REBUILD_INDEX('IDX_HORSE_INFO');
-
-COMMIT;
-```
-
-Поиск по такому индексу и выделение найденных фрагментов можно сделать следующим образом:
-
-```sql
-WITH PARAMS
-AS (SELECT
-        'паспорт' AS FTS$QUERY
-    FROM RDB$DATABASE)
-SELECT
-    FTS.FTS$SCORE,
-    HORSE.CODE_HORSE,
-    HORSE.REMARK,
-    HORSE.RUNTOTAL,
-    FTS$HIGHLIGHTER.FTS$BEST_FRAGMENT(HORSE.REMARK, PARAMS.FTS$QUERY, 'RUSSIAN', 'HORSE.REMARK') AS HIGHTLIGHT_REMARK,
-    FTS$HIGHLIGHTER.FTS$BEST_FRAGMENT(HORSE.RUNTOTAL, PARAMS.FTS$QUERY, 'RUSSIAN', 'HORSE.RUNTOTAL') AS HIGHTLIGHT_RUNTOTAL,
-    FTS.FTS$EXPLANATION
-FROM PARAMS
-    CROSS JOIN FTS$SEARCH('IDX_HORSE_INFO', 'HORSE', PARAMS.FTS$QUERY) FTS
-    JOIN HORSE ON
-          HORSE.RDB$DB_KEY = FTS.FTS$REC_ID  
-```
-
-Обратите внимание, в качестве имени поля в функции `FTS$HIGHLIGHTER.FTS$BEST_FRAGMENT` используется полное имя сегмента, 
-состоящее из имени таблицы и имени поля.
-
-## Поддержание актуальности данных в полнотекстовых индексах
-
-Для поддержки актуальности полнотекстовых индексов существует несколько способов:
-
-1. Периодически вызывать процедуру `FTS$MANAGEMENT.FTS$REBUILD_INDEX` для заданного индекса. 
-Этот способ полностью перестраивает полнотекстовый индекс. В этом случае читаются все записи всех таблиц входящих 
-в заданный индекс.
-
-2. Поддерживать полнотекстовые индексы можно с помощью триггеров и вызова процедуры `FTS$LOG_CHANGE`.
-В этом случае запись об изменении добавляется в специальную таблицу `FTS$LOG` (журнал изменений).
-Изменения из журнала переносятся в полнотекстовые индексы с помощью вызова процедуры `FTS$UPDATE_INDEXES`.
-Вызов этой процедуры необходимо делать в отдельном скрипте, который можно поставить в планировщик заданий (Windows) 
-или cron (Linux) с некоторой периодичностью, например 5 минут.
-
-3. Отложенное обновление полнотекстовых индексов, с помощью технологии FirebirdStreaming. В этом случае специальная 
-служба читает логи репликации и извлекает из них информацию необходимую для обновления полнотекстовых индексов 
-(в процессе разработки).
-
-
-### Триггеры для поддержки актуальности полнотекстовых индексов
-
-Для поддержки актуальности полнотекстовых индексов необходимо создать триггеры, которые при изменении
-любого из полей, входящих в полнотекстовый индекс, записывает информацию об изменении записи в специальную таблицу 
-`FTS$LOG` (журнал).
-
-Изменения из журнала переносятся в полнотекстовые индексы с помощью вызова процедуры `FTS$UPDATE_INDEXES`.
-Вызов этой процедуры необходимо делать в отдельном скрипте, который можно поставить в планировщик заданий (Windows) 
-или cron (Linux) с некоторой периодичностью, например 5 минут.
-
-Правила написания триггеров для поддержки полнотекстовых индексов:
-
-1. В триггер должны быть условия по всем поля которые участвуют хотя бы в одном полнотекстовом индексе.
-Такие условия должны быть объединены через `OR`.
-
-2. Для операции `INSERT` необходимо проверять все поля, входящие в полнотекстовые индексы значение которых отличается 
-от `NULL`. Если это условие соблюдается, то необходимо выполнить процедуру 
-`FTS$LOG_CHANGE('<имя таблицы>', NEW.RDB$DB_KEY, 'I');`.
-
-3. Для операции `UPDATE` необходимо проверять все поля, входящие в полнотекстовые индексы значение которых изменилось.
-Если это условие соблюдается, то необходимо выполнить процедуру `FTS$LOG_CHANGE('<имя таблицы>', OLD.RDB$DB_KEY, 'U');`.
-
-4. Для операции `DELETE` необходимо проверять все поля, входящие в полнотекстовые индексы значение которых отличается 
-от `NULL`. Если это условие соблюдается, то необходимо выполнить процедуру 
-`FTS$LOG_CHANGE('<имя таблицы>', OLD.RDB$DB_KEY, 'D');`.
-
-Для облегчения задачи написания таких триггеров существует специальный пакет `FTS$TRIGGER_HELPER`, в котором 
-расположены процедуры генерирования исходных текстов триггеров. Так например, для того чтобы сгенерировать триггеры 
-для поддержки полнотекстовых индексов созданных для таблицы `HORSE`, необходимо выполнить следующий запрос:
-
-```sql
-SELECT
-    FTS$TRIGGER_SOURCE
-FROM FTS$TRIGGER_HELPER.FTS$MAKE_TRIGGERS('HORSE', TRUE)
-```
-
-Этот запрос вернёт следующий текст триггера:
-
-```sql
-CREATE OR ALTER TRIGGER FTS$HORSE_AIUD FOR HORSE
-ACTIVE AFTER INSERT OR UPDATE OR DELETE POSITION 100
-AS
-BEGIN
-  IF (INSERTING AND (NEW.REMARK IS NOT NULL)) THEN
-    EXECUTE PROCEDURE FTS$LOG_CHANGE('HORSE', NEW.RDB$DB_KEY, 'I');
-  IF (UPDATING AND (NEW.REMARK IS DISTINCT FROM OLD.REMARK)) THEN
-    EXECUTE PROCEDURE FTS$LOG_CHANGE('HORSE', OLD.RDB$DB_KEY, 'U');
-  IF (DELETING AND (OLD.REMARK IS NOT NULL)) THEN
-    EXECUTE PROCEDURE FTS$LOG_CHANGE('HORSE', OLD.RDB$DB_KEY, 'D');
-END
-```
-
-В данном примере создан триггер для поддержки актуальности полнотекстового построенного на поле REMARK таблицы HORSE.
-
-Обновление всех полнотекстовых индексов необходимо создать SQL скрипт `fts$update.sql`
-
-```sql
-EXECUTE PROCEDURE FTS$UPDATE_INDEXES;
-```
-
-Затем скрипт для вызова SQL скрипта через ISQL, примерно следующего содержания
-
-```bash
-isql -user SYSDBA -pas masterkey -i fts$update.sql inet://localhost/mydatabase
-```
-
-## Синтаксис поисковых запросов
-
-### Термы
-
-Поисковые запросы (фразы поиска) состоят из термов и операторов. Lucene поддерживает простые и сложные термы. 
-Простые термы состоят из одного слова, сложные из нескольких. Первые из них, это обычные слова, 
-например, "привет", "тест". Второй же тип термов это группа слов, например, "Привет как дела". 
-Несколько термов можно связывать вместе при помощи логических операторов.
-
-### Поля
-
-Lucene поддерживает поиск по нескольким полям. По умолчанию поиск осуществляется во всех полях многосегментного индекса, 
-выражение по каждому полю повторяется и соединяется оператором `OR`. Например, если у вас индекс содержащий 
-поля `HORSE.REMARK` и `HORSE.RUNTOTAL`, то запрос
-
-```
-Привет мир
-```
-
-будет эквивалентен запросу
-
-```
-(HORSE.REMARK: "Привет мир") OR (HORSE.RUNTOTAL: "Привет мир")
-```
-
-Вы можете указать по какому полю вы хотите произвести поиск, для этого в запросе необходимо указать имя поля 
-(<имя таблицы>.<имя столбца>), символ двоеточия ":", после чего поисковую фразу для этого поля.
-
-Пример поиска слова "Россия" в поле RUNTOTAL таблицы HORSE и слов "паспорт выдан" в поле REMARK таблицы HORSE:
-
-```sql
-WITH PARAMS
-AS (SELECT
-        'HORSE.RUNTOTAL: (Россия) AND HORSE.REMARK: (паспорт выдан)' AS FTS$QUERY
-    FROM RDB$DATABASE)
-SELECT
-    FTS.FTS$SCORE,
-    HORSE.CODE_HORSE,
-    HORSE.REMARK,
-    HORSE.RUNTOTAL,
-    FTS$HIGHLIGHTER.FTS$BEST_FRAGMENT(HORSE.REMARK, PARAMS.FTS$QUERY, 'RUSSIAN', 'HORSE.REMARK') AS HIGHTLIGHT_REMARK,
-    FTS$HIGHLIGHTER.FTS$BEST_FRAGMENT(HORSE.RUNTOTAL, PARAMS.FTS$QUERY, 'RUSSIAN', 'HORSE.RUNTOTAL') AS HIGHTLIGHT_RUNTOTAL,
-    FTS.FTS$EXPLANATION
-FROM PARAMS
-    CROSS JOIN FTS$SEARCH('IDX_HORSE_INFO', 'HORSE', PARAMS.FTS$QUERY) FTS
-    JOIN HORSE ON
-          HORSE.RDB$DB_KEY = FTS.FTS$REC_ID 
-```
-
-### Маска
-
-Lucene позволяет производить поиск документов по маске, используя в термах символы "?" и "\*". В этом случае символ "?" 
-заменяет один любой символ, а "\*" - любое количество символов, например
-
-```
-"te?t" "test*" "tes*t"
-```
-
-Поисковый запрос нельзя начинать с символов "?" или "\*".
-
-### Нечёткий поиск
-
-Для выполнения нечёткого поиска в конец терма следует добавить тильду "~". В этом случае будут искаться все 
-похожие слова, например при поиске "roam\~" будут также найдены слова "foam" и "roams".
-
-### Усиление термов
-
-Lucene позволяет изменять значимость термов во фразе поиска. Например, вы ищете фразу "Hello world" и хотите, 
-чтобы слово «world» было более значимым. Значимость терма во фразе поиска можно увеличить, используя символ «ˆ», 
-после которого указывается коэффициент усиления. В следующем примере значимость слова «world» в четыре раза больше 
-значимости слова «Hello», которая по умолчанию равна единице.
-
-```
-"Hello worldˆ4"
-```
-
-### Логические операторы
-
-Логические операторы позволяют использовать логические конструкции при задании условий
-поиска, и позволяют комбинировать несколько термов. 
-Lucene поддерживает следующие логические операторы: `AND`, `+`, `OR`, `NOT`, `-`.
-
-Логические операторы должны указываться заглавными буквами.
-
-#### Оператор OR
-
-`OR` является логическим оператором по умолчанию, это означает, что если между двумя термами
-фразы поиска не указан другой логический оператор, то подставляется оператор `OR`. При этом система поиска находит 
-документ, если одна из указанных во фразе поиска терм в нем присутствует.
-Альтернативным обозначением оператора `OR` является `||`.
-
-```
-"Hello world" "world"
-```
-
-Эквивалентно:
-
-```
-"Hello world" OR "world"
-```
-
-#### Оператор AND
-
-Оператор `AND` указывает на то, что в тексте должны присутствовать все, объединенные оператором термы поиска. 
-Альтернативным обозначением оператора является `&&`.
-
-```
-"Hello" AND "world"
-```
-
-#### Оператор +
-
-Оператор `+` указывает на то, что следующее за ним слово должно обязательно присутствовать в тексте. 
-Например, для поиска записей, которые должны содержать слово "hello" и могут
-содержать слово "world", фраза поиска может иметь вид:
-
-```
-+Hello world
-```
-
-#### Оператор NOT
-
-Оператор `NOT` позволяет исключить из результатов поиска те, в которых встречается терм,
-следующий за оператором. Вместо слова `NOT` может использоваться символ "!". Например, для
-поиска записей, которые должны содержать слово "hello", и не должны содержать слово "world",
-фраза поиска может иметь вид:
-
-```
-"Hello" NOT "world"
-```
-
-Замечание: Оператор `NOT` не может использоваться только с одним термом. Например, поиск с таким
-условием не вернет результатов:
-
-```
-NOT "world"
-```
-
-#### Оператор –
-
-Этот оператор является аналогичным оператору `NOT`. Пример использования:
-
-```
-"Hello" -"world"
-```
-
-#### Группировка логических операторов
-
-Анализатор запросов Lucene поддерживает группировку логических операторов. Допустим, требуется найти либо слово "word", 
-либо слово "dolly" и обязательно слово "hello", для этого используется такой запрос:
-
-```
-"Hello" && ("world" || "dolly")
-```
-
-### Экранирование специальных символов
-
-Для включения специальных символов во фразу поиска выполняется их экранирование обратным слешем "\". 
-Ниже приведен список специальных символов, используемых в Lucene на данный момент:
-
-```
-+ - && || ! ( ) { } [ ] ˆ " ˜ * ? : \
-```
-
-Фраза поиска для выражения "(1 + 1) : 2" будет иметь вид:
-
-```
-\( 1 \+ 1 \) \: 2
-```
-
-Более подробное англоязычное описание синтаксиса расположено на официальном сайте
-Lucene: [https://lucene.apache.org](https://lucene.apache.org).
 
