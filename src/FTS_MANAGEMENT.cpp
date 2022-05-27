@@ -431,18 +431,13 @@ FB_UDR_BEGIN_PROCEDURE(addIndexField)
 		}
 		const string fieldName(in->field_name.str, in->field_name.length);
 
-		double boost = 1.0;
-		if (!in->boostNull) {
-			boost = in->boost;
-		}
-
 		AutoRelease<IAttachment> att(context->getAttachment(status));
 		AutoRelease<ITransaction> tra(context->getTransaction(status));
 
 		const unsigned int sqlDialect = getSqlDialect(status, att);
 
 		// Adding a field to the index.
-		procedure->indexRepository.addIndexField(status, att, tra, sqlDialect, indexName, fieldName, false, boost);
+		procedure->indexRepository.addIndexField(status, att, tra, sqlDialect, indexName, fieldName, false, in->boost, in->boostNull);
 	}
 
 	FB_UDR_FETCH_PROCEDURE
@@ -502,6 +497,67 @@ FB_UDR_BEGIN_PROCEDURE(dropIndexField)
 
 		// Deleting a field from the index.
 		procedure->indexRepository.dropIndexField(status, att, tra, sqlDialect, indexName, fieldName);
+	}
+
+	FB_UDR_FETCH_PROCEDURE
+	{
+		return false;
+	}
+FB_UDR_END_PROCEDURE
+
+
+/***
+PROCEDURE FTS$SET_INDEX_FIELD_BOOST (
+	 FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+	 FTS$FIELD_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+	 FTS$BOOST DOUBLE PRECISION
+)
+EXTERNAL NAME 'luceneudr!setIndexFieldBoost'
+ENGINE UDR;
+***/
+FB_UDR_BEGIN_PROCEDURE(setIndexFieldBoost)
+	FB_UDR_MESSAGE(InMessage,
+		(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
+		(FB_INTL_VARCHAR(252, CS_UTF8), fieldName)
+		(FB_DOUBLE, boost)
+	);
+
+	FB_UDR_CONSTRUCTOR
+		, indexRepository(context->getMaster())
+	{
+	}
+
+	FTSIndexRepository indexRepository;
+
+	FB_UDR_EXECUTE_PROCEDURE
+	{
+		if (in->indexNameNull) {
+			ISC_STATUS statusVector[] = {
+				isc_arg_gds, isc_random,
+				isc_arg_string, (ISC_STATUS)"Index name can not be NULL",
+				isc_arg_end
+			};
+			throw FbException(status, statusVector);
+		}
+		const string indexName(in->indexName.str, in->indexName.length);
+
+
+		if (in->fieldNameNull) {
+			ISC_STATUS statusVector[] = {
+				isc_arg_gds, isc_random,
+				isc_arg_string, (ISC_STATUS)"Field name can not be NULL",
+				isc_arg_end
+			};
+			throw FbException(status, statusVector);
+		}
+		const string fieldName(in->fieldName.str, in->fieldName.length);
+
+		AutoRelease<IAttachment> att(context->getAttachment(status));
+		AutoRelease<ITransaction> tra(context->getTransaction(status));
+
+		const unsigned int sqlDialect = getSqlDialect(status, att);
+
+		procedure->indexRepository.setIndexFieldBoost(status, att, tra, sqlDialect, indexName, fieldName, in->boost, in->boostNull);
 	}
 
 	FB_UDR_FETCH_PROCEDURE
@@ -654,7 +710,7 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 				auto iSegment = std::find_if(
 					segments.begin(),
 					segments.end(),
-					[&field](FTSIndexSegment segment) { return segment.fieldName == field.fieldName; }
+					[&field](FTSIndexSegment segment) { return segment.compareFieldName(field.fieldName); }
 				);
 				if (iSegment == segments.end()) {
 					const string error_message = string_format("Cannot rebuild index \"%s\". Field \"%s\" not found.", indexName, field.fieldName);
@@ -666,8 +722,10 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 					throw FbException(status, statusVector);
 				}
 				auto const segment = *iSegment;
+				field.ftsFieldName = StringUtils::toUnicode(segment.fieldName);
 				field.ftsKey = segment.key;
 				field.ftsBoost = segment.boost;
+				field.ftsBoostNull = segment.boostNull;
 				fields[i] = field;
 			}
 
@@ -694,8 +752,6 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 					for (unsigned int i = 0; i < colCount; i++) {
 						auto field = fields[i];
 
-						Lucene::String unicodeFieldName = StringUtils::toUnicode(field.fieldName);
-
 						Lucene::String unicodeValue;	
 						if (!field.isNull(buffer)) {
 							const string value = field.getStringValue(status, att, tra, buffer);
@@ -713,11 +769,13 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
                         // add field to document
 						FieldPtr luceneField = nullptr;
 						if (field.ftsKey) {
-							luceneField = newLucene<Field>(unicodeFieldName, unicodeValue, Field::STORE_YES, Field::INDEX_NOT_ANALYZED);
+							luceneField = newLucene<Field>(field.ftsFieldName, unicodeValue, Field::STORE_YES, Field::INDEX_NOT_ANALYZED);
 						}
 						else {
-							luceneField = newLucene<Field>(unicodeFieldName, unicodeValue, Field::STORE_NO, Field::INDEX_ANALYZED);
-							luceneField->setBoost(field.ftsBoost);
+							luceneField = newLucene<Field>(field.ftsFieldName, unicodeValue, Field::STORE_NO, Field::INDEX_ANALYZED);
+							if (!field.ftsBoostNull) {
+								luceneField->setBoost(field.ftsBoost);
+							}
 							emptyFlag = emptyFlag && unicodeValue.empty();
 						}						
 						doc->add(luceneField);

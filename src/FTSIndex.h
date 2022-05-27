@@ -53,6 +53,11 @@ namespace LuceneUDR
 		string fieldName;
 		bool key = false;
 		double boost = 1.0;
+		bool boostNull = true;
+
+		bool compareFieldName(string aFieldName) {
+			return (fieldName == aFieldName) || (fieldName == "RDB$DB_KEY" && aFieldName == "DB_KEY");
+		}
 
 		FTSIndex index;
 	};
@@ -464,6 +469,7 @@ namespace LuceneUDR
 		/// <param name="fieldName">Field name</param>
 		/// <param name="key">Field is key</param>
 		/// <param name="boost">Significance multiplier</param>
+		/// <param name="boostNull">Boost null flag</param>
 		void addIndexField (
 			ThrowStatusWrapper* status,
 			IAttachment* att,
@@ -472,7 +478,8 @@ namespace LuceneUDR
 			const string& indexName,
 			const string& fieldName,
 			const bool key,
-			const double boost = 1.0);
+			const double boost = 1.0,
+			const bool boostNull = true);
 
 		/// <summary>
 		/// Removes a field (segment) from the full-text index.
@@ -491,6 +498,28 @@ namespace LuceneUDR
 			const unsigned int sqlDialect,
 			const string& indexName,
 			const string& fieldName);
+
+		/// <summary>
+		/// Sets the significance multiplier for the index field.
+		/// </summary>
+		/// 
+		/// <param name="status">Firebird status</param>
+		/// <param name="att">Firebird attachment</param>
+		/// <param name="tra">Firebird transaction</param>
+		/// <param name="sqlDialect">SQL dialect</param>
+		/// <param name="indexName">Index name</param>
+		/// <param name="fieldName">Field name</param>
+		/// <param name="boost">Significance multiplier</param>
+		/// <param name="boostNull">Boost null flag</param>
+		void setIndexFieldBoost(
+			ThrowStatusWrapper* status,
+			IAttachment* att,
+			ITransaction* tra,
+			const unsigned int sqlDialect,
+			const string& indexName,
+			const string& fieldName,
+			const double boost,
+			const bool boostNull = false);
 
 
 		/// <summary>

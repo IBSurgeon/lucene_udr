@@ -76,6 +76,18 @@ namespace LuceneUDR
 		bool isBinary() {
 			return (isBlob() && fieldSubType == 0) || ((isFixedChar() || isVarChar()) && charsetId == 1);
 		}
+
+		void initDB_KEYField(const string& aRelationName) {
+			relationName = aRelationName;
+			fieldName = "RDB$DB_KEY";
+			fieldType = 14;
+			fieldLength = 8;
+			charLength = 8;
+			charsetId = 1;
+			fieldSubType = 0;
+			fieldPrecision = 0;
+			fieldScale = 0;
+		}
 	};
 
 	using RelationFieldList = list<RelationFieldInfo>;

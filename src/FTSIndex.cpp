@@ -501,12 +501,9 @@ namespace LuceneUDR
 			indexSegment.indexName.assign(output->indexName.str, output->indexName.length);
 			indexSegment.fieldName.assign(output->fieldName.str, output->fieldName.length);
 			indexSegment.key = output->key;
-			if (output->boostNull) {
-				indexSegment.boost = 1.0;
-			}
-			else {
-				indexSegment.boost = output->boost;
-			}
+			indexSegment.boost = output->boost;
+			indexSegment.boostNull = output->boostNull;
+
 			segments.push_back(indexSegment);
 		}
 		rs->close(status);
@@ -574,12 +571,8 @@ namespace LuceneUDR
 			indexSegment.indexName.assign(output->indexName.str, output->indexName.length);
 			indexSegment.fieldName.assign(output->fieldName.str, output->fieldName.length);
 			indexSegment.key = output->key;
-			if (output->boostNull) {
-				indexSegment.boost = 1.0;
-			}
-			else {
-				indexSegment.boost = output->boost;
-			}
+			indexSegment.boost = output->boost;
+			indexSegment.boostNull = output->boostNull;
 			// index 
 			indexSegment.index.indexName.assign(output->indexName.str, output->indexName.length);
 			indexSegment.index.relationName.assign(output->relationName.str, output->relationName.length);
@@ -665,12 +658,8 @@ namespace LuceneUDR
 			indexSegment.indexName.assign(output->indexName.str, output->indexName.length);
 			indexSegment.fieldName.assign(output->fieldName.str, output->fieldName.length);
 			indexSegment.key = output->key;
-			if (output->boostNull) {
-				indexSegment.boost = 1.0;
-			}
-			else {
-				indexSegment.boost = output->boost;
-			}
+			indexSegment.boost = output->boost;
+			indexSegment.boostNull = output->boostNull;
 			// index
 			indexSegment.index.indexName.assign(output->indexName.str, output->indexName.length);
 			indexSegment.index.relationName.assign(output->relationName.str, output->relationName.length);
@@ -806,6 +795,7 @@ namespace LuceneUDR
 			keyIndexSegment.fieldName.assign(output->fieldName.str, output->fieldName.length);
 			keyIndexSegment.key = true;
 			keyIndexSegment.boost = 0;
+			keyIndexSegment.boostNull = true;
 
 			foundFlag = true;
 		}
@@ -835,6 +825,7 @@ namespace LuceneUDR
 	/// <param name="indexName">Index name</param>
 	/// <param name="fieldName">Field name</param>
 	/// <param name="boost">Significance multiplier</param>
+	/// <param name="boostNull">Boost null flag</param>
 	void FTSIndexRepository::addIndexField(
 		ThrowStatusWrapper* status,
 		IAttachment* att,
@@ -843,7 +834,8 @@ namespace LuceneUDR
 		const string &indexName,
 		const string &fieldName,
 		const bool key,
-		const double boost)
+		const double boost,
+		const bool boostNull)
 	{
 		FB_MESSAGE(Input, ThrowStatusWrapper,
 			(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
@@ -862,12 +854,9 @@ namespace LuceneUDR
 
 		input->key = key;
 
-		if (boost == 1.0) {
-			input->boostNull = true;
-		}
-		else {
-			input->boost = boost;
-		}
+		input->boostNull = boostNull;
+        input->boost = boost;
+
 
 		auto index = getIndex(status, att, tra, sqlDialect, indexName);
 
@@ -893,15 +882,17 @@ namespace LuceneUDR
 			throw FbException(status, statusVector);
 		}
 
-		// Checking whether the field exists in relation.
-		if (!relationHelper.fieldExists(status, att, tra, sqlDialect, index.relationName, fieldName)) {
-			const string error_message = string_format("Field \"%s\" not exists in relation \"%s\".", fieldName, index.relationName);
-			ISC_STATUS statusVector[] = {
-			   isc_arg_gds, isc_random,
-			   isc_arg_string, (ISC_STATUS)error_message.c_str(),
-			   isc_arg_end
-			};
-			throw FbException(status, statusVector);
+		if (fieldName != "RDB$DB_KEY") {
+			// Checking whether the field exists in relation.
+			if (!relationHelper.fieldExists(status, att, tra, sqlDialect, index.relationName, fieldName)) {
+				const string error_message = string_format("Field \"%s\" not exists in relation \"%s\".", fieldName, index.relationName);
+				ISC_STATUS statusVector[] = {
+				   isc_arg_gds, isc_random,
+				   isc_arg_string, (ISC_STATUS)error_message.c_str(),
+				   isc_arg_end
+				};
+				throw FbException(status, statusVector);
+			}
 		}
 
 		att->execute(
@@ -980,6 +971,84 @@ namespace LuceneUDR
 			tra,
 			0,
 			"DELETE FROM FTS$INDEX_SEGMENTS\n"
+			"WHERE FTS$INDEX_NAME = ? AND FTS$FIELD_NAME = ?",
+			sqlDialect,
+			input.getMetadata(),
+			input.getData(),
+			nullptr,
+			nullptr
+		);
+		// set the status that the index metadata has been updated
+		setIndexStatus(status, att, tra, sqlDialect, indexName, "U");
+	}
+
+	/// <summary>
+	/// Sets the significance multiplier for the index field.
+	/// </summary>
+	/// 
+	/// <param name="status">Firebird status</param>
+	/// <param name="att">Firebird attachment</param>
+	/// <param name="tra">Firebird transaction</param>
+	/// <param name="sqlDialect">SQL dialect</param>
+	/// <param name="indexName">Index name</param>
+	/// <param name="fieldName">Field name</param>
+	/// <param name="boost">Significance multiplier</param>
+	/// <param name="boostNull">Boost null flag</param>
+	void FTSIndexRepository::setIndexFieldBoost(
+		ThrowStatusWrapper* status,
+		IAttachment* att,
+		ITransaction* tra,
+		const unsigned int sqlDialect,
+		const string& indexName,
+		const string& fieldName,
+		const double boost,
+		const bool boostNull)
+	{
+		FB_MESSAGE(Input, ThrowStatusWrapper,
+			(FB_DOUBLE, boost)
+			(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
+			(FB_INTL_VARCHAR(252, CS_UTF8), fieldName)			
+		) input(status, m_master);
+
+		input.clear();
+
+		input->indexName.length = static_cast<ISC_USHORT>(indexName.length());
+		indexName.copy(input->indexName.str, input->indexName.length);
+
+		input->fieldName.length = static_cast<ISC_USHORT>(fieldName.length());
+		fieldName.copy(input->fieldName.str, input->fieldName.length);
+
+		input->boost = boost;
+		input->boostNull = boostNull;
+
+		// Checking whether the index exists.
+		if (!hasIndex(status, att, tra, sqlDialect, indexName)) {
+			const string error_message = string_format("Index \"%s\" not exists", indexName);
+			ISC_STATUS statusVector[] = {
+			   isc_arg_gds, isc_random,
+			   isc_arg_string, (ISC_STATUS)error_message.c_str(),
+			   isc_arg_end
+			};
+			throw FbException(status, statusVector);
+		}
+
+		// Checking whether the field exists in the index.
+		if (!hasIndexSegment(status, att, tra, sqlDialect, indexName, fieldName)) {
+			const string error_message = string_format("Field \"%s\" not exists in index \"%s\"", fieldName, indexName);
+			ISC_STATUS statusVector[] = {
+			   isc_arg_gds, isc_random,
+			   isc_arg_string, (ISC_STATUS)error_message.c_str(),
+			   isc_arg_end
+			};
+			throw FbException(status, statusVector);
+		}
+
+		att->execute(
+			status,
+			tra,
+			0,
+			"UPDATE FTS$INDEX_SEGMENTS\n"
+			"SET FTS$BOOST = ?"
 			"WHERE FTS$INDEX_NAME = ? AND FTS$FIELD_NAME = ?",
 			sqlDialect,
 			input.getMetadata(),

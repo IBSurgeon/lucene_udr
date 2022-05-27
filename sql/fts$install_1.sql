@@ -167,6 +167,17 @@ BEGIN
       FTS$INDEX_ACTIVE BOOLEAN NOT NULL);
 
   /**
+   * Sets the index description.
+   *
+   * Input parameters:
+   *   FTS$INDEX_NAME - name of the index;
+   *   FTS$DESCRIPTION - index description.
+  **/
+  PROCEDURE FTS$COMMENT_ON_INDEX (
+      FTS$INDEX_NAME   VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+      FTS$DESCRIPTION BLOB SUB_TYPE TEXT CHARACTER SET UTF8);
+
+  /**
    * Add a new segment (indexed table field) of the full-text index.
    *
    * Input parameters:
@@ -190,6 +201,18 @@ BEGIN
       FTS$INDEX_NAME    VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
       FTS$FIELD_NAME    VARCHAR(63) CHARACTER SET UTF8 NOT NULL);
 
+  /**
+   * Sets the significance multiplier for the full-text index field.
+   *
+   * Input parameters:
+   *   FTS$INDEX_NAME - name of the index;
+   *   FTS$FIELD_NAME - name of the field;
+   *   FTS$BOOST - the coefficient of increasing the significance of the segment.
+  **/
+  PROCEDURE FTS$SET_INDEX_FIELD_BOOST (
+      FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+      FTS$FIELD_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+      FTS$BOOST DOUBLE PRECISION);
 
   /**
    * Rebuild the full-text index.
@@ -265,6 +288,17 @@ BEGIN
   EXTERNAL NAME 'luceneudr!setIndexActive' ENGINE UDR;
 
 
+  PROCEDURE FTS$COMMENT_ON_INDEX (
+      FTS$INDEX_NAME   VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+      FTS$DESCRIPTION BLOB SUB_TYPE TEXT CHARACTER SET UTF8)
+  AS
+  BEGIN
+    UPDATE FTS$INDICES
+    SET FTS$DESCRIPTION = :FTS$DESCRIPTION
+    WHERE FTS$INDEX_NAME = :FTS$INDEX_NAME;
+  END
+
+
   PROCEDURE FTS$ADD_INDEX_FIELD (
       FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
       FTS$FIELD_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
@@ -276,6 +310,13 @@ BEGIN
       FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
       FTS$FIELD_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL)
   EXTERNAL NAME 'luceneudr!dropIndexField' ENGINE UDR;
+
+
+  PROCEDURE FTS$SET_INDEX_FIELD_BOOST (
+      FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+      FTS$FIELD_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+      FTS$BOOST DOUBLE PRECISION)
+  EXTERNAL NAME 'luceneudr!setIndexFieldBoost' ENGINE UDR;
 
 
   PROCEDURE FTS$REBUILD_INDEX (

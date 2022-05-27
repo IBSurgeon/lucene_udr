@@ -32,6 +32,236 @@ using namespace Lucene;
 using namespace LuceneUDR;
 
 /***
+PROCEDURE FTS$SEARCH (
+	FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+	FTS$QUERY VARCHAR(8191) CHARACTER SET UTF8,
+	FTS$LIMIT INT NOT NULL DEFAULT 1000,
+	FTS$EXPLAIN BOOLEAN DEFAULT FALSE
+)
+RETURNS (
+	FTS$RELATION_NAME VARCHAR(63) CHARACTER SET UTF8,
+	FTS$KEY_FIELD_NAME VARCHAR(63) CHARACTER SET UTF8,
+	FTS$DB_KEY CHAR(8) CHARACTER SET OCTETS,
+	FTS$ID BIGINT,
+	FTS$UUID CHAR(16) CHARACTER SET OCTETS,
+	FTS$SCORE DOUBLE PRECISION,
+	FTS$EXPLANATION BLOB SUB_TYPE TEXT CHARACTER SET UTF8
+)
+EXTERNAL NAME 'luceneudr!ftsSearch'
+ENGINE UDR;
+***/
+FB_UDR_BEGIN_PROCEDURE(ftsSearch)
+	FB_UDR_MESSAGE(InMessage,
+		(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
+		(FB_INTL_VARCHAR(32765, CS_UTF8), query)
+		(FB_INTEGER, limit)
+		(FB_BOOLEAN, explain)
+	);
+
+	FB_UDR_MESSAGE(OutMessage,
+		(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
+		(FB_INTL_VARCHAR(252, CS_UTF8), keyFieldName)
+		(FB_INTL_VARCHAR(8, CS_BINARY), dbKey)
+		(FB_BIGINT, id)
+		(FB_INTL_VARCHAR(16, CS_BINARY), uuid)
+		(FB_DOUBLE, score)
+		(FB_BLOB, explanation)
+	);
+
+	FB_UDR_CONSTRUCTOR
+	, indexRepository(context->getMaster())
+	, analyzerFactory()
+	{
+	}
+
+	FTSIndexRepository indexRepository;
+	LuceneAnalyzerFactory analyzerFactory;
+
+	FB_UDR_EXECUTE_PROCEDURE
+	{
+		if (in->indexNameNull) {
+			ISC_STATUS statusVector[] = {
+				isc_arg_gds, isc_random,
+				isc_arg_string, (ISC_STATUS)"Index name can not be NULL",
+				isc_arg_end
+			};
+			throw FbException(status, statusVector);
+		}
+		const string indexName(in->indexName.str, in->indexName.length);
+
+		string queryStr;
+		if (!in->queryNull) {
+			queryStr.assign(in->query.str, in->query.length);
+		}
+
+		const auto limit = static_cast<int32_t>(in->limit);
+
+		if (!in->explainNull) {
+			explainFlag = in->explain;
+		}
+
+		const string ftsDirectory = getFtsDirectory(context);
+
+
+		att.reset(context->getAttachment(status));
+		tra.reset(context->getTransaction(status));
+
+		const unsigned int sqlDialect = getSqlDialect(status, att);
+
+		auto ftsIndex = procedure->indexRepository.getIndex(status, att, tra, sqlDialect, indexName);
+
+		// check if directory exists for index
+		const auto indexDir = FileUtils::joinPath(StringUtils::toUnicode(ftsDirectory), StringUtils::toUnicode(indexName));
+		if (ftsIndex.status == "N" || !FileUtils::isDirectory(indexDir)) {
+			string error_message = string_format("Index \"%s\" exists, but is not build. Please rebuild index.", indexName);
+			ISC_STATUS statusVector[] = {
+				isc_arg_gds, isc_random,
+				isc_arg_string, (ISC_STATUS)error_message.c_str(),
+				isc_arg_end
+			};
+			throw FbException(status, statusVector);
+		}
+
+		try {
+			const auto ftsIndexDir = FSDirectory::open(indexDir);
+			if (!IndexReader::indexExists(ftsIndexDir)) {
+				const string error_message = string_format("Index \"%s\" exists, but is not build. Please rebuild index.", indexName);
+				ISC_STATUS statusVector[] = {
+					isc_arg_gds, isc_random,
+					isc_arg_string, (ISC_STATUS)error_message.c_str(),
+					isc_arg_end
+				};
+				throw FbException(status, statusVector);
+			}
+
+			IndexReaderPtr reader = IndexReader::open(ftsIndexDir, true);
+			searcher = newLucene<IndexSearcher>(reader);
+			AnalyzerPtr analyzer = procedure->analyzerFactory.createAnalyzer(status, ftsIndex.analyzer);
+			auto segments = procedure->indexRepository.getIndexSegments(status, att, tra, sqlDialect, indexName);
+
+			string keyFieldName;
+			auto fields = Collection<String>::newInstance();
+			for (auto segment : segments) {
+				if (!segment.key) {
+					fields.add(StringUtils::toUnicode(segment.fieldName));
+				}
+				else {
+					keyFieldName = segment.fieldName;
+					unicodeKeyFieldName = StringUtils::toUnicode(keyFieldName);
+				}
+			}
+
+			if (keyFieldName != "RDB$DB_KEY") {
+				keyFieldInfo = procedure->indexRepository.relationHelper.getField(status, att, tra, sqlDialect, ftsIndex.relationName, keyFieldName);
+			}
+			else {
+				keyFieldInfo.initDB_KEYField(ftsIndex.relationName);
+			}
+
+			MultiFieldQueryParserPtr parser = newLucene<MultiFieldQueryParser>(LuceneVersion::LUCENE_CURRENT, fields, analyzer);
+			parser->setDefaultOperator(QueryParser::OR_OPERATOR);
+			query = parser->parse(StringUtils::toUnicode(queryStr));
+			TopDocsPtr docs = searcher->search(query, limit);
+
+			scoreDocs = docs->scoreDocs;
+
+			it = scoreDocs.begin();
+
+			out->relationNameNull = false;
+			out->relationName.length = static_cast<ISC_USHORT>(ftsIndex.relationName.length());
+			ftsIndex.relationName.copy(out->relationName.str, out->relationName.length);
+
+			out->keyFieldNameNull = false;
+			out->keyFieldName.length = static_cast<ISC_USHORT>(keyFieldName.length());
+			keyFieldName.copy(out->keyFieldName.str, out->keyFieldName.length);
+
+
+			out->dbKeyNull = true;
+			out->uuidNull = true;
+			out->idNull = true;
+			out->scoreNull = true;
+		}
+		catch (LuceneException& e) {
+			const string error_message = StringUtils::toUTF8(e.getError());
+			ISC_STATUS statusVector[] = {
+				isc_arg_gds, isc_random,
+				isc_arg_string, (ISC_STATUS)error_message.c_str(),
+				isc_arg_end
+			};
+			throw FbException(status, statusVector);
+		}
+	}
+
+	bool explainFlag = false;
+	AutoRelease<IAttachment> att;
+	AutoRelease<ITransaction> tra;
+	RelationFieldInfo keyFieldInfo;
+	String unicodeKeyFieldName;
+	QueryPtr query;
+	SearcherPtr searcher;
+	Collection<ScoreDocPtr> scoreDocs;
+	Collection<ScoreDocPtr>::iterator it;
+
+	FB_UDR_FETCH_PROCEDURE
+	{
+		if (it == scoreDocs.end()) {
+			return false;
+		}
+		ScoreDocPtr scoreDoc = *it;
+		DocumentPtr doc = searcher->doc(scoreDoc->doc);
+
+		try {
+			const string keyValue = StringUtils::toUTF8(doc->get(unicodeKeyFieldName));
+			if (unicodeKeyFieldName == L"RDB$DB_KEY") {
+				// In the Lucene index, the string is stored in hexadecimal form, so let's convert it back to binary format.
+				const string dbKey = hex_to_string(keyValue);
+				out->dbKeyNull = false;
+				out->dbKey.length = static_cast<ISC_USHORT>(dbKey.length());
+				dbKey.copy(out->dbKey.str, out->dbKey.length);
+			}
+			else if (keyFieldInfo.isBinary()) {
+				// In the Lucene index, the string is stored in hexadecimal form, so let's convert it back to binary format.
+				const string uuid = hex_to_string(keyValue);
+				out->uuidNull = false;
+				out->uuid.length = static_cast<ISC_USHORT>(uuid.length());
+				uuid.copy(out->uuid.str, out->uuid.length);
+			}
+			else if (keyFieldInfo.isInt()) {
+				out->idNull = false;
+				out->id = std::stoll(keyValue);
+			}
+		}
+		catch (invalid_argument& e) {
+			ISC_STATUS statusVector[] = {
+				isc_arg_gds, isc_random,
+				isc_arg_string, (ISC_STATUS)e.what(),
+				isc_arg_end
+			};
+			throw FbException(status, statusVector);
+		}
+
+
+		out->scoreNull = false;
+		out->score = scoreDoc->score;
+
+		if (explainFlag) {
+			out->explanationNull = false;
+			const auto explanation = searcher->explain(query, scoreDoc->doc);
+			const string explanationStr = StringUtils::toUTF8(explanation->toString());
+			AutoRelease<IBlob> blob(att->createBlob(status, tra, &out->explanation, 0, nullptr));
+			blob_set_string(status, blob, explanationStr);
+			blob->close(status);
+		}
+		else {
+			out->explanationNull = true;
+		}
+
+		++it;
+		return true;
+	}
+FB_UDR_END_PROCEDURE
+
+/***
 PROCEDURE FTS$LOG_CHANGE (
     FTS$RELATION_NAME  VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
 	FTS$REC_ID         CHAR(8) CHARACTER SET OCTETS NOT NULL,
@@ -448,232 +678,5 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 	}
 
 FB_UDR_END_PROCEDURE
-
-
-/***
-PROCEDURE FTS$SEARCH (
-	FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
-	FTS$QUERY VARCHAR(8191) CHARACTER SET UTF8,
-	FTS$LIMIT INT NOT NULL DEFAULT 1000,
-	FTS$EXPLAIN BOOLEAN DEFAULT FALSE
-)
-RETURNS (
-    FTS$RELATION_NAME VARCHAR(63) CHARACTER SET UTF8,
-	FTS$KEY_FIELD_NAME VARCHAR(63) CHARACTER SET UTF8,
-	FTS$DB_KEY CHAR(8) CHARACTER SET OCTETS,
-	FTS$ID BIGINT,
-	FTS$UUID CHAR(16) CHARACTER SET OCTETS,
-	FTS$SCORE DOUBLE PRECISION,
-	FTS$EXPLANATION BLOB SUB_TYPE TEXT CHARACTER SET UTF8
-)
-EXTERNAL NAME 'luceneudr!ftsSearch'
-ENGINE UDR;
-***/
-FB_UDR_BEGIN_PROCEDURE(ftsSearch)
-    FB_UDR_MESSAGE(InMessage,
-	    (FB_INTL_VARCHAR(252, CS_UTF8), indexName)
-		(FB_INTL_VARCHAR(32765, CS_UTF8), query)
-		(FB_INTEGER, limit)
-		(FB_BOOLEAN, explain)
-    );
-
-	FB_UDR_MESSAGE(OutMessage,
-		(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
-		(FB_INTL_VARCHAR(252, CS_UTF8), keyFieldName)
-		(FB_INTL_VARCHAR(8, CS_BINARY), dbKey)
-		(FB_BIGINT, id)
-		(FB_INTL_VARCHAR(16, CS_BINARY), uuid)
-		(FB_DOUBLE, score)
-		(FB_BLOB, explanation)
-	);
-
-	FB_UDR_CONSTRUCTOR
-		, indexRepository(context->getMaster())
-		, analyzerFactory()
-	{
-	}
-
-	FTSIndexRepository indexRepository;
-	LuceneAnalyzerFactory analyzerFactory;
-
-	FB_UDR_EXECUTE_PROCEDURE
-	{
-	    if (in->indexNameNull) {
-			ISC_STATUS statusVector[] = {
-				isc_arg_gds, isc_random,
-				isc_arg_string, (ISC_STATUS)"Index name can not be NULL",
-				isc_arg_end
-			};
-			throw FbException(status, statusVector);
-	    }
-	    const string indexName(in->indexName.str, in->indexName.length);
-
-		string queryStr;
-		if (!in->queryNull) {
-			queryStr.assign(in->query.str, in->query.length);
-		}
-
-		const auto limit = static_cast<int32_t>(in->limit);
-
-		if (!in->explainNull) {
-			explainFlag = in->explain;
-		}
-
-		const string ftsDirectory = getFtsDirectory(context);
-
-
-		att.reset(context->getAttachment(status));
-		tra.reset(context->getTransaction(status));
-
-		const unsigned int sqlDialect = getSqlDialect(status, att);
-
-		auto ftsIndex = procedure->indexRepository.getIndex(status, att, tra, sqlDialect, indexName);
-
-		// check if directory exists for index
-		const auto indexDir = FileUtils::joinPath(StringUtils::toUnicode(ftsDirectory), StringUtils::toUnicode(indexName));
-		if (ftsIndex.status == "N" || !FileUtils::isDirectory(indexDir)) {			
-			string error_message = string_format("Index \"%s\" exists, but is not build. Please rebuild index.", indexName);
-			ISC_STATUS statusVector[] = {
-				isc_arg_gds, isc_random,
-				isc_arg_string, (ISC_STATUS)error_message.c_str(),
-				isc_arg_end
-			};
-			throw FbException(status, statusVector);
-		}
-
-		try {
-			const auto ftsIndexDir = FSDirectory::open(indexDir);
-			if (!IndexReader::indexExists(ftsIndexDir)) {
-				const string error_message = string_format("Index \"%s\" exists, but is not build. Please rebuild index.", indexName);
-				ISC_STATUS statusVector[] = {
-					isc_arg_gds, isc_random,
-					isc_arg_string, (ISC_STATUS)error_message.c_str(),
-					isc_arg_end
-				};
-				throw FbException(status, statusVector);
-			}
-
-			IndexReaderPtr reader = IndexReader::open(ftsIndexDir, true);
-			searcher = newLucene<IndexSearcher>(reader);
-			AnalyzerPtr analyzer = procedure->analyzerFactory.createAnalyzer(status, ftsIndex.analyzer);
-			auto segments = procedure->indexRepository.getIndexSegments(status, att, tra, sqlDialect, indexName);
-			
-			string keyFieldName;
-			auto fields = Collection<String>::newInstance();
-			for (auto segment: segments) {
-				if (!segment.key) {
-					fields.add(StringUtils::toUnicode(segment.fieldName));
-				}
-				else {
-					keyFieldName = segment.fieldName;
-					unicodeKeyFieldName = StringUtils::toUnicode(keyFieldName);
-				}
-			}
-
-			keyFieldInfo = procedure->indexRepository.relationHelper.getField(status, att, tra, sqlDialect, ftsIndex.relationName, keyFieldName);
-
-			MultiFieldQueryParserPtr parser = newLucene<MultiFieldQueryParser>(LuceneVersion::LUCENE_CURRENT, fields, analyzer);
-			parser->setDefaultOperator(QueryParser::OR_OPERATOR);
-			query = parser->parse(StringUtils::toUnicode(queryStr));
-			TopDocsPtr docs = searcher->search(query, limit);
-
-			scoreDocs = docs->scoreDocs;
-
-			it = scoreDocs.begin();
-			
-			out->relationNameNull = false;
-			out->relationName.length = static_cast<ISC_USHORT>(ftsIndex.relationName.length());
-			ftsIndex.relationName.copy(out->relationName.str, out->relationName.length);
-
-			out->keyFieldNameNull = false;
-			out->keyFieldName.length = static_cast<ISC_USHORT>(keyFieldName.length());
-			keyFieldName.copy(out->keyFieldName.str, out->keyFieldName.length);
-
-
-			out->dbKeyNull = true;
-			out->uuidNull = true;
-			out->idNull = true;
-			out->scoreNull = true;
-		}
-		catch (LuceneException& e) {
-			const string error_message = StringUtils::toUTF8(e.getError());
-			ISC_STATUS statusVector[] = {
-				isc_arg_gds, isc_random,
-				isc_arg_string, (ISC_STATUS)error_message.c_str(),
-				isc_arg_end
-			};
-			throw FbException(status, statusVector);
-		}
-	}
-
-	bool explainFlag = false;
-	AutoRelease<IAttachment> att;
-	AutoRelease<ITransaction> tra;
-	RelationFieldInfo keyFieldInfo;
-	String unicodeKeyFieldName;
-	QueryPtr query;
-	SearcherPtr searcher;
-	Collection<ScoreDocPtr> scoreDocs;
-	Collection<ScoreDocPtr>::iterator it;
-
-	FB_UDR_FETCH_PROCEDURE
-	{
-		if (it == scoreDocs.end()) {
-			return false;
-		}
-	    ScoreDocPtr scoreDoc = *it;
-		DocumentPtr doc = searcher->doc(scoreDoc->doc);
-		
-		try {
-			const string keyValue = StringUtils::toUTF8(doc->get(unicodeKeyFieldName));
-			if (unicodeKeyFieldName == L"RDB$DB_KEY") {
-				// In the Lucene index, the string is stored in hexadecimal form, so let's convert it back to binary format.
-				const string dbKey = hex_to_string(keyValue);
-				out->dbKeyNull = false;
-				out->dbKey.length = static_cast<ISC_USHORT>(dbKey.length());
-				dbKey.copy(out->dbKey.str, out->dbKey.length);
-			}
-			else if (keyFieldInfo.isBinary()) {
-				// In the Lucene index, the string is stored in hexadecimal form, so let's convert it back to binary format.
-				const string uuid = hex_to_string(keyValue);
-				out->uuidNull = false;
-				out->uuid.length = static_cast<ISC_USHORT>(uuid.length());
-				uuid.copy(out->uuid.str, out->uuid.length);
-			}
-			else if (keyFieldInfo.isInt())  {
-				out->idNull = false;
-				out->id = std::stoll(keyValue);
-			}
-		}
-		catch (invalid_argument& e) {			
-			ISC_STATUS statusVector[] = {
-				isc_arg_gds, isc_random,
-				isc_arg_string, (ISC_STATUS)e.what(),
-				isc_arg_end
-			};
-			throw FbException(status, statusVector);
-		}
-		
-
-        out->scoreNull = false;
-		out->score = scoreDoc->score;
-
-		if (explainFlag) {
-			out->explanationNull = false;
-			const auto explanation = searcher->explain(query, scoreDoc->doc);
-			const string explanationStr = StringUtils::toUTF8(explanation->toString());
-			AutoRelease<IBlob> blob(att->createBlob(status, tra, &out->explanation, 0, nullptr));
-			blob_set_string(status, blob, explanationStr);
-			blob->close(status);
-		}
-		else {
-			out->explanationNull = true;
-		}
-
-	    ++it;
-	    return true;
-	}
-FB_UDR_END_PROCEDURE
-
 
 FB_UDR_IMPLEMENT_ENTRY_POINT
