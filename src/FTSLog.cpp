@@ -167,6 +167,48 @@ namespace LuceneUDR {
 		const string& uuid,
 		const string& changeType)
 	{
+		FB_MESSAGE(Input, ThrowStatusWrapper,
+			(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
+			(FB_INTL_VARCHAR(8, CS_BINARY), dbKey)
+			(FB_INTL_VARCHAR(16, CS_BINARY), uuid)
+			(FB_BIGINT, recId)
+			(FB_INTL_VARCHAR(4, CS_UTF8), changeType)
+		) input(status, m_master);
+
+		input.clear();
+
+		input->relationName.length = static_cast<ISC_USHORT>(relationName.length());
+		relationName.copy(input->relationName.str, input->relationName.length);
+
+		input->dbKeyNull = true;
+
+		input->uuid.length = static_cast<ISC_USHORT>(uuid.length());
+		uuid.copy(input->uuid.str, input->uuid.length);
+
+		input->recIdNull = true;
+
+		input->changeType.length = static_cast<ISC_USHORT>(changeType.length());
+		changeType.copy(input->changeType.str, input->changeType.length);
+
+		if (!stmt_append_log.hasData()) {
+			stmt_append_log.reset(att->prepare(
+				status,
+				tra,
+				0,
+				SQL_APPEND_LOG,
+				sqlDialect,
+				IStatement::PREPARE_PREFETCH_METADATA
+			));
+		}
+
+		stmt_append_log->execute(
+			status,
+			tra,
+			input.getMetadata(),
+			input.getData(),
+			nullptr,
+			nullptr
+		);
 	}
 
 	/// <summary>

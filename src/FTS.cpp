@@ -392,7 +392,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogById)
 
 		const unsigned int sqlDialect = getSqlDialect(status, att);
 
-		//procedure->logRepository.appendLog(status, att, tra, sqlDialect, relationName, dbKey, changeType);
+		procedure->logRepository.appendLogById(status, att, tra, sqlDialect, relationName, id, changeType);
 	}
 
 	FB_UDR_FETCH_PROCEDURE
@@ -406,13 +406,13 @@ FB_UDR_END_PROCEDURE
 /***
 PROCEDURE FTS$LOG_BY_UUID (
 	FTS$RELATION_NAME  VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
-	FTS$UUID           CHAR(8) CHARACTER SET OCTETS NOT NULL,
+	FTS$UUID           CHAR(16) CHARACTER SET OCTETS NOT NULL,
 	FTS$CHANGE_TYPE    FTS$D_CHANGE_TYPE NOT NULL
 )
-EXTERNAL NAME 'luceneudr!ftsLogByDdKey'
+EXTERNAL NAME 'luceneudr!ftsLogByUuid'
 ENGINE UDR;
 ***/
-FB_UDR_BEGIN_PROCEDURE(ftsLogByDdKey)
+FB_UDR_BEGIN_PROCEDURE(ftsLogByUuid)
 	FB_UDR_MESSAGE(InMessage,
 		(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
 		(FB_INTL_VARCHAR(16, CS_BINARY), uuid)
@@ -463,7 +463,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogByDdKey)
 
 		const unsigned int sqlDialect = getSqlDialect(status, att);
 
-		//procedure->logRepository.appendLog(status, att, tra, sqlDialect, relationName, dbKey, changeType);
+		procedure->logRepository.appendLogByUuid(status, att, tra, sqlDialect, relationName, uuid, changeType);
 	}
 
 	FB_UDR_FETCH_PROCEDURE
