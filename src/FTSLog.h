@@ -30,6 +30,17 @@ namespace LuceneUDR
 		// prepared statements
 		AutoRelease<IStatement> stmt_append_log;
 		AutoRelease<IStatement> stmt_delete_log;
+
+		const char* SQL_APPEND_LOG = 
+			"INSERT INTO FTS$LOG (\n"
+			"  FTS$RELATION_NAME,\n"
+			"  FTS$REC_ID,\n"
+			"  FTS$REC_UUID,\n"
+			"  FTS$REC_ID,\n"
+			"  FTS$CHANGE_TYPE\n"
+			")\n"
+			"VALUES(?, ?, ?, ?, ?)"
+			"\0";
 	public:
 		FTSLogRepository()
 			: FTSLogRepository(nullptr)
@@ -51,16 +62,56 @@ namespace LuceneUDR
 		/// <param name="tra">Firebird transaction</param>
 		/// <param name="sqlDialect">SQL dialect</param>
 		/// <param name="relationName">Relation name</param>
-		/// <param name="recId">Record ID</param>
+		/// <param name="dbKey">Record ID</param>
 		/// <param name="changeType">Type of change</param>
-		void appendLog(
+		void appendLogByDbKey(
 			ThrowStatusWrapper* status,
 			IAttachment* att,
 			ITransaction* tra,
 			const unsigned int sqlDialect,
-			const string &relationName,
-			const string &recId,
-			const string &changeType);
+			const string& relationName,
+			const string& dbKey,
+			const string& changeType);
+
+		/// <summary>
+		/// Adds an entry from the changelog.
+		/// </summary>
+		/// 
+		/// <param name="status">Firebird status</param>
+		/// <param name="att">Firebird attachment</param>
+		/// <param name="tra">Firebird transaction</param>
+		/// <param name="sqlDialect">SQL dialect</param>
+		/// <param name="relationName">Relation name</param>
+		/// <param name="dbKey">Record ID</param>
+		/// <param name="changeType">Type of change</param>
+		void appendLogById(
+			ThrowStatusWrapper* status,
+			IAttachment* att,
+			ITransaction* tra,
+			const unsigned int sqlDialect,
+			const string& relationName,
+			const ISC_INT64 recId,
+			const string& changeType);
+
+		/// <summary>
+		/// Adds an entry from the changelog.
+		/// </summary>
+		/// 
+		/// <param name="status">Firebird status</param>
+		/// <param name="att">Firebird attachment</param>
+		/// <param name="tra">Firebird transaction</param>
+		/// <param name="sqlDialect">SQL dialect</param>
+		/// <param name="relationName">Relation name</param>
+		/// <param name="dbKey">Record ID</param>
+		/// <param name="changeType">Type of change</param>
+		void appendLogByUuid(
+			ThrowStatusWrapper* status,
+			IAttachment* att,
+			ITransaction* tra,
+			const unsigned int sqlDialect,
+			const string& relationName,
+			const string& uuid,
+			const string& changeType);
 
 
 		/// <summary>

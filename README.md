@@ -580,6 +580,80 @@ NOT "world"
 Более подробное англоязычное описание синтаксиса расположено на официальном сайте
 Lucene: [https://lucene.apache.org](https://lucene.apache.org).
 
+## Индексация представлений
+
+Вы можете индексировать не только постоянные таблицы, но и сложные представления.
+
+Для того чтобы индексировать представление должно быть соблюдено одно требование: 
+в представлении должно быть поле, по которому вы можете однозначно идентифицировать запись.
+
+Добпустим у вас есть представление `V_FARM`, где `CODE_FARM` первичный ключ хозяйства:
+
+```sql
+CREATE OR ALTER VIEW V_FARM(
+    CODE_FARM,
+    CODE_COUNTRY,
+    CODE_REGION,
+    FARMNAME,
+    COUNTRYNAME,
+    REGIONNAME,
+    ADDRESS,
+    PHONE,
+    FAX,
+    EMAIL)
+AS
+SELECT
+    FARM.CODE_FARM,
+    FARM.CODE_COUNTRY,
+    FARM.CODE_REGION,
+    FARM.NAME AS FARMNAME,
+    COUNTRY.NAME AS COUNTRYNAME,
+    REGION.NAME AS REGIONNAME,
+    FARM.ADDRESS,
+    FARM.PHONE,
+    FARM.FAX,
+    FARM.EMAIL
+FROM FARM
+JOIN COUNTRY ON COUNTRY.CODE_COUNTRY = FARM.CODE_COUNTRY
+JOIN REGION ON REGION.CODE_REGION = FARM.CODE_REGION
+;
+```
+
+Вы хотите производить поиск по адресу хозяйства, но страна и регион находятся в справочных таблицах.
+В этом случае можно создать следующий полнотекстовый индекс:
+
+```sql
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$CREATE_INDEX('IDX_V_FARM_ADDRESS_RU', 'V_FARM', 'RUSSIAN', 'CODE_FARM');
+
+COMMIT;
+
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD('IDX_V_FARM_ADDRESS_RU', 'COUNTRYNAME');
+
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD('IDX_V_FARM_ADDRESS_RU', 'REGIONNAME');
+
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD('IDX_V_FARM_ADDRESS_RU', 'ADDRESS');
+
+COMMIT;
+
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$REBUILD_INDEX('IDX_V_FARM_ADDRESS_RU');
+
+COMMIT;
+```
+
+Поиск хозяйства по адресу такого представления выглядит так:
+
+```sql
+SELECT
+    FTS.FTS$SCORE
+  , V_FARM.CODE_FARM
+  , V_FARM.FARMNAME
+  , V_FARM.COUNTRYNAME
+  , V_FARM.REGIONNAME
+  , V_FARM.ADDRESS
+FROM FTS$SEARCH('IDX_V_FARM_ADDRESS_RU', 'Воронеж') FTS
+JOIN V_FARM
+     ON V_FARM.CODE_FARM = FTS.FTS$ID
+```
 
 ## Выделение найденных термов во фрагменте текста
 

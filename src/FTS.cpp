@@ -262,19 +262,19 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 FB_UDR_END_PROCEDURE
 
 /***
-PROCEDURE FTS$LOG_CHANGE (
+PROCEDURE FTS$LOG_BY_DBKEY (
     FTS$RELATION_NAME  VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
-	FTS$REC_ID         CHAR(8) CHARACTER SET OCTETS NOT NULL,
-	FTS$CHANGE_TYPE    FTS$CHANGE_TYPE NOT NULL
+	FTS$DBKEY          CHAR(8) CHARACTER SET OCTETS NOT NULL,
+	FTS$CHANGE_TYPE    FTS$D_CHANGE_TYPE NOT NULL
 )
-EXTERNAL NAME 'luceneudr!ftsLogChange'
+EXTERNAL NAME 'luceneudr!ftsLogByDdKey'
 ENGINE UDR;
 ***/
-FB_UDR_BEGIN_PROCEDURE(ftsLogChange)
+FB_UDR_BEGIN_PROCEDURE(ftsLogByDdKey)
     FB_UDR_MESSAGE(InMessage,
-	    (FB_INTL_VARCHAR(252, CS_UTF8), relation_name)
-	    (FB_INTL_VARCHAR(8, CS_BINARY), db_key)
-		(FB_INTL_VARCHAR(4, CS_UTF8), change_type)
+	    (FB_INTL_VARCHAR(252, CS_UTF8), relationName)
+	    (FB_INTL_VARCHAR(8, CS_BINARY), dbKey)
+		(FB_INTL_VARCHAR(4, CS_UTF8), changeType)
     );
 
 	FB_UDR_CONSTRUCTOR
@@ -286,6 +286,77 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogChange)
 
     FB_UDR_EXECUTE_PROCEDURE
 	{
+		if (in->relationNameNull) {
+			ISC_STATUS statusVector[] = {
+				isc_arg_gds, isc_random,
+				isc_arg_string, (ISC_STATUS)"FTS$RELATION_NAME can not be NULL",
+				isc_arg_end
+			};
+			throw FbException(status, statusVector);
+		}
+	    const string relationName(in->relationName.str, in->relationName.length);
+
+		if (in->dbKeyNull) {
+			ISC_STATUS statusVector[] = {
+				isc_arg_gds, isc_random,
+				isc_arg_string, (ISC_STATUS)"FTS$DBKEY can not be NULL",
+				isc_arg_end
+			};
+			throw FbException(status, statusVector);
+		}
+		const string dbKey(in->dbKey.str, in->dbKey.length);
+
+		if (in->changeTypeNull) {
+			ISC_STATUS statusVector[] = {
+				isc_arg_gds, isc_random,
+				isc_arg_string, (ISC_STATUS)"FTS$CHANGE_TYPE can not be NULL",
+				isc_arg_end
+			};
+			throw FbException(status, statusVector);
+		}
+		const string changeType(in->changeType.str, in->changeType.length);
+
+		AutoRelease<IAttachment> att(context->getAttachment(status));
+		AutoRelease<ITransaction> tra(context->getTransaction(status));
+
+		const unsigned int sqlDialect = getSqlDialect(status, att);
+
+		procedure->logRepository.appendLogByDbKey(status, att, tra, sqlDialect, relationName, dbKey, changeType);
+	}
+
+    FB_UDR_FETCH_PROCEDURE
+	{
+		return false;
+	}
+
+FB_UDR_END_PROCEDURE
+
+
+/***
+PROCEDURE FTS$LOG_BY_ID (
+	FTS$RELATION_NAME  VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+	FTS$ID             BIGINT NOT NULL,
+	FTS$CHANGE_TYPE    FTS$D_CHANGE_TYPE NOT NULL
+)
+EXTERNAL NAME 'luceneudr!ftsLogById'
+ENGINE UDR;
+***/
+FB_UDR_BEGIN_PROCEDURE(ftsLogById)
+	FB_UDR_MESSAGE(InMessage,
+		(FB_INTL_VARCHAR(252, CS_UTF8), relation_name)
+		(FB_BIGINT, id)
+		(FB_INTL_VARCHAR(4, CS_UTF8), change_type)
+	);
+
+	FB_UDR_CONSTRUCTOR
+		, logRepository(context->getMaster())
+	{
+	}
+
+	FTSLogRepository logRepository;
+
+	FB_UDR_EXECUTE_PROCEDURE
+	{
 		if (in->relation_nameNull) {
 			ISC_STATUS statusVector[] = {
 				isc_arg_gds, isc_random,
@@ -294,17 +365,17 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogChange)
 			};
 			throw FbException(status, statusVector);
 		}
-	    const string relationName(in->relation_name.str, in->relation_name.length);
+		const string relationName(in->relation_name.str, in->relation_name.length);
 
-		if (in->db_keyNull) {
+		if (in->idNull) {
 			ISC_STATUS statusVector[] = {
 				isc_arg_gds, isc_random,
-				isc_arg_string, (ISC_STATUS)"FTS$REC_ID can not be NULL",
+				isc_arg_string, (ISC_STATUS)"FTS$ID can not be NULL",
 				isc_arg_end
 			};
 			throw FbException(status, statusVector);
 		}
-		const string dbKey(in->db_key.str, in->db_key.length);
+		const ISC_INT64 id = in->id;
 
 		if (in->change_typeNull) {
 			ISC_STATUS statusVector[] = {
@@ -321,10 +392,81 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogChange)
 
 		const unsigned int sqlDialect = getSqlDialect(status, att);
 
-		procedure->logRepository.appendLog(status, att, tra, sqlDialect, relationName, dbKey, changeType);
+		//procedure->logRepository.appendLog(status, att, tra, sqlDialect, relationName, dbKey, changeType);
 	}
 
-    FB_UDR_FETCH_PROCEDURE
+	FB_UDR_FETCH_PROCEDURE
+	{
+		return false;
+	}
+
+FB_UDR_END_PROCEDURE
+
+
+/***
+PROCEDURE FTS$LOG_BY_UUID (
+	FTS$RELATION_NAME  VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+	FTS$UUID           CHAR(8) CHARACTER SET OCTETS NOT NULL,
+	FTS$CHANGE_TYPE    FTS$D_CHANGE_TYPE NOT NULL
+)
+EXTERNAL NAME 'luceneudr!ftsLogByDdKey'
+ENGINE UDR;
+***/
+FB_UDR_BEGIN_PROCEDURE(ftsLogByDdKey)
+	FB_UDR_MESSAGE(InMessage,
+		(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
+		(FB_INTL_VARCHAR(16, CS_BINARY), uuid)
+		(FB_INTL_VARCHAR(4, CS_UTF8), changeType)
+	);
+
+	FB_UDR_CONSTRUCTOR
+		, logRepository(context->getMaster())
+	{
+	}
+
+	FTSLogRepository logRepository;
+
+	FB_UDR_EXECUTE_PROCEDURE
+	{
+		if (in->relationNameNull) {
+			ISC_STATUS statusVector[] = {
+				isc_arg_gds, isc_random,
+				isc_arg_string, (ISC_STATUS)"FTS$RELATION_NAME can not be NULL",
+				isc_arg_end
+			};
+			throw FbException(status, statusVector);
+		}
+		const string relationName(in->relationName.str, in->relationName.length);
+
+		if (in->uuidNull) {
+			ISC_STATUS statusVector[] = {
+				isc_arg_gds, isc_random,
+				isc_arg_string, (ISC_STATUS)"FTS$UUID can not be NULL",
+				isc_arg_end
+			};
+			throw FbException(status, statusVector);
+		}
+		const string uuid(in->uuid.str, in->uuid.length);
+
+		if (in->changeTypeNull) {
+			ISC_STATUS statusVector[] = {
+				isc_arg_gds, isc_random,
+				isc_arg_string, (ISC_STATUS)"FTS$CHANGE_TYPE can not be NULL",
+				isc_arg_end
+			};
+			throw FbException(status, statusVector);
+		}
+		const string changeType(in->changeType.str, in->changeType.length);
+
+		AutoRelease<IAttachment> att(context->getAttachment(status));
+		AutoRelease<ITransaction> tra(context->getTransaction(status));
+
+		const unsigned int sqlDialect = getSqlDialect(status, att);
+
+		//procedure->logRepository.appendLog(status, att, tra, sqlDialect, relationName, dbKey, changeType);
+	}
+
+	FB_UDR_FETCH_PROCEDURE
 	{
 		return false;
 	}
