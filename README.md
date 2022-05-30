@@ -608,22 +608,22 @@ Lucene: [https://lucene.apache.org](https://lucene.apache.org).
   RETURNS VARCHAR(8191) CHARACTER SET UTF8;
 ```
 
-В параметре FTS$TEXT указывается текст в котором производится поиск и выделение фрагментов.
+В параметре `FTS$TEXT` указывается текст в котором производится поиск и выделение фрагментов.
 
-В параметре FTS$QUERY указывается поисковая фраза.
+В параметре `FTS$QUERY` указывается поисковая фраза.
 
-В третьем необязательном параметре FTS$ANALYZER указывается имя анализатора с помощью которого происходит выделение термов.
+В третьем необязательном параметре `FTS$ANALYZER` указывается имя анализатора с помощью которого происходит выделение термов.
 
-В параметре FTS$FIELD_NAME указывается имя поля по которому производится поиск. Его необходимо указывать необходимо если поисковый запрос явно сожержит несколько полей,
+В параметре `FTS$FIELD_NAME` указывается имя поля по которому производится поиск. Его необходимо указывать необходимо если поисковый запрос явно сожержит несколько полей,
 в противном случае параметр можно не указывать или установить в качестве значения NULL.
 
-В параметре FTS$FRAGMENT_SIZE указывается ограничение на длину возращаемого фрагмента. 
+В параметре `FTS$FRAGMENT_SIZE` указывается ограничение на длину возращаемого фрагмента. 
 Обратите внимание, реальная длина возвращаемого текста может быть больше. Возвращаемый фрагмент, обычно не разрывает слова, 
 кроме того в нём не учитывается длина самих тегов для выделения.
 
-В параметре FTS$LEFT_TAG указывается тег, кторый добавляется к найденому терму слева.
+В параметре `FTS$LEFT_TAG` указывается тег, кторый добавляется к найденому терму слева.
 
-В параметре FTS$RIGHT_TAG указывается тег, который добавляется к найденному фрагменту справа.
+В параметре `FTS$RIGHT_TAG` указывается тег, который добавляется к найденному фрагменту справа.
 
 Простейший пример использования:
 
@@ -699,7 +699,27 @@ END
       FTS$FRAGMENT VARCHAR(8191) CHARACTER SET UTF8);
 ```
 
-...
+Входные параметры процедуры `FTS$HIGHLIGHTER.FTS$BEST_FRAGMENTS()` идентичны параметрам функции `FTS$HIGHLIGHTER.FTS$BEST_FRAGMENT()`, но есть
+один доплнительный параметр `FTS$MAX_NUM_FRAGMENTS`, который ограничивает количество возвращаемых фрагментов. 
+
+Текст найденных фрагментов с выделеными вхождениями термов возращается в выходном параметре `FTS$FRAGMENT`. Эту процедуру следует применять в уже найденом
+одном документе.
+
+Пример использования:
+
+```sql
+SELECT
+    BOOKS.TITLE
+  , BOOKS.CONTENT
+  , F.FTS$FRAGMENT
+FROM BOOKS
+LEFT JOIN FTS$HIGHLIGHTER.FTS$BEST_FRAGMENTS(
+  BOOKS.CONTENT,
+  'толстый',
+  'RUSSIAN'
+) F ON TRUE
+WHERE BOOKS.ID = 8
+```
 
 
 ## Поддержание актуальности данных в полнотекстовых индексах
@@ -796,175 +816,105 @@ isql -user SYSDBA -pas masterkey -i fts$update.sql inet://localhost/mydatabase
 Пакет `FTS$MANAGEMENT` содержит процедуры и функции для управления полнотекстовыми индексами. Этот пакет предназначен
 для администраторов базы данных.
 
-Заголовок этого пакета выглядит следующим образом:
+
+#### Функция FTS$MANAGEMENT.FTS$GET_DIRECTORY
+
+Функция `FTS$MANAGEMENT.FTS$GET_DIRECTORY()` возвращает директорию в которой расположены файлы и папки полнотекстового индекса для текущей базы данных.
 
 ```sql
-CREATE OR ALTER PACKAGE FTS$MANAGEMENT
-AS
-BEGIN
-  /**
-   * Returns the directory where the files and folders
-   * of the full-text index for the current database are located.
-  **/
   FUNCTION FTS$GET_DIRECTORY ()
   RETURNS VARCHAR(255) CHARACTER SET UTF8
   DETERMINISTIC;
+```
 
-  /**
-   * Returns a list of available analyzers.
-   *
-   * Output parameters:
-   *   FTS$ANALYZER - analyzer name.
-  **/
+#### Процедура FTS$MANAGEMENT.FTS$ANALYZERS
+
+Процедура `FTS$MANAGEMENT.FTS$ANALYZERS()` возвращает список доступных анализаторов.
+
+```sql
   PROCEDURE FTS$ANALYZERS
   RETURNS (
       FTS$ANALYZER VARCHAR(63) CHARACTER SET UTF8);
+```
 
-  /**
-   * Create a new full-text index.
-   *
-   * Input parameters:
-   *   FTS$INDEX_NAME - name of the index;
-   *   FTS$RELATION_NAME - name of the table to be indexed;
-   *   FTS$ANALYZER - analyzer name;
-   *   FTS$KEY_FIELD_NAME - key field name;
-   *   FTS$DESCRIPTION - description of the index.
-  **/
+Выходные параметры:
+
+- FTS$ANALYZER - имя анализатора.
+
+#### Процедура FTS$MANAGEMENT.FTS$CREATE_INDEX
+
+Процедура `FTS$MANAGEMENT.FTS$CREATE_INDEX()` создаёт новый полнотекстовый индекс. 
+
+```sql
   PROCEDURE FTS$CREATE_INDEX (
       FTS$INDEX_NAME     VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
       FTS$RELATION_NAME  VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
       FTS$ANALYZER       VARCHAR(63) CHARACTER SET UTF8 DEFAULT 'STANDARD',
       FTS$KEY_FIELD_NAME VARCHAR(63) CHARACTER SET UTF8 DEFAULT NULL,
       FTS$DESCRIPTION BLOB SUB_TYPE TEXT CHARACTER SET UTF8 DEFAULT NULL);
-
-  /**
-   * Delete the full-text index.
-   *
-   * Input parameters:
-   *   FTS$INDEX_NAME - name of the index.
-  **/
-  PROCEDURE FTS$DROP_INDEX (
-      FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL);
-
-  /**
-   * Allows to make the index active or inactive.
-   *
-   * Input parameters:
-   *   FTS$INDEX_NAME - name of the index;
-   *   FTS$INDEX_ACTIVE - activity flag.
-  **/
-  PROCEDURE FTS$SET_INDEX_ACTIVE (
-      FTS$INDEX_NAME   VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
-      FTS$INDEX_ACTIVE BOOLEAN NOT NULL);
-
-  /**
-   * Add a new segment (indexed table field) of the full-text index.
-   *
-   * Input parameters:
-   *   FTS$INDEX_NAME - name of the index;
-   *   FTS$FIELD_NAME - the name of the field to be indexed;
-   *   FTS$BOOST - the coefficient of increasing the significance of the segment.
-  **/
-  PROCEDURE FTS$ADD_INDEX_FIELD (
-      FTS$INDEX_NAME    VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
-      FTS$FIELD_NAME    VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
-      FTS$BOOST         DOUBLE PRECISION DEFAULT NULL);
-
-  /**
-   * Delete a segment (indexed table field) of the full-text index.
-   *
-   * Input parameters:
-   *   FTS$INDEX_NAME - index name;
-   *   FTS$FIELD_NAME - field name.
-  **/
-  PROCEDURE FTS$DROP_INDEX_FIELD (
-      FTS$INDEX_NAME    VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
-      FTS$FIELD_NAME    VARCHAR(63) CHARACTER SET UTF8 NOT NULL);
-
-
-  /**
-   * Rebuild the full-text index.
-   *
-   * Input parameters:
-   *   FTS$INDEX_NAME - index name.
-   **/
-  PROCEDURE FTS$REBUILD_INDEX (
-      FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL);
-
-  /**
-   * Rebuild all full-text indexes for the specified table.
-   *
-   * Input parameters:
-   *   FTS$RELATION_NAME - table name.
-  **/
-  PROCEDURE FTS$REINDEX_TABLE (
-      FTS$RELATION_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL);
-
-  /**
-   * Rebuild all full-text indexes in the database.
-  **/
-  PROCEDURE FTS$FULL_REINDEX;
-
-  /**
-   * Optimize the full-text index.
-   *
-   * Input parameters:
-   *   FTS$INDEX_NAME - index name.
-   **/
-  PROCEDURE FTS$OPTIMIZE_INDEX (
-      FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL
-  );
-
-  /**
-   * Optimize all full-text indexes.
-   **/
-  PROCEDURE FTS$OPTIMIZE_INDEXES;
-END
 ```
-
-#### Функция FTS$GET_DIRECTORY
-
-Функция `FTS$GET_DIRECTORY()` возвращает директорию в которой расположены файлы и папки полнотекстового индекса для текущей базы данных.
-
-#### Процедура FTS$ANALYZERS
-
-Процедура `FTS$ANALYZERS` возвращает список доступных анализаторов.
-
-Выходные параметры:
-
-- FTS$ANALYZER - имя анализатора.
-
-#### Процедура FTS$CREATE_INDEX
-
-Процедура `FTS$CREATE_INDEX()` создаёт новый полнотекстовый индекс. 
 
 Входные параметры:
 
 - FTS$INDEX_NAME - имя индекса. Должно быть уникальным среди имён полнотекстовых индексов;
 - FTS$RELATION_NAME - имя таблицы, которая должна быть проиндексирована;
 - FTS$ANALYZER - имя анализатора. Если не задано используется анализатор STANDARD (StandardAnalyzer);
+- FTS$KEY_FIELD_NAME - имя поля значение которого будет возращено процедурой поиска `FTS$SEARCH()`, обычно это ключевое поле таблицы;
 - FTS$DESCRIPTION - описание индекса.
 
-#### Процедура FTS$DROP_INDEX
+#### Процедура FTS$MANAGEMENT.FTS$DROP_INDEX
 
-Процедура `FTS$DROP_INDEX()` удаляет полнотекстовый индекс. 
+Процедура `FTS$MANAGEMENT.FTS$DROP_INDEX()` удаляет полнотекстовый индекс.
+
+```sql
+  PROCEDURE FTS$DROP_INDEX (
+      FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL);
+```
 
 Входные параметры:
 
 - FTS$INDEX_NAME - имя индекса.
 
-#### Процедура SET_INDEX_ACTIVE
+#### Процедура FTS$MANAGEMENT.SET_INDEX_ACTIVE
 
-Процедура `SET_INDEX_ACTIVE()` позволяет сделать индекс активным или неактивным. 
+Процедура `FTS$MANAGEMENT.SET_INDEX_ACTIVE()` позволяет сделать индекс активным или неактивным. 
+
+```sql
+  PROCEDURE FTS$SET_INDEX_ACTIVE (
+      FTS$INDEX_NAME   VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+      FTS$INDEX_ACTIVE BOOLEAN NOT NULL);
+```
 
 Входные параметры:
 
 - FTS$INDEX_NAME - имя индекса;
 - FTS$INDEX_ACTIVE - флаг активности.
 
-#### Процедура FTS$ADD_INDEX_FIELD
+#### Процедура FTS$MANAGEMENT.FTS$COMMENT_ON_INDEX
 
-Процедура `FTS$ADD_INDEX_FIELD()` добавляет новый поле в полнотекстовый индекс. 
+Процедура `FTS$MANAGEMENT.FTS$COMMENT_ON_INDEX` добавляет или удаляет пользовательский коментарий к индексу.
+
+```sql
+  PROCEDURE FTS$COMMENT_ON_INDEX (
+      FTS$INDEX_NAME   VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+      FTS$DESCRIPTION BLOB SUB_TYPE TEXT CHARACTER SET UTF8);
+```
+
+Входные параметры:
+
+- FTS$INDEX_NAME - имя индекса;
+- FTS$DESCRIPTION - пользовательское описание индекса.
+
+#### Процедура FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD
+
+Процедура `FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD()` добавляет новый поле в полнотекстовый индекс. 
+
+```sql
+  PROCEDURE FTS$ADD_INDEX_FIELD (
+      FTS$INDEX_NAME    VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+      FTS$FIELD_NAME    VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+      FTS$BOOST         DOUBLE PRECISION DEFAULT NULL);
+```
 
 Входные параметры:
 
@@ -972,34 +922,89 @@ END
 - FTS$FIELD_NAME - имя поля, которое должно быть проиндексировано;
 - FTS$BOOST - коэффициент увеличения значимости сегмента (по умолчанию 1.0).
 
-#### Процедура FTS$DROP_INDEX_FIELD
+#### Процедура FTS$MANAGEMENT.FTS$DROP_INDEX_FIELD
 
-Процедура `FTS$DROP_INDEX_FIELD()` удаляет поле из полнотекстового индекса. 
+Процедура `FTS$MANAGEMENT.FTS$DROP_INDEX_FIELD()` удаляет поле из полнотекстового индекса. 
+
+```sql
+  PROCEDURE FTS$DROP_INDEX_FIELD (
+      FTS$INDEX_NAME    VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+      FTS$FIELD_NAME    VARCHAR(63) CHARACTER SET UTF8 NOT NULL);
+```
 
 Входные параметры:
 
 - FTS$INDEX_NAME - имя индекса;
 - FTS$FIELD_NAME - имя поля.
 
-#### Процедура FTS$REBUILD_INDEX
+#### Процедура FTS$MANAGEMENT.FTS$SET_INDEX_FIELD_BOOST
 
-Процедура `FTS$REBUILD_INDEX()` перестраивает полнотекстовый индекс. 
+Процедура `FTS$MANAGEMENT.FTS$SET_INDEX_FIELD_BOOST()` устанавливает коэффициент значимости для поля индекса. 
+
+```sql
+  PROCEDURE FTS$SET_INDEX_FIELD_BOOST (
+      FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+      FTS$FIELD_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+      FTS$BOOST DOUBLE PRECISION);
+```
+
+Входные параметры:
+
+- FTS$INDEX_NAME - имя индекса;
+- FTS$FIELD_NAME - имя поля, которое должно быть проиндексировано;
+- FTS$BOOST - коэффициент увеличения значимости сегмента.
+
+Если при добавлении поля в индекс не указать коэффициент значимости, то по умолчанию он равен 1.0.
+С помомщью процедуры `FTS$MANAGEMENT.FTS$SET_INDEX_FIELD_BOOST()` его можно изменить.
+Обратите внимание, что после запуска этой процедуры индекс необходимо перестроить.
+
+#### Процедура FTS$MANAGEMENT.FTS$REBUILD_INDEX
+
+Процедура `FTS$MANAGEMENT.FTS$REBUILD_INDEX()` перестраивает полнотекстовый индекс. 
+
+```sql
+  PROCEDURE FTS$REBUILD_INDEX (
+      FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL);
+```
 
 Входные параметры:
 
 - FTS$INDEX_NAME - имя индекса.
 
-#### Процедура FTS$REINDEX_TABLE
+#### Процедура FTS$MANAGEMENT.FTS$REINDEX_TABLE
 
-Процедура `FTS$REINDEX_TABLE()` перестраивает все полнотекстовые индексы для указанной таблицы.
+Процедура `FTS$MANAGEMENT.FTS$REINDEX_TABLE()` перестраивает все полнотекстовые индексы для указанной таблицы.
+
+```sql
+  PROCEDURE FTS$REINDEX_TABLE (
+      FTS$RELATION_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL);
+```
 
 Входные параметры:
 
 - FTS$RELATION_NAME - имя таблицы.
 
-#### Процедура FTS$FULL_REINDEX
+#### Процедура FTS$MANAGEMENT.FTS$FULL_REINDEX
 
-Процедура `FTS$FULL_REINDEX()` перестраивает все полнотекстовые индексы в базе данных.
+Процедура `FTS$MANAGEMENT.FTS$FULL_REINDEX()` перестраивает все полнотекстовые индексы в базе данных.
+
+#### Процедура FTS$MANAGEMENT.FTS$OPTIMIZE_INDEX
+
+Процедура `FTS$MANAGEMENT.FTS$OPTIMIZE_INDEX()` оптимизирует указанный индекс.
+
+```sql
+  PROCEDURE FTS$OPTIMIZE_INDEX (
+      FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL
+  );
+```
+
+Входные параметры:
+
+- FTS$INDEX_NAME - имя индекса.
+
+#### Процедура FTS$MANAGEMENT.FTS$OPTIMIZE_INDEXES
+
+Процедура `FTS$MANAGEMENT.FTS$OPTIMIZE_INDEXES()` оптимизирует все полнотекстовые индексы в базе данных.
 
 
 ### Процедура FTS$SEARCH
@@ -1067,26 +1072,12 @@ RETURNS (
 Пакет `FTS$HIGHLIGHTER` содержит процедуры и функции возвращающие фрагменты текста, в котором найдена исходная фраза, 
 и выделяет найденные слова.
 
-Заголовок этого пакета выглядит следующим образом:
+#### Функция FTS$HIGHLIGHTER.FTS$BEST_FRAGMENT
+
+Функция `FTS$HIGHLIGHTER.FTS$BEST_FRAGMENT()` возвращает лучший фрагмент текста, который соответствует выражению полнотекстового поиска,
+и выделяет в нем найденные слова.
 
 ```sql
-CREATE OR ALTER PACKAGE FTS$HIGHLIGHTER
-AS
-BEGIN
-  /**
-   * The FTS$BEST_FRAGMENT function returns a text fragment with highlighted
-   * occurrences of words from the search query.
-   *
-   * Input parameters:
-   *   FTS$TEXT - the text in which the phrase is searched;
-   *   FTS$QUERY - full-text search expression;
-   *   FTS$ANALYZER - analyzer;
-   *   FTS$FIELD_NAME - the name of the field that is being searched;
-   *   FTS$FRAGMENT_SIZE - the length of the returned fragment.
-   *       No less than is required to return whole words;
-   *   FTS$LEFT_TAG - the left tag to highlight;
-   *   FTS$RIGHT_TAG - the right tag to highlight.
-  **/
   FUNCTION FTS$BEST_FRAGMENT (
       FTS$TEXT BLOB SUB_TYPE TEXT CHARACTER SET UTF8,
       FTS$QUERY VARCHAR(8191) CHARACTER SET UTF8,
@@ -1096,43 +1087,7 @@ BEGIN
       FTS$LEFT_TAG VARCHAR(50) CHARACTER SET UTF8 NOT NULL DEFAULT '<b>',
       FTS$RIGHT_TAG VARCHAR(50) CHARACTER SET UTF8 NOT NULL DEFAULT '</b>')
   RETURNS VARCHAR(8191) CHARACTER SET UTF8;
-
-  /**
-   * The FTS$BEST_FRAGMENTS procedure returns text fragments with highlighted
-   * occurrences of words from the search query.
-   *
-   * Input parameters:
-   *   FTS$TEXT - the text in which the phrase is searched;
-   *   FTS$QUERY - full-text search expression;
-   *   FTS$ANALYZER - analyzer;
-   *   FTS$FIELD_NAME - the name of the field that is being searched;
-   *   FTS$FRAGMENT_SIZE - the length of the returned fragment.
-   *       No less than is required to return whole words;
-   *   FTS$MAX_NUM_FRAGMENTS - maximum number of fragments;
-   *   FTS$LEFT_TAG - the left tag to highlight;
-   *   FTS$RIGHT_TAG - the right tag to highlight.
-   *
-   * Output parameters:
-   *   FTS$FRAGMENT - text fragment in which the searched phrase was found. 
-  **/
-  PROCEDURE FTS$BEST_FRAGMENTS (
-      FTS$TEXT BLOB SUB_TYPE TEXT CHARACTER SET UTF8,
-      FTS$QUERY VARCHAR(8191) CHARACTER SET UTF8,
-      FTS$ANALYZER VARCHAR(63) CHARACTER SET UTF8 NOT NULL DEFAULT 'STANDARD',
-      FTS$FIELD_NAME VARCHAR(63) CHARACTER SET UTF8 DEFAULT NULL,
-      FTS$FRAGMENT_SIZE SMALLINT NOT NULL DEFAULT 512,
-      FTS$MAX_NUM_FRAGMENTS INTEGER NOT NULL DEFAULT 10,
-      FTS$LEFT_TAG VARCHAR(50) CHARACTER SET UTF8 NOT NULL DEFAULT '<b>',
-      FTS$RIGHT_TAG VARCHAR(50) CHARACTER SET UTF8 NOT NULL DEFAULT '</b>')
-  RETURNS (
-      FTS$FRAGMENT VARCHAR(8191) CHARACTER SET UTF8);
-END
 ```
-
-#### Функция FTS$BEST_FRAGMENT
-
-Функция `FTS$BEST_FRAGMENT()` возвращает лучший фрагмент текста, который соответствует выражению полнотекстового поиска,
-и выделяет в нем найденные слова.
 
 Входные параметры:
 
@@ -1144,10 +1099,24 @@ END
 - FTS$LEFT_TAG - левый тег для выделения;
 - FTS$RIGHT_TAG - правильный тег для выделения. 
 
-#### Процедура FTS$BEST_FRAGMENTS
+#### Процедура FTS$HIGHLIGHTER.FTS$BEST_FRAGMENTS
 
-Процедура `FTS$BEST_FRAGMENTS()` возвращает лучшие фрагменты текста, которые соответствуют выражению полнотекстового поиска,
+Процедура `FTS$HIGHLIGHTER.FTS$BEST_FRAGMENTS()` возвращает лучшие фрагменты текста, которые соответствуют выражению полнотекстового поиска,
 и выделяет в них найденные слова.
+
+```sql
+  PROCEDURE FTS$BEST_FRAGMENTS (
+      FTS$TEXT BLOB SUB_TYPE TEXT CHARACTER SET UTF8,
+      FTS$QUERY VARCHAR(8191) CHARACTER SET UTF8,
+      FTS$ANALYZER VARCHAR(63) CHARACTER SET UTF8 NOT NULL DEFAULT 'STANDARD',
+      FTS$FIELD_NAME VARCHAR(63) CHARACTER SET UTF8 DEFAULT NULL,
+      FTS$FRAGMENT_SIZE SMALLINT NOT NULL DEFAULT 512,
+      FTS$MAX_NUM_FRAGMENTS INTEGER NOT NULL DEFAULT 10,
+      FTS$LEFT_TAG VARCHAR(50) CHARACTER SET UTF8 NOT NULL DEFAULT '<b>',
+      FTS$RIGHT_TAG VARCHAR(50) CHARACTER SET UTF8 NOT NULL DEFAULT '</b>')
+  RETURNS (
+      FTS$FRAGMENT VARCHAR(8191) CHARACTER SET UTF8);
+```
 
 Входные параметры:
 
