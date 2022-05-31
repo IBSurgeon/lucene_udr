@@ -22,6 +22,7 @@
 #include <list>
 #include <map>
 #include <memory>
+#include <algorithm>
 
 using namespace Firebird;
 using namespace std;
@@ -29,26 +30,6 @@ using namespace Lucene;
 
 namespace LuceneUDR
 {
-	/// <summary>
-	/// Full-text index metadata.
-	/// </summary>
-	class FTSIndex
-	{
-	public: 
-
-		string indexName;
-		string relationName;
-		string analyzer;		
-		string description;
-		string status; // N - new index, I - inactive, U - need rebuild, C - complete
-
-		bool isActive() {
-			return (status == "C") || (status == "U");
-		}
-	};
-
-	using FTSIndexPtr = unique_ptr<FTSIndex>;
-
 	/// <summary>
 	/// Metadata for a full-text index segment.
 	/// </summary>
@@ -60,24 +41,80 @@ namespace LuceneUDR
 		bool key;
 		double boost;
 		bool boostNull;
-
-		shared_ptr<FTSIndex> index;
+		bool fieldExists;
 
 		FTSIndexSegment()
-			: index(nullptr)
-			, indexName()
+			: indexName()
 			, fieldName()
 			, key(false)
 			, boost(1.0)
 			, boostNull(true)
+			, fieldExists(false)
 		{}
 
-		bool compareFieldName(string& aFieldName) {
+		bool compareFieldName(const string& aFieldName) {
 			return (fieldName == aFieldName) || (fieldName == "RDB$DB_KEY" && aFieldName == "DB_KEY");
 		}
 	};
 
 	using FTSIndexSegmentPtr = unique_ptr<FTSIndexSegment>;
+	using FTSIndexSegmentList = list<FTSIndexSegmentPtr>;
+	using FTSIndexSegmentsMap = map<string, FTSIndexSegmentList>;
+
+
+	/// <summary>
+	/// Full-text index metadata.
+	/// </summary>
+	class FTSIndex
+	{
+	public: 
+
+		FTSIndex()
+			: indexName()
+			, relationName()
+			, analyzer()
+			, description()
+			, status()
+			, segments()
+		{}
+
+		string indexName;
+		string relationName;
+		string analyzer;		
+		string description;
+		string status; // N - new index, I - inactive, U - need rebuild, C - complete
+
+		FTSIndexSegmentList segments;
+
+		bool isActive() {
+			return (status == "C") || (status == "U");
+		}
+
+		FTSIndexSegmentList::const_iterator findSegment(const string& fieldName) {
+			return std::find_if(
+				segments.cbegin(),
+				segments.cend(),
+				[&fieldName](const auto& segment) { return segment->compareFieldName(fieldName); }
+			);
+		}
+
+		FTSIndexSegmentList::const_iterator findKey() {
+			return std::find_if(
+				segments.cbegin(),
+				segments.cend(),
+				[](const auto& segment) { return segment->key; }
+			);
+		}
+
+		string buildSqlSelectFieldValues(
+			ThrowStatusWrapper* status,
+			const unsigned int sqlDialect,
+			const bool whereKey = false);
+	};
+
+	using FTSIndexPtr = unique_ptr<FTSIndex>;
+	using FTSIndexList = list<FTSIndexPtr>;
+	using FTSIndexMap = map<string, FTSIndexPtr>;
 
 	/// <summary>
 	/// Returns the directory where full-text indexes are located.
@@ -122,10 +159,6 @@ namespace LuceneUDR
 		return true;
 	}
 
-	using FTSIndexList = list<FTSIndexPtr>;
-	using FTSIndexMap = map<string, FTSIndexPtr>;
-	using FTSIndexSegmentList = list<FTSIndexSegmentPtr>;
-	using FTSIndexSegmentsMap = map<string, FTSIndexSegmentList>;
 
 
 	/// <summary>
@@ -248,6 +281,7 @@ namespace LuceneUDR
 		/// <param name="tra">Firebird transaction</param>
 		/// <param name="sqlDialect">SQL dialect</param>
 		/// <param name="indexName">Index name</param>
+		/// <param name="withSegments">Fill segments list</param>
 		/// 
 		/// <returns>Index metadata</returns>
 		FTSIndexPtr getIndex (
@@ -255,7 +289,8 @@ namespace LuceneUDR
 			IAttachment* att, 
 			ITransaction* tra, 
 			const unsigned int sqlDialect, 
-			const string& indexName);
+			const string& indexName,
+			const bool withSegments = false);
 
 		/// <summary>
 		/// Returns a list of indexes. 
@@ -274,6 +309,22 @@ namespace LuceneUDR
 			const unsigned int sqlDialect);
 
 		/// <summary>
+		/// Returns a list of indexes with segments. 
+		/// </summary>
+		/// 
+		/// <param name="status">Firebird status</param>
+		/// <param name="att">Firebird attachment</param>
+		/// <param name="tra">Firebird transaction</param>
+		/// <param name="sqlDialect">SQL dialect</param>
+		/// 
+		/// <returns>Map indexes of name with segments</returns>
+		FTSIndexMap getAllIndexesWithSegments(
+			ThrowStatusWrapper* status,
+			IAttachment* att,
+			ITransaction* tra,
+			const unsigned int sqlDialect);
+
+		/// <summary>
 		/// Returns a list of index segments with the given name.
 		/// </summary>
 		/// 
@@ -282,48 +333,18 @@ namespace LuceneUDR
 		/// <param name="tra">Firebird transaction</param>
 		/// <param name="sqlDialect">SQL dialect</param>
 		/// <param name="indexName">Index name</param>
+		/// <param name="segments">Segments list</param>
 		/// 
 		/// <returns>List of index segments</returns>
-		FTSIndexSegmentList getIndexSegments (
-			ThrowStatusWrapper* status, 
-			IAttachment* att, 
-			ITransaction* tra, 
-			const unsigned int sqlDialect, 
-			const string& indexName);
+		void fillIndexSegments(
+			ThrowStatusWrapper* status,
+			IAttachment* att,
+			ITransaction* tra,
+			const unsigned int sqlDialect,
+			const string& indexName,
+			FTSIndexSegmentList& segments);
 
-		/// <summary>
-		/// Returns all segments of all indexes, ordered by index name. 
-		/// </summary>
-		/// 
-		/// <param name="status">Firebird status</param>
-		/// <param name="att">Firebird attachment</param>
-		/// <param name="tra">Firebird transaction</param>
-		/// <param name="sqlDialect">SQL dialect</param>
-		/// 
-		/// <returns>List of index segments</returns>
-		FTSIndexSegmentList getAllIndexSegments (
-			ThrowStatusWrapper* status, 
-			IAttachment* att, 
-			ITransaction* tra, 
-			const unsigned int sqlDialect);
 
-		/// <summary>
-		/// Returns index segments by relation name.
-		/// </summary>
-		/// 
-		/// <param name="status">Firebird status</param>
-		/// <param name="att">Firebird attachment</param>
-		/// <param name="tra">Firebird transaction</param>
-		/// <param name="sqlDialect">SQL dialect</param>
-		/// <param name="relationName">Relation name</param>
-		/// 
-		/// <returns>List of index segments</returns>
-		FTSIndexSegmentList getIndexSegmentsByRelation (
-			ThrowStatusWrapper* status, 
-			IAttachment* att, 
-			ITransaction* tra, 
-			const unsigned int sqlDialect, 
-			const string& relationName);
 
 		/// <summary>
 		/// Checks if an index key field exists for given relation.

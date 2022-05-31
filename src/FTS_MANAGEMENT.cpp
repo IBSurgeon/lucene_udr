@@ -619,7 +619,7 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 
 		try {
 			// check for index existence
-			auto ftsIndex = procedure->indexRepository.getIndex(status, att, tra, sqlDialect, indexName);
+			auto ftsIndex = procedure->indexRepository.getIndex(status, att, tra, sqlDialect, indexName, true);
 			// Check if the index directory exists, and if it doesn't exist, create it. 
 			const auto unicodeIndexDir = FileUtils::joinPath(StringUtils::toUnicode(ftsDirectory), StringUtils::toUnicode(indexName));
 			if (!createIndexDirectory(unicodeIndexDir)) {
@@ -644,9 +644,8 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 				throw FbException(status, statusVector);
 			}
 
-			// get index segments 
-			auto segments = procedure->indexRepository.getIndexSegments(status, att, tra, sqlDialect, indexName);
-			if (segments.size() == 0) {
+			// check segments exists
+			if (ftsIndex->segments.size() == 0) {
 				const string error_message = string_format("Cannot rebuild index \"%s\". The index does not contain segments.", indexName);
 				ISC_STATUS statusVector[] = {
 					isc_arg_gds, isc_random,
@@ -667,12 +666,9 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 			const char* fbCharset = context->getClientCharSet();
 			FBStringEncoder fbStringEncoder(fbCharset);
 
-
-			list<string> fieldNames;
-			string keyFieldName;
-			for (const auto& segment : segments) {
+			for (const auto& segment : ftsIndex->segments) {
 				if (segment->fieldName != "RDB$DB_KEY") {
-					if (!procedure->indexRepository.relationHelper.fieldExists(status, att, tra, sqlDialect, ftsIndex->relationName, segment->fieldName)) {
+					if (!segment->fieldExists) {
 						const string error_message = string_format("Cannot rebuild index \"%s\". Field \"%s\" not exists in relation \"%s\".", indexName, segment->fieldName, ftsIndex->relationName);
 						ISC_STATUS statusVector[] = {
 							isc_arg_gds, isc_random,
@@ -682,13 +678,9 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 						throw FbException(status, statusVector);
 					}
 				}
-				if (segment->key) {
-					keyFieldName = segment->fieldName;
-				}
-				fieldNames.push_back(segment->fieldName);
 			}
 				
-			const string sql = RelationHelper::buildSqlSelectFieldValues(sqlDialect, ftsIndex->relationName, fieldNames, keyFieldName);
+			const string sql = ftsIndex->buildSqlSelectFieldValues(status, sqlDialect); 
 			const auto unicodeRelationName = StringUtils::toUnicode(ftsIndex->relationName);
 
 			AutoRelease<IStatement> stmt(att->prepare(
@@ -707,12 +699,8 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 			// initial specific FTS property for fields
 			for (int i = 0; i < fields.size(); i++) {
 				auto field = fields[i];
-				auto iSegment = std::find_if(
-					segments.begin(),
-					segments.end(),
-					[&field](FTSIndexSegmentPtr segment) { return segment->compareFieldName(field.fieldName); }
-				);
-				if (iSegment == segments.end()) {
+				auto iSegment = ftsIndex->findSegment(field.fieldName);
+				if (iSegment == ftsIndex->segments.end()) {
 					const string error_message = string_format("Cannot rebuild index \"%s\". Field \"%s\" not found.", indexName, field.fieldName);
 					ISC_STATUS statusVector[] = {
 						isc_arg_gds, isc_random,

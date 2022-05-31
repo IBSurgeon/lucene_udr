@@ -40,6 +40,60 @@ namespace LuceneUDR
 		return section["ftsDirectory"].as<string>();
 	}
 
+	string FTSIndex::buildSqlSelectFieldValues(
+		ThrowStatusWrapper* status,
+		const unsigned int sqlDialect,
+		const bool whereKey)
+	{
+		list<string> fieldNames;
+		for (const auto& segment : segments) {
+			fieldNames.push_back(segment->fieldName);
+		}
+		auto iKeySegment = findKey();
+		if (iKeySegment == segments.end()) {
+			const string error_message = string_format("Key field not exists in index \"%s\".", indexName);
+			ISC_STATUS statusVector[] = {
+			   isc_arg_gds, isc_random,
+			   isc_arg_string, (ISC_STATUS)error_message.c_str(),
+			   isc_arg_end
+			};
+			throw FbException(status, statusVector);
+		}
+		const string keyFieldName = (*iKeySegment)->fieldName;
+
+		std::stringstream ss;
+		ss << "SELECT\n";
+		int field_cnt = 0;
+		for (const auto& fieldName : fieldNames) {
+			if (field_cnt == 0) {
+				ss << "  " << escapeMetaName(sqlDialect, fieldName);
+			}
+			else {
+				ss << ",\n  " << escapeMetaName(sqlDialect, fieldName);
+			}
+			field_cnt++;
+		}
+		ss << "\nFROM " << escapeMetaName(sqlDialect, relationName);
+		ss << "\nWHERE ";
+		if (whereKey) {
+			ss << escapeMetaName(sqlDialect, keyFieldName) << " = ?";
+		}
+		else {
+			ss << escapeMetaName(sqlDialect, keyFieldName) << " IS NOT NULL";
+			string where;
+			for (const auto& fieldName : fieldNames) {
+				if (fieldName == keyFieldName) continue;
+				if (where.empty())
+					where += escapeMetaName(sqlDialect, fieldName) + " IS NOT NULL";
+				else
+					where += " OR " + escapeMetaName(sqlDialect, fieldName) + " IS NOT NULL";
+			}
+			if (!where.empty())
+				ss << "\nAND (" << where << ")";
+		}
+		return ss.str();
+	}
+
 	/// <summary>
 	/// Create a new full-text index. 
 	/// </summary>
@@ -298,6 +352,7 @@ namespace LuceneUDR
 	/// <param name="tra">Firebird transaction</param>
 	/// <param name="sqlDialect">SQL dialect</param>
 	/// <param name="indexName">Index name</param>
+	/// <param name="withSegments">Fill segments list</param>
 	/// 
 	/// <returns>Index metadata</returns>
 	FTSIndexPtr FTSIndexRepository::getIndex (
@@ -305,7 +360,8 @@ namespace LuceneUDR
 		IAttachment* att, 
 		ITransaction* tra, 
 		const unsigned int sqlDialect, 
-		const string& indexName)
+		const string& indexName,
+		const bool withSegments)
 	{	
 		FB_MESSAGE(Input, ThrowStatusWrapper,
 			(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
@@ -368,6 +424,9 @@ namespace LuceneUDR
 			   isc_arg_end
 			};
 			throw FbException(status, statusVector);
+		}
+		if (withSegments) {
+			fillIndexSegments(status, att, tra, sqlDialect, indexName, ftsIndex->segments);
 		}
 
 		return std::move(ftsIndex);
@@ -442,76 +501,7 @@ namespace LuceneUDR
 	}
 
 	/// <summary>
-	/// Returns a list of index segments with the given name.
-	/// </summary>
-	/// 
-	/// <param name="status">Firebird status</param>
-	/// <param name="att">Firebird attachment</param>
-	/// <param name="tra">Firebird transaction</param>
-	/// <param name="sqlDialect">SQL dialect</param>
-	/// <param name="indexName">Index name</param>
-	/// 
-	/// <returns>List of index segments</returns>
-	FTSIndexSegmentList FTSIndexRepository::getIndexSegments (
-		ThrowStatusWrapper* status, 
-		IAttachment* att, 
-		ITransaction* tra, 
-		const unsigned int sqlDialect, 
-		const string &indexName)
-	{
-		FB_MESSAGE(Input, ThrowStatusWrapper,
-			(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
-		) input(status, m_master);
-
-		FB_MESSAGE(Output, ThrowStatusWrapper,
-			(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
-			(FB_INTL_VARCHAR(252, CS_UTF8), fieldName)
-			(FB_BOOLEAN, key)
-			(FB_DOUBLE, boost)
-		) output(status, m_master);
-
-		input.clear();
-
-		input->indexName.length = static_cast<ISC_USHORT>(indexName.length());
-		indexName.copy(input->indexName.str, input->indexName.length);
-
-		if (!stmt_index_segments.hasData()) {
-			stmt_index_segments.reset(att->prepare(
-				status,
-				tra,
-				0,
-				"SELECT FTS$INDEX_NAME, FTS$FIELD_NAME, FTS$KEY, FTS$BOOST\n"
-				"FROM FTS$INDEX_SEGMENTS\n"
-				"WHERE FTS$INDEX_NAME = ?",
-				sqlDialect,
-				IStatement::PREPARE_PREFETCH_METADATA
-			));
-		}
-		AutoRelease<IResultSet> rs(stmt_index_segments->openCursor(
-			status,
-			tra,
-			input.getMetadata(),
-			input.getData(),
-			output.getMetadata(),
-			0
-		));
-		FTSIndexSegmentList segments;
-		while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
-			auto indexSegment = make_unique<FTSIndexSegment>();
-			indexSegment->indexName.assign(output->indexName.str, output->indexName.length);
-			indexSegment->fieldName.assign(output->fieldName.str, output->fieldName.length);
-			indexSegment->key = output->key;
-			indexSegment->boost = output->boost;
-			indexSegment->boostNull = output->boostNull;
-
-			segments.push_back(std::move(indexSegment));
-		}
-		rs->close(status);
-		return segments;
-	}
-
-	/// <summary>
-	/// Returns all segments of all indexes, ordered by index name. 
+	/// Returns a list of indexes with segments. 
 	/// </summary>
 	/// 
 	/// <param name="status">Firebird status</param>
@@ -519,44 +509,48 @@ namespace LuceneUDR
 	/// <param name="tra">Firebird transaction</param>
 	/// <param name="sqlDialect">SQL dialect</param>
 	/// 
-	/// <returns>List of index segments</returns>
-	FTSIndexSegmentList FTSIndexRepository::getAllIndexSegments (
-		ThrowStatusWrapper* status, 
-		IAttachment* att, 
+	/// <returns>List of indexes with segments</returns>
+	FTSIndexMap FTSIndexRepository::getAllIndexesWithSegments(
+		ThrowStatusWrapper* status,
+		IAttachment* att,
 		ITransaction* tra,
 		const unsigned int sqlDialect)
 	{
-
 		FB_MESSAGE(Output, ThrowStatusWrapper,
 			(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
 			(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
+			(FB_INTL_VARCHAR(252, CS_UTF8), analyzerName)
+			(FB_INTL_VARCHAR(4, CS_UTF8), indexStatus)
 			(FB_INTL_VARCHAR(252, CS_UTF8), fieldName)
 			(FB_BOOLEAN, key)
 			(FB_DOUBLE, boost)
-			(FB_INTL_VARCHAR(252, CS_UTF8), analyzerName)
-			(FB_INTL_VARCHAR(4, CS_UTF8), indexStatus)
+			(FB_BOOLEAN, fieldExists)
 		) output(status, m_master);
 
 
 		AutoRelease<IStatement> stmt(att->prepare(
-				status,
-				tra,
-				0,
-				"SELECT\n"
-				"  FTS$INDEX_SEGMENTS.FTS$INDEX_NAME,\n"
-				"  FTS$INDICES.FTS$RELATION_NAME,\n"
-				"  FTS$INDEX_SEGMENTS.FTS$FIELD_NAME,\n"
-			    "  FTS$INDEX_SEGMENTS.FTS$KEY,\n"
-				"  FTS$INDEX_SEGMENTS.FTS$BOOST,\n"
-				"  FTS$INDICES.FTS$ANALYZER,\n"
-				"  FTS$INDICES.FTS$INDEX_STATUS\n"
-				"FROM FTS$INDEX_SEGMENTS\n"
-				"JOIN FTS$INDICES ON FTS$INDEX_SEGMENTS.FTS$INDEX_NAME = FTS$INDICES.FTS$INDEX_NAME\n"
-				"ORDER BY FTS$INDEX_SEGMENTS.FTS$INDEX_NAME",
-				sqlDialect,
-				IStatement::PREPARE_PREFETCH_METADATA
-			));
-	
+			status,
+			tra,
+			0,
+			"SELECT\n"
+			"  FTS$INDICES.FTS$INDEX_NAME,\n"
+			"  FTS$INDICES.FTS$RELATION_NAME,\n"
+			"  FTS$INDICES.FTS$ANALYZER,\n"
+			"  FTS$INDICES.FTS$INDEX_STATUS,\n"
+			"  FTS$INDEX_SEGMENTS.FTS$FIELD_NAME,\n"
+			"  FTS$INDEX_SEGMENTS.FTS$KEY,\n"
+			"  FTS$INDEX_SEGMENTS.FTS$BOOST,\n"
+			"  (RF.RDB$FIELD_NAME IS NOT NULL) AS FIELD_EXISTS\n"
+			"FROM FTS$INDICES\n"
+			"LEFT JOIN FTS$INDEX_SEGMENTS ON FTS$INDEX_SEGMENTS.FTS$INDEX_NAME = FTS$INDICES.FTS$INDEX_NAME\n"
+			"LEFT JOIN RDB$RELATION_FIELDS RF\n"
+			"    ON RF.RDB$RELATION_NAME = FTS$INDICES.FTS$RELATION_NAME\n"
+			"   AND RF.RDB$FIELD_NAME = FTS$INDEX_SEGMENTS.FTS$FIELD_NAME\n"
+			"ORDER BY FTS$INDICES.FTS$INDEX_NAME",
+			sqlDialect,
+			IStatement::PREPARE_PREFETCH_METADATA
+		));
+
 		AutoRelease<IResultSet> rs(stmt->openCursor(
 			status,
 			tra,
@@ -565,101 +559,7 @@ namespace LuceneUDR
 			output.getMetadata(),
 			0
 		));
-		FTSIndexSegmentList segments;
-		std::map<string, shared_ptr<FTSIndex>> indexes;
-		while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
-			const string indexName(output->indexName.str, output->indexName.length);
 
-			auto [it, result] = indexes.try_emplace(indexName, make_shared<FTSIndex>());
-			auto& index = it->second;
-			if (result) {				
-				index->indexName.assign(output->indexName.str, output->indexName.length);
-				index->relationName.assign(output->relationName.str, output->relationName.length);
-				index->analyzer.assign(output->analyzerName.str, output->analyzerName.length);
-				index->status.assign(output->indexStatus.str, output->indexStatus.length);
-			}
-
-			auto indexSegment = make_unique<FTSIndexSegment>();
-			indexSegment->indexName.assign(output->indexName.str, output->indexName.length);
-			indexSegment->fieldName.assign(output->fieldName.str, output->fieldName.length);
-			indexSegment->key = output->key;
-			indexSegment->boost = output->boost;
-			indexSegment->boostNull = output->boostNull;
-			indexSegment->index = index;
-
-			segments.push_back(std::move(indexSegment));
-		}
-		rs->close(status);
-		return segments;
-	}
-
-	/// <summary>
-	/// Returns index segments by relation name.
-	/// </summary>
-	/// 
-	/// <param name="status">Firebird status</param>
-	/// <param name="att">Firebird attachment</param>
-	/// <param name="tra">Firebird transaction</param>
-	/// <param name="sqlDialect">SQL dialect</param>
-	/// <param name="relationName">Relation name</param>
-	/// 
-	/// <returns>List of index segments</returns>
-	FTSIndexSegmentList FTSIndexRepository::getIndexSegmentsByRelation (
-		ThrowStatusWrapper* status, 
-		IAttachment* att, 
-		ITransaction* tra, 
-		const unsigned int sqlDialect,
-		const string &relationName)
-	{
-		FB_MESSAGE(Input, ThrowStatusWrapper,
-			(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
-		) input(status, m_master);
-
-		FB_MESSAGE(Output, ThrowStatusWrapper,
-			(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
-			(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
-			(FB_INTL_VARCHAR(252, CS_UTF8), fieldName)
-			(FB_BOOLEAN, key)
-			(FB_DOUBLE, boost)
-			(FB_INTL_VARCHAR(252, CS_UTF8), analyzerName)
-			(FB_INTL_VARCHAR(4, CS_UTF8), indexStatus)
-		) output(status, m_master);
-
-		input.clear();
-
-		input->relationName.length = static_cast<ISC_USHORT>(relationName.length());
-		relationName.copy(input->relationName.str, input->relationName.length);
-
-		if (!stmt_rel_segments.hasData()) {
-			stmt_rel_segments.reset(att->prepare(
-				status,
-				tra,
-				0,
-				"SELECT\n" 
-				"  FTS$INDEX_SEGMENTS.FTS$INDEX_NAME,\n" 
-				"  FTS$INDICES.FTS$RELATION_NAME,\n" 
-				"  FTS$INDEX_SEGMENTS.FTS$FIELD_NAME,\n"
-				"  FTS$INDEX_SEGMENTS.FTS$KEY,\n"
-				"  FTS$INDEX_SEGMENTS.FTS$BOOST,\n"
-				"  FTS$INDICES.FTS$ANALYZER,\n"
-				"  FTS$INDICES.FTS$INDEX_STATUS\n"
-				"FROM FTS$INDEX_SEGMENTS\n"
-				"JOIN FTS$INDICES ON FTS$INDEX_SEGMENTS.FTS$INDEX_NAME = FTS$INDICES.FTS$INDEX_NAME\n"
-				"WHERE FTS$INDICES.FTS$RELATION_NAME = ?\n"
-				"ORDER BY FTS$INDEX_SEGMENTS.FTS$INDEX_NAME",
-				sqlDialect,
-				IStatement::PREPARE_PREFETCH_METADATA
-			));
-		}
-		AutoRelease<IResultSet> rs(stmt_rel_segments->openCursor(
-			status,
-			tra,
-			input.getMetadata(),
-			input.getData(),
-			output.getMetadata(),
-			0
-		));
-		FTSIndexSegmentList segments;
 		FTSIndexMap indexes;
 		while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
 			const string indexName(output->indexName.str, output->indexName.length);
@@ -679,12 +579,93 @@ namespace LuceneUDR
 			indexSegment->key = output->key;
 			indexSegment->boost = output->boost;
 			indexSegment->boostNull = output->boostNull;
-			indexSegment->index = std::move(index);
+			indexSegment->fieldExists = output->fieldExists;
+
+			index->segments.push_back(std::move(indexSegment));
+		}
+		rs->close(status);
+		return indexes;
+	}
+
+	/// <summary>
+	/// Returns a list of index segments with the given name.
+	/// </summary>
+	/// 
+	/// <param name="status">Firebird status</param>
+	/// <param name="att">Firebird attachment</param>
+	/// <param name="tra">Firebird transaction</param>
+	/// <param name="sqlDialect">SQL dialect</param>
+	/// <param name="indexName">Index name</param>
+	/// <param name="segments">Segments list</param>
+	/// 
+	/// <returns>List of index segments</returns>
+	void FTSIndexRepository::fillIndexSegments(
+		ThrowStatusWrapper* status,
+		IAttachment* att,
+		ITransaction* tra,
+		const unsigned int sqlDialect,
+		const string& indexName,
+		FTSIndexSegmentList& segments)
+	{
+		FB_MESSAGE(Input, ThrowStatusWrapper,
+			(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
+		) input(status, m_master);
+
+		FB_MESSAGE(Output, ThrowStatusWrapper,
+			(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
+			(FB_INTL_VARCHAR(252, CS_UTF8), fieldName)
+			(FB_BOOLEAN, key)
+			(FB_DOUBLE, boost)
+			(FB_BOOLEAN, fieldExists)
+		) output(status, m_master);
+
+		input.clear();
+
+		input->indexName.length = static_cast<ISC_USHORT>(indexName.length());
+		indexName.copy(input->indexName.str, input->indexName.length);
+
+		if (!stmt_index_segments.hasData()) {
+			stmt_index_segments.reset(att->prepare(
+				status,
+				tra,
+				0,
+				"SELECT"
+				"  FTS$INDEX_SEGMENTS.FTS$INDEX_NAME,\n"
+				"  FTS$INDEX_SEGMENTS.FTS$FIELD_NAME,\n"
+				"  FTS$INDEX_SEGMENTS.FTS$KEY,\n"
+				"  FTS$INDEX_SEGMENTS.FTS$BOOST,\n"
+				"  (RF.RDB$FIELD_NAME IS NOT NULL) AS FIELD_EXISTS\n"
+				"FROM FTS$INDICES\n"
+				"JOIN FTS$INDEX_SEGMENTS\n"
+				"    ON FTS$INDEX_SEGMENTS.FTS$INDEX_NAME = FTS$INDICES.FTS$INDEX_NAME\n"
+				"LEFT JOIN RDB$RELATION_FIELDS RF\n"
+				"    ON RF.RDB$RELATION_NAME = FTS$INDICES.FTS$RELATION_NAME\n"
+				"   AND RF.RDB$FIELD_NAME = FTS$INDEX_SEGMENTS.FTS$FIELD_NAME\n"
+				"WHERE FTS$INDICES.FTS$INDEX_NAME = ?",
+				sqlDialect,
+				IStatement::PREPARE_PREFETCH_METADATA
+			));
+		}
+		AutoRelease<IResultSet> rs(stmt_index_segments->openCursor(
+			status,
+			tra,
+			input.getMetadata(),
+			input.getData(),
+			output.getMetadata(),
+			0
+		));
+		while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
+			auto indexSegment = make_unique<FTSIndexSegment>();
+			indexSegment->indexName.assign(output->indexName.str, output->indexName.length);
+			indexSegment->fieldName.assign(output->fieldName.str, output->fieldName.length);
+			indexSegment->key = output->key;
+			indexSegment->boost = output->boost;
+			indexSegment->boostNull = output->boostNull;
+			indexSegment->fieldExists = output->fieldExists;
 
 			segments.push_back(std::move(indexSegment));
 		}
 		rs->close(status);
-		return segments;
 	}
 
 	/// <summary>

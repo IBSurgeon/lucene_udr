@@ -289,7 +289,19 @@ FB_UDR_BEGIN_PROCEDURE(getIndexFields)
 
 		try {
 			// check for index existence
-			auto ftsIndex = procedure->indexRepository.getIndex(status, att, tra, sqlDialect, indexName);
+			// TODO: not need create index instance
+			//auto ftsIndex = procedure->indexRepository.getIndex(status, att, tra, sqlDialect, indexName);
+
+			// check for index existence
+			if (!procedure->indexRepository.hasIndex(status, att, tra, sqlDialect, indexName)) {
+				const string error_message = string_format("Index \"%s\" not exists", indexName);
+				ISC_STATUS statusVector[] = {
+				   isc_arg_gds, isc_random,
+				   isc_arg_string, (ISC_STATUS)error_message.c_str(),
+				   isc_arg_end
+				};
+				throw FbException(status, statusVector);
+			}
 
 
 			const auto unicodeIndexDir = FileUtils::joinPath(StringUtils::toUnicode(ftsDirectory), StringUtils::toUnicode(indexName));
@@ -425,6 +437,7 @@ FB_UDR_BEGIN_PROCEDURE(getIndexFiles)
 
 		try {
 			// check for index existence
+			// TODO: not need create index instance
 			auto ftsIndex = procedure->indexRepository.getIndex(status, att, tra, sqlDialect, indexName);
 
 
@@ -574,6 +587,7 @@ FB_UDR_BEGIN_PROCEDURE(getIndexSegments)
 
 		try {
 			// check for index existence
+			// TODO: not need create index instance
 			auto ftsIndex = procedure->indexRepository.getIndex(status, att, tra, sqlDialect, indexName);
 
 			const auto unicodeIndexDir = FileUtils::joinPath(StringUtils::toUnicode(ftsDirectory), StringUtils::toUnicode(indexName));
@@ -741,6 +755,7 @@ FB_UDR_BEGIN_PROCEDURE(getFieldInfos)
 
 		try {
 			// check for index existence
+			// TODO: not need create index instance
 			auto ftsIndex = procedure->indexRepository.getIndex(status, att, tra, sqlDialect, indexName);
 
 			const auto unicodeIndexDir = FileUtils::joinPath(StringUtils::toUnicode(ftsDirectory), StringUtils::toUnicode(indexName));

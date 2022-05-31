@@ -108,7 +108,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 
 		const unsigned int sqlDialect = getSqlDialect(status, att);
 
-		auto ftsIndex = procedure->indexRepository.getIndex(status, att, tra, sqlDialect, indexName);
+		auto ftsIndex = procedure->indexRepository.getIndex(status, att, tra, sqlDialect, indexName, true);
 
 		// check if directory exists for index
 		const auto indexDir = FileUtils::joinPath(StringUtils::toUnicode(ftsDirectory), StringUtils::toUnicode(indexName));
@@ -137,11 +137,10 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 			IndexReaderPtr reader = IndexReader::open(ftsIndexDir, true);
 			searcher = newLucene<IndexSearcher>(reader);
 			AnalyzerPtr analyzer = procedure->analyzerFactory.createAnalyzer(status, ftsIndex->analyzer);
-			auto segments = procedure->indexRepository.getIndexSegments(status, att, tra, sqlDialect, indexName);
 
 			string keyFieldName;
 			auto fields = Collection<String>::newInstance();
-			for (auto& segment : segments) {
+			for (const auto& segment : ftsIndex->segments) {
 				if (!segment->key) {
 					fields.add(StringUtils::toUnicode(segment->fieldName));
 				}
