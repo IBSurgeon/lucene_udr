@@ -145,8 +145,8 @@ FB_UDR_BEGIN_PROCEDURE(getIndexStatistics)
 			auto ftsIndex = procedure->indexRepository.getIndex(status, att, tra, sqlDialect, indexName);
 
 			out->analyzerNameNull = false;
-			out->analyzerName.length = static_cast<ISC_USHORT>(ftsIndex.analyzer.length());
-			ftsIndex.analyzer.copy(out->analyzerName.str, out->analyzerName.length);
+			out->analyzerName.length = static_cast<ISC_USHORT>(ftsIndex->analyzer.length());
+			ftsIndex->analyzer.copy(out->analyzerName.str, out->analyzerName.length);
 
 			const auto unicodeIndexDir = FileUtils::joinPath(StringUtils::toUnicode(ftsDirectory), StringUtils::toUnicode(indexName));
 			const string indexDir = StringUtils::toUTF8(unicodeIndexDir);
@@ -159,14 +159,14 @@ FB_UDR_BEGIN_PROCEDURE(getIndexStatistics)
 			// Check if the index directory exists
 			if (!FileUtils::isDirectory(unicodeIndexDir)) {
 				// index created, but not build
-				ftsIndex.status = "N";
+				ftsIndex->status = "N";
 				out->indexExists = false;
 			}
 			else {
 				auto ftsIndexDir = FSDirectory::open(unicodeIndexDir);
 				if (!IndexReader::indexExists(ftsIndexDir)) {
 					// index created, but not build
-					ftsIndex.status = "N";
+					ftsIndex->status = "N";
 					out->indexExists = false;
 				}
 				else {
@@ -201,8 +201,8 @@ FB_UDR_BEGIN_PROCEDURE(getIndexStatistics)
 				ftsIndexDir->close();
 			}
 			out->indexStatusNull = false;
-			out->indexStatus.length = static_cast<ISC_USHORT>(ftsIndex.status.length());
-			ftsIndex.status.copy(out->indexStatus.str, out->indexStatus.length);
+			out->indexStatus.length = static_cast<ISC_USHORT>(ftsIndex->status.length());
+			ftsIndex->status.copy(out->indexStatus.str, out->indexStatus.length);
 		}
 		catch (const LuceneException& e) {
 			const string error_message = StringUtils::toUTF8(e.getError());

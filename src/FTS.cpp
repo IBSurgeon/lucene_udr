@@ -112,7 +112,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 
 		// check if directory exists for index
 		const auto indexDir = FileUtils::joinPath(StringUtils::toUnicode(ftsDirectory), StringUtils::toUnicode(indexName));
-		if (ftsIndex.status == "N" || !FileUtils::isDirectory(indexDir)) {
+		if (ftsIndex->status == "N" || !FileUtils::isDirectory(indexDir)) {
 			string error_message = string_format("Index \"%s\" exists, but is not build. Please rebuild index.", indexName);
 			ISC_STATUS statusVector[] = {
 				isc_arg_gds, isc_random,
@@ -136,26 +136,26 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 
 			IndexReaderPtr reader = IndexReader::open(ftsIndexDir, true);
 			searcher = newLucene<IndexSearcher>(reader);
-			AnalyzerPtr analyzer = procedure->analyzerFactory.createAnalyzer(status, ftsIndex.analyzer);
+			AnalyzerPtr analyzer = procedure->analyzerFactory.createAnalyzer(status, ftsIndex->analyzer);
 			auto segments = procedure->indexRepository.getIndexSegments(status, att, tra, sqlDialect, indexName);
 
 			string keyFieldName;
 			auto fields = Collection<String>::newInstance();
-			for (auto segment : segments) {
-				if (!segment.key) {
-					fields.add(StringUtils::toUnicode(segment.fieldName));
+			for (auto& segment : segments) {
+				if (!segment->key) {
+					fields.add(StringUtils::toUnicode(segment->fieldName));
 				}
 				else {
-					keyFieldName = segment.fieldName;
+					keyFieldName = segment->fieldName;
 					unicodeKeyFieldName = StringUtils::toUnicode(keyFieldName);
 				}
 			}
 
 			if (keyFieldName != "RDB$DB_KEY") {
-				keyFieldInfo = procedure->indexRepository.relationHelper.getField(status, att, tra, sqlDialect, ftsIndex.relationName, keyFieldName);
+				keyFieldInfo = procedure->indexRepository.relationHelper.getField(status, att, tra, sqlDialect, ftsIndex->relationName, keyFieldName);
 			}
 			else {
-				keyFieldInfo.initDB_KEYField(ftsIndex.relationName);
+				keyFieldInfo.initDB_KEYField(ftsIndex->relationName);
 			}
 
 			MultiFieldQueryParserPtr parser = newLucene<MultiFieldQueryParser>(LuceneVersion::LUCENE_CURRENT, fields, analyzer);
@@ -168,8 +168,8 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 			it = scoreDocs.begin();
 
 			out->relationNameNull = false;
-			out->relationName.length = static_cast<ISC_USHORT>(ftsIndex.relationName.length());
-			ftsIndex.relationName.copy(out->relationName.str, out->relationName.length);
+			out->relationName.length = static_cast<ISC_USHORT>(ftsIndex->relationName.length());
+			ftsIndex->relationName.copy(out->relationName.str, out->relationName.length);
 
 			out->keyFieldNameNull = false;
 			out->keyFieldName.length = static_cast<ISC_USHORT>(keyFieldName.length());
@@ -550,10 +550,10 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 
 		const char* fbCharset = context->getClientCharSet();
 		FBStringEncoder fbStringEncoder(fbCharset);
-
-		map<string, FTSRelation> relationsByName;
-		procedure->clearPreparedStatements();
 		/*
+		map<string, FTSRelationPtr> relationsByName;
+		procedure->clearPreparedStatements();
+		
 		// get all indexes
 		auto allIndexes = procedure->indexRepository.getAllIndexes(status, att, tra, sqlDialect);
 		for (auto& ftsIndex : allIndexes) {
@@ -561,27 +561,14 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 			if (!ftsIndex.isActive()) {
 				continue;
 			}
+			auto t = make_unique<FTSRelation>(ftsIndex.relationName);
+			auto[it, result] = relationsByName.try_emplace(ftsIndex.relationName, std::move(t));
+			auto& ftsRelation = it->second;
+			ftsRelation->addIndex(ftsIndex);
 		    // get index segments
 			auto segments = procedure->indexRepository.getIndexSegments(status, att, tra, sqlDialect, ftsIndex.indexName);
 			for (auto& ftsSegment : segments) {
-			    // looking for a table by name
-				auto r = relationsByName.find(ftsSegment.relationName);
-				
-				if (r != relationsByName.end()) {
-					// if the table is found, then add a new index and segment to it, and update the relations map.
-					auto ftsRelation = r->second;
-					ftsRelation.addIndex(ftsIndex);
-					ftsRelation.addSegment(ftsSegment);
-					relationsByName.insert_or_assign(ftsSegment.relationName, ftsRelation);
-				}
-				else {
-					// if there is no such table yet, add it
-					FTSRelation ftsRelation(ftsSegment.relationName);
-					// add a new index and segment to it
-					ftsRelation.addIndex(ftsIndex);
-					ftsRelation.addSegment(ftsSegment);
-					relationsByName.insert_or_assign(ftsSegment.relationName, ftsRelation);
-				}
+				ftsRelation->addSegment
 			}
 		}
 		
@@ -658,7 +645,7 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 			0
 		));
         
-
+		
 		while (logRs->fetchNext(status, logOutput.getData()) == IStatus::RESULT_OK) {
 			const ISC_INT64 logId = logOutput->id;
 			const string dbKey(logOutput->dbKey.str, logOutput->dbKey.length);

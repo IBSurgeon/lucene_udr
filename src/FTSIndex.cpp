@@ -300,15 +300,13 @@ namespace LuceneUDR
 	/// <param name="indexName">Index name</param>
 	/// 
 	/// <returns>Index metadata</returns>
-	FTSIndex FTSIndexRepository::getIndex (
+	FTSIndexPtr FTSIndexRepository::getIndex (
 		ThrowStatusWrapper* status, 
 		IAttachment* att, 
 		ITransaction* tra, 
 		const unsigned int sqlDialect, 
 		const string& indexName)
-	{
-		FTSIndex ftsIndex;
-
+	{	
 		FB_MESSAGE(Input, ThrowStatusWrapper,
 			(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
 		) input(status, m_master);
@@ -346,18 +344,20 @@ namespace LuceneUDR
 			output.getMetadata(),
 			0
 		));
+
+		auto ftsIndex = make_unique<FTSIndex>();
 		bool foundFlag = false;
 		if (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
 			foundFlag = true;
-			ftsIndex.indexName.assign(output->indexName.str, output->indexName.length);
-			ftsIndex.relationName.assign(output->relationName.str, output->relationName.length);
-			ftsIndex.analyzer.assign(output->analyzer.str, output->analyzer.length);
+			ftsIndex->indexName.assign(output->indexName.str, output->indexName.length);
+			ftsIndex->relationName.assign(output->relationName.str, output->relationName.length);
+			ftsIndex->analyzer.assign(output->analyzer.str, output->analyzer.length);
 			if (!output->descriptionNull) {
 				AutoRelease<IBlob> blob(att->openBlob(status, tra, &output->description, 0, nullptr));
-				ftsIndex.description = blob_get_string(status, blob);
+				ftsIndex->description = blob_get_string(status, blob);
 				blob->close(status);
 			}
-			ftsIndex.status.assign(output->indexStatus.str, output->indexStatus.length);
+			ftsIndex->status.assign(output->indexStatus.str, output->indexStatus.length);
 		}
 		rs->close(status);
 		if (!foundFlag) {
@@ -370,7 +370,7 @@ namespace LuceneUDR
 			throw FbException(status, statusVector);
 		}
 
-		return ftsIndex;
+		return std::move(ftsIndex);
 	}
 
 	/// <summary>
@@ -383,7 +383,7 @@ namespace LuceneUDR
 	/// <param name="sqlDialect">SQL dialect</param>
 	/// 
 	/// <returns>List of indexes</returns>
-	list<FTSIndex> FTSIndexRepository::getAllIndexes (
+	FTSIndexList FTSIndexRepository::getAllIndexes (
 		ThrowStatusWrapper* status, 
 		IAttachment* att, 
 		ITransaction* tra, 
@@ -419,22 +419,22 @@ namespace LuceneUDR
 			0
 		));
 
-		list<FTSIndex> indexes;
+		FTSIndexList indexes;
 		while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
-			FTSIndex ftsIndex;
-			ftsIndex.indexName.assign(output->indexName.str, output->indexName.length);
-			ftsIndex.relationName.assign(output->relationName.str, output->relationName.length);
-			ftsIndex.analyzer.assign(output->analyzer.str, output->analyzer.length);
+			auto ftsIndex = make_unique<FTSIndex>();
+			ftsIndex->indexName.assign(output->indexName.str, output->indexName.length);
+			ftsIndex->relationName.assign(output->relationName.str, output->relationName.length);
+			ftsIndex->analyzer.assign(output->analyzer.str, output->analyzer.length);
 
 			if (!output->descriptionNull) {
 				AutoRelease<IBlob> blob(att->openBlob(status, tra, &output->description, 0, nullptr));
-				ftsIndex.description = blob_get_string(status, blob);
+				ftsIndex->description = blob_get_string(status, blob);
 				blob->close(status);
 			}
 
-			ftsIndex.status.assign(output->indexStatus.str, output->indexStatus.length);
+			ftsIndex->status.assign(output->indexStatus.str, output->indexStatus.length);
 
-			indexes.push_back(ftsIndex);
+			indexes.push_back(std::move(ftsIndex));
 		}
 		rs->close(status);
 
@@ -452,7 +452,7 @@ namespace LuceneUDR
 	/// <param name="indexName">Index name</param>
 	/// 
 	/// <returns>List of index segments</returns>
-	list<FTSIndexSegment> FTSIndexRepository::getIndexSegments (
+	FTSIndexSegmentList FTSIndexRepository::getIndexSegments (
 		ThrowStatusWrapper* status, 
 		IAttachment* att, 
 		ITransaction* tra, 
@@ -495,16 +495,16 @@ namespace LuceneUDR
 			output.getMetadata(),
 			0
 		));
-		list<FTSIndexSegment> segments;
+		FTSIndexSegmentList segments;
 		while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
-			FTSIndexSegment indexSegment;
-			indexSegment.indexName.assign(output->indexName.str, output->indexName.length);
-			indexSegment.fieldName.assign(output->fieldName.str, output->fieldName.length);
-			indexSegment.key = output->key;
-			indexSegment.boost = output->boost;
-			indexSegment.boostNull = output->boostNull;
+			auto indexSegment = make_unique<FTSIndexSegment>();
+			indexSegment->indexName.assign(output->indexName.str, output->indexName.length);
+			indexSegment->fieldName.assign(output->fieldName.str, output->fieldName.length);
+			indexSegment->key = output->key;
+			indexSegment->boost = output->boost;
+			indexSegment->boostNull = output->boostNull;
 
-			segments.push_back(indexSegment);
+			segments.push_back(std::move(indexSegment));
 		}
 		rs->close(status);
 		return segments;
@@ -520,7 +520,7 @@ namespace LuceneUDR
 	/// <param name="sqlDialect">SQL dialect</param>
 	/// 
 	/// <returns>List of index segments</returns>
-	list<FTSIndexSegment> FTSIndexRepository::getAllIndexSegments (
+	FTSIndexSegmentList FTSIndexRepository::getAllIndexSegments (
 		ThrowStatusWrapper* status, 
 		IAttachment* att, 
 		ITransaction* tra,
@@ -565,22 +565,29 @@ namespace LuceneUDR
 			output.getMetadata(),
 			0
 		));
-		list<FTSIndexSegment> segments;
+		FTSIndexSegmentList segments;
+		std::map<string, shared_ptr<FTSIndex>> indexes;
 		while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
-			FTSIndexSegment indexSegment;
-			indexSegment.indexName.assign(output->indexName.str, output->indexName.length);
-			indexSegment.fieldName.assign(output->fieldName.str, output->fieldName.length);
-			indexSegment.key = output->key;
-			indexSegment.boost = output->boost;
-			indexSegment.boostNull = output->boostNull;
-			// index 
-			indexSegment.index.indexName.assign(output->indexName.str, output->indexName.length);
-			indexSegment.index.relationName.assign(output->relationName.str, output->relationName.length);
-			indexSegment.index.analyzer.assign(output->analyzerName.str, output->analyzerName.length);
-			indexSegment.index.status.assign(output->indexStatus.str, output->indexStatus.length);
+			const string indexName(output->indexName.str, output->indexName.length);
 
-			// Note: The index description is not required for internal needs.
-			segments.push_back(indexSegment);
+			auto [it, result] = indexes.try_emplace(indexName, make_shared<FTSIndex>());
+			auto& index = it->second;
+			if (result) {				
+				index->indexName.assign(output->indexName.str, output->indexName.length);
+				index->relationName.assign(output->relationName.str, output->relationName.length);
+				index->analyzer.assign(output->analyzerName.str, output->analyzerName.length);
+				index->status.assign(output->indexStatus.str, output->indexStatus.length);
+			}
+
+			auto indexSegment = make_unique<FTSIndexSegment>();
+			indexSegment->indexName.assign(output->indexName.str, output->indexName.length);
+			indexSegment->fieldName.assign(output->fieldName.str, output->fieldName.length);
+			indexSegment->key = output->key;
+			indexSegment->boost = output->boost;
+			indexSegment->boostNull = output->boostNull;
+			indexSegment->index = index;
+
+			segments.push_back(std::move(indexSegment));
 		}
 		rs->close(status);
 		return segments;
@@ -597,7 +604,7 @@ namespace LuceneUDR
 	/// <param name="relationName">Relation name</param>
 	/// 
 	/// <returns>List of index segments</returns>
-	list<FTSIndexSegment> FTSIndexRepository::getIndexSegmentsByRelation (
+	FTSIndexSegmentList FTSIndexRepository::getIndexSegmentsByRelation (
 		ThrowStatusWrapper* status, 
 		IAttachment* att, 
 		ITransaction* tra, 
@@ -652,22 +659,29 @@ namespace LuceneUDR
 			output.getMetadata(),
 			0
 		));
-		list<FTSIndexSegment> segments;
+		FTSIndexSegmentList segments;
+		FTSIndexMap indexes;
 		while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
-			FTSIndexSegment indexSegment;
-			indexSegment.indexName.assign(output->indexName.str, output->indexName.length);
-			indexSegment.fieldName.assign(output->fieldName.str, output->fieldName.length);
-			indexSegment.key = output->key;
-			indexSegment.boost = output->boost;
-			indexSegment.boostNull = output->boostNull;
-			// index
-			indexSegment.index.indexName.assign(output->indexName.str, output->indexName.length);
-			indexSegment.index.relationName.assign(output->relationName.str, output->relationName.length);
-			indexSegment.index.analyzer.assign(output->analyzerName.str, output->analyzerName.length);
-			indexSegment.index.status.assign(output->indexStatus.str, output->indexStatus.length);
+			const string indexName(output->indexName.str, output->indexName.length);
 
-			// Note: The index description is not required for internal needs.
-			segments.push_back(indexSegment);
+			auto [it, result] = indexes.try_emplace(indexName, make_unique<FTSIndex>());
+			auto& index = it->second;
+			if (result) {
+				index->indexName.assign(output->indexName.str, output->indexName.length);
+				index->relationName.assign(output->relationName.str, output->relationName.length);
+				index->analyzer.assign(output->analyzerName.str, output->analyzerName.length);
+				index->status.assign(output->indexStatus.str, output->indexStatus.length);
+			}
+
+			auto indexSegment = make_unique<FTSIndexSegment>();
+			indexSegment->indexName.assign(output->indexName.str, output->indexName.length);
+			indexSegment->fieldName.assign(output->fieldName.str, output->fieldName.length);
+			indexSegment->key = output->key;
+			indexSegment->boost = output->boost;
+			indexSegment->boostNull = output->boostNull;
+			indexSegment->index = std::move(index);
+
+			segments.push_back(std::move(indexSegment));
 		}
 		rs->close(status);
 		return segments;
@@ -745,7 +759,7 @@ namespace LuceneUDR
 	/// <param name="indexName">Index name</param>
 	/// 
 	/// <returns>Returns segment with key field.</returns>
-	FTSIndexSegment FTSIndexRepository::getKeyIndexField(
+	FTSIndexSegmentPtr FTSIndexRepository::getKeyIndexField(
 		ThrowStatusWrapper* status,
 		IAttachment* att,
 		ITransaction* tra,
@@ -789,13 +803,13 @@ namespace LuceneUDR
 			0
 		));
 		bool foundFlag = false;
-		FTSIndexSegment keyIndexSegment;
+		auto keyIndexSegment = make_unique<FTSIndexSegment>();
 		if (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
-			keyIndexSegment.indexName.assign(output->indexName.str, output->indexName.length);
-			keyIndexSegment.fieldName.assign(output->fieldName.str, output->fieldName.length);
-			keyIndexSegment.key = true;
-			keyIndexSegment.boost = 0;
-			keyIndexSegment.boostNull = true;
+			keyIndexSegment->indexName.assign(output->indexName.str, output->indexName.length);
+			keyIndexSegment->fieldName.assign(output->fieldName.str, output->fieldName.length);
+			keyIndexSegment->key = true;
+			keyIndexSegment->boost = 0;
+			keyIndexSegment->boostNull = true;
 
 			foundFlag = true;
 		}
@@ -811,7 +825,7 @@ namespace LuceneUDR
 			throw FbException(status, statusVector);
 		}
 
-		return keyIndexSegment;
+		return std::move(keyIndexSegment);
 	}
 
 	/// <summary>
@@ -884,8 +898,8 @@ namespace LuceneUDR
 
 		if (fieldName != "RDB$DB_KEY") {
 			// Checking whether the field exists in relation.
-			if (!relationHelper.fieldExists(status, att, tra, sqlDialect, index.relationName, fieldName)) {
-				const string error_message = string_format("Field \"%s\" not exists in relation \"%s\".", fieldName, index.relationName);
+			if (!relationHelper.fieldExists(status, att, tra, sqlDialect, index->relationName, fieldName)) {
+				const string error_message = string_format("Field \"%s\" not exists in relation \"%s\".", fieldName, index->relationName);
 				ISC_STATUS statusVector[] = {
 				   isc_arg_gds, isc_random,
 				   isc_arg_string, (ISC_STATUS)error_message.c_str(),
@@ -907,7 +921,7 @@ namespace LuceneUDR
 			nullptr,
 			nullptr
 		);
-		if (index.status != "N") {
+		if (index->status != "N") {
 			// set the status that the index metadata has been updated
 			setIndexStatus(status, att, tra, sqlDialect, indexName, "U");
 		}

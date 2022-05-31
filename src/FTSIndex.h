@@ -21,6 +21,7 @@
 #include <string>
 #include <list>
 #include <map>
+#include <memory>
 
 using namespace Firebird;
 using namespace std;
@@ -31,8 +32,10 @@ namespace LuceneUDR
 	/// <summary>
 	/// Full-text index metadata.
 	/// </summary>
-	struct FTSIndex
+	class FTSIndex
 	{
+	public: 
+
 		string indexName;
 		string relationName;
 		string analyzer;		
@@ -44,23 +47,37 @@ namespace LuceneUDR
 		}
 	};
 
+	using FTSIndexPtr = unique_ptr<FTSIndex>;
+
 	/// <summary>
 	/// Metadata for a full-text index segment.
 	/// </summary>
-	struct FTSIndexSegment
+	class FTSIndexSegment
 	{
-		string indexName;		
+	public:
+		string indexName;
 		string fieldName;
-		bool key = false;
-		double boost = 1.0;
-		bool boostNull = true;
+		bool key;
+		double boost;
+		bool boostNull;
 
-		bool compareFieldName(string aFieldName) {
+		shared_ptr<FTSIndex> index;
+
+		FTSIndexSegment()
+			: index(nullptr)
+			, indexName()
+			, fieldName()
+			, key(false)
+			, boost(1.0)
+			, boostNull(true)
+		{}
+
+		bool compareFieldName(string& aFieldName) {
 			return (fieldName == aFieldName) || (fieldName == "RDB$DB_KEY" && aFieldName == "DB_KEY");
 		}
-
-		FTSIndex index;
 	};
+
+	using FTSIndexSegmentPtr = unique_ptr<FTSIndexSegment>;
 
 	/// <summary>
 	/// Returns the directory where full-text indexes are located.
@@ -105,122 +122,11 @@ namespace LuceneUDR
 		return true;
 	}
 
-	using FTSIndexList = list<FTSIndex>;
-	using FTSIndexMap = map<string, FTSIndex>;
-	using FTSIndexSegmentList = list<FTSIndexSegment>;
+	using FTSIndexList = list<FTSIndexPtr>;
+	using FTSIndexMap = map<string, FTSIndexPtr>;
+	using FTSIndexSegmentList = list<FTSIndexSegmentPtr>;
 	using FTSIndexSegmentsMap = map<string, FTSIndexSegmentList>;
 
-	/// <summary>
-	/// Full-text index relation.
-	/// </summary>
-	class FTSRelation final {
-	private:
-		string _relationName;            // Relation name
-
-		FTSIndexMap _indexes;  // Index map by index name
-		FTSIndexSegmentsMap _segments;   // Map of index segments by index name 
-		map<string, string> _sqls;       // Map of SQL query texts by index name 
-
-		/// <summary>
-		/// Creates a list of segments for the index with the given name, 
-		/// if the list has not already been created.
-		/// </summary>
-		/// 
-		/// <param name="indexName">Index name</param>
-		void createRelationSegmentsList(const string &indexName)
-		{
-			auto r = _segments.find(indexName);
-			if (r == _segments.end()) {
-				_segments[indexName] = list<FTSIndexSegment>();
-			}
-		}
-	public:
-		FTSRelation(string relationName)
-			: _relationName(relationName),
-			_indexes(),
-			_segments(),
-			_sqls()
-		{
-		}
-
-		/// <summary>
-		/// Adds an index if no index of the same name exists.
-		/// </summary>
-		/// 
-		/// <param name="index">A structure that describes the metadata of a full-text index</param>
-		void addIndex(FTSIndex index)
-		{
-			auto r = _indexes.find(index.indexName);
-			if (r == _indexes.end()) {
-				_indexes[index.indexName] = index;
-			}
-		}
-
-		/// <summary>
-		/// Updates an index.
-		/// </summary>
-		/// 
-		/// <param name="index">Structure describing the index </param>
-		void updateIndex(FTSIndex index)
-		{
-			_indexes[index.indexName] = index;
-		}
-
-		/// <summary>
-		/// Returns a map of indexes by index name.
-		/// </summary>
-		/// 
-		/// <returns>Map of indexes by index name</returns>
-		FTSIndexMap getIndexes()
-		{
-			return _indexes;
-		}
-
-		/// <summary>
-		/// Sets the SQL query for the given index name.
-		/// </summary>
-		/// 
-		/// <param name="indexName">Index name</param>
-		/// <param name="sql">SQL query text</param>
-		void setSql(const string indexName, const string sql)
-		{
-			_sqls[indexName] = sql;
-		}
-
-		/// <summary>
-		/// Returns the text of the SQL query for the index with the given name.
-		/// </summary>
-		/// 
-		/// <param name="indexName">Index name</param>
-		/// 
-		/// <returns>SQL query text</returns>
-		const string getSql(const string &indexName) {
-			return _sqls[indexName];
-		}
-
-		/// <summary>
-		/// Adds a segment to the segment map by index name.
-		/// </summary>
-		/// 
-		/// <param name="segment">A structure that describes the metadata of a full-text index segment</param>
-		void addSegment(FTSIndexSegment segment)
-		{
-			createRelationSegmentsList(segment.indexName);
-			_segments[segment.indexName].push_back(segment);
-		}
-
-		/// <summary>
-		/// Returns segments for the given index name. 
-		/// </summary>
-		/// 
-		/// <param name="indexName">Index name</param>
-		/// 
-		/// <returns>List of full-text index segments</returns>
-		FTSIndexSegmentList getSegmentsByIndexName(const string &indexName)
-		{
-			return _segments[indexName];
-		}
-	};
 
 	/// <summary>
 	/// Repository of full-text indexes. 
@@ -344,7 +250,7 @@ namespace LuceneUDR
 		/// <param name="indexName">Index name</param>
 		/// 
 		/// <returns>Index metadata</returns>
-		FTSIndex getIndex (
+		FTSIndexPtr getIndex (
 			ThrowStatusWrapper* status, 
 			IAttachment* att, 
 			ITransaction* tra, 
@@ -449,7 +355,7 @@ namespace LuceneUDR
 		/// <param name="indexName">Index name</param>
 		/// 
 		/// <returns>Returns segment with key field.</returns>
-		FTSIndexSegment getKeyIndexField (
+		FTSIndexSegmentPtr getKeyIndexField (
 			ThrowStatusWrapper* status,
 			IAttachment* att,
 			ITransaction* tra,
@@ -541,57 +447,6 @@ namespace LuceneUDR
 			const string& indexName,
 			const string& fieldName);
 
-		/// <summary>
-		/// Groups index segments by relation names.
-		/// </summary>
-		/// 
-		/// <param name="segments">List of index segments</param>
-		/// 
-		/// <returns>Map of index segments by relation names</returns>
-		static inline FTSIndexSegmentsMap groupIndexSegmentsByRelation(FTSIndexSegmentList segments)
-		{
-			FTSIndexSegmentsMap segmentsByRelation;
-			for (const auto& segment : segments) {
-				auto r = segmentsByRelation.find(segment.index.relationName);
-				if (r != segmentsByRelation.end()) {
-					auto relSegments = r->second;
-					relSegments.push_back(segment);
-					segmentsByRelation[segment.index.relationName] = relSegments;
-				}
-				else {
-					list<FTSIndexSegment> relSegments;
-					relSegments.push_back(segment);
-					segmentsByRelation[segment.index.relationName] = relSegments;
-				}
-			}
-			return segmentsByRelation;
-		}
-
-		/// <summary>
-		/// Groups index segments by index names.
-		/// </summary>
-		/// 
-		/// <param name="segments">List of index segments</param>
-		/// 
-		/// <returns>Map of index segments by index names</returns>
-		static inline FTSIndexSegmentsMap groupSegmentsByIndex(FTSIndexSegmentList segments)
-		{
-			FTSIndexSegmentsMap segmentsByIndex;
-			for (const auto& segment : segments) {
-				auto r = segmentsByIndex.find(segment.indexName);
-				if (r != segmentsByIndex.end()) {
-					auto idxSegments = r->second;
-					idxSegments.push_back(segment);
-					segmentsByIndex[segment.indexName] = idxSegments;
-				}
-				else {
-					FTSIndexSegmentList idxSegments;
-					idxSegments.push_back(segment);
-					segmentsByIndex[segment.indexName] = idxSegments;
-				}
-			}
-			return segmentsByIndex;
-		}
 
 		/// <summary>
 		/// Returns a list of full-text index field names given the relation name.

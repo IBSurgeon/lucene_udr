@@ -364,14 +364,14 @@ FB_UDR_BEGIN_PROCEDURE(setIndexActive)
 		auto ftsIndex = procedure->indexRepository.getIndex(status, att, tra, sqlDialect, indexName);
 		if (indexActive) {
 			// index is inactive
-			if (ftsIndex.status == "I") {
+			if (ftsIndex->status == "I") {
 				// index is active but needs to be rebuilt
 				procedure->indexRepository.setIndexStatus(status, att, tra, sqlDialect, indexName, "U");
 			}
 		}
 		else {
 			// index is active
-			if (ftsIndex.isActive()) {
+			if (ftsIndex->isActive()) {
 				// make inactive
 				procedure->indexRepository.setIndexStatus(status, att, tra, sqlDialect, indexName, "I");
 			}
@@ -634,8 +634,8 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 			}
 
 			// check relation exists
-			if (!procedure->indexRepository.relationHelper.relationExists(status, att, tra, sqlDialect, ftsIndex.relationName)) {
-				const string error_message = string_format("Cannot rebuild index \"%s\". Table \"%s\" not exists.", indexName, ftsIndex.relationName);
+			if (!procedure->indexRepository.relationHelper.relationExists(status, att, tra, sqlDialect, ftsIndex->relationName)) {
+				const string error_message = string_format("Cannot rebuild index \"%s\". Table \"%s\" not exists.", indexName, ftsIndex->relationName);
 				ISC_STATUS statusVector[] = {
 					isc_arg_gds, isc_random,
 					isc_arg_string, (ISC_STATUS)error_message.c_str(),
@@ -644,7 +644,7 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 				throw FbException(status, statusVector);
 			}
 
-			// get index segments and group them by table names
+			// get index segments 
 			auto segments = procedure->indexRepository.getIndexSegments(status, att, tra, sqlDialect, indexName);
 			if (segments.size() == 0) {
 				const string error_message = string_format("Cannot rebuild index \"%s\". The index does not contain segments.", indexName);
@@ -657,7 +657,7 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 			}
 
 			auto fsIndexDir = FSDirectory::open(unicodeIndexDir);
-			auto analyzer = procedure->analyzerFactory.createAnalyzer(status, ftsIndex.analyzer);
+			auto analyzer = procedure->analyzerFactory.createAnalyzer(status, ftsIndex->analyzer);
 			IndexWriterPtr writer = newLucene<IndexWriter>(fsIndexDir, analyzer, true, IndexWriter::MaxFieldLengthLIMITED);
 
 			// clean up index directory
@@ -671,9 +671,9 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 			list<string> fieldNames;
 			string keyFieldName;
 			for (const auto& segment : segments) {
-				if (segment.fieldName != "RDB$DB_KEY") {
-					if (!procedure->indexRepository.relationHelper.fieldExists(status, att, tra, sqlDialect, ftsIndex.relationName, segment.fieldName)) {
-						const string error_message = string_format("Cannot rebuild index \"%s\". Field \"%s\" not exists in relation \"%s\".", indexName, segment.fieldName, ftsIndex.relationName);
+				if (segment->fieldName != "RDB$DB_KEY") {
+					if (!procedure->indexRepository.relationHelper.fieldExists(status, att, tra, sqlDialect, ftsIndex->relationName, segment->fieldName)) {
+						const string error_message = string_format("Cannot rebuild index \"%s\". Field \"%s\" not exists in relation \"%s\".", indexName, segment->fieldName, ftsIndex->relationName);
 						ISC_STATUS statusVector[] = {
 							isc_arg_gds, isc_random,
 							isc_arg_string, (ISC_STATUS)error_message.c_str(),
@@ -682,14 +682,14 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 						throw FbException(status, statusVector);
 					}
 				}
-				if (segment.key) {
-					keyFieldName = segment.fieldName;
+				if (segment->key) {
+					keyFieldName = segment->fieldName;
 				}
-				fieldNames.push_back(segment.fieldName);
+				fieldNames.push_back(segment->fieldName);
 			}
 				
-			const string sql = RelationHelper::buildSqlSelectFieldValues(sqlDialect, ftsIndex.relationName, fieldNames, keyFieldName);
-			const auto unicodeRelationName = StringUtils::toUnicode(ftsIndex.relationName);
+			const string sql = RelationHelper::buildSqlSelectFieldValues(sqlDialect, ftsIndex->relationName, fieldNames, keyFieldName);
+			const auto unicodeRelationName = StringUtils::toUnicode(ftsIndex->relationName);
 
 			AutoRelease<IStatement> stmt(att->prepare(
 				status,
@@ -710,7 +710,7 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 				auto iSegment = std::find_if(
 					segments.begin(),
 					segments.end(),
-					[&field](FTSIndexSegment segment) { return segment.compareFieldName(field.fieldName); }
+					[&field](FTSIndexSegmentPtr segment) { return segment->compareFieldName(field.fieldName); }
 				);
 				if (iSegment == segments.end()) {
 					const string error_message = string_format("Cannot rebuild index \"%s\". Field \"%s\" not found.", indexName, field.fieldName);
@@ -721,11 +721,11 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 					};
 					throw FbException(status, statusVector);
 				}
-				auto const segment = *iSegment;
-				field.ftsFieldName = StringUtils::toUnicode(segment.fieldName);
-				field.ftsKey = segment.key;
-				field.ftsBoost = segment.boost;
-				field.ftsBoostNull = segment.boostNull;
+				auto const& segment = *iSegment;
+				field.ftsFieldName = StringUtils::toUnicode(segment->fieldName);
+				field.ftsKey = segment->key;
+				field.ftsBoost = segment->boost;
+				field.ftsBoostNull = segment->boostNull;
 				fields[i] = field;
 			}
 
@@ -881,7 +881,7 @@ FB_UDR_BEGIN_PROCEDURE(optimizeIndex)
 			}
 
 			auto fsIndexDir = FSDirectory::open(unicodeIndexDir);
-			auto analyzer = procedure->analyzerFactory.createAnalyzer(status, ftsIndex.analyzer);
+			auto analyzer = procedure->analyzerFactory.createAnalyzer(status, ftsIndex->analyzer);
 			IndexWriterPtr writer = newLucene<IndexWriter>(fsIndexDir, analyzer, false, IndexWriter::MaxFieldLengthLIMITED);
 
 			// clean up index directory
