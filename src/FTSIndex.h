@@ -86,6 +86,8 @@ namespace LuceneUDR
 
 		FTSIndexSegmentList segments;
 
+		string sqlExractRecord;
+
 		bool isActive() {
 			return (status == "C") || (status == "U");
 		}
@@ -104,6 +106,15 @@ namespace LuceneUDR
 				segments.cend(),
 				[](const auto& segment) { return segment->key; }
 			);
+		}
+
+		bool checkAllFieldsExists()
+		{
+			bool existsFlag = true;
+			for (const auto& segment : segments) {
+				existsFlag &&= segment->fieldExists;
+			}
+			return existsFlag;
 		}
 
 		string buildSqlSelectFieldValues(

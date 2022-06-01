@@ -495,7 +495,7 @@ CREATE OR ALTER PROCEDURE FTS$LOG_BY_ID (
     FTS$CHANGE_TYPE    FTS$D_CHANGE_TYPE NOT NULL
 )
 EXTERNAL NAME 'luceneudr!ftsLogById'
-ENGINE UDR;;
+ENGINE UDR;
 
 COMMENT ON PROCEDURE FTS$LOG_BY_ID IS
 'Adds a change record for one of the fields included in full-text indexes built on the table to the change log, based on which full-text indexes will be updated.';

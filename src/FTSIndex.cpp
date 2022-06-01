@@ -579,7 +579,12 @@ namespace LuceneUDR
 			indexSegment->key = output->key;
 			indexSegment->boost = output->boost;
 			indexSegment->boostNull = output->boostNull;
-			indexSegment->fieldExists = output->fieldExists;
+			if (indexSegment->fieldName == "RDB$DB_KEY") {
+				indexSegment->fieldExists = true;
+			}
+			else {
+				indexSegment->fieldExists = output->fieldExists;
+			}
 
 			index->segments.push_back(std::move(indexSegment));
 		}
@@ -661,7 +666,12 @@ namespace LuceneUDR
 			indexSegment->key = output->key;
 			indexSegment->boost = output->boost;
 			indexSegment->boostNull = output->boostNull;
-			indexSegment->fieldExists = output->fieldExists;
+			if (indexSegment->fieldName == "RDB$DB_KEY") {
+				indexSegment->fieldExists = true;
+			}
+			else {
+				indexSegment->fieldExists = output->fieldExists;
+			}
 
 			segments.push_back(std::move(indexSegment));
 		}

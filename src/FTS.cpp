@@ -531,8 +531,34 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 	LuceneAnalyzerFactory analyzerFactory;
 	map<string, IStatement*> prepareStmtMap;
 
+	IStatement* prepareStatement(
+		ThrowStatusWrapper* status, 
+		IAttachment* att, 
+		ITransaction* tra, 
+		const unsigned int sqlDialect, 
+		const string& indexName, 
+		const string& sql) 
+	{
+		const auto it = prepareStmtMap.find(indexName);
+		if (it == prepareStmtMap.end()) {
+			auto stmt = att->prepare(
+				status,
+				tra,
+				sql.length(),
+				sql.c_str(),
+				sqlDialect,
+				IStatement::PREPARE_PREFETCH_METADATA
+			);
+			prepareStmtMap[indexName] = stmt;
+			return stmt;
+		}
+		else {
+			return it->second;
+		}
+	}
+
 	void clearPreparedStatements() {
-		for (auto& pStmt : prepareStmtMap) {
+		for (const auto& pStmt : prepareStmtMap) {
 			pStmt.second->release();
 		}
 		prepareStmtMap.clear();
@@ -549,6 +575,118 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 
 		const char* fbCharset = context->getClientCharSet();
 		FBStringEncoder fbStringEncoder(fbCharset);
+
+		FB_MESSAGE(DBKEYInput, ThrowStatusWrapper,
+			(FB_INTL_VARCHAR(8, CS_BINARY), dbKey)
+		) dbKeyInput(status, context->getMaster());
+
+		FB_MESSAGE(UUIDInput, ThrowStatusWrapper,
+			(FB_INTL_VARCHAR(16, CS_BINARY), uuid)
+		) uuidInput(status, context->getMaster());
+
+		FB_MESSAGE(IDInput, ThrowStatusWrapper,
+			(FB_BIGINT, uuid)
+		) idInput(status, context->getMaster());
+
+
+		procedure->clearPreparedStatements();
+
+		// get all indexes with segments
+		auto indexes = procedure->indexRepository.getAllIndexesWithSegments(status, att, tra, sqlDialect);
+		// fill map indexes of relationName
+		map<string, list<string>> indexesByRelation;
+		for (auto& [indexName, ftsIndex] : indexes) {	
+			if (!ftsIndex->isActive()) {
+				continue;
+			}
+			if (!ftsIndex->checkAllFieldsExists()) {
+				// index need to rebuild
+				ftsIndex->status = "U";
+				// this is done in an autonomous transaction				
+				AutoRelease<ITransaction> aTra(att->startTransaction(status, 0, nullptr));
+				procedure->indexRepository.setIndexStatus(status, att, aTra, sqlDialect, ftsIndex->indexName, ftsIndex->status);
+				aTra->commit(status);
+				continue;
+			}
+			// collect and save the SQL query to extract the record by key
+			ftsIndex->sqlExractRecord = ftsIndex->buildSqlSelectFieldValues(status, sqlDialect, true);
+            // put indexName to map
+			auto it = indexesByRelation.find(ftsIndex->relationName);
+			if (it == indexesByRelation.end()) {
+				list<string> indexNames;
+				indexNames.push_back(ftsIndex->indexName);
+				indexesByRelation[ftsIndex->relationName] = indexNames;
+			}
+			else {
+				it->second.push_back(ftsIndex->indexName);
+			}
+		}
+		// get the log of changes of records for the index
+		AutoRelease<IStatement> logStmt(att->prepare(
+			status,
+			tra,
+			0,
+			"SELECT\n"
+			"    FTS$LOG_ID\n"
+			"  , TRIM(FTS$RELATION_NAME) AS FTS$RELATION_NAME\n"
+			"  , FTS$DB_KEY\n"
+			"  , FTS$REC_UUID\n"
+			"  , FTS$REC_ID\n"
+			"  , FTS$CHANGE_TYPE\n"
+			"FROM FTS$LOG\n"
+			"ORDER BY FTS$LOG_ID\n",
+			sqlDialect,
+			IStatement::PREPARE_PREFETCH_METADATA
+		));
+
+		FB_MESSAGE(LogOutput, ThrowStatusWrapper,
+			(FB_BIGINT, id)
+			(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
+			(FB_VARCHAR(8), dbKey)
+			(FB_VARCHAR(16), uuid)
+			(FB_BIGINT, uuid)
+			(FB_INTL_VARCHAR(4, CS_UTF8), changeType)
+
+		) logOutput(status, context->getMaster());
+		logOutput.clear();
+
+		AutoRelease<IResultSet> logRs(logStmt->openCursor(
+			status,
+			tra,
+			nullptr,
+			nullptr,
+			logOutput.getMetadata(),
+			0
+		));
+
+
+		while (logRs->fetchNext(status, logOutput.getData()) == IStatus::RESULT_OK) {
+			const ISC_INT64 logId = logOutput->id;
+			const string relationName(logOutput->relationName.str, logOutput->relationName.length);
+			const string changeType(logOutput->changeType.str, logOutput->changeType.length);
+
+
+			const auto itIndexNames = indexesByRelation.find(relationName);
+			if (itIndexNames == indexesByRelation.end()) {
+				continue;
+			}
+			const auto& indexNames = itIndexNames->second;
+
+			// for all indexes for relationName
+			for (const auto& indexName : indexNames) {
+				const auto& ftsIndex = indexes[indexName];
+				const auto& stmt = procedure->prepareStatement(status, att, tra, sqlDialect, indexName, ftsIndex->sqlExractRecord);
+
+				// get a description of the fields				
+				AutoRelease<IMessageMetadata> outputMetadata(stmt->getOutputMetadata(status));
+				const unsigned colCount = outputMetadata->getCount(status);
+				// make all fields of string type except BLOB
+				AutoRelease<IMessageMetadata> newMeta(prepareTextMetaData(status, outputMetadata));
+				auto fields = FbFieldsInfo(status, newMeta);
+			}
+		}
+
+
 		/*
 		map<string, FTSRelationPtr> relationsByName;
 		procedure->clearPreparedStatements();
