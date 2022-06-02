@@ -644,7 +644,7 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 			(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
 			(FB_VARCHAR(8), dbKey)
 			(FB_VARCHAR(16), uuid)
-			(FB_BIGINT, uuid)
+			(FB_BIGINT, recId)
 			(FB_INTL_VARCHAR(4, CS_UTF8), changeType)
 
 		) logOutput(status, context->getMaster());

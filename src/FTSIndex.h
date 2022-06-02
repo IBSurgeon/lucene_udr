@@ -112,7 +112,7 @@ namespace LuceneUDR
 		{
 			bool existsFlag = true;
 			for (const auto& segment : segments) {
-				existsFlag &&= segment->fieldExists;
+				existsFlag = existsFlag && segment->fieldExists;
 			}
 			return existsFlag;
 		}

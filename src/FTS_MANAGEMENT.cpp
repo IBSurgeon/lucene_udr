@@ -698,10 +698,10 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 
 			// initial specific FTS property for fields
 			for (int i = 0; i < fields.size(); i++) {
-				auto field = fields[i];
-				auto iSegment = ftsIndex->findSegment(field.fieldName);
+				const auto& field = fields[i];
+				auto iSegment = ftsIndex->findSegment(field->fieldName);
 				if (iSegment == ftsIndex->segments.end()) {
-					const string error_message = string_format("Cannot rebuild index \"%s\". Field \"%s\" not found.", indexName, field.fieldName);
+					const string error_message = string_format("Cannot rebuild index \"%s\". Field \"%s\" not found.", indexName, field->fieldName);
 					ISC_STATUS statusVector[] = {
 						isc_arg_gds, isc_random,
 						isc_arg_string, (ISC_STATUS)error_message.c_str(),
@@ -710,11 +710,10 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 					throw FbException(status, statusVector);
 				}
 				auto const& segment = *iSegment;
-				field.ftsFieldName = StringUtils::toUnicode(segment->fieldName);
-				field.ftsKey = segment->key;
-				field.ftsBoost = segment->boost;
-				field.ftsBoostNull = segment->boostNull;
-				fields[i] = field;
+				field->ftsFieldName = StringUtils::toUnicode(segment->fieldName);
+				field->ftsKey = segment->key;
+				field->ftsBoost = segment->boost;
+				field->ftsBoostNull = segment->boostNull;
 			}
 
 			AutoRelease<IResultSet> rs(stmt->openCursor(
@@ -738,14 +737,14 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 					DocumentPtr doc = newLucene<Document>();
 						
 					for (unsigned int i = 0; i < colCount; i++) {
-						auto field = fields[i];
+						const auto& field = fields[i];
 
 						Lucene::String unicodeValue;	
-						if (!field.isNull(buffer)) {
-							const string value = field.getStringValue(status, att, tra, buffer);
+						if (!field->isNull(buffer)) {
+							const string value = field->getStringValue(status, att, tra, buffer);
 							if (!value.empty()) {
 								// re-encode content to Unicode only if the string is non-binary
-								if (!field.isBinary()) {
+								if (!field->isBinary()) {
 									unicodeValue = fbStringEncoder.toUnicode(value);
 								}
 								else {
@@ -756,13 +755,13 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 						}
                         // add field to document
 						FieldPtr luceneField = nullptr;
-						if (field.ftsKey) {
-							luceneField = newLucene<Field>(field.ftsFieldName, unicodeValue, Field::STORE_YES, Field::INDEX_NOT_ANALYZED);
+						if (field->ftsKey) {
+							luceneField = newLucene<Field>(field->ftsFieldName, unicodeValue, Field::STORE_YES, Field::INDEX_NOT_ANALYZED);
 						}
 						else {
-							luceneField = newLucene<Field>(field.ftsFieldName, unicodeValue, Field::STORE_NO, Field::INDEX_ANALYZED);
-							if (!field.ftsBoostNull) {
-								luceneField->setBoost(field.ftsBoost);
+							luceneField = newLucene<Field>(field->ftsFieldName, unicodeValue, Field::STORE_NO, Field::INDEX_ANALYZED);
+							if (!field->ftsBoostNull) {
+								luceneField->setBoost(field->ftsBoost);
 							}
 							emptyFlag = emptyFlag && unicodeValue.empty();
 						}						

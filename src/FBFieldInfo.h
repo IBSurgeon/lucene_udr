@@ -40,7 +40,8 @@ namespace LuceneUDR
 		return oStream.str();
 	}
 
-	struct FbFieldInfo {
+	class FbFieldInfo {
+	public:
 		unsigned fieldIndex;
 
 		string fieldName;
@@ -241,40 +242,48 @@ namespace LuceneUDR
 		}
 	}
 
-	using FbFieldInfoVector = vector<FbFieldInfo>;
+	using FbFieldInfoPtr = unique_ptr<FbFieldInfo>;
+	using FbFieldInfoVector = vector<FbFieldInfoPtr>;
 
 	class FbFieldsInfo : public FbFieldInfoVector
 	{
+	private:
+		map<string, unsigned> fieldByNameMap;
 	public:
 		template <class StatusType>
 		FbFieldsInfo(StatusType* status, IMessageMetadata* meta)
-			: FbFieldInfoVector(meta->getCount(status))
+			: FbFieldInfoVector()
+			, fieldByNameMap()
 		{
-			for (unsigned i = 0; i < size(); i++) {
-				FbFieldInfo field;
-				field.fieldIndex = i;
-				field.nullable = meta->isNullable(status, i);
-				field.fieldName.assign(meta->getField(status, i));
-				field.relationName.assign(meta->getRelation(status, i));
-				field.owner.assign(meta->getOwner(status, i));
-				field.alias.assign(meta->getAlias(status, i));
-				field.dataType = meta->getType(status, i);
-				field.subType = meta->getSubType(status, i);
-				field.length = meta->getLength(status, i);
-				field.scale = meta->getScale(status, i);
-				field.charSet = meta->getCharSet(status, i);
-				field.offset = meta->getOffset(status, i);
-				field.nullOffset = meta->getNullOffset(status, i);
-				at(i) = field;
+			const auto fieldCount = meta->getCount(status);
+			for (unsigned i = 0; i < fieldCount; i++) {
+				auto field = make_unique<FbFieldInfo>();
+				field->fieldIndex = i;
+				field->nullable = meta->isNullable(status, i);
+				field->fieldName.assign(meta->getField(status, i));
+				field->relationName.assign(meta->getRelation(status, i));
+				field->owner.assign(meta->getOwner(status, i));
+				field->alias.assign(meta->getAlias(status, i));
+				field->dataType = meta->getType(status, i);
+				field->subType = meta->getSubType(status, i);
+				field->length = meta->getLength(status, i);
+				field->scale = meta->getScale(status, i);
+				field->charSet = meta->getCharSet(status, i);
+				field->offset = meta->getOffset(status, i);
+				field->nullOffset = meta->getNullOffset(status, i);
+				this->push_back(std::move(field));
+			}
+			for (unsigned i = 0; i < fieldCount; i++) {
+				const auto& field = this->at(i);
+				fieldByNameMap[field->fieldName] = i;
 			}
 		}
 
-		int findFieldByName(const string fieldName)
+		int findFieldByName(const string& fieldName)
 		{
-			for (const auto& fieldInfo : *this) {
-				if (fieldInfo.fieldName == fieldName) {
-					return fieldInfo.fieldIndex;
-				}
+			auto it = fieldByNameMap.find(fieldName);
+			if (it != fieldByNameMap.end()) {
+				return it->second;
 			}
 			return -1;
 		}
