@@ -30,10 +30,11 @@ using namespace Lucene;
 
 namespace LuceneUDR
 {
+
 	/// <summary>
 	/// Metadata for a full-text index segment.
 	/// </summary>
-	class FTSIndexSegment
+	class FTSIndexSegment final
 	{
 	public:
 		string indexName;
@@ -65,8 +66,11 @@ namespace LuceneUDR
 	/// <summary>
 	/// Full-text index metadata.
 	/// </summary>
-	class FTSIndex
+	class FTSIndex final
 	{
+	private:
+		AutoRelease<IStatement> stmtExractRecord;
+		AutoRelease<IMessageMetadata> outMetaExractRecord;
 	public: 
 
 		FTSIndex()
@@ -76,6 +80,9 @@ namespace LuceneUDR
 			, description()
 			, status()
 			, segments()
+			, stmtExractRecord(nullptr)
+			, outMetaExractRecord(nullptr)
+			, unicodeIndexDir()
 		{}
 
 		string indexName;
@@ -85,8 +92,8 @@ namespace LuceneUDR
 		string status; // N - new index, I - inactive, U - need rebuild, C - complete
 
 		FTSIndexSegmentList segments;
-
-		string sqlExractRecord;
+		
+		String unicodeIndexDir;
 
 		bool isActive() {
 			return (status == "C") || (status == "U");
@@ -121,11 +128,46 @@ namespace LuceneUDR
 			ThrowStatusWrapper* status,
 			const unsigned int sqlDialect,
 			const bool whereKey = false);
+
+		void prepareExtractRecordStmt(
+			ThrowStatusWrapper* status,
+			IAttachment* att,
+			ITransaction* tra,
+			const unsigned int sqlDialect
+		)
+		{
+			const auto sql = buildSqlSelectFieldValues(status, sqlDialect, true);
+			stmtExractRecord.reset(att->prepare(
+				status,
+				tra,
+				sql.length(),
+				sql.c_str(),
+				sqlDialect,
+				IStatement::PREPARE_PREFETCH_METADATA
+			));
+			// get a description of the fields				
+			AutoRelease<IMessageMetadata> outputMetadata(stmtExractRecord->getOutputMetadata(status));
+			const unsigned colCount = outputMetadata->getCount(status);
+			// make all fields of string type except BLOB
+			outMetaExractRecord.reset(prepareTextMetaData(status, outputMetadata));
+		}
+
+		const IStatement* getPreparedExtractRecordStmt()
+		{
+			return stmtExractRecord;
+		}
+
+		const IMessageMetadata* getOutExtractRecordMetadata()
+		{
+			return outMetaExractRecord;
+		}
 	};
+
 
 	using FTSIndexPtr = unique_ptr<FTSIndex>;
 	using FTSIndexList = list<FTSIndexPtr>;
 	using FTSIndexMap = map<string, FTSIndexPtr>;
+
 
 	/// <summary>
 	/// Returns the directory where full-text indexes are located.

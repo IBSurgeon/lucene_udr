@@ -19,6 +19,7 @@
 #include <string>
 #include <sstream>
 #include <list>
+#include <memory>
 
 using namespace Firebird;
 using namespace std;
@@ -34,19 +35,28 @@ namespace LuceneUDR
 	   RT_GTT_DELETE_ROWS
 	};
 
-	struct RelationInfo
+	class RelationInfo final
 	{
+	public:
 		string relationName;
 		RelationType relationType;
 		bool systemFlag;
+
+		RelationInfo()
+			: relationName()
+			, relationType(RelationType::RT_REGULAR)
+			, systemFlag(false)
+		{}
 
 		bool findKeyFieldSupported() {
 			return (relationType == RelationType::RT_REGULAR || relationType == RelationType::RT_GTT_PRESERVE_ROWS || relationType == RelationType::RT_GTT_DELETE_ROWS);
 		}
 	};
+	using RelationInfoPtr = unique_ptr<RelationInfo>;
 
-	struct RelationFieldInfo
+	class RelationFieldInfo final
 	{
+	public:
 		string relationName;
 		string fieldName;
 		short  fieldType;
@@ -56,6 +66,19 @@ namespace LuceneUDR
 		short fieldSubType;
 		short fieldPrecision;
 		short fieldScale;
+
+		RelationFieldInfo()
+			: relationName()
+			, fieldName()
+			, fieldType(0)
+			, fieldLength(0)
+			, charLength(0)
+			, charsetId(0)
+			, fieldSubType(0)
+			, fieldPrecision(0)
+			, fieldScale(0)
+		{
+		}
 
 		bool isInt() {
 			return (fieldScale == 0) && (fieldType == 7 || fieldType == 8 || fieldType == 16 || fieldType == 26);
@@ -90,7 +113,8 @@ namespace LuceneUDR
 		}
 	};
 
-	using RelationFieldList = list<RelationFieldInfo>;
+	using RelationFieldInfoPtr = unique_ptr<RelationFieldInfo>;
+	using RelationFieldList = list<RelationFieldInfoPtr>;
 
 	class RelationHelper final
 	{
@@ -129,7 +153,7 @@ namespace LuceneUDR
 		/// <param name="relationName">Relation name</param>
 		/// 
 		/// <returns>Returns information about the relation.</returns>
-		RelationInfo getRelationInfo(
+		RelationInfoPtr getRelationInfo(
 			ThrowStatusWrapper* status,
 			IAttachment* att,
 			ITransaction* tra,
@@ -205,7 +229,7 @@ namespace LuceneUDR
 		/// <param name="fieldName">Field name</param>
 		/// 
 		/// <returns>Returns information about the field.</returns>
-		RelationFieldInfo getField(
+		RelationFieldInfoPtr getField(
 			ThrowStatusWrapper* status,
 			IAttachment* att,
 			ITransaction* tra,

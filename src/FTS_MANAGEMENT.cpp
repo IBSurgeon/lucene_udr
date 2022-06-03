@@ -176,18 +176,18 @@ FB_UDR_BEGIN_PROCEDURE(createIndex)
 			blob->close(status);
 		}
 
-		auto relationInfo = procedure->indexRepository.relationHelper.getRelationInfo(status, att, tra, sqlDialect, relationName);
+		const auto relationInfo = procedure->indexRepository.relationHelper.getRelationInfo(status, att, tra, sqlDialect, relationName);
 
 
 		procedure->indexRepository.createIndex(status, att, tra, sqlDialect, indexName, relationName, analyzerName, description);
 
 		string keyFieldName;
 		if (in->keyFieldNameNull) {
-			if (relationInfo.findKeyFieldSupported()) {
+			if (relationInfo->findKeyFieldSupported()) {
 				auto keyFields = procedure->indexRepository.relationHelper.getPrimaryKeyFields(status, att, tra, sqlDialect, relationName);
 				if (keyFields.size() == 0) {
 				   // There is no primary key constraint.
-					if (relationInfo.relationType == RelationType::RT_REGULAR) {
+					if (relationInfo->relationType == RelationType::RT_REGULAR) {
 						keyFieldName = "RDB$DB_KEY";
 					}
 					else {
@@ -201,8 +201,8 @@ FB_UDR_BEGIN_PROCEDURE(createIndex)
 				}
 				else if (keyFields.size() == 1) {
 				    // OK
-					auto keyFieldInfo = *keyFields.begin();
-					keyFieldName = keyFieldInfo.fieldName;
+					const auto& keyFieldInfo = *keyFields.cbegin();
+					keyFieldName = keyFieldInfo->fieldName;
 				}
 				else {
 					ISC_STATUS statusVector[] = {
@@ -228,7 +228,7 @@ FB_UDR_BEGIN_PROCEDURE(createIndex)
 		}
 
 		if (keyFieldName == "RDB$DB_KEY") {
-			if (relationInfo.relationType != RelationType::RT_REGULAR) {
+			if (relationInfo->relationType != RelationType::RT_REGULAR) {
 				ISC_STATUS statusVector[] = {
 					isc_arg_gds, isc_random,
 					isc_arg_string, (ISC_STATUS)"Using \"RDB$DB_KEY\" as a key is supported only for regular tables.",
@@ -238,10 +238,10 @@ FB_UDR_BEGIN_PROCEDURE(createIndex)
 			}
 		}
 		else {
-			auto keyFieldInfo = procedure->indexRepository.relationHelper.getField(status, att, tra, sqlDialect, relationName, keyFieldName);
+			const auto keyFieldInfo = procedure->indexRepository.relationHelper.getField(status, att, tra, sqlDialect, relationName, keyFieldName);
 		    // check field type
 			// Supported types SMALLINT, INTEGER, BIGINT, CHAR(16) CHARACTER SET OCTETS, BINARY(16) 
-			if (!(keyFieldInfo.isInt() || (keyFieldInfo.isFixedChar() && keyFieldInfo.isBinary() && keyFieldInfo.fieldLength == 16))) {
+			if (!(keyFieldInfo->isInt() || (keyFieldInfo->isFixedChar() && keyFieldInfo->isBinary() && keyFieldInfo->fieldLength == 16))) {
 				ISC_STATUS statusVector[] = {
 					isc_arg_gds, isc_random,
 					isc_arg_string, (ISC_STATUS)"Unsupported data type for the key field. Supported data types: SMALLINT, INTEGER, BIGINT, CHAR(16) CHARACTER SET OCTETS, BINARY(16).",

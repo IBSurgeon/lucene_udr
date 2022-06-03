@@ -30,7 +30,7 @@ namespace LuceneUDR
 	/// <param name="relationName">Relation name</param>
 	/// 
 	/// <returns>Returns information about the relation.</returns>
-	RelationInfo RelationHelper::getRelationInfo(
+	RelationInfoPtr RelationHelper::getRelationInfo(
 		ThrowStatusWrapper* status,
 		IAttachment* att,
 		ITransaction* tra,
@@ -78,15 +78,15 @@ namespace LuceneUDR
 			0
 		));
 
-		RelationInfo relationInfo;
+		auto relationInfo = make_unique<RelationInfo>();
 
 		bool foundFlag = false;
 		if (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
 			foundFlag = true;
 
-			relationInfo.relationName.assign(output->relationName.str, output->relationName.length);
-			relationInfo.relationType = static_cast<RelationType>(output->relationType);
-			relationInfo.systemFlag = static_cast<bool>(output->systemFlag);
+			relationInfo->relationName.assign(output->relationName.str, output->relationName.length);
+			relationInfo->relationType = static_cast<RelationType>(output->relationType);
+			relationInfo->systemFlag = static_cast<bool>(output->systemFlag);
 		}
 		rs->close(status);
 		if (!foundFlag) {
@@ -99,7 +99,7 @@ namespace LuceneUDR
 			throw FbException(status, statusVector);
 		}
 
-		return relationInfo;
+		return std::move(relationInfo);
 	}
 
 	/// <summary>
@@ -234,19 +234,19 @@ namespace LuceneUDR
 
 		RelationFieldList fieldList;
 		while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
-			RelationFieldInfo fieldInfo;
+			auto fieldInfo = make_unique<RelationFieldInfo>();
 
-			fieldInfo.relationName.assign(output->relationName.str, output->relationName.length);
-			fieldInfo.fieldName.assign(output->fieldName.str, output->fieldName.length);
-			fieldInfo.fieldType = output->fieldType;
-			fieldInfo.fieldLength = output->fieldLength;
-			fieldInfo.charLength = output->charLength;
-			fieldInfo.charsetId = output->charsetId;
-			fieldInfo.fieldSubType = output->fieldSubType;
-			fieldInfo.fieldPrecision = output->fieldPrecision;
-			fieldInfo.fieldScale = output->fieldScale;
+			fieldInfo->relationName.assign(output->relationName.str, output->relationName.length);
+			fieldInfo->fieldName.assign(output->fieldName.str, output->fieldName.length);
+			fieldInfo->fieldType = output->fieldType;
+			fieldInfo->fieldLength = output->fieldLength;
+			fieldInfo->charLength = output->charLength;
+			fieldInfo->charsetId = output->charsetId;
+			fieldInfo->fieldSubType = output->fieldSubType;
+			fieldInfo->fieldPrecision = output->fieldPrecision;
+			fieldInfo->fieldScale = output->fieldScale;
 
-			fieldList.push_back(fieldInfo);
+			fieldList.push_back(std::move(fieldInfo));
 		}
 
 		rs->close(status);
@@ -333,19 +333,19 @@ namespace LuceneUDR
 
 		RelationFieldList fieldList;
 		while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
-			RelationFieldInfo fieldInfo;
+			auto fieldInfo = make_unique<RelationFieldInfo>();
 
-			fieldInfo.relationName.assign(output->relationName.str, output->relationName.length);
-			fieldInfo.fieldName.assign(output->fieldName.str, output->fieldName.length);
-			fieldInfo.fieldType = output->fieldType;
-			fieldInfo.fieldLength = output->fieldLength;
-			fieldInfo.charLength = output->charLength;
-			fieldInfo.charsetId = output->charsetId;
-			fieldInfo.fieldSubType = output->fieldSubType;
-			fieldInfo.fieldPrecision = output->fieldPrecision;
-			fieldInfo.fieldScale = output->fieldScale;
+			fieldInfo->relationName.assign(output->relationName.str, output->relationName.length);
+			fieldInfo->fieldName.assign(output->fieldName.str, output->fieldName.length);
+			fieldInfo->fieldType = output->fieldType;
+			fieldInfo->fieldLength = output->fieldLength;
+			fieldInfo->charLength = output->charLength;
+			fieldInfo->charsetId = output->charsetId;
+			fieldInfo->fieldSubType = output->fieldSubType;
+			fieldInfo->fieldPrecision = output->fieldPrecision;
+			fieldInfo->fieldScale = output->fieldScale;
 
-			fieldList.push_back(fieldInfo);
+			fieldList.push_back(std::move(fieldInfo));
 		}
 
 		rs->close(status);
@@ -364,7 +364,7 @@ namespace LuceneUDR
 	/// <param name="fieldName">Field name</param>
 	/// 
 	/// <returns>Returns information about the field.</returns>
-	RelationFieldInfo RelationHelper::getField(
+	RelationFieldInfoPtr RelationHelper::getField(
 		ThrowStatusWrapper* status,
 		IAttachment* att,
 		ITransaction* tra,
@@ -430,20 +430,20 @@ namespace LuceneUDR
 			0
 		));
 
-		RelationFieldInfo fieldInfo;
+		auto fieldInfo = make_unique<RelationFieldInfo>();
 		bool foundFlag = false;
 		if (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
 			foundFlag = true;
 
-			fieldInfo.relationName.assign(output->relationName.str, output->relationName.length);
-			fieldInfo.fieldName.assign(output->fieldName.str, output->fieldName.length);
-			fieldInfo.fieldType = output->fieldType;
-			fieldInfo.fieldLength = output->fieldLength;
-			fieldInfo.charLength = output->charLength;
-			fieldInfo.charsetId = output->charsetId;
-			fieldInfo.fieldSubType = output->fieldSubType;
-			fieldInfo.fieldPrecision = output->fieldPrecision;
-			fieldInfo.fieldScale = output->fieldScale;
+			fieldInfo->relationName.assign(output->relationName.str, output->relationName.length);
+			fieldInfo->fieldName.assign(output->fieldName.str, output->fieldName.length);
+			fieldInfo->fieldType = output->fieldType;
+			fieldInfo->fieldLength = output->fieldLength;
+			fieldInfo->charLength = output->charLength;
+			fieldInfo->charsetId = output->charsetId;
+			fieldInfo->fieldSubType = output->fieldSubType;
+			fieldInfo->fieldPrecision = output->fieldPrecision;
+			fieldInfo->fieldScale = output->fieldScale;
 		}
 		rs->close(status);
 
@@ -457,7 +457,7 @@ namespace LuceneUDR
 			throw FbException(status, statusVector);
 		}
 
-		return fieldInfo;
+		return std::move(fieldInfo);
 	}
 
 	/// <summary>
