@@ -528,19 +528,28 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 	LuceneAnalyzerFactory analyzerFactory;
 	map<string, IndexWriterPtr> indexWriters;
 
-	IndexWriterPtr getIndexWriter(ThrowStatusWrapper* status, const FTSIndexPtr& ftsIndex)
+	IndexWriterPtr const getIndexWriter(ThrowStatusWrapper* const status, const FTSIndexPtr& ftsIndex)
 	{
 		const auto it = indexWriters.find(ftsIndex->indexName);
 		if (it == indexWriters.end()) {
-			const auto fsIndexDir = FSDirectory::open(ftsIndex->unicodeIndexDir);
-			const auto analyzer = analyzerFactory.createAnalyzer(status, ftsIndex->analyzer);
-			const auto indexWriter = newLucene<IndexWriter>(fsIndexDir, analyzer, IndexWriter::MaxFieldLengthLIMITED);
+			const auto& fsIndexDir = FSDirectory::open(ftsIndex->unicodeIndexDir);
+			const auto& analyzer = analyzerFactory.createAnalyzer(status, ftsIndex->analyzer);
+			const auto& indexWriter = newLucene<IndexWriter>(fsIndexDir, analyzer, IndexWriter::MaxFieldLengthLIMITED);
 			indexWriters[ftsIndex->indexName] = indexWriter;
 			return indexWriter;
 		}
 		else {
 			return it->second;
 		}
+	}
+
+	void setIndexToRebuild(ThrowStatusWrapper* const status, IAttachment* const att, const unsigned int sqlDialect,  const FTSIndexPtr& ftsIndex)
+	{
+		ftsIndex->status = "U";
+		// this is done in an autonomous transaction				
+		AutoRelease<ITransaction> tra(att->startTransaction(status, 0, nullptr));
+		indexRepository.setIndexStatus(status, att, tra, sqlDialect, ftsIndex->indexName, ftsIndex->status);
+		tra->commit(status);
 	}
 
 	FB_UDR_EXECUTE_PROCEDURE
@@ -564,7 +573,7 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 		) uuidInput(status, context->getMaster());
 
 		FB_MESSAGE(IDInput, ThrowStatusWrapper,
-			(FB_BIGINT, uuid)
+			(FB_BIGINT, id)
 		) idInput(status, context->getMaster());
 
 
@@ -580,11 +589,7 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 			const auto& indexDirectoryPath = ftsDirectoryPath / indexName;
 			if (!ftsIndex->checkAllFieldsExists() || !fs::is_directory(indexDirectoryPath)) {
 				// index need to rebuild
-				ftsIndex->status = "U";
-				// this is done in an autonomous transaction				
-				AutoRelease<ITransaction> aTra(att->startTransaction(status, 0, nullptr));
-				procedure->indexRepository.setIndexStatus(status, att, aTra, sqlDialect, ftsIndex->indexName, ftsIndex->status);
-				aTra->commit(status);
+				procedure->setIndexToRebuild(status, att, sqlDialect, ftsIndex);
 				// go to next index
 				continue;
 			}
@@ -592,8 +597,64 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 
 			// collect and save the SQL query to extract the record by key
 			ftsIndex->prepareExtractRecordStmt(status, att, tra, sqlDialect);
+
+			const auto& inMetadata = ftsIndex->getInExtractRecordMetadata();
+			if (inMetadata->getCount(status) != 1) {
+				// The number of input parameters must be equal to 1.
+				// index need to rebuild
+				procedure->setIndexToRebuild(status, att, sqlDialect, ftsIndex);
+				// go to next index
+				continue;
+			}
+			const auto& params = make_unique<FbFieldsInfo>(status, inMetadata);
+			const auto& keyParam = params->at(0);
+			if (keyParam->isBinary()) {
+				switch (keyParam->length) {
+				case 8:
+					ftsIndex->keyFieldType = FTSKeyType::DB_KEY;
+					break;
+				case 16:
+					ftsIndex->keyFieldType = FTSKeyType::UUID;
+					break;
+				default:
+					// index need to rebuild
+					procedure->setIndexToRebuild(status, att, sqlDialect, ftsIndex);
+					// go to next index
+					continue;
+				}
+			}
+			else if (keyParam->isInt()) {
+				ftsIndex->keyFieldType = FTSKeyType::INT_ID;
+			}
+			else {
+				// index need to rebuild
+				procedure->setIndexToRebuild(status, att, sqlDialect, ftsIndex);
+				// go to next index
+				continue;
+			}
+
+
 			const auto& outMetadata =  ftsIndex->getOutExtractRecordMetadata();
 			auto fields = make_unique<FbFieldsInfo>(status, outMetadata);
+			// initial specific FTS property for fields
+			for (int i = 0; i < fields->size(); i++) {
+				const auto& field = fields->at(i);
+				auto iSegment = ftsIndex->findSegment(field->fieldName);
+				if (iSegment == ftsIndex->segments.end()) {
+					// index need to rebuild
+					procedure->setIndexToRebuild(status, att, sqlDialect, ftsIndex);
+					// go to next index
+					continue;
+				}
+				auto const& segment = *iSegment;
+				field->ftsFieldName = StringUtils::toUnicode(segment->fieldName);
+				field->ftsKey = segment->key;
+				field->ftsBoost = segment->boost;
+				field->ftsBoostNull = segment->boostNull;
+				if (field->ftsKey) {
+					ftsIndex->unicodeKeyFieldName = field->ftsFieldName;
+				}
+			}
 			fieldsInfoMap[indexName] = std::move(fields);
 
             // put indexName to map
@@ -661,181 +722,157 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 			// for all indexes for relationName
 			for (const auto& indexName : indexNames) {
 				const auto& ftsIndex = indexes[indexName];
-				const auto& stmt = ftsIndex->getPreparedExtractRecordStmt();
-				const auto& outMetadata = ftsIndex->getOutExtractRecordMetadata();
-				const auto indexWriter = procedure->getIndexWriter(status, ftsIndex);
-				const auto& fields = fieldsInfoMap[indexName];
+				const auto& indexWriter = procedure->getIndexWriter(status, ftsIndex);
 
-				const auto& inMetadata = ftsIndex->getInExtractRecordMetadata();
-				if (inMetadata->getCount(status) != 1) {
-					// The number of input parameters must be equal to 1.
-					continue;
-				}
-				
-				AutoRelease<IResultSet> rs(nullptr);
-				
-				/*
-				AutoRelease<IResultSet> rs(stmt->openCursor(
-					status,
-					tra,
-					selValInput.getMetadata(),
-					selValInput.getData(),
-					meta,
-					0
-				));
-				*/
-
-			}
-		}
-
-
-		/*
-
-        
-		
-		while (logRs->fetchNext(status, logOutput.getData()) == IStatus::RESULT_OK) {
-			const ISC_INT64 logId = logOutput->id;
-			const string dbKey(logOutput->dbKey.str, logOutput->dbKey.length);
-			const string relationName(logOutput->relationName.str, logOutput->relationName.length);
-			const string changeType(logOutput->changeType.str, logOutput->changeType.length);
-
-			const string hexDbKey = string_to_hex(dbKey);
-
-			// looking for a table in the list of indexed tables
-			auto r = relationsByName.find(relationName);
-			if (r != relationsByName.end()) {
-				// for each table we get a list of indexes 
-				FTSRelation ftsRelation = r->second;
-				auto ftsIndexes = ftsRelation.getIndexes();
-				
-				for (auto& pIndex : ftsIndexes) {
-					const string indexName = pIndex.first;
-					auto ftsIndex = pIndex.second;
-					// exclude inactive indexes
-					if (!ftsIndex.isActive()) {
+				Lucene::String unicodeKeyValue;
+				if (changeType == "D") {
+					switch (ftsIndex->keyFieldType) {
+					case FTSKeyType::DB_KEY:
+						if (!logOutput->dbKeyNull) {
+							string dbKey(logOutput->dbKey.str, logOutput->dbKey.length);
+							unicodeKeyValue = StringUtils::toUnicode(string_to_hex(dbKey));	
+						}
+						break;
+					case FTSKeyType::UUID:
+						if (!logOutput->uuidNull) {
+							string uuid(logOutput->uuid.str, logOutput->uuid.length);
+							unicodeKeyValue = StringUtils::toUnicode(string_to_hex(uuid));
+						}
+						break;
+					case FTSKeyType::INT_ID:
+						if (!logOutput->recIdNull) {
+							string id = std::to_string(logOutput->recId);
+							unicodeKeyValue = StringUtils::toUnicode(id);
+						}
+						break;
+					default:
 						continue;
 					}
-					auto ftsSegments = ftsRelation.getSegmentsByIndexName(indexName);
-					// looking for an IndexWriter
-					auto iWriter = indexWriters.find(ftsIndex.indexName);
-					// if not found, then open this
-					if (iWriter == indexWriters.end()) {
-						// Check if the index directory exists, and if it doesn't exist, set index status U. 
-						const auto unicodeIndexDir = FileUtils::joinPath(StringUtils::toUnicode(ftsDirectory), StringUtils::toUnicode(indexName));
+					TermPtr term = newLucene<Term>(ftsIndex->unicodeKeyFieldName, unicodeKeyValue);
+					indexWriter->deleteDocuments(term);
+					continue;
+				}
 
-						auto fsIndexDir = FSDirectory::open(unicodeIndexDir);
-						auto analyzer = procedure->analyzerFactory.createAnalyzer(status, ftsIndex.analyzer);
-						IndexWriterPtr writer = newLucene<IndexWriter>(fsIndexDir, analyzer, IndexWriter::MaxFieldLengthLIMITED);
-						indexWriters[indexName] = writer;
-					}
-					IndexWriterPtr writer = indexWriters[indexName];
-					if ((changeType == "I") || (changeType == "U")) {
-						const string stmtName = relationName + "." + indexName;
-						// looking for a prepared statement, and if it is not there, we prepare it
-						auto iStmt = procedure->prepareStmtMap.find(stmtName);
-						if (iStmt == procedure->prepareStmtMap.end()) {
-							IStatement* stmt = att->prepare(
-								status,
-								tra,
-								0,
-								ftsRelation.getSql(indexName).c_str(),
-								sqlDialect,
-								IStatement::PREPARE_PREFETCH_METADATA
-							);
-							procedure->prepareStmtMap[stmtName] = stmt;
-						}
-						auto stmt = procedure->prepareStmtMap[stmtName];
-						// get the desired field values
-						AutoRelease<IMessageMetadata> outputMetadata(stmt->getOutputMetadata(status));
-						const unsigned colCount = outputMetadata->getCount(status);
-						// make all fields of string type except BLOB
-						AutoRelease<IMessageMetadata> newMeta(prepareTextMetaData(status, outputMetadata));
-						auto fields = FbFieldsInfo(status, newMeta);
-
-						selValInput->db_keyNull = false;
-						selValInput->db_key.length = static_cast<ISC_USHORT>(dbKey.length());
-						dbKey.copy(selValInput->db_key.str, selValInput->db_key.length);
-
-						AutoRelease<IResultSet> rs(stmt->openCursor(
+				const auto& stmt = ftsIndex->getPreparedExtractRecordStmt();
+				const auto& outMetadata = ftsIndex->getOutExtractRecordMetadata();
+				
+				const auto& fields = fieldsInfoMap[indexName];
+				
+				AutoRelease<IResultSet> rs(nullptr);
+				switch (ftsIndex->keyFieldType) {
+					case FTSKeyType::DB_KEY:						
+						dbKeyInput->dbKeyNull = logOutput->dbKeyNull;
+						dbKeyInput->dbKey.length = logOutput->dbKey.length;
+						memcpy(dbKeyInput->dbKey.str, logOutput->dbKey.str, dbKeyInput->dbKey.length);
+						rs.reset(stmt->openCursor(
 							status,
 							tra,
-							selValInput.getMetadata(),
-							selValInput.getData(),
-							newMeta,
+							dbKeyInput.getMetadata(),
+							dbKeyInput.getData(),
+							outMetadata,
 							0
 						));
+						break;
+					case FTSKeyType::UUID:
+						uuidInput->uuidNull = logOutput->uuidNull;
+						uuidInput->uuid.length = logOutput->uuid.length;
+						memcpy(uuidInput->uuid.str, logOutput->uuid.str, uuidInput->uuid.length);
+						rs.reset(stmt->openCursor(
+							status,
+							tra,
+							uuidInput.getMetadata(),
+							uuidInput.getData(),
+							outMetadata,
+							0
+						));
+						break;
+					case FTSKeyType::INT_ID:
+						idInput->idNull = logOutput->recIdNull;
+						idInput->id = logOutput->recId;
+						rs.reset(stmt->openCursor(
+							status,
+							tra,
+							idInput.getMetadata(),
+							idInput.getData(),
+							outMetadata,
+							0
+						));
+						break;
+					default:
+						continue;
+				}
 
-						const unsigned msgLength = newMeta->getMessageLength(status);
-						{
-							// allocate output buffer
-							auto b = make_unique<unsigned char[]>(msgLength);
-							unsigned char* buffer = b.get();
-							while (rs->fetchNext(status, buffer) == IStatus::RESULT_OK) {
-								bool emptyFlag = true;
-								DocumentPtr doc = newLucene<Document>();
-								doc->add(newLucene<Field>(L"RDB$DB_KEY", StringUtils::toUnicode(hexDbKey), Field::STORE_YES, Field::INDEX_NOT_ANALYZED));
-								doc->add(newLucene<Field>(L"RDB$RELATION_NAME", StringUtils::toUnicode(relationName), Field::STORE_YES, Field::INDEX_NOT_ANALYZED));
-								for (unsigned int i = 1; i < colCount; i++) {
-									auto field = fields[i];
-									bool nullFlag = field.isNull(buffer);
-									string value;
-									if (!nullFlag) {
-										value = field.getStringValue(status, att, tra, buffer);
-									}
-									const auto fieldName = StringUtils::toUnicode(relationName + "." + field.fieldName);
-									Lucene::String unicodeValue;
-									if (!value.empty()) {
-										// re-encode content to Unicode only if the string is non-empty
+				const unsigned colCount = outMetadata->getCount(status);
+				const unsigned msgLength = outMetadata->getMessageLength(status);
+				{
+					// allocate output buffer
+					auto b = make_unique<unsigned char[]>(msgLength);
+					unsigned char* buffer = b.get();
+					memset(buffer, 0, msgLength);
+					if (rs->fetchNext(status, buffer) == IStatus::RESULT_OK) {
+						bool emptyFlag = true;
+						const auto& doc = newLucene<Document>();
+
+						for (unsigned int i = 0; i < colCount; i++) {
+							const auto& field = fields->at(i);
+
+							Lucene::String unicodeValue;
+							if (!field->isNull(buffer)) {
+								const string value = field->getStringValue(status, att, tra, buffer);
+								if (!value.empty()) {
+									// re-encode content to Unicode only if the string is non-binary
+									if (!field->isBinary()) {
 										unicodeValue = fbStringEncoder.toUnicode(value);
 									}
-									auto luceneField = newLucene<Field>(fieldName, unicodeValue, Field::STORE_NO, Field::INDEX_ANALYZED);
-									
-									auto iSegment = std::find_if(
-										ftsSegments.begin(), 
-										ftsSegments.end(), 
-										[&field](FTSIndexSegment ftsSegment) { return ftsSegment.fieldName == field.fieldName; }
-									);
-									if (iSegment != ftsSegments.end()) {
-										luceneField->setBoost((*iSegment).boost);
-									}
-									
-									doc->add(luceneField);
-									emptyFlag = emptyFlag && value.empty();
-								}
-								if ((changeType == "I") && !emptyFlag) {
-									writer->addDocument(doc);
-								}
-								if (changeType == "U") {
-									TermPtr term = newLucene<Term>(L"RDB$DB_KEY", StringUtils::toUnicode(hexDbKey));
-									if (!emptyFlag) {
-										writer->updateDocument(term, doc);
-									}
 									else {
-										writer->deleteDocuments(term);
+										// convert the binary string to a hexadecimal representation
+										unicodeValue = StringUtils::toUnicode(string_to_hex(value));
 									}
 								}
 							}
-							rs->close(status);
+							// add field to document
+							if (field->ftsKey) {
+								const auto& luceneField = newLucene<Field>(field->ftsFieldName, unicodeValue, Field::STORE_YES, Field::INDEX_NOT_ANALYZED);
+								doc->add(luceneField);
+							}
+							else {
+								const auto& luceneField = newLucene<Field>(field->ftsFieldName, unicodeValue, Field::STORE_NO, Field::INDEX_ANALYZED);
+								if (!field->ftsBoostNull) {
+									luceneField->setBoost(field->ftsBoost);
+								}
+								doc->add(luceneField);
+								emptyFlag = emptyFlag && unicodeValue.empty();
+							}
+
 						}
+						if ((changeType == "I") && !emptyFlag) {
+							indexWriter->addDocument(doc);
+						}
+						if (changeType == "U") {
+							if (!ftsIndex->unicodeKeyFieldName.empty() && !unicodeKeyValue.empty()) {
+								TermPtr term = newLucene<Term>(ftsIndex->unicodeKeyFieldName, unicodeKeyValue);
+								if (!emptyFlag) {
+									indexWriter->updateDocument(term, doc);
+								}
+								else {
+									indexWriter->deleteDocuments(term);
+								}
+							}
+						}
+						memset(buffer, 0, msgLength);
 					}
-					else if (changeType == "D") {
-						TermPtr term = newLucene<Term>(L"RDB$DB_KEY", StringUtils::toUnicode(hexDbKey));
-						writer->deleteDocuments(term);
-					}
+					rs->close(status);
 				}
 			}
 			procedure->logRepository.deleteLog(status, att, tra, sqlDialect, logId);
 		}
-		
 		logRs->close(status);
 		// commit changes for all indexes
-		for (auto& pIndexWriter : indexWriters) {
-			auto indexWriter = pIndexWriter.second;
+		for (const auto& pIndexWriter : procedure->indexWriters) {
+			const auto& indexWriter = pIndexWriter.second;
 			indexWriter->commit();
 			indexWriter->close();
 		}
-		*/
-		// clean up prepared statements
 	}
 
 	map<string, FbFieldsInfoPtr> fieldsInfoMap;

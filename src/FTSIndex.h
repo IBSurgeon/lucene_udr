@@ -28,7 +28,7 @@ using namespace std;
 namespace LuceneUDR
 {
 
-	enum class FTSKeyType {DB_KEY, INT_ID, UUID};
+	enum class FTSKeyType {NONE, DB_KEY, INT_ID, UUID};
 
 	class FTSIndexSegment;
 
@@ -54,6 +54,8 @@ namespace LuceneUDR
 			, analyzer()
 			, description()
 			, status()
+			, keyFieldType(FTSKeyType::NONE)
+			, unicodeKeyFieldName()
 			, segments()
 			, stmtExtractRecord(nullptr)
 			, inMetaExtractRecord(nullptr)
@@ -66,6 +68,9 @@ namespace LuceneUDR
 		string analyzer;		
 		string description;
 		string status; // N - new index, I - inactive, U - need rebuild, C - complete
+
+		FTSKeyType keyFieldType;
+		wstring unicodeKeyFieldName;
 
 		FTSIndexSegmentList segments;
 		

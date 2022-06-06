@@ -196,6 +196,19 @@ namespace LuceneUDR
 			}
 		}
 
+		inline bool isInt() {
+			switch (dataType) {
+			case SQL_SHORT:
+			case SQL_LONG:
+			case SQL_INT64:
+			{
+				return (scale == 0);
+			}
+			default:
+				return false;
+			}
+		}
+
 		template <class StatusType>
 		string getStringValue(StatusType* status, IAttachment* att, ITransaction* tra, unsigned char* buffer);
 	};
