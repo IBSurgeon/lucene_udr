@@ -13,6 +13,7 @@
 
 #include "LuceneUdr.h"
 #include "FTSIndex.h"
+#include "FTSUtils.h"
 #include "FBUtils.h"
 #include "LuceneFiles.h"
 #include "LuceneHeaders.h"
@@ -112,10 +113,10 @@ FB_UDR_BEGIN_PROCEDURE(getIndexStatistics)
 		}
 		const string indexName(in->index_name.str, in->index_name.length);
 
-		const string ftsDirectory = getFtsDirectory(context);
+		const auto& ftsDirectoryPath = getFtsDirectory(context);
 		// check if there is a directory for full-text indexes
-		if (!FileUtils::isDirectory(StringUtils::toUnicode(ftsDirectory))) {
-			const string error_message = string_format("Fts directory \"%s\" not exists", ftsDirectory);
+		if (!fs::is_directory(ftsDirectoryPath)) {
+			const string error_message = string_format("Fts directory \"%s\" not exists", ftsDirectoryPath.u8string());
 			ISC_STATUS statusVector[] = {
 				isc_arg_gds, isc_random,
 				isc_arg_string, (ISC_STATUS)error_message.c_str(),
@@ -148,8 +149,9 @@ FB_UDR_BEGIN_PROCEDURE(getIndexStatistics)
 			out->analyzerName.length = static_cast<ISC_USHORT>(ftsIndex->analyzer.length());
 			ftsIndex->analyzer.copy(out->analyzerName.str, out->analyzerName.length);
 
-			const auto unicodeIndexDir = FileUtils::joinPath(StringUtils::toUnicode(ftsDirectory), StringUtils::toUnicode(indexName));
-			const string indexDir = StringUtils::toUTF8(unicodeIndexDir);
+			const auto& indexDirectoryPath = ftsDirectoryPath / indexName;
+
+			const string indexDir = indexDirectoryPath.u8string();
 			out->indexDirNull = false;
 			out->indexDir.length = static_cast<ISC_USHORT>(indexDir.length());
 			indexDir.copy(out->indexDir.str, out->indexDir.length);
@@ -157,20 +159,20 @@ FB_UDR_BEGIN_PROCEDURE(getIndexStatistics)
 			out->indexExistsNull = false;
 			out->indexExists = true;
 			// Check if the index directory exists
-			if (!FileUtils::isDirectory(unicodeIndexDir)) {
+			if (!fs::is_directory(indexDirectoryPath)) {
 				// index created, but not build
 				ftsIndex->status = "N";
 				out->indexExists = false;
 			}
 			else {
-				auto ftsIndexDir = FSDirectory::open(unicodeIndexDir);
+				const auto& ftsIndexDir = FSDirectory::open(indexDirectoryPath.wstring());
 				if (!IndexReader::indexExists(ftsIndexDir)) {
 					// index created, but not build
 					ftsIndex->status = "N";
 					out->indexExists = false;
 				}
 				else {
-					IndexReaderPtr reader = IndexReader::open(ftsIndexDir, true);
+					const auto& reader = IndexReader::open(ftsIndexDir, true);
 					LuceneFileHelper luceneFileHelper(ftsIndexDir);
 
 					out->isOptimizedNull = false;
@@ -268,10 +270,10 @@ FB_UDR_BEGIN_PROCEDURE(getIndexFields)
 		}
 		const string indexName(in->index_name.str, in->index_name.length);
 
-		const string ftsDirectory = getFtsDirectory(context);
+		const auto& ftsDirectoryPath = getFtsDirectory(context);
 		// check if there is a directory for full-text indexes
-		if (!FileUtils::isDirectory(StringUtils::toUnicode(ftsDirectory))) {
-			const string error_message = string_format("Fts directory \"%s\" not exists", ftsDirectory);
+		if (!fs::is_directory(ftsDirectoryPath)) {
+			const string error_message = string_format("Fts directory \"%s\" not exists", ftsDirectoryPath.u8string());
 			ISC_STATUS statusVector[] = {
 				isc_arg_gds, isc_random,
 				isc_arg_string, (ISC_STATUS)error_message.c_str(),
@@ -304,13 +306,11 @@ FB_UDR_BEGIN_PROCEDURE(getIndexFields)
 			}
 
 
-			const auto unicodeIndexDir = FileUtils::joinPath(StringUtils::toUnicode(ftsDirectory), StringUtils::toUnicode(indexName));
-			const string indexDir = StringUtils::toUTF8(unicodeIndexDir);
+			const auto& indexDirectoryPath = ftsDirectoryPath / indexName;
 
 			// Check if the index directory exists
-			if (!FileUtils::isDirectory(unicodeIndexDir)) {
-				const string indexDir = StringUtils::toUTF8(unicodeIndexDir);
-				const string error_message = string_format("Index directory \"%s\" not exists.", indexDir);
+			if (!fs::is_directory(indexDirectoryPath)) {
+				const string error_message = string_format("Index directory \"%s\" not exists.", indexDirectoryPath.u8string());
 				ISC_STATUS statusVector[] = {
 					isc_arg_gds, isc_random,
 					isc_arg_string, (ISC_STATUS)error_message.c_str(),
@@ -319,7 +319,7 @@ FB_UDR_BEGIN_PROCEDURE(getIndexFields)
 				throw FbException(status, statusVector);
 			}
 
-			auto ftsIndexDir = FSDirectory::open(unicodeIndexDir);
+			const auto& ftsIndexDir = FSDirectory::open(indexDirectoryPath.wstring());
 			if (!IndexReader::indexExists(ftsIndexDir)) {
 				const string error_message = string_format("Index \"%s\" not build.", indexName);
 				ISC_STATUS statusVector[] = {
@@ -330,7 +330,7 @@ FB_UDR_BEGIN_PROCEDURE(getIndexFields)
 				throw FbException(status, statusVector);
 			}
 				
-			IndexReaderPtr reader = IndexReader::open(ftsIndexDir, true);
+			const auto& reader = IndexReader::open(ftsIndexDir, true);
 
 			fieldNames = reader->getFieldNames(IndexReader::FIELD_OPTION_ALL);
 			it = fieldNames.begin();
@@ -414,10 +414,10 @@ FB_UDR_BEGIN_PROCEDURE(getIndexFiles)
 		}
 		const string indexName(in->index_name.str, in->index_name.length);
 
-		const string ftsDirectory = getFtsDirectory(context);
+		const auto& ftsDirectoryPath = getFtsDirectory(context);
 		// check if there is a directory for full-text indexes
-		if (!FileUtils::isDirectory(StringUtils::toUnicode(ftsDirectory))) {
-			const string error_message = string_format("Fts directory \"%s\" not exists", ftsDirectory);
+		if (!fs::is_directory(ftsDirectoryPath)) {
+			const string error_message = string_format("Fts directory \"%s\" not exists", ftsDirectoryPath.u8string());
 			ISC_STATUS statusVector[] = {
 				isc_arg_gds, isc_random,
 				isc_arg_string, (ISC_STATUS)error_message.c_str(),
@@ -438,16 +438,14 @@ FB_UDR_BEGIN_PROCEDURE(getIndexFiles)
 		try {
 			// check for index existence
 			// TODO: not need create index instance
-			auto ftsIndex = procedure->indexRepository.getIndex(status, att, tra, sqlDialect, indexName);
+			const auto& ftsIndex = procedure->indexRepository.getIndex(status, att, tra, sqlDialect, indexName);
 
 
-			const auto unicodeIndexDir = FileUtils::joinPath(StringUtils::toUnicode(ftsDirectory), StringUtils::toUnicode(indexName));
-			const string indexDir = StringUtils::toUTF8(unicodeIndexDir);
+			const auto& indexDirectoryPath = ftsDirectoryPath / indexName;
 
 			// Check if the index directory exists
-			if (!FileUtils::isDirectory(unicodeIndexDir)) {
-				const string indexDir = StringUtils::toUTF8(unicodeIndexDir);
-				const string error_message = string_format("Index directory \"%s\" not exists.", indexDir);
+			if (!fs::is_directory(indexDirectoryPath)) {
+				const string error_message = string_format("Index directory \"%s\" not exists.", indexDirectoryPath.u8string());
 				ISC_STATUS statusVector[] = {
 					isc_arg_gds, isc_random,
 					isc_arg_string, (ISC_STATUS)error_message.c_str(),
@@ -456,12 +454,13 @@ FB_UDR_BEGIN_PROCEDURE(getIndexFiles)
 				throw FbException(status, statusVector);
 			}
 
-			auto ftsIndexDir = FSDirectory::open(unicodeIndexDir);
+			const auto& unicodeIndexDir = indexDirectoryPath.wstring();
+			const auto& ftsIndexDir = FSDirectory::open(unicodeIndexDir);
 			luceneFileHelper.setDirectory(ftsIndexDir);
 
 			auto allFileNames = ftsIndexDir->listAll();
 			fileNames.assign(allFileNames.begin(), allFileNames.end());
-			fileNames.remove_if([&unicodeIndexDir](auto &fileName) {
+			fileNames.remove_if([&unicodeIndexDir](const auto &fileName) {
 				return !IndexFileNameFilter::getFilter()->accept(unicodeIndexDir, fileName);
 			});
 			it = fileNames.begin();
@@ -560,10 +559,10 @@ FB_UDR_BEGIN_PROCEDURE(getIndexSegments)
 		}
 		const string indexName(in->index_name.str, in->index_name.length);
 
-		const string ftsDirectory = getFtsDirectory(context);
+		const auto& ftsDirectoryPath = getFtsDirectory(context);
 		// check if there is a directory for full-text indexes
-		if (!FileUtils::isDirectory(StringUtils::toUnicode(ftsDirectory))) {
-			const string error_message = string_format("Fts directory \"%s\" not exists", ftsDirectory);
+		if (!fs::is_directory(ftsDirectoryPath)) {
+			const string error_message = string_format("Fts directory \"%s\" not exists", ftsDirectoryPath.u8string());
 			ISC_STATUS statusVector[] = {
 				isc_arg_gds, isc_random,
 				isc_arg_string, (ISC_STATUS)error_message.c_str(),
@@ -588,15 +587,13 @@ FB_UDR_BEGIN_PROCEDURE(getIndexSegments)
 		try {
 			// check for index existence
 			// TODO: not need create index instance
-			auto ftsIndex = procedure->indexRepository.getIndex(status, att, tra, sqlDialect, indexName);
+			const auto& ftsIndex = procedure->indexRepository.getIndex(status, att, tra, sqlDialect, indexName);
 
-			const auto unicodeIndexDir = FileUtils::joinPath(StringUtils::toUnicode(ftsDirectory), StringUtils::toUnicode(indexName));
-			const string indexDir = StringUtils::toUTF8(unicodeIndexDir);
+			const auto& indexDirectoryPath = ftsDirectoryPath / indexName;
 
 			// Check if the index directory exists
-			if (!FileUtils::isDirectory(unicodeIndexDir)) {
-				const string indexDir = StringUtils::toUTF8(unicodeIndexDir);
-				const string error_message = string_format("Index directory \"%s\" not exists.", indexDir);
+			if (!fs::is_directory(indexDirectoryPath)) {
+				const string error_message = string_format("Index directory \"%s\" not exists.", indexDirectoryPath.u8string());
 				ISC_STATUS statusVector[] = {
 					isc_arg_gds, isc_random,
 					isc_arg_string, (ISC_STATUS)error_message.c_str(),
@@ -605,7 +602,7 @@ FB_UDR_BEGIN_PROCEDURE(getIndexSegments)
 				throw FbException(status, statusVector);
 			}
 			
-			auto ftsIndexDir = FSDirectory::open(unicodeIndexDir);
+			const auto& ftsIndexDir = FSDirectory::open(indexDirectoryPath.wstring());
 			segmentInfos = newLucene<SegmentInfos>();
 			segmentInfos->read(ftsIndexDir);
 			
@@ -734,10 +731,10 @@ FB_UDR_BEGIN_PROCEDURE(getFieldInfos)
 			unicodeSegmentName = StringUtils::toUnicode(segmentName);
 		}
 
-		const string ftsDirectory = getFtsDirectory(context);
+		const auto& ftsDirectoryPath = getFtsDirectory(context);
 		// check if there is a directory for full-text indexes
-		if (!FileUtils::isDirectory(StringUtils::toUnicode(ftsDirectory))) {
-			const string error_message = string_format("Fts directory \"%s\" not exists", ftsDirectory);
+		if (!fs::is_directory(ftsDirectoryPath)) {
+			const string error_message = string_format("Fts directory \"%s\" not exists", ftsDirectoryPath.u8string());
 			ISC_STATUS statusVector[] = {
 				isc_arg_gds, isc_random,
 				isc_arg_string, (ISC_STATUS)error_message.c_str(),
@@ -756,15 +753,13 @@ FB_UDR_BEGIN_PROCEDURE(getFieldInfos)
 		try {
 			// check for index existence
 			// TODO: not need create index instance
-			auto ftsIndex = procedure->indexRepository.getIndex(status, att, tra, sqlDialect, indexName);
+			const auto& ftsIndex = procedure->indexRepository.getIndex(status, att, tra, sqlDialect, indexName);
 
-			const auto unicodeIndexDir = FileUtils::joinPath(StringUtils::toUnicode(ftsDirectory), StringUtils::toUnicode(indexName));
-			const string indexDir = StringUtils::toUTF8(unicodeIndexDir);
+			const auto& indexDirectoryPath = ftsDirectoryPath / indexName;
 
 			// Check if the index directory exists
-			if (!FileUtils::isDirectory(unicodeIndexDir)) {
-				const string indexDir = StringUtils::toUTF8(unicodeIndexDir);
-				const string error_message = string_format("Index directory \"%s\" not exists.", indexDir);
+			if (!fs::is_directory(indexDirectoryPath)) {
+				const string error_message = string_format("Index directory \"%s\" not exists.", indexDirectoryPath.u8string());
 				ISC_STATUS statusVector[] = {
 					isc_arg_gds, isc_random,
 					isc_arg_string, (ISC_STATUS)error_message.c_str(),
@@ -773,8 +768,8 @@ FB_UDR_BEGIN_PROCEDURE(getFieldInfos)
 				throw FbException(status, statusVector);
 			}
 
-			auto ftsIndexDir = FSDirectory::open(unicodeIndexDir);
-			auto segmentInfos = newLucene<SegmentInfos>();
+			const auto& ftsIndexDir = FSDirectory::open(indexDirectoryPath.wstring());
+			const auto& segmentInfos = newLucene<SegmentInfos>();
 			segmentInfos->read(ftsIndexDir);
 		
 			SegmentInfoPtr segmentInfo = nullptr;

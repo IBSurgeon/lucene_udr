@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\FTSUtils.cpp" />
     <ClCompile Include="src\EncodeUtils.cpp" />
     <ClCompile Include="src\FTS_TRIGGER_HELPER.cpp" />
     <ClCompile Include="src\FTS.cpp" />
@@ -30,6 +31,7 @@
     <ClCompile Include="src\Relations.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\FTSUtils.h" />
     <ClInclude Include="src\EncodeUtils.h" />
     <ClInclude Include="src\FBAutoPtr.h" />
     <ClInclude Include="src\FBUtils.h" />

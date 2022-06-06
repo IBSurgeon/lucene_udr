@@ -13,6 +13,7 @@
 
 #include "LuceneUdr.h"
 #include "FTSIndex.h"
+#include "FTSUtils.h"
 #include "FTSLog.h"
 #include "Relations.h"
 #include "FBUtils.h"
@@ -100,7 +101,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 			explainFlag = in->explain;
 		}
 
-		const string ftsDirectory = getFtsDirectory(context);
+		const auto& ftsDirectoryPath = getFtsDirectory(context);
 
 
 		att.reset(context->getAttachment(status));
@@ -108,11 +109,11 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 
 		const unsigned int sqlDialect = getSqlDialect(status, att);
 
-		auto ftsIndex = procedure->indexRepository.getIndex(status, att, tra, sqlDialect, indexName, true);
+		const auto& ftsIndex = procedure->indexRepository.getIndex(status, att, tra, sqlDialect, indexName, true);
 
 		// check if directory exists for index
-		const auto indexDir = FileUtils::joinPath(StringUtils::toUnicode(ftsDirectory), StringUtils::toUnicode(indexName));
-		if (ftsIndex->status == "N" || !FileUtils::isDirectory(indexDir)) {
+		const auto& indexDirectoryPath = ftsDirectoryPath / indexName;
+		if (ftsIndex->status == "N" || !fs::is_directory(indexDirectoryPath)) {
 			string error_message = string_format("Index \"%s\" exists, but is not build. Please rebuild index.", indexName);
 			ISC_STATUS statusVector[] = {
 				isc_arg_gds, isc_random,
@@ -123,7 +124,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 		}
 
 		try {
-			const auto ftsIndexDir = FSDirectory::open(indexDir);
+			const auto& ftsIndexDir = FSDirectory::open(indexDirectoryPath.wstring());
 			if (!IndexReader::indexExists(ftsIndexDir)) {
 				const string error_message = string_format("Index \"%s\" exists, but is not build. Please rebuild index.", indexName);
 				ISC_STATUS statusVector[] = {
@@ -549,7 +550,7 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 
 		const unsigned int sqlDialect = getSqlDialect(status, att);
 
-		const string ftsDirectory = getFtsDirectory(context);
+		const auto& ftsDirectoryPath = getFtsDirectory(context);
 
 		const char* fbCharset = context->getClientCharSet();
 		FBStringEncoder fbStringEncoder(fbCharset);
@@ -576,8 +577,8 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 			if (!ftsIndex->isActive()) {
 				continue;
 			}
-			const auto unicodeIndexDir = FileUtils::joinPath(StringUtils::toUnicode(ftsDirectory), StringUtils::toUnicode(indexName));
-			if (!ftsIndex->checkAllFieldsExists() || !FileUtils::isDirectory(unicodeIndexDir)) {
+			const auto& indexDirectoryPath = ftsDirectoryPath / indexName;
+			if (!ftsIndex->checkAllFieldsExists() || !fs::is_directory(indexDirectoryPath)) {
 				// index need to rebuild
 				ftsIndex->status = "U";
 				// this is done in an autonomous transaction				
@@ -587,11 +588,12 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 				// go to next index
 				continue;
 			}
-			ftsIndex->unicodeIndexDir = unicodeIndexDir;
+			ftsIndex->unicodeIndexDir = indexDirectoryPath.wstring();
 
 			// collect and save the SQL query to extract the record by key
 			ftsIndex->prepareExtractRecordStmt(status, att, tra, sqlDialect);
-			auto fields = make_unique<FbFieldsInfo>(status, ftsIndex->getOutExtractRecordMetadata());
+			const auto& outMetadata =  ftsIndex->getOutExtractRecordMetadata();
+			auto fields = make_unique<FbFieldsInfo>(status, outMetadata);
 			fieldsInfoMap[indexName] = std::move(fields);
 
             // put indexName to map
@@ -660,10 +662,17 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 			for (const auto& indexName : indexNames) {
 				const auto& ftsIndex = indexes[indexName];
 				const auto& stmt = ftsIndex->getPreparedExtractRecordStmt();
-				const auto& meta = ftsIndex->getOutExtractRecordMetadata();
+				const auto& outMetadata = ftsIndex->getOutExtractRecordMetadata();
 				const auto indexWriter = procedure->getIndexWriter(status, ftsIndex);
 				const auto& fields = fieldsInfoMap[indexName];
+
+				const auto& inMetadata = ftsIndex->getInExtractRecordMetadata();
+				if (inMetadata->getCount(status) != 1) {
+					// The number of input parameters must be equal to 1.
+					continue;
+				}
 				
+				AutoRelease<IResultSet> rs(nullptr);
 				
 				/*
 				AutoRelease<IResultSet> rs(stmt->openCursor(

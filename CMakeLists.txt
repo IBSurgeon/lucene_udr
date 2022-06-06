@@ -13,7 +13,7 @@
 
 cmake_minimum_required (VERSION 3.5)
 
-project (luceneudr VERSION 0.9.6)
+project (luceneudr VERSION 1.0.0)
 
 set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/build)
 
@@ -116,8 +116,8 @@ target_link_libraries(luceneudr ${liblucene++_LIBRARIES})
 target_link_libraries(luceneudr ${liblucene++-contrib_LIBRARIES})
 
 install(TARGETS luceneudr DESTINATION ${FIREBIRD_UDR_DIR})
-install(FILES "sql/fts\$install.sql"
-              "sql/fts\$install_1.sql"
-              "sql/fts\$uninstall.sql"
+install(FILES "sql/fts/$install.sql"
+              "sql/fts/$install_1.sql"
+              "sql/fts/$uninstall.sql"
               DESTINATION ${FIREBIRD_UDR_DIR})
 

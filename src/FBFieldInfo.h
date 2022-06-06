@@ -251,7 +251,7 @@ namespace LuceneUDR
 		map<string, unsigned> fieldByNameMap;
 	public:
 		template <class StatusType>
-		FbFieldsInfo(StatusType* status, const IMessageMetadata* meta)
+		FbFieldsInfo(StatusType* status, IMessageMetadata* const meta)
 			: FbFieldInfoVector()
 			, fieldByNameMap()
 		{

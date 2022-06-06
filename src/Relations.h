@@ -154,9 +154,9 @@ namespace LuceneUDR
 		/// 
 		/// <returns>Returns information about the relation.</returns>
 		RelationInfoPtr getRelationInfo(
-			ThrowStatusWrapper* status,
-			IAttachment* att,
-			ITransaction* tra,
+			ThrowStatusWrapper* const status,
+			IAttachment* const att,
+			ITransaction* const tra,
 			const unsigned int sqlDialect,
 			const string& relationName
 		);
@@ -173,9 +173,9 @@ namespace LuceneUDR
 		/// 
 		/// <returns>Returns true if the relation exists, false otherwise.</returns>
 		bool relationExists(
-			ThrowStatusWrapper* status,
-			IAttachment* att,
-			ITransaction* tra,
+			ThrowStatusWrapper* const status,
+			IAttachment* const att,
+			ITransaction* const tra,
 			const unsigned int sqlDialect,
 			const string &relationName);
 
@@ -191,9 +191,9 @@ namespace LuceneUDR
 		/// 
 		/// <returns>Returns a list of relations fields.</returns>
 		RelationFieldList getFields(
-			ThrowStatusWrapper* status,
-			IAttachment* att,
-			ITransaction* tra,
+			ThrowStatusWrapper* const status,
+			IAttachment* const att,
+			ITransaction* const tra,
 			const unsigned int sqlDialect,
 			const string& relationName
 		);
@@ -210,9 +210,9 @@ namespace LuceneUDR
 		/// 
 		/// <returns>Returns a list of relations primary key fields.</returns>
 		RelationFieldList getPrimaryKeyFields(
-			ThrowStatusWrapper* status,
-			IAttachment* att,
-			ITransaction* tra,
+			ThrowStatusWrapper* const status,
+			IAttachment* const att,
+			ITransaction* const tra,
 			const unsigned int sqlDialect,
 			const string& relationName
 		);
@@ -230,9 +230,9 @@ namespace LuceneUDR
 		/// 
 		/// <returns>Returns information about the field.</returns>
 		RelationFieldInfoPtr getField(
-			ThrowStatusWrapper* status,
-			IAttachment* att,
-			ITransaction* tra,
+			ThrowStatusWrapper* const status,
+			IAttachment* const att,
+			ITransaction* const tra,
 			const unsigned int sqlDialect,
 			const string& relationName,
 			const string& fieldName
@@ -251,9 +251,9 @@ namespace LuceneUDR
 		/// 
 		/// <returns>Returns true if the column exists, false otherwise.</returns>
 		bool fieldExists(
-			ThrowStatusWrapper* status,
-			IAttachment* att,
-			ITransaction* tra,
+			ThrowStatusWrapper* const status,
+			IAttachment* const att,
+			ITransaction* const tra,
 			const unsigned int sqlDialect,
 			const string &relationName,
 			const string &fieldName);

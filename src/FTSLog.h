@@ -22,7 +22,6 @@ using namespace std;
 
 namespace LuceneUDR
 {
-
 	class FTSLogRepository final
 	{
 	private:
@@ -39,8 +38,7 @@ namespace LuceneUDR
 			"  FTS$REC_ID,\n"
 			"  FTS$CHANGE_TYPE\n"
 			")\n"
-			"VALUES(?, ?, ?, ?, ?)"
-			"\0";
+			"VALUES(?, ?, ?, ?, ?)";
 	public:
 		FTSLogRepository()
 			: FTSLogRepository(nullptr)
@@ -65,9 +63,9 @@ namespace LuceneUDR
 		/// <param name="dbKey">Record ID</param>
 		/// <param name="changeType">Type of change</param>
 		void appendLogByDbKey(
-			ThrowStatusWrapper* status,
-			IAttachment* att,
-			ITransaction* tra,
+			ThrowStatusWrapper* const status,
+			IAttachment* const att,
+			ITransaction* const tra,
 			const unsigned int sqlDialect,
 			const string& relationName,
 			const string& dbKey,
@@ -85,9 +83,9 @@ namespace LuceneUDR
 		/// <param name="dbKey">Record ID</param>
 		/// <param name="changeType">Type of change</param>
 		void appendLogById(
-			ThrowStatusWrapper* status,
-			IAttachment* att,
-			ITransaction* tra,
+			ThrowStatusWrapper* const status,
+			IAttachment* const att,
+			ITransaction* const tra,
 			const unsigned int sqlDialect,
 			const string& relationName,
 			const ISC_INT64 recId,
@@ -105,9 +103,9 @@ namespace LuceneUDR
 		/// <param name="dbKey">Record ID</param>
 		/// <param name="changeType">Type of change</param>
 		void appendLogByUuid(
-			ThrowStatusWrapper* status,
-			IAttachment* att,
-			ITransaction* tra,
+			ThrowStatusWrapper* const status,
+			IAttachment* const att,
+			ITransaction* const tra,
 			const unsigned int sqlDialect,
 			const string& relationName,
 			const string& uuid,
@@ -124,9 +122,9 @@ namespace LuceneUDR
 		/// <param name="sqlDialect">SQL dialect</param>
 		/// <param name="id">Identifier</param>
 		void deleteLog(
-			ThrowStatusWrapper* status,
-			IAttachment* att,
-			ITransaction* tra,
+			ThrowStatusWrapper* const status,
+			IAttachment* const att,
+			ITransaction* const tra,
 			const unsigned int sqlDialect,
 			const ISC_INT64 id);
 
@@ -139,9 +137,9 @@ namespace LuceneUDR
 		/// <param name="tra">Firebird transaction</param>
 		/// <param name="sqlDialect">SQL dialect</param>
 		void clearLog(
-			ThrowStatusWrapper* status,
-			IAttachment* att,
-			ITransaction* tra,
+			ThrowStatusWrapper* const status,
+			IAttachment* const att,
+			ITransaction* const tra,
 			const unsigned int sqlDialect);
 	};
 }

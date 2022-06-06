@@ -13,6 +13,7 @@
 
 #include "LuceneUdr.h"
 #include "FTSIndex.h"
+#include "FTSUtils.h"
 #include "Relations.h"
 #include "FBUtils.h"
 #include "EncodeUtils.h"
@@ -25,6 +26,9 @@
 #include <vector>
 #include <memory>
 #include <algorithm>
+#include <filesystem> 
+
+namespace fs = std::filesystem;
 
 using namespace Firebird;
 using namespace Lucene;
@@ -45,7 +49,8 @@ FB_UDR_BEGIN_FUNCTION(getFTSDirectory)
 
     FB_UDR_EXECUTE_FUNCTION
     {
-	    const string ftsDirectory = getFtsDirectory(context);
+	    const auto& ftsDirectoryPath = getFtsDirectory(context);
+	    const string ftsDirectory = ftsDirectoryPath.u8string();
 
 	    out->directoryNull = false;
 	    out->directory.length = static_cast<ISC_USHORT>(ftsDirectory.length());
@@ -300,12 +305,11 @@ FB_UDR_BEGIN_PROCEDURE(dropIndex)
 
 		procedure->indexRepository.dropIndex(status, att, tra, sqlDialect, indexName);
 
-		const string ftsDirectory = getFtsDirectory(context);
-		const auto unicodeIndexDir = FileUtils::joinPath(StringUtils::toUnicode(ftsDirectory), StringUtils::toUnicode(indexName));
+		const auto& ftsDirectoryPath = getFtsDirectory(context);
+		const auto& indexDirectoryPath = ftsDirectoryPath / indexName;
 		// If the directory exists, then delete it.
-		if (!removeIndexDirectory(unicodeIndexDir)) {
-			const string indexDir = StringUtils::toUTF8(unicodeIndexDir);
-			const string error_message = string_format("Cannot delete index directory \"%s\".", indexDir);
+		if (!removeIndexDirectory(indexDirectoryPath)) {
+			const string error_message = string_format("Cannot delete index directory \"%s\".", indexDirectoryPath.u8string());
 			ISC_STATUS statusVector[] = {
 				isc_arg_gds, isc_random,
 				isc_arg_string, (ISC_STATUS)error_message.c_str(),
@@ -361,7 +365,7 @@ FB_UDR_BEGIN_PROCEDURE(setIndexActive)
 
 		const unsigned int sqlDialect = getSqlDialect(status, att);
 
-		auto ftsIndex = procedure->indexRepository.getIndex(status, att, tra, sqlDialect, indexName);
+		const auto& ftsIndex = procedure->indexRepository.getIndex(status, att, tra, sqlDialect, indexName);
 		if (indexActive) {
 			// index is inactive
 			if (ftsIndex->status == "I") {
@@ -603,10 +607,10 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 		}
 		const string indexName(in->index_name.str, in->index_name.length);
 
-		const string ftsDirectory = getFtsDirectory(context);
+		const auto& ftsDirectoryPath = getFtsDirectory(context);
 		// check if there is a directory for full-text indexes
-		if (!FileUtils::isDirectory(StringUtils::toUnicode(ftsDirectory))) {
-			const string error_message = string_format("Fts directory \"%s\" not exists", ftsDirectory);
+		if (!fs::is_directory(ftsDirectoryPath)) {
+			const string error_message = string_format("Fts directory \"%s\" not exists", ftsDirectoryPath.u8string());
 			ISC_STATUS statusVector[] = {
 				isc_arg_gds, isc_random,
 				isc_arg_string, (ISC_STATUS)error_message.c_str(),
@@ -619,12 +623,11 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 
 		try {
 			// check for index existence
-			auto ftsIndex = procedure->indexRepository.getIndex(status, att, tra, sqlDialect, indexName, true);
+			const auto& ftsIndex = procedure->indexRepository.getIndex(status, att, tra, sqlDialect, indexName, true);
 			// Check if the index directory exists, and if it doesn't exist, create it. 
-			const auto unicodeIndexDir = FileUtils::joinPath(StringUtils::toUnicode(ftsDirectory), StringUtils::toUnicode(indexName));
-			if (!createIndexDirectory(unicodeIndexDir)) {
-				const string indexDir = StringUtils::toUTF8(unicodeIndexDir);
-				const string error_message = string_format("Cannot create index directory \"%s\".", indexDir);
+			const auto& indexDirectoryPath = ftsDirectoryPath / indexName;
+			if (!createIndexDirectory(indexDirectoryPath)) {
+				const string error_message = string_format("Cannot create index directory \"%s\".", indexDirectoryPath.u8string());
 				ISC_STATUS statusVector[] = {
 					isc_arg_gds, isc_random,
 					isc_arg_string, (ISC_STATUS)error_message.c_str(),
@@ -655,9 +658,9 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 				throw FbException(status, statusVector);
 			}
 
-			auto fsIndexDir = FSDirectory::open(unicodeIndexDir);
-			auto analyzer = procedure->analyzerFactory.createAnalyzer(status, ftsIndex->analyzer);
-			IndexWriterPtr writer = newLucene<IndexWriter>(fsIndexDir, analyzer, true, IndexWriter::MaxFieldLengthLIMITED);
+			const auto& fsIndexDir = FSDirectory::open(indexDirectoryPath.wstring());
+			const auto& analyzer = procedure->analyzerFactory.createAnalyzer(status, ftsIndex->analyzer);
+			const auto& writer = newLucene<IndexWriter>(fsIndexDir, analyzer, true, IndexWriter::MaxFieldLengthLIMITED);
 
 			// clean up index directory
 			writer->deleteAll();
@@ -681,7 +684,6 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 			}
 				
 			const string sql = ftsIndex->buildSqlSelectFieldValues(status, sqlDialect); 
-			const auto unicodeRelationName = StringUtils::toUnicode(ftsIndex->relationName);
 
 			AutoRelease<IStatement> stmt(att->prepare(
 				status,
@@ -694,7 +696,7 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 			AutoRelease<IMessageMetadata> outputMetadata(stmt->getOutputMetadata(status));
 			// make all fields of string type except BLOB
 			AutoRelease<IMessageMetadata> newMeta(prepareTextMetaData(status, outputMetadata));
-			auto fields = FbFieldsInfo(status, newMeta);
+			const auto fields = FbFieldsInfo(status, newMeta);
 
 			// initial specific FTS property for fields
 			for (int i = 0; i < fields.size(); i++) {
@@ -734,7 +736,7 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 				memset(buffer, 0, msgLength);
 				while (rs->fetchNext(status, buffer) == IStatus::RESULT_OK) {						
 					bool emptyFlag = true;
-					DocumentPtr doc = newLucene<Document>();
+					const auto& doc = newLucene<Document>();
 						
 					for (unsigned int i = 0; i < colCount; i++) {
 						const auto& field = fields[i];
@@ -754,18 +756,19 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 							}
 						}
                         // add field to document
-						FieldPtr luceneField = nullptr;
 						if (field->ftsKey) {
-							luceneField = newLucene<Field>(field->ftsFieldName, unicodeValue, Field::STORE_YES, Field::INDEX_NOT_ANALYZED);
+							const auto& luceneField = newLucene<Field>(field->ftsFieldName, unicodeValue, Field::STORE_YES, Field::INDEX_NOT_ANALYZED);
+							doc->add(luceneField);
 						}
 						else {
-							luceneField = newLucene<Field>(field->ftsFieldName, unicodeValue, Field::STORE_NO, Field::INDEX_ANALYZED);
+							const auto& luceneField = newLucene<Field>(field->ftsFieldName, unicodeValue, Field::STORE_NO, Field::INDEX_ANALYZED);
 							if (!field->ftsBoostNull) {
 								luceneField->setBoost(field->ftsBoost);
 							}
+							doc->add(luceneField);
 							emptyFlag = emptyFlag && unicodeValue.empty();
 						}						
-						doc->add(luceneField);
+						
 					}
 					// if all indexed fields are empty, then it makes no sense to add the document to the index
 					if (!emptyFlag) {
@@ -837,10 +840,10 @@ FB_UDR_BEGIN_PROCEDURE(optimizeIndex)
 		}
 		const string indexName(in->index_name.str, in->index_name.length);
 
-		const string ftsDirectory = getFtsDirectory(context);
+		const auto& ftsDirectoryPath = getFtsDirectory(context);	
 		// check if there is a directory for full-text indexes
-		if (!FileUtils::isDirectory(StringUtils::toUnicode(ftsDirectory))) {
-			const string error_message = string_format("Fts directory \"%s\" not exists", ftsDirectory);
+		if (!fs::is_directory(ftsDirectoryPath)) {
+			const string error_message = string_format("Fts directory \"%s\" not exists", ftsDirectoryPath.u8string());
 			ISC_STATUS statusVector[] = {
 				isc_arg_gds, isc_random,
 				isc_arg_string, (ISC_STATUS)error_message.c_str(),
@@ -853,12 +856,11 @@ FB_UDR_BEGIN_PROCEDURE(optimizeIndex)
 
 		try {
 			// check for index existence
-			auto ftsIndex = procedure->indexRepository.getIndex(status, att, tra, sqlDialect, indexName);
+			const auto& ftsIndex = procedure->indexRepository.getIndex(status, att, tra, sqlDialect, indexName);
 			// Check if the index directory exists. 
-			const auto unicodeIndexDir = FileUtils::joinPath(StringUtils::toUnicode(ftsDirectory), StringUtils::toUnicode(indexName));
-			if (!FileUtils::isDirectory(unicodeIndexDir)) {
-				const string indexDir = StringUtils::toUTF8(unicodeIndexDir);
-				const string error_message = string_format("Index directory \"%s\" not exists.", indexDir);
+			const auto& indexDirectoryPath = ftsDirectoryPath / indexName;
+			if (!fs::is_directory(indexDirectoryPath)) {
+				const string error_message = string_format("Index directory \"%s\" not exists.", indexDirectoryPath.u8string());
 				ISC_STATUS statusVector[] = {
 					isc_arg_gds, isc_random,
 					isc_arg_string, (ISC_STATUS)error_message.c_str(),
@@ -867,9 +869,9 @@ FB_UDR_BEGIN_PROCEDURE(optimizeIndex)
 				throw FbException(status, statusVector);
 			}
 
-			auto fsIndexDir = FSDirectory::open(unicodeIndexDir);
-			auto analyzer = procedure->analyzerFactory.createAnalyzer(status, ftsIndex->analyzer);
-			IndexWriterPtr writer = newLucene<IndexWriter>(fsIndexDir, analyzer, false, IndexWriter::MaxFieldLengthLIMITED);
+			const auto& fsIndexDir = FSDirectory::open(indexDirectoryPath.wstring());
+			const auto& analyzer = procedure->analyzerFactory.createAnalyzer(status, ftsIndex->analyzer);
+			const auto& writer = newLucene<IndexWriter>(fsIndexDir, analyzer, false, IndexWriter::MaxFieldLengthLIMITED);
 
 			// clean up index directory
 			writer->optimize();

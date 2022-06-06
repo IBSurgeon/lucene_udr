@@ -12,7 +12,6 @@
 **/
 
 #include "FTSIndex.h"
-#include "inicpp.h"
 #include "FBUtils.h"
 #include "LuceneAnalyzerFactory.h"
 
@@ -22,26 +21,57 @@ using namespace std;
 namespace LuceneUDR
 {
 
-	/// <summary>
-	/// Returns the directory where full-text indexes are located.
-	/// </summary>
-	/// 
-	/// <param name="context">The context of the external routine.</param>
-	/// 
-	/// <returns>Full path to full-text index directory</returns>
-	string getFtsDirectory(IExternalContext* context) {
-		IConfigManager* configManager = context->getMaster()->getConfigManager();
-		const string databaseName(context->getDatabaseName());
-		const string rootDir(configManager->getRootDirectory());
+	FTSIndexSegmentList::const_iterator FTSIndex::findSegment(const string& fieldName) {
+		return std::find_if(
+			segments.cbegin(),
+			segments.cend(),
+			[&fieldName](const auto& segment) { return segment->compareFieldName(fieldName); }
+		);
+	}
 
-		ini::IniFile iniFile;
-		iniFile.load(rootDir + "/fts.ini");
-		auto section = iniFile[databaseName];
-		return section["ftsDirectory"].as<string>();
+	FTSIndexSegmentList::const_iterator FTSIndex::findKey() {
+		return std::find_if(
+			segments.cbegin(),
+			segments.cend(),
+			[](const auto& segment) { return segment->key; }
+		);
+	}
+
+	bool FTSIndex::checkAllFieldsExists()
+	{
+		bool existsFlag = true;
+		for (const auto& segment : segments) {
+			existsFlag = existsFlag && segment->fieldExists;
+		}
+		return existsFlag;
+	}
+
+	void FTSIndex::prepareExtractRecordStmt(
+		ThrowStatusWrapper* const status,
+		IAttachment* const att,
+		ITransaction* const tra,
+		const unsigned int sqlDialect
+	)
+	{
+		const auto sql = buildSqlSelectFieldValues(status, sqlDialect, true);
+		stmtExtractRecord.reset(att->prepare(
+			status,
+			tra,
+			static_cast<unsigned int>(sql.length()),
+			sql.c_str(),
+			sqlDialect,
+			IStatement::PREPARE_PREFETCH_METADATA
+		));
+		// get a description of the fields				
+		AutoRelease<IMessageMetadata> outputMetadata(stmtExtractRecord->getOutputMetadata(status));
+		const unsigned colCount = outputMetadata->getCount(status);
+		// make all fields of string type except BLOB
+		outMetaExtractRecord.reset(prepareTextMetaData(status, outputMetadata));
+		inMetaExtractRecord.reset(stmtExtractRecord->getInputMetadata(status));
 	}
 
 	string FTSIndex::buildSqlSelectFieldValues(
-		ThrowStatusWrapper* status,
+		ThrowStatusWrapper* const status,
 		const unsigned int sqlDialect,
 		const bool whereKey)
 	{
@@ -107,9 +137,9 @@ namespace LuceneUDR
 	/// <param name="analyzerName">Analyzer name</param>
 	/// <param name="description">Custom index description</param>
 	void FTSIndexRepository::createIndex (
-		ThrowStatusWrapper* status,
-		IAttachment* att,
-		ITransaction* tra,
+		ThrowStatusWrapper* const status,
+		IAttachment* const att,
+		ITransaction* const tra,
 		const unsigned int sqlDialect,
 		const string& indexName,
 		const string& relationName,
@@ -195,9 +225,9 @@ namespace LuceneUDR
 	/// <param name="sqlDialect">SQL dialect</param>
 	/// <param name="indexName">Index name</param>
 	void FTSIndexRepository::dropIndex (
-		ThrowStatusWrapper* status,
-		IAttachment* att,
-		ITransaction* tra,
+		ThrowStatusWrapper* const status,
+		IAttachment* const att,
+		ITransaction* const tra,
 		const unsigned int sqlDialect,
 		const string& indexName)
 	{
@@ -246,9 +276,9 @@ namespace LuceneUDR
 	/// <param name="indexName">Index name</param>
 	/// <param name="indexStatus">Index Status</param>
 	void FTSIndexRepository::setIndexStatus (
-		ThrowStatusWrapper* status,
-		IAttachment* att,
-		ITransaction* tra,
+		ThrowStatusWrapper* const status,
+		IAttachment* const att,
+		ITransaction* const tra,
 		const unsigned int sqlDialect,
 		const string& indexName,
 		const string& indexStatus)
@@ -291,9 +321,9 @@ namespace LuceneUDR
 	/// 
 	/// <returns>Returns true if the index exists, false otherwise</returns>
 	bool FTSIndexRepository::hasIndex (
-		ThrowStatusWrapper* status, 
-		IAttachment* att, 
-		ITransaction* tra, 
+		ThrowStatusWrapper* const status, 
+		IAttachment* const att, 
+		ITransaction* const tra, 
 		const unsigned int sqlDialect, 
 		const string& indexName)
 	{
@@ -356,9 +386,9 @@ namespace LuceneUDR
 	/// 
 	/// <returns>Index metadata</returns>
 	FTSIndexPtr FTSIndexRepository::getIndex (
-		ThrowStatusWrapper* status, 
-		IAttachment* att, 
-		ITransaction* tra, 
+		ThrowStatusWrapper* const status, 
+		IAttachment* const att, 
+		ITransaction* const tra, 
 		const unsigned int sqlDialect, 
 		const string& indexName,
 		const bool withSegments)
@@ -443,9 +473,9 @@ namespace LuceneUDR
 	/// 
 	/// <returns>List of indexes</returns>
 	FTSIndexList FTSIndexRepository::getAllIndexes (
-		ThrowStatusWrapper* status, 
-		IAttachment* att, 
-		ITransaction* tra, 
+		ThrowStatusWrapper* const status, 
+		IAttachment* const att, 
+		ITransaction* const tra, 
 		const unsigned int sqlDialect)
 	{
 
@@ -511,9 +541,9 @@ namespace LuceneUDR
 	/// 
 	/// <returns>List of indexes with segments</returns>
 	FTSIndexMap FTSIndexRepository::getAllIndexesWithSegments(
-		ThrowStatusWrapper* status,
-		IAttachment* att,
-		ITransaction* tra,
+		ThrowStatusWrapper* const status,
+		IAttachment* const att,
+		ITransaction* const tra,
 		const unsigned int sqlDialect)
 	{
 		FB_MESSAGE(Output, ThrowStatusWrapper,
@@ -605,9 +635,9 @@ namespace LuceneUDR
 	/// 
 	/// <returns>List of index segments</returns>
 	void FTSIndexRepository::fillIndexSegments(
-		ThrowStatusWrapper* status,
-		IAttachment* att,
-		ITransaction* tra,
+		ThrowStatusWrapper* const status,
+		IAttachment* const att,
+		ITransaction* const tra,
 		const unsigned int sqlDialect,
 		const string& indexName,
 		FTSIndexSegmentList& segments)
@@ -690,9 +720,9 @@ namespace LuceneUDR
 	/// 
 	/// <returns>Returns true if the index field exists, false otherwise</returns>
 	bool FTSIndexRepository::hasKeyIndexField(
-		ThrowStatusWrapper* status,
-		IAttachment* att,
-		ITransaction* tra,
+		ThrowStatusWrapper* const status,
+		IAttachment* const att,
+		ITransaction* const tra,
 		const unsigned int sqlDialect,
 		const string& indexName
 	)
@@ -751,9 +781,9 @@ namespace LuceneUDR
 	/// 
 	/// <returns>Returns segment with key field.</returns>
 	FTSIndexSegmentPtr FTSIndexRepository::getKeyIndexField(
-		ThrowStatusWrapper* status,
-		IAttachment* att,
-		ITransaction* tra,
+		ThrowStatusWrapper* const status,
+		IAttachment* const att,
+		ITransaction* const tra,
 		const unsigned int sqlDialect,
 		const string& indexName)
 	{
@@ -832,9 +862,9 @@ namespace LuceneUDR
 	/// <param name="boost">Significance multiplier</param>
 	/// <param name="boostNull">Boost null flag</param>
 	void FTSIndexRepository::addIndexField(
-		ThrowStatusWrapper* status,
-		IAttachment* att,
-		ITransaction* tra,
+		ThrowStatusWrapper* const status,
+		IAttachment* const att,
+		ITransaction* const tra,
 		const unsigned int sqlDialect,
 		const string &indexName,
 		const string &fieldName,
@@ -929,9 +959,9 @@ namespace LuceneUDR
 	/// <param name="indexName">Index name</param>
 	/// <param name="fieldName">Field name</param>
 	void FTSIndexRepository::dropIndexField(
-		ThrowStatusWrapper* status,
-		IAttachment* att,
-		ITransaction* tra,
+		ThrowStatusWrapper* const status,
+		IAttachment* const att,
+		ITransaction* const tra,
 		const unsigned int sqlDialect,
 		const string &indexName,
 		const string &fieldName)
@@ -1000,9 +1030,9 @@ namespace LuceneUDR
 	/// <param name="boost">Significance multiplier</param>
 	/// <param name="boostNull">Boost null flag</param>
 	void FTSIndexRepository::setIndexFieldBoost(
-		ThrowStatusWrapper* status,
-		IAttachment* att,
-		ITransaction* tra,
+		ThrowStatusWrapper* const status,
+		IAttachment* const att,
+		ITransaction* const tra,
 		const unsigned int sqlDialect,
 		const string& indexName,
 		const string& fieldName,
@@ -1077,9 +1107,9 @@ namespace LuceneUDR
 	/// <param name="fieldName">Field name</param>
 	/// <returns>Returns true if the field (segment) exists in the index, false otherwise</returns>
 	bool FTSIndexRepository::hasIndexSegment(
-		ThrowStatusWrapper* status,
-		IAttachment* att,
-		ITransaction* tra,
+		ThrowStatusWrapper* const status,
+		IAttachment* const att,
+		ITransaction* const tra,
 		const unsigned int sqlDialect,
 		const string &indexName,
 		const string &fieldName)
@@ -1141,9 +1171,9 @@ namespace LuceneUDR
 	/// 
 	/// <returns>List of full-text index field names</returns>
 	list<string> FTSIndexRepository::getFieldsByRelation (
-		ThrowStatusWrapper* status,
-		IAttachment* att,
-		ITransaction* tra,
+		ThrowStatusWrapper* const status,
+		IAttachment* const att,
+		ITransaction* const tra,
 		const unsigned int sqlDialect,
 		const string &relationName)
 	{
@@ -1203,9 +1233,9 @@ namespace LuceneUDR
 	/// 
 	/// <returns>Trigger source code list</returns>
 	list<string> FTSIndexRepository::makeTriggerSourceByRelation (
-		ThrowStatusWrapper* status,
-		IAttachment* att,
-		ITransaction* tra,
+		ThrowStatusWrapper* const status,
+		IAttachment* const att,
+		ITransaction* const tra,
 		const unsigned int sqlDialect,
 		const string &relationName,
 		const bool multiAction)

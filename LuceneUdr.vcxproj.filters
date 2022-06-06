@@ -55,6 +55,9 @@
     <ClCompile Include="src\FTS_TRIGGER_HELPER.cpp">
       <Filter>Source files</Filter>
     </ClCompile>
+    <ClCompile Include="src\FTSUtils.cpp">
+      <Filter>Source files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\LuceneUdr.h">
@@ -91,6 +94,9 @@
       <Filter>Header files</Filter>
     </ClInclude>
     <ClInclude Include="src\udr_build_no.h">
+      <Filter>Header files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\FTSUtils.h">
       <Filter>Header files</Filter>
     </ClInclude>
   </ItemGroup>
