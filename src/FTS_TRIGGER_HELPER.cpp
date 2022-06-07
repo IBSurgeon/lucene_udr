@@ -31,22 +31,34 @@ using namespace LuceneUDR;
 /***
 PROCEDURE FTS$MAKE_TRIGGER (
 	FTS$RELATION_NAME VARCHAR(63) CHARACTER SET UTF8,
-	FTS$MULTI_ACTION BOOLEAN DEFAULT TRUE
+	FTS$MULTI_ACTION BOOLEAN DEFAULT TRUE NOT NULL,
+	FTS$POSITION SMALLINT DEFAULT 100 NOT NULL
 )
 RETURNS (
-	FTS$TRIGGER_SOURCE BLOB SUB_TYPE TEXT CHARACTER SET UTF8
+    FTS$TRIGGER_NAME VARCHAR(63) CHARACTER SET UTF8,
+    FTS$TRIGGER_RELATION VARCHAR(63) CHARACTER SET UTF8,
+	FTS$TRIGGER_EVENTS VARCHAR(26) CHARACTER SET UTF8,
+	FTS$TRIGGER_POSITION SMALLINT,
+	FTS$TRIGGER_SOURCE BLOB SUB_TYPE TEXT CHARACTER SET UTF8,
+	FTS$TRIGGER_SCRIPT BLOB SUB_TYPE TEXT CHARACTER SET UTF8
 )
 EXTERNAL NAME 'luceneudr!ftsMakeTrigger'
 ENGINE UDR;
 ***/
 FB_UDR_BEGIN_PROCEDURE(ftsMakeTrigger)
 	FB_UDR_MESSAGE(InMessage,
-		(FB_INTL_VARCHAR(252, CS_UTF8), relation_name)
-		(FB_BOOLEAN, multi_action)
+		(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
+		(FB_BOOLEAN, multiAction)
+		(FB_SMALLINT, position)
 	);
 
 	FB_UDR_MESSAGE(OutMessage,
+		(FB_INTL_VARCHAR(252, CS_UTF8), triggerName)
+		(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
+		(FB_INTL_VARCHAR(104, CS_UTF8), events)
+		(FB_SMALLINT, position)
 		(FB_BLOB, triggerSource)
+		(FB_BLOB, triggerScript)
 	);
 
 	FB_UDR_CONSTRUCTOR
@@ -58,7 +70,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsMakeTrigger)
 
 	FB_UDR_EXECUTE_PROCEDURE
 	{
-		if (in->relation_nameNull) {
+		if (in->relationNameNull) {
 			ISC_STATUS statusVector[] = {
 				isc_arg_gds, isc_random,
 				isc_arg_string, (ISC_STATUS)"FTS$RELATION_NAME can not be NULL",
@@ -66,23 +78,21 @@ FB_UDR_BEGIN_PROCEDURE(ftsMakeTrigger)
 			};
 			throw FbException(status, statusVector);
 		}
-		string relationName(in->relation_name.str, in->relation_name.length);
+		string relationName(in->relationName.str, in->relationName.length);
 
-		bool multiActionFlag = true;
-		if (!in->multi_actionNull) {
-			multiActionFlag = in->multi_action;
-		}
+		const bool multiActionFlag = in->multiAction;
+
+		const auto triggerPosition = in->position;
 
 		att.reset(context->getAttachment(status));
 		tra.reset(context->getTransaction(status));
 
-		const unsigned int sqlDialect = getSqlDialect(status, att);
+		sqlDialect = getSqlDialect(status, att);
 
 
 		try {
-			// TODO: needs map source of trigger events
-			triggerSources = procedure->indexRepository.makeTriggerSourceByRelation(status, att, tra, sqlDialect, relationName, multiActionFlag);
-			it = triggerSources.begin();
+			procedure->indexRepository.makeTriggerSourceByRelation(status, att, tra, sqlDialect, relationName, multiActionFlag, triggerPosition, triggers);
+			it = triggers.cbegin();
 		}
 		catch (LuceneException& e) {
 			string error_message = StringUtils::toUTF8(e.getError());
@@ -95,26 +105,49 @@ FB_UDR_BEGIN_PROCEDURE(ftsMakeTrigger)
 		}
 	}
 
-	list<string> triggerSources;
-	list<string>::iterator it;
+	FTSTriggerList triggers;
+	FTSTriggerList::const_iterator it;
 	AutoRelease<IAttachment> att;
 	AutoRelease<ITransaction> tra;
+	unsigned int sqlDialect;
 
 
 	FB_UDR_FETCH_PROCEDURE
 	{
-		if (it == triggerSources.end()) {
-			out->triggerSourceNull = true;
+		if (it == triggers.end()) {
 			return false;
 		}
 
+		const auto& trigger = *it;
 
-		string triggerSource = *it;
+		out->triggerNameNull = false;
+		out->triggerName.length = static_cast<ISC_SHORT>(trigger->triggerName.length());
+		trigger->triggerName.copy(out->triggerName.str, out->triggerName.length);
+
+		out->relationNameNull = false;
+		out->relationName.length = static_cast<ISC_SHORT>(trigger->relationName.length());
+		trigger->relationName.copy(out->relationName.str, out->relationName.length);
+
+		out->eventsNull = false;
+		out->events.length = static_cast<ISC_SHORT>(trigger->triggerEvents.length());
+		trigger->triggerEvents.copy(out->events.str, out->events.length);
+
+		out->positionNull = false;
+		out->position = trigger->position;
 
 		out->triggerSourceNull = false;
-		AutoRelease<IBlob> blob(att->createBlob(status, tra, &out->triggerSource, 0, nullptr));
-		blob_set_string(status, blob, triggerSource);
-		blob->close(status);
+		{
+			AutoRelease<IBlob> blob(att->createBlob(status, tra, &out->triggerSource, 0, nullptr));
+			blob_set_string(status, blob, trigger->triggerSource);
+			blob->close(status);
+		}
+
+		out->triggerScriptNull = false;
+		{
+			AutoRelease<IBlob> blob(att->createBlob(status, tra, &out->triggerScript, 0, nullptr));
+			blob_set_string(status, blob, trigger->getScript(sqlDialect));
+			blob->close(status);
+		}
 
 		++it;
 		return true;

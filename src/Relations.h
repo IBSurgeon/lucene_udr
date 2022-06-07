@@ -188,14 +188,15 @@ namespace LuceneUDR
 		/// <param name="tra">Firebird transaction</param>
 		/// <param name="sqlDialect">SQL dialect</param>
 		/// <param name="relationName">Relation name</param>
+		/// <param name="fields">List of relations fields</param>
 		/// 
-		/// <returns>Returns a list of relations fields.</returns>
-		RelationFieldList getFields(
+		void fillRelationFields(
 			ThrowStatusWrapper* const status,
 			IAttachment* const att,
 			ITransaction* const tra,
 			const unsigned int sqlDialect,
-			const string& relationName
+			const string& relationName,
+			RelationFieldList& fields
 		);
 
 		/// <summary>
@@ -207,14 +208,15 @@ namespace LuceneUDR
 		/// <param name="tra">Firebird transaction</param>
 		/// <param name="sqlDialect">SQL dialect</param>
 		/// <param name="relationName">Relation name</param>
+		/// <param name="keyFields">List of relations primary key fields</param>
 		/// 
-		/// <returns>Returns a list of relations primary key fields.</returns>
-		RelationFieldList getPrimaryKeyFields(
+		void fillPrimaryKeyFields(
 			ThrowStatusWrapper* const status,
 			IAttachment* const att,
 			ITransaction* const tra,
 			const unsigned int sqlDialect,
-			const string& relationName
+			const string& relationName,
+			RelationFieldList& keyFields
 		);
 
 		/// <summary>
@@ -270,6 +272,8 @@ namespace LuceneUDR
 		/// otherwise an SQL query will be built without filtering, that is, returning all records.</param>
 		/// 
 		/// <returns>Returns the text of the SQL query.</returns>
+		/// 
+		/*
 		static inline string buildSqlSelectFieldValues(
 			const unsigned int sqlDialect, 
 			const string& relationName, 
@@ -309,6 +313,7 @@ namespace LuceneUDR
 			}
 			return ss.str();
 		}
+		*/
 	};
 }
 

@@ -579,7 +579,8 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 
 
 		// get all indexes with segments
-		auto indexes = procedure->indexRepository.getAllIndexesWithSegments(status, att, tra, sqlDialect);
+		FTSIndexMap indexes;
+		procedure->indexRepository.fillAllIndexesWithSegments(status, att, tra, sqlDialect, indexes);
 		// fill map indexes of relationName
 		map<string, list<string>> indexesByRelation;
 		for (auto& [indexName, ftsIndex] : indexes) {	
@@ -721,12 +722,13 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 
 			// for all indexes for relationName
 			for (const auto& indexName : indexNames) {
-				const auto& ftsIndex = indexes[indexName];
+				const auto& ftsIndex = indexes.at(indexName);
 				const auto& indexWriter = procedure->getIndexWriter(status, ftsIndex);
 
 				Lucene::String unicodeKeyValue;
 				if (changeType == "D") {
-					switch (ftsIndex->keyFieldType) {
+					FTSKeyType keyType = ftsIndex->keyFieldType;
+					switch (keyType) {
 					case FTSKeyType::DB_KEY:
 						if (!logOutput->dbKeyNull) {
 							string dbKey(logOutput->dbKey.str, logOutput->dbKey.length);

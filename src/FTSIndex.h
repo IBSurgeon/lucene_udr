@@ -146,6 +146,87 @@ namespace LuceneUDR
 		}
 	};
 
+	class FTSKeyFieldBlock final
+	{
+	public:
+		FTSKeyFieldBlock()
+			: keyFieldName()
+			, keyFieldType(FTSKeyType::NONE)
+			, fieldNames()
+			, insertingCondition()
+			, updatingCondition()
+			, deletingCondition()
+		{}
+
+		string keyFieldName;
+		FTSKeyType keyFieldType;
+		list<string> fieldNames;
+
+		string insertingCondition;
+		string updatingCondition;
+		string deletingCondition;
+
+		const string getProcedureName()
+		{
+			switch (keyFieldType) {
+			case FTSKeyType::DB_KEY:
+				return "FTS$LOG_BY_DBKEY";
+			case FTSKeyType::INT_ID:
+				return "FTS$LOG_BY_ID";
+			case FTSKeyType::UUID:
+				return "FTS$LOG_BY_UUID";
+			default:
+				return "";
+			}
+		}
+	};
+
+	using FTSKeyFieldBlockPtr = unique_ptr<FTSKeyFieldBlock>;
+	using FTSKeyFieldBlockMap = map<string, FTSKeyFieldBlockPtr>;
+
+	class FTSTrigger final 
+	{
+	public:
+		string triggerName;
+		string relationName;
+		string triggerEvents;
+		unsigned int position;
+		string triggerSource;		
+
+		FTSTrigger()
+			: triggerName()
+			, relationName()
+			, triggerEvents()
+			, position(0)
+			, triggerSource()
+		{}
+
+		FTSTrigger(const string& aTriggerName, const string& aRelationName, const string& aTriggerEvents, const unsigned int aPosition, const string& aTriggerSource)
+			: triggerName(aTriggerName)
+			, relationName(aRelationName)
+			, triggerEvents(aTriggerEvents)
+			, position(aPosition)
+			, triggerSource(aTriggerSource)
+		{}
+
+		const string getHeader(unsigned int sqlDialect)
+		{
+			string triggerHeader =
+				"CREATE OR ALTER TRIGGER " + escapeMetaName(sqlDialect, triggerName) + " FOR " + escapeMetaName(sqlDialect, relationName) + "\n"
+				"ACTIVE AFTER " + triggerEvents + "\n"
+				"POSITION " + std::to_string(position) + "\n";
+			return triggerHeader;
+		}
+
+		const string getScript(unsigned int sqlDialect)
+		{
+			return getHeader(sqlDialect) + triggerSource;
+		}
+	};
+
+	using FTSTriggerPtr = unique_ptr<FTSTrigger>;
+	using FTSTriggerList = list<FTSTriggerPtr>;
+
 
 	/// <summary>
 	/// Repository of full-text indexes. 
@@ -286,13 +367,14 @@ namespace LuceneUDR
 		/// <param name="att">Firebird attachment</param>
 		/// <param name="tra">Firebird transaction</param>
 		/// <param name="sqlDialect">SQL dialect</param>
+		/// <param name="indexes">List of indexes</param>
 		/// 
-		/// <returns>List of indexes</returns>
-		FTSIndexList getAllIndexes (
+		void fillAllIndexes (
 			ThrowStatusWrapper* const status, 
 			IAttachment* const att, 
 			ITransaction* const tra, 
-			const unsigned int sqlDialect);
+			const unsigned int sqlDialect,
+			FTSIndexList& indexes);
 
 		/// <summary>
 		/// Returns a list of indexes with segments. 
@@ -302,13 +384,14 @@ namespace LuceneUDR
 		/// <param name="att">Firebird attachment</param>
 		/// <param name="tra">Firebird transaction</param>
 		/// <param name="sqlDialect">SQL dialect</param>
+		/// <param name="indexes">Map indexes of name with segments</param>
 		/// 
-		/// <returns>Map indexes of name with segments</returns>
-		FTSIndexMap getAllIndexesWithSegments(
+		void fillAllIndexesWithSegments(
 			ThrowStatusWrapper* const status,
 			IAttachment* const att,
 			ITransaction* const tra,
-			const unsigned int sqlDialect);
+			const unsigned int sqlDialect,
+			FTSIndexMap& indexes);
 
 		/// <summary>
 		/// Returns a list of index segments with the given name.
@@ -456,25 +539,6 @@ namespace LuceneUDR
 
 
 		/// <summary>
-		/// Returns a list of full-text index field names given the relation name.
-		/// </summary>
-		/// 
-		/// <param name="status">Firebird status</param>
-		/// <param name="att">Firebird attachment</param>
-		/// <param name="tra">Firebird transaction</param>
-		/// <param name="sqlDialect">SQL dialect</param>
-		/// <param name="relationName">Relation name</param>
-		/// 
-		/// <returns>List of full-text index field names</returns>
-		list<string> getFieldsByRelation (
-			ThrowStatusWrapper* const status,
-			IAttachment* const att,
-			ITransaction* const tra,
-			const unsigned int sqlDialect,
-			const string &relationName);
-
-
-		/// <summary>
 		/// Returns a list of trigger source codes to support full-text indexes by relation name. 
 		/// </summary>
 		/// 
@@ -484,15 +548,63 @@ namespace LuceneUDR
 		/// <param name="sqlDialect">SQL dialect</param>
 		/// <param name="relationName">Relation name</param>
 		/// <param name="multiAction">Flag for generating multi-event triggers</param>
+		/// <param name="position">Trigger position</param>
+		/// <param name="triggers">Triggers list</param>
 		/// 
-		/// <returns>Trigger source code list</returns>
-		list<string> makeTriggerSourceByRelation (
+		void makeTriggerSourceByRelation (
 			ThrowStatusWrapper* const status,
 			IAttachment* const att,
 			ITransaction* const tra,
 			const unsigned int sqlDialect,
 			const string& relationName,
-			const bool multiAction);
+			const bool multiAction,
+			const unsigned short position,
+			FTSTriggerList& triggers);
+
+		private:
+			/// <summary>
+			/// Returns a map of field blocks by table keys to create triggers that support full-text indexes.
+			/// </summary>
+			/// 
+			/// <param name="status">Firebird status</param>
+			/// <param name="att">Firebird attachment</param>
+			/// <param name="tra">Firebird transaction</param>
+			/// <param name="sqlDialect">SQL dialect</param>
+			/// <param name="relationName">Relation name</param>
+			/// <param name="keyFieldBlocks">Map of field blocks by table keys</param>
+			/// 
+			void fillKeyFieldBlocks(
+				ThrowStatusWrapper* const status,
+				IAttachment* const att,
+				ITransaction* const tra,
+				const unsigned int sqlDialect,
+				const string& relationName,
+				FTSKeyFieldBlockMap& keyFieldBlocks
+			);
+
+			const string makeTriggerSourceByRelationMulti(
+				const FTSKeyFieldBlockMap& keyFieldBlocks,
+				const unsigned int sqlDialect,
+				const string& relationName
+			);
+
+			const string makeTriggerSourceByRelationInsert (
+				const FTSKeyFieldBlockMap& keyFieldBlocks,
+				const unsigned int sqlDialect,
+				const string& relationName
+			);
+
+			const string makeTriggerSourceByRelationUpdate(
+				const FTSKeyFieldBlockMap& keyFieldBlocks,
+				const unsigned int sqlDialect,
+				const string& relationName
+			);
+
+			const string makeTriggerSourceByRelationDelete(
+				const FTSKeyFieldBlockMap& keyFieldBlocks,
+				const unsigned int sqlDialect,
+				const string& relationName
+			);
 	};
 }
 #endif	// FTS_INDEX_H

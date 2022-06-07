@@ -189,7 +189,8 @@ FB_UDR_BEGIN_PROCEDURE(createIndex)
 		string keyFieldName;
 		if (in->keyFieldNameNull) {
 			if (relationInfo->findKeyFieldSupported()) {
-				auto keyFields = procedure->indexRepository.relationHelper.getPrimaryKeyFields(status, att, tra, sqlDialect, relationName);
+				RelationFieldList keyFields;
+				procedure->indexRepository.relationHelper.fillPrimaryKeyFields(status, att, tra, sqlDialect, relationName, keyFields);
 				if (keyFields.size() == 0) {
 				   // There is no primary key constraint.
 					if (relationInfo->relationType == RelationType::RT_REGULAR) {

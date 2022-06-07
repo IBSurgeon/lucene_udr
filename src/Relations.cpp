@@ -170,14 +170,16 @@ namespace LuceneUDR
 	/// <param name="tra">Firebird transaction</param>
 	/// <param name="sqlDialect">SQL dialect</param>
 	/// <param name="relationName">Relation name</param>
+	/// <param name="fields">List of relations fields</param>
 	/// 
-	/// <returns>Returns a list of relations fields.</returns>
-	RelationFieldList RelationHelper::getFields(
-		ThrowStatusWrapper* status,
-		IAttachment* att,
-		ITransaction* tra,
+	void RelationHelper::fillRelationFields(
+		ThrowStatusWrapper* const status,
+		IAttachment* const att,
+		ITransaction* const tra,
 		const unsigned int sqlDialect,
-		const string& relationName) 
+		const string& relationName,
+		RelationFieldList& fields
+	)
 	{
 		FB_MESSAGE(Input, ThrowStatusWrapper,
 			(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
@@ -232,7 +234,6 @@ namespace LuceneUDR
 			0
 		));
 
-		RelationFieldList fieldList;
 		while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
 			auto fieldInfo = make_unique<RelationFieldInfo>();
 
@@ -246,11 +247,10 @@ namespace LuceneUDR
 			fieldInfo->fieldPrecision = output->fieldPrecision;
 			fieldInfo->fieldScale = output->fieldScale;
 
-			fieldList.push_back(std::move(fieldInfo));
+			fields.push_back(std::move(fieldInfo));
 		}
 
 		rs->close(status);
-		return fieldList;
 	}
 
 	/// <summary>
@@ -262,14 +262,15 @@ namespace LuceneUDR
 	/// <param name="tra">Firebird transaction</param>
 	/// <param name="sqlDialect">SQL dialect</param>
 	/// <param name="relationName">Relation name</param>
+	/// <param name="keyFields">List of relations primary key fields</param>
 	/// 
-	/// <returns>Returns a list of relations primary key fields.</returns>
-	RelationFieldList RelationHelper::getPrimaryKeyFields(
-		ThrowStatusWrapper* status,
-		IAttachment* att,
-		ITransaction* tra,
+	void RelationHelper::fillPrimaryKeyFields(
+		ThrowStatusWrapper* const status,
+		IAttachment* const att,
+		ITransaction* const tra,
 		const unsigned int sqlDialect,
-		const string& relationName
+		const string& relationName,
+		RelationFieldList& keyFields
 	)
 	{
 		FB_MESSAGE(Input, ThrowStatusWrapper,
@@ -331,7 +332,6 @@ namespace LuceneUDR
 			0
 		));
 
-		RelationFieldList fieldList;
 		while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
 			auto fieldInfo = make_unique<RelationFieldInfo>();
 
@@ -345,11 +345,10 @@ namespace LuceneUDR
 			fieldInfo->fieldPrecision = output->fieldPrecision;
 			fieldInfo->fieldScale = output->fieldScale;
 
-			fieldList.push_back(std::move(fieldInfo));
+			keyFields.push_back(std::move(fieldInfo));
 		}
 
 		rs->close(status);
-		return fieldList;
 	}
 
 	/// <summary>

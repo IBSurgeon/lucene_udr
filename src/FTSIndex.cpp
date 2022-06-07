@@ -470,13 +470,14 @@ namespace LuceneUDR
 	/// <param name="att">Firebird attachment</param>
 	/// <param name="tra">Firebird transaction</param>
 	/// <param name="sqlDialect">SQL dialect</param>
+	/// <param name="indexes">List of indexes</param>
 	/// 
-	/// <returns>List of indexes</returns>
-	FTSIndexList FTSIndexRepository::getAllIndexes (
-		ThrowStatusWrapper* const status, 
-		IAttachment* const att, 
-		ITransaction* const tra, 
-		const unsigned int sqlDialect)
+	void FTSIndexRepository::fillAllIndexes(
+		ThrowStatusWrapper* const status,
+		IAttachment* const att,
+		ITransaction* const tra,
+		const unsigned int sqlDialect,
+		FTSIndexList& indexes)
 	{
 
 		FB_MESSAGE(Output, ThrowStatusWrapper,
@@ -508,7 +509,6 @@ namespace LuceneUDR
 			0
 		));
 
-		FTSIndexList indexes;
 		while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
 			auto ftsIndex = make_unique<FTSIndex>();
 			ftsIndex->indexName.assign(output->indexName.str, output->indexName.length);
@@ -527,7 +527,6 @@ namespace LuceneUDR
 		}
 		rs->close(status);
 
-		return indexes;
 	}
 
 	/// <summary>
@@ -538,13 +537,14 @@ namespace LuceneUDR
 	/// <param name="att">Firebird attachment</param>
 	/// <param name="tra">Firebird transaction</param>
 	/// <param name="sqlDialect">SQL dialect</param>
+	/// <param name="indexes">Map indexes of name with segments</param>
 	/// 
-	/// <returns>List of indexes with segments</returns>
-	FTSIndexMap FTSIndexRepository::getAllIndexesWithSegments(
+	void FTSIndexRepository::fillAllIndexesWithSegments(
 		ThrowStatusWrapper* const status,
 		IAttachment* const att,
 		ITransaction* const tra,
-		const unsigned int sqlDialect)
+		const unsigned int sqlDialect,
+		FTSIndexMap& indexes)
 	{
 		FB_MESSAGE(Output, ThrowStatusWrapper,
 			(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
@@ -590,11 +590,10 @@ namespace LuceneUDR
 			0
 		));
 
-		FTSIndexMap indexes;
 		while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
 			const string indexName(output->indexName.str, output->indexName.length);
 
-			auto [it, result] = indexes.try_emplace(indexName, make_unique<FTSIndex>());
+			const auto& [it, result] = indexes.try_emplace(indexName, make_unique<FTSIndex>());
 			auto& index = it->second;
 			if (result) {
 				index->indexName.assign(output->indexName.str, output->indexName.length);
@@ -619,7 +618,6 @@ namespace LuceneUDR
 			index->segments.push_back(std::move(indexSegment));
 		}
 		rs->close(status);
-		return indexes;
 	}
 
 	/// <summary>
@@ -1160,7 +1158,7 @@ namespace LuceneUDR
 	}
 
 	/// <summary>
-	/// Returns a list of full-text index field names given the relation name.
+	/// Returns a map of field blocks by table keys to create triggers that support full-text indexes.
 	/// </summary>
 	/// 
 	/// <param name="status">Firebird status</param>
@@ -1168,20 +1166,24 @@ namespace LuceneUDR
 	/// <param name="tra">Firebird transaction</param>
 	/// <param name="sqlDialect">SQL dialect</param>
 	/// <param name="relationName">Relation name</param>
+	/// <param name="keyFieldBlocks">Map of field blocks by table keys</param>
 	/// 
-	/// <returns>List of full-text index field names</returns>
-	list<string> FTSIndexRepository::getFieldsByRelation (
+	void FTSIndexRepository::fillKeyFieldBlocks(
 		ThrowStatusWrapper* const status,
 		IAttachment* const att,
 		ITransaction* const tra,
 		const unsigned int sqlDialect,
-		const string &relationName)
+		const string& relationName,
+		FTSKeyFieldBlockMap& keyFieldBlocks
+	)
 	{
 		FB_MESSAGE(Input, ThrowStatusWrapper,
 			(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
 		) input(status, m_master);
 
 		FB_MESSAGE(Output, ThrowStatusWrapper,
+			(FB_INTL_VARCHAR(252, CS_UTF8), keyFieldName)
+			(FB_INTL_VARCHAR(24, CS_UTF8), keyFieldType)
 			(FB_INTL_VARCHAR(252, CS_UTF8), fieldName)
 		) output(status, m_master);
 
@@ -1194,10 +1196,35 @@ namespace LuceneUDR
 			status,
 			tra,
 			0,
-			"SELECT FTS$FIELD_NAME\n"
-			"FROM FTS$INDEX_SEGMENTS\n"
-			"WHERE FTS$RELATION_NAME = ?\n"
-			"GROUP BY 1",
+			"WITH T AS (\n"
+			"  SELECT\n"
+			"  I.FTS$INDEX_NAME,\n"
+			"  MAX(IIF(SEG.FTS$KEY IS TRUE, SEG.FTS$FIELD_NAME, NULL)) OVER(PARTITION BY SEG.FTS$INDEX_NAME) AS FTS$KEY_FIELD_NAME,\n"
+			"  MAX(CASE\n"
+			"	     WHEN SEG.FTS$KEY IS TRUE AND F.RDB$FIELD_TYPE = 14 AND F.RDB$CHARACTER_SET_ID = 1 AND F.RDB$FIELD_LENGTH = 16\n"
+			"	     THEN 'UUID'\n"
+			"	     WHEN SEG.FTS$KEY IS TRUE AND SEG.FTS$FIELD_NAME = 'RDB$DB_KEY'\n"
+			"	     THEN 'DBKEY'\n"
+			"	     WHEN SEG.FTS$KEY IS TRUE AND F.RDB$FIELD_TYPE IN(7, 8, 16) AND F.RDB$FIELD_SCALE = 0\n"
+			"	     THEN 'INT_ID'\n"
+			"	   END) OVER(PARTITION BY SEG.FTS$INDEX_NAME) AS FTS$KEY_FIELD_TYPE,\n"
+			"  SEG.FTS$FIELD_NAME\n"
+			"FROM FTS$INDICES I\n"
+			"JOIN FTS$INDEX_SEGMENTS SEG ON SEG.FTS$INDEX_NAME = I.FTS$INDEX_NAME\n"
+			"LEFT JOIN RDB$RELATION_FIELDS RF ON RF.RDB$RELATION_NAME = I.FTS$RELATION_NAME\n"
+			"                                AND RF.RDB$FIELD_NAME = SEG.FTS$FIELD_NAME\n"
+			"LEFT JOIN RDB$FIELDS F ON F.RDB$FIELD_NAME = RF.RDB$FIELD_SOURCE\n"
+			"WHERE I.FTS$RELATION_NAME = ?\n"
+			"  AND I.FTS$INDEX_STATUS = 'C'\n"
+			"  AND(RF.RDB$FIELD_NAME IS NOT NULL OR SEG.FTS$FIELD_NAME = 'RDB$DB_KEY')\n"
+			")\n"
+			"SELECT DISTINCT\n"
+			"  FTS$KEY_FIELD_NAME,\n"
+			"  TRIM(FTS$KEY_FIELD_TYPE) AS FTS$KEY_FIELD_TYPE,\n"
+			"  FTS$FIELD_NAME\n"
+			"FROM T\n"
+			"WHERE FTS$KEY_FIELD_NAME <> FTS$FIELD_NAME\n"
+			"ORDER BY FTS$KEY_FIELD_NAME",
 			sqlDialect,
 			IStatement::PREPARE_PREFETCH_METADATA
 		));
@@ -1211,14 +1238,32 @@ namespace LuceneUDR
 			0
 		));
 
-		list<string> fieldNames;
 		while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
-			string fieldName(output->fieldName.str, output->fieldName.length);
-			fieldNames.push_back(fieldName);
+			const string keyFieldName(output->keyFieldName.str, output->keyFieldName.length);
+			const string keyFieldType(output->keyFieldType.str, output->keyFieldType.length);
+			const string fieldName(output->fieldName.str, output->fieldName.length);
+			const auto& i = keyFieldBlocks.find(keyFieldName);
+
+			auto [it, result] = keyFieldBlocks.try_emplace(keyFieldName, make_unique<FTSKeyFieldBlock>());
+			const auto& block = it->second;
+			if (result) {
+				block->keyFieldName = keyFieldName;
+				if (keyFieldType == "UUID") {
+					block->keyFieldType = FTSKeyType::UUID;
+				}
+				if (keyFieldType == "DBKEY") {
+					block->keyFieldType = FTSKeyType::DB_KEY;
+				}
+				if (keyFieldType == "INT_ID") {
+					block->keyFieldType = FTSKeyType::INT_ID;
+				}
+			}
+			block->fieldNames.push_back(fieldName);
+
 		}
 		rs->close(status);
-		return fieldNames;
 	}
+
 
 	/// <summary>
 	/// Returns a list of trigger source codes to support full-text indexes by relation name. 
@@ -1230,98 +1275,206 @@ namespace LuceneUDR
 	/// <param name="sqlDialect">SQL dialect</param>
 	/// <param name="relationName">Relation name</param>
 	/// <param name="multiAction">Flag for generating multi-event triggers</param>
+	/// <param name="position">Trigger position</param>
+	/// <param name="triggers">Triggers list</param>
 	/// 
-	/// <returns>Trigger source code list</returns>
-	list<string> FTSIndexRepository::makeTriggerSourceByRelation (
+	void FTSIndexRepository::makeTriggerSourceByRelation(
 		ThrowStatusWrapper* const status,
 		IAttachment* const att,
 		ITransaction* const tra,
 		const unsigned int sqlDialect,
-		const string &relationName,
-		const bool multiAction)
+		const string& relationName,
+		const bool multiAction,
+		const unsigned short position,
+		FTSTriggerList& triggers)
 	{
-		list<string> triggerSources;
 
-		list<string> fieldNames = getFieldsByRelation(status, att, tra, sqlDialect, relationName);
+		FTSKeyFieldBlockMap keyFieldBlocks;
 
-		if (fieldNames.size() == 0)
-			return triggerSources;
-
-		string insertingCondition;
-		string updatingCondition;
-		string deletingCondition;
-		for (auto fieldName : fieldNames) {
-			const string metaFieldName = escapeMetaName(sqlDialect, fieldName);
-
-			if (!insertingCondition.empty()) {
-				insertingCondition += "\n      OR ";
+		fillKeyFieldBlocks(status, att, tra, sqlDialect, relationName, keyFieldBlocks);
+		for (const auto& [keyFieldName, keyFieldBlock] : keyFieldBlocks) {
+			if (keyFieldBlock->fieldNames.empty()) {
+				continue;
 			}
-			insertingCondition += "NEW." + metaFieldName + " IS NOT NULL";
+		
+			for (const auto& fieldName : keyFieldBlock->fieldNames) {
+				const string metaFieldName = escapeMetaName(sqlDialect, fieldName);
 
-			if (!updatingCondition.empty()) {
-				updatingCondition += "\n      OR ";
-			}
-			updatingCondition += "NEW." + metaFieldName + " IS DISTINCT FROM " + "OLD." + metaFieldName;
+				if (!keyFieldBlock->insertingCondition.empty()) {
+					keyFieldBlock->insertingCondition += "\n      OR ";
+				}
+				keyFieldBlock->insertingCondition += "NEW." + metaFieldName + " IS NOT NULL";
 
-			if (!deletingCondition.empty()) {
-				deletingCondition += "\n      OR ";
+				if (!keyFieldBlock->updatingCondition.empty()) {
+					keyFieldBlock->updatingCondition += "\n      OR ";
+				}
+				keyFieldBlock->updatingCondition += "NEW." + metaFieldName + " IS DISTINCT FROM " + "OLD." + metaFieldName;
+
+				if (!keyFieldBlock->deletingCondition.empty()) {
+					keyFieldBlock->deletingCondition += "\n      OR ";
+				}
+				keyFieldBlock->deletingCondition += "OLD." + metaFieldName + " IS NOT NULL";
 			}
-			deletingCondition += "OLD." + metaFieldName + " IS NOT NULL";
 		}
 
 	
 		if (multiAction) {
-			string triggerName = "FTS$" + relationName + "_AIUD";
-			string triggerSource =
-				"CREATE OR ALTER TRIGGER " + escapeMetaName(sqlDialect, triggerName) + " FOR " + escapeMetaName(sqlDialect, relationName) + "\n"
-				"ACTIVE AFTER INSERT OR UPDATE OR DELETE POSITION 100\n"
-				"AS\n"
-				"BEGIN\n"
-				"  IF (INSERTING AND (" + insertingCondition + ")) THEN\n"
-				"    EXECUTE PROCEDURE FTS$LOG_CHANGE('" + relationName + "', NEW.RDB$DB_KEY, 'I');\n"
-				"  IF (UPDATING AND (" + updatingCondition + ")) THEN\n"
-				"    EXECUTE PROCEDURE FTS$LOG_CHANGE('" + relationName + "', OLD.RDB$DB_KEY, 'U');\n"
-				"  IF (DELETING AND (" + deletingCondition + ")) THEN\n"
-				"    EXECUTE PROCEDURE FTS$LOG_CHANGE('" + relationName + "', OLD.RDB$DB_KEY, 'D');\n"
-				"END";
-			triggerSources.push_back(triggerSource);
+			const string triggerName = "FTS$" + relationName + "_AIUD";
+			const auto& source = makeTriggerSourceByRelationMulti(keyFieldBlocks, sqlDialect, relationName);
+			auto trigger = make_unique<FTSTrigger>(
+				triggerName,
+				relationName,
+				"INSERT OR UPDATE OR DELETE",
+				position,
+				source
+				);
+			triggers.push_back(std::move(trigger));
 		}
 		else {
-			// INSERT
-			string triggerName = "FTS$" + relationName + "_AI";
-			string triggerSource =
-				"CREATE OR ALTER TRIGGER " + escapeMetaName(sqlDialect, triggerName) + " FOR " + escapeMetaName(sqlDialect, relationName) + "\n"
-				"ACTIVE AFTER INSERT POSITION 100\n"
-				"AS\n"
-				"BEGIN\n"
-				"  IF (" + insertingCondition + ") THEN\n"
-				"    EXECUTE PROCEDURE FTS$LOG_CHANGE('" + relationName + "', NEW.RDB$DB_KEY, 'I');\n"
-				"END";
-			triggerSources.push_back(triggerSource);
-			// UPDATE
-			triggerName = "FTS$" + relationName + "_AU";
-			triggerSource =
-				"CREATE OR ALTER TRIGGER " + escapeMetaName(sqlDialect, triggerName) + " FOR " + escapeMetaName(sqlDialect, relationName) + "\n"
-				"ACTIVE AFTER UPDATE POSITION 100\n"
-				"AS\n"
-				"BEGIN\n"
-				"  IF (" + updatingCondition + ") THEN\n"
-				"    EXECUTE PROCEDURE FTS$LOG_CHANGE('" + relationName + "', OLD.RDB$DB_KEY, 'U');\n"
-				"END";
-			triggerSources.push_back(triggerSource);
-			// DELETE
-			triggerName = "FTS$" + relationName + "_AD";
-			triggerSource =
-				"CREATE OR ALTER TRIGGER " + escapeMetaName(sqlDialect, triggerName) + " FOR " + escapeMetaName(sqlDialect, relationName) + "\n"
-				"ACTIVE AFTER DELETE POSITION 100\n"
-				"AS\n"
-				"BEGIN\n"
-				"  IF (" + deletingCondition + ") THEN\n"
-				"    EXECUTE PROCEDURE FTS$LOG_CHANGE('" + relationName + "', OLD.RDB$DB_KEY, 'D');\n"
-				"END";
-			triggerSources.push_back(triggerSource);
+			{
+				// INSERT
+				const string triggerName = "FTS$" + relationName + "_AI";
+				const auto& source = makeTriggerSourceByRelationInsert(keyFieldBlocks, sqlDialect, relationName);
+				auto trigger = make_unique<FTSTrigger>(
+					triggerName,
+					relationName,
+					"INSERT",
+					position,
+					source
+					);
+				triggers.push_back(std::move(trigger));
+			}
+			{
+				// UPDATE
+				const string triggerName = "FTS$" + relationName + "_AU";
+				const auto& source = makeTriggerSourceByRelationUpdate(keyFieldBlocks, sqlDialect, relationName);
+				auto trigger = make_unique<FTSTrigger>(
+					triggerName,
+					relationName,
+					"UPDATE",
+					position,
+					source
+					);
+				triggers.push_back(std::move(trigger));
+			}
+			{
+				// DELETE
+				const string triggerName = "FTS$" + relationName + "_AD";
+				const auto& source = makeTriggerSourceByRelationDelete(keyFieldBlocks, sqlDialect, relationName);
+				auto trigger = make_unique<FTSTrigger>(
+					triggerName,
+					relationName,
+					"DELETE",
+					position,
+					source
+					);
+				triggers.push_back(std::move(trigger));
+			}
 		}
-		return triggerSources;
+	}
+
+	const string FTSIndexRepository::makeTriggerSourceByRelationMulti(
+		const FTSKeyFieldBlockMap& keyFieldBlocks,
+		const unsigned int sqlDialect,
+		const string& relationName
+	)
+	{
+		string triggerSource =
+			"AS\n"
+			"BEGIN\n";
+
+		for (const auto& [keyFieldName, keyFieldBlock] : keyFieldBlocks) {
+			const auto& procedureName = keyFieldBlock->getProcedureName();
+			const string metaKeyFieldName = escapeMetaName(sqlDialect, keyFieldName);
+			const string keycodeBlock =
+				"  /* Block for key " + keyFieldName + " */\n"
+				"  IF (INSERTING AND (" + keyFieldBlock->insertingCondition + ")) THEN\n"
+				"    EXECUTE PROCEDURE " + procedureName + "('" + relationName + "', NEW." + metaKeyFieldName + ", 'I');\n"
+				"  IF (UPDATING AND (" + keyFieldBlock->updatingCondition + ")) THEN\n"
+				"    EXECUTE PROCEDURE " + procedureName + "('" + relationName + "', OLD." + metaKeyFieldName + ", 'U');\n"
+				"  IF (DELETING AND (" + keyFieldBlock->deletingCondition + ")) THEN\n"
+				"    EXECUTE PROCEDURE " + procedureName + "('" + relationName + "', OLD." + metaKeyFieldName + ", 'D');\n";
+			triggerSource += keycodeBlock;
+		}
+
+		triggerSource += 
+			"END";
+		return triggerSource;
+	}
+
+	const string FTSIndexRepository::makeTriggerSourceByRelationInsert(
+		const FTSKeyFieldBlockMap& keyFieldBlocks,
+		const unsigned int sqlDialect,
+		const string& relationName
+	)
+	{
+		string triggerSource =
+			"AS\n"
+			"BEGIN\n";
+
+		for (const auto& [keyFieldName, keyFieldBlock] : keyFieldBlocks) {
+			const auto& procedureName = keyFieldBlock->getProcedureName();
+			const string metaKeyFieldName = escapeMetaName(sqlDialect, keyFieldName);
+			const string keycodeBlock =
+				"  /* Block for key " + keyFieldName + " */\n"
+				"  IF (" + keyFieldBlock->insertingCondition + ") THEN\n"
+				"    EXECUTE PROCEDURE " + procedureName + "('" + relationName + "', NEW." + metaKeyFieldName + ", 'I');\n";
+			triggerSource += keycodeBlock;
+		}
+
+		triggerSource += 
+			"END";
+		return triggerSource;
+	}
+
+	const string FTSIndexRepository::makeTriggerSourceByRelationUpdate(
+		const FTSKeyFieldBlockMap& keyFieldBlocks,
+		const unsigned int sqlDialect,
+		const string& relationName
+	)
+	{
+		string triggerSource =
+			"AS\n"
+			"BEGIN\n";
+
+		for (const auto& [keyFieldName, keyFieldBlock] : keyFieldBlocks) {
+			const auto& procedureName = keyFieldBlock->getProcedureName();
+			const string metaKeyFieldName = escapeMetaName(sqlDialect, keyFieldName);
+			const string keycodeBlock =
+				"  /* Block for key " + keyFieldName + " */\n"
+				"  IF (" + keyFieldBlock->updatingCondition + ") THEN\n"
+				"    EXECUTE PROCEDURE " + procedureName + "('" + relationName + "', OLD." + metaKeyFieldName + ", 'U');\n";
+			triggerSource += keycodeBlock;
+		}
+
+		triggerSource += 
+			"END";
+		return triggerSource;
+	}
+
+	const string FTSIndexRepository::makeTriggerSourceByRelationDelete(
+		const FTSKeyFieldBlockMap& keyFieldBlocks,
+		const unsigned int sqlDialect,
+		const string& relationName
+	)
+	{
+		string triggerSource =
+			"AS\n"
+			"BEGIN\n";
+
+		for (const auto& [keyFieldName, keyFieldBlock] : keyFieldBlocks) {
+			const auto& procedureName = keyFieldBlock->getProcedureName();
+			const string metaKeyFieldName = escapeMetaName(sqlDialect, keyFieldName);
+			const string keycodeBlock =
+				"  /* Block for key " + keyFieldName + " */\n"
+				"  IF (" + keyFieldBlock->deletingCondition + ") THEN\n"
+				"    EXECUTE PROCEDURE " + procedureName + "('" + relationName + "', OLD." + metaKeyFieldName + ", 'D');\n";
+			triggerSource += keycodeBlock;
+		}
+
+		triggerSource += 
+			"END";
+		return triggerSource;
 	}
 
 }
