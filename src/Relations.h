@@ -259,61 +259,6 @@ namespace LuceneUDR
 			const unsigned int sqlDialect,
 			const string &relationName,
 			const string &fieldName);
-
-		/// <summary>
-		/// Builds an SQL query to retrieve field values. 
-		/// </summary>
-		/// 
-		/// <param name="sqlDialect">SQL dialect</param>
-		/// <param name="relationName">Relation name</param>
-		/// <param name="fieldNames">List of field names </param>
-		/// <param name="keyFieldName">Key field name</param>
-		/// <param name="whereKey">If true, then a filtering condition by key field is added, 
-		/// otherwise an SQL query will be built without filtering, that is, returning all records.</param>
-		/// 
-		/// <returns>Returns the text of the SQL query.</returns>
-		/// 
-		/*
-		static inline string buildSqlSelectFieldValues(
-			const unsigned int sqlDialect, 
-			const string& relationName, 
-			list<string> fieldNames, 
-			const string& keyFieldName,
-			const bool whereKey = false)
-		{
-			std::stringstream ss;
-			ss << "SELECT\n";
-			int field_cnt = 0;
-			for (const auto fieldName : fieldNames) {
-				if (field_cnt == 0) {
-					ss << "  " << escapeMetaName(sqlDialect, fieldName);
-				}
-				else {
-					ss << ",\n  " << escapeMetaName(sqlDialect, fieldName);
-				}
-				field_cnt++;
-			}
-			ss << "\nFROM " << escapeMetaName(sqlDialect, relationName);
-			ss << "\nWHERE ";
-			if (whereKey) {
-				ss << escapeMetaName(sqlDialect, keyFieldName) << " = ?";
-			}
-			else {
-				ss << escapeMetaName(sqlDialect, keyFieldName) << " IS NOT NULL";
-				string where;
-				for (const auto fieldName : fieldNames) {
-					if (fieldName == keyFieldName) continue;
-					if (where.empty())
-						where += escapeMetaName(sqlDialect, fieldName) + " IS NOT NULL";
-					else
-						where += " OR " + escapeMetaName(sqlDialect, fieldName) + " IS NOT NULL";
-				}
-				if (!where.empty())
-				   ss << "\nAND (" << where << ")";
-			}
-			return ss.str();
-		}
-		*/
 	};
 }
 

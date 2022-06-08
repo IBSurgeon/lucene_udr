@@ -33,7 +33,7 @@ namespace LuceneUDR
 		const char* SQL_APPEND_LOG = 
 			"INSERT INTO FTS$LOG (\n"
 			"  FTS$RELATION_NAME,\n"
-			"  FTS$REC_ID,\n"
+			"  FTS$DB_KEY,\n"
 			"  FTS$REC_UUID,\n"
 			"  FTS$REC_ID,\n"
 			"  FTS$CHANGE_TYPE\n"
