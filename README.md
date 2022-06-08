@@ -109,23 +109,23 @@ FROM RDB$DATABASE
 
 Для создания полнотекстового индекса необходимо выполнить последовательно три шага:
 
-1. Создание полнотекстового индекса для таблицы с помощью процедуры `FTS$MANAGEMENT.FTS$CREATE_INDEX()`;
+1. Создание полнотекстового индекса для таблицы с помощью процедуры `FTS$MANAGEMENT.FTS$CREATE_INDEX`;
 
-2. Добавление индексируемых полей с помощью процедуры `FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD()`;
+2. Добавление индексируемых полей с помощью процедуры `FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD`;
 
-3. Построение индекса с помощью процедуры `FTS$MANAGEMENT.FTS$REBUILD_INDEX()`.
+3. Построение индекса с помощью процедуры `FTS$MANAGEMENT.FTS$REBUILD_INDEX`.
 
 
 ### Создание полнотекстового индекса для таблицы
 
-Для создания полнотекстового индекса для таблицы необходимо вызвать процедуру `FTS$MANAGEMENT.FTS$CREATE_INDEX()`.
+Для создания полнотекстового индекса для таблицы необходимо вызвать процедуру `FTS$MANAGEMENT.FTS$CREATE_INDEX`.
 
 Первым параметром задаёт имя полнотекстового индекса, вторым - имя индексируемой таблицы. Остальные параметры являются 
 необязательными.
 
 Третьим параметром задаётся имя анализатора. Анализатор задаёт для какого языка будет сделан анализ индексируемых полей.
 Если параметр не задан, то будет использован анализатор STANDARD (для англйского языка). Список доступных анализаторов 
-можно узнать с помощью процедуры `FTS$MANAGEMENT.FTS$ANALYZERS()`.
+можно узнать с помощью процедуры `FTS$MANAGEMENT.FTS$ANALYZERS`.
 
 Список доступных анализаторов:
 
@@ -193,7 +193,7 @@ COMMIT;
 ### Добавление полей для индексирования
 
 После создания индекса, необходимо добавить поля по которым будет производится поиск с помощью
-процедуры `FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD()`. Первым параметром указывается имя индекса, вторым имя добавляемого поля.
+процедуры `FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD`. Первым параметром указывается имя индекса, вторым имя добавляемого поля.
 Третьим необязательным параметром можно указать множитель значимости для поля. По умолчанию значимость всех полей индекса одинакова и равна 1.
 
 ```sql
@@ -666,7 +666,7 @@ JOIN V_FARM
 
 ### Выделение найденных термов с помощью функции `FTS$HIGHLIGHTER.FTS$BEST_FRAGMENT()`
 
-Функция `FTS$HIGHLIGHTER.FTS$BEST_FRAGMENT()` возвращает лучший фрагмент текста в котором найденные термы выделены тегами.
+Функция `FTS$HIGHLIGHTER.FTS$BEST_FRAGMENT` возвращает лучший фрагмент текста в котором найденные термы выделены тегами.
 
 Функция описана как 
 
@@ -755,7 +755,7 @@ END
 
 ### Выделение найденных термов с помощью процедуры `FTS$HIGHLIGHTER.FTS$BEST_FRAGMENTS()`
 
-Процедура  `FTS$HIGHLIGHTER.FTS$BEST_FRAGMENTS()` возвращает несколько фрагментов текста в котором найденные термы выделены тегами.
+Процедура `FTS$HIGHLIGHTER.FTS$BEST_FRAGMENTS` возвращает несколько фрагментов текста в котором найденные термы выделены тегами.
 
 Процедура описана как 
 
@@ -773,7 +773,7 @@ END
       FTS$FRAGMENT VARCHAR(8191) CHARACTER SET UTF8);
 ```
 
-Входные параметры процедуры `FTS$HIGHLIGHTER.FTS$BEST_FRAGMENTS()` идентичны параметрам функции `FTS$HIGHLIGHTER.FTS$BEST_FRAGMENT()`, но есть
+Входные параметры процедуры `FTS$HIGHLIGHTER.FTS$BEST_FRAGMENTS` идентичны параметрам функции `FTS$HIGHLIGHTER.FTS$BEST_FRAGMENT`, но есть
 один доплнительный параметр `FTS$MAX_NUM_FRAGMENTS`, который ограничивает количество возвращаемых фрагментов. 
 
 Текст найденных фрагментов с выделеными вхождениями термов возращается в выходном параметре `FTS$FRAGMENT`. Эту процедуру следует применять в уже найденом
@@ -801,11 +801,13 @@ WHERE BOOKS.ID = 8
 Для поддержки актуальности полнотекстовых индексов существует несколько способов:
 
 1. Периодически вызывать процедуру `FTS$MANAGEMENT.FTS$REBUILD_INDEX` для заданного индекса. 
-Этот способ полностью перестраивает полнотекстовый индекс. В этом случае читаются все записи всех таблиц входящих 
-в заданный индекс.
+Этот способ полностью перестраивает полнотекстовый индекс. В этом случае читаются все записи таблицы или предстваления 
+для которой создан индекс.
 
-2. Поддерживать полнотекстовые индексы можно с помощью триггеров и вызова процедуры `FTS$LOG_CHANGE`.
-В этом случае запись об изменении добавляется в специальную таблицу `FTS$LOG` (журнал изменений).
+2. Поддерживать полнотекстовые индексы можно с помощью триггеров и вызова внутри них одной из процедур `FTS$LOG_BY_ID`,
+`FTS$LOG_BY_UUID` или `FTS$LOG_BY_DBKEY`. Какую из процедур вызывать 
+зависмост от того какой тип поля выбран в качестве ключевого (целочисленный, UUID (GIUD) или RDB$DB_KEY).
+При вызове этих процедур запись об изменении добавляется в специальную таблицу `FTS$LOG` (журнал изменений).
 Изменения из журнала переносятся в полнотекстовые индексы с помощью вызова процедуры `FTS$UPDATE_INDEXES`.
 Вызов этой процедуры необходимо делать в отдельном скрипте, который можно поставить в планировщик заданий (Windows) 
 или cron (Linux) с некоторой периодичностью, например 5 минут.
@@ -821,21 +823,19 @@ WHERE BOOKS.ID = 8
 любого из полей, входящих в полнотекстовый индекс, записывает информацию об изменении записи в специальную таблицу 
 `FTS$LOG` (журнал).
 
-Изменения из журнала переносятся в полнотекстовые индексы с помощью вызова процедуры `FTS$UPDATE_INDEXES`.
-Вызов этой процедуры необходимо делать в отдельном скрипте, который можно поставить в планировщик заданий (Windows) 
-или cron (Linux) с некоторой периодичностью, например 5 минут.
-
 Правила написания триггеров для поддержки полнотекстовых индексов:
 
-1. В триггер должны быть условия по всем поля которые участвуют хотя бы в одном полнотекстовом индексе.
-Такие условия должны быть объединены через `OR`.
+1. В триггере необходимо проверять всем поля, которые участвуют полнотекстовом индексе.
+Условия проверки полей должны быть объединены через `OR`.
 
 2. Для операции `INSERT` необходимо проверять все поля, входящие в полнотекстовые индексы значение которых отличается 
-от `NULL`. Если это условие соблюдается, то необходимо выполнить процедуру 
-`FTS$LOG_CHANGE('<имя таблицы>', NEW.RDB$DB_KEY, 'I');`.
+от `NULL`. Если это условие соблюдается, то необходимо выполнить одну из процедур 
+`FTS$LOG_BY_DBKEY('<имя таблицы>', NEW.RDB$DB_KEY, 'I');` или `FTS$LOG_BY_ID('<имя таблицы>', NEW.<ключевое поле>, 'I')`
+или `FTS$LOG_BY_UUID('<имя таблицы>', NEW.<ключевое поле>, 'I')`.
 
 3. Для операции `UPDATE` необходимо проверять все поля, входящие в полнотекстовые индексы значение которых изменилось.
-Если это условие соблюдается, то необходимо выполнить процедуру `FTS$LOG_CHANGE('<имя таблицы>', OLD.RDB$DB_KEY, 'U');`.
+Если это условие соблюдается, то необходимо выполнить процедуру `FTS$LOG_BY_DBKEY('<имя таблицы>', OLD.RDB$DB_KEY, 'U');`
+или `FTS$LOG_BY_ID('<имя таблицы>', OLD.<ключевое поле>, 'U')` или `FTS$LOG_BY_UUID('<имя таблицы>', OLD.<ключевое поле>, 'U')`.
 
 4. Для операции `DELETE` необходимо проверять все поля, входящие в полнотекстовые индексы значение которых отличается 
 от `NULL`. Если это условие соблюдается, то необходимо выполнить процедуру 
@@ -847,27 +847,43 @@ WHERE BOOKS.ID = 8
 
 ```sql
 SELECT
-    FTS$TRIGGER_SOURCE
+    FTS$TRIGGER_SCRIPT
 FROM FTS$TRIGGER_HELPER.FTS$MAKE_TRIGGERS('HORSE', TRUE)
 ```
 
-Этот запрос вернёт следующий текст триггера:
+Этот запрос вернёт следующий текст триггера для всех созданных FTS индексов на таблице `HORSE`:
 
 ```sql
 CREATE OR ALTER TRIGGER FTS$HORSE_AIUD FOR HORSE
 ACTIVE AFTER INSERT OR UPDATE OR DELETE POSITION 100
 AS
 BEGIN
+  /* Block for key CODE_HORSE */
+  IF (INSERTING AND (NEW.REMARK IS NOT NULL
+      OR NEW.RUNTOTAL IS NOT NULL)) THEN
+    EXECUTE PROCEDURE FTS$LOG_BY_ID('HORSE', NEW.CODE_HORSE, 'I');
+  IF (UPDATING AND (NEW.REMARK IS DISTINCT FROM OLD.REMARK
+      OR NEW.RUNTOTAL IS DISTINCT FROM OLD.RUNTOTAL)) THEN
+    EXECUTE PROCEDURE FTS$LOG_BY_ID('HORSE', OLD.CODE_HORSE, 'U');
+  IF (DELETING AND (OLD.REMARK IS NOT NULL
+      OR OLD.RUNTOTAL IS NOT NULL)) THEN
+    EXECUTE PROCEDURE FTS$LOG_BY_ID('HORSE', OLD.CODE_HORSE, 'D');
+  /* Block for key RDB$DB_KEY */
   IF (INSERTING AND (NEW.REMARK IS NOT NULL)) THEN
-    EXECUTE PROCEDURE FTS$LOG_CHANGE('HORSE', NEW.RDB$DB_KEY, 'I');
+    EXECUTE PROCEDURE FTS$LOG_BY_DBKEY('HORSE', NEW.RDB$DB_KEY, 'I');
   IF (UPDATING AND (NEW.REMARK IS DISTINCT FROM OLD.REMARK)) THEN
-    EXECUTE PROCEDURE FTS$LOG_CHANGE('HORSE', OLD.RDB$DB_KEY, 'U');
+    EXECUTE PROCEDURE FTS$LOG_BY_DBKEY('HORSE', OLD.RDB$DB_KEY, 'U');
   IF (DELETING AND (OLD.REMARK IS NOT NULL)) THEN
-    EXECUTE PROCEDURE FTS$LOG_CHANGE('HORSE', OLD.RDB$DB_KEY, 'D');
+    EXECUTE PROCEDURE FTS$LOG_BY_DBKEY('HORSE', OLD.RDB$DB_KEY, 'D');
+  /* Block for key UUID */
+  IF (INSERTING AND (NEW.REMARK IS NOT NULL)) THEN
+    EXECUTE PROCEDURE FTS$LOG_BY_UUID('HORSE', NEW.UUID, 'I');
+  IF (UPDATING AND (NEW.REMARK IS DISTINCT FROM OLD.REMARK)) THEN
+    EXECUTE PROCEDURE FTS$LOG_BY_UUID('HORSE', OLD.UUID, 'U');
+  IF (DELETING AND (OLD.REMARK IS NOT NULL)) THEN
+    EXECUTE PROCEDURE FTS$LOG_BY_UUID('HORSE', OLD.UUID, 'D');
 END
 ```
-
-В данном примере создан триггер для поддержки актуальности полнотекстового построенного на поле REMARK таблицы HORSE.
 
 Обновление всех полнотекстовых индексов необходимо создать SQL скрипт `fts$update.sql`
 
@@ -881,7 +897,75 @@ EXECUTE PROCEDURE FTS$UPDATE_INDEXES;
 isql -user SYSDBA -pas masterkey -i fts$update.sql inet://localhost/mydatabase
 ```
 
+Обратите внимание! Пакет `FTS$TRIGGER_HELPER` помогает генерировать триггеры поддержки полнотекстовых индексов
+только для обычных таблиц. Если вы хотите поддерживать полнотекстовый индекс на представлении, то необходимо 
+самостоятельно разработать такие триггеры для базовых таблиц представления. 
+Ниже приведён пример, поддерживающих полнотекстовый индекс триггеров для представления
+`V_FARM`.
 
+```sql
+SET TERM ^;
+
+-- Field ADDRESS from table FARM
+CREATE OR ALTER TRIGGER FTS$V_FARM_AIUD_1 FOR FARM
+ACTIVE AFTER INSERT OR UPDATE OR DELETE POSITION 100
+AS
+BEGIN
+  IF (INSERTING AND (NEW.ADDRESS IS NOT NULL
+                  OR NEW.CODE_COUNTRY IS NOT NULL
+                  OR NEW.CODE_REGION IS NOT NULL)) THEN
+    EXECUTE PROCEDURE FTS$LOG_BY_ID('V_FARM', NEW.CODE_FARM, 'I');
+  IF (UPDATING AND (NEW.ADDRESS IS DISTINCT FROM OLD.ADDRESS
+                 OR NEW.CODE_COUNTRY IS DISTINCT FROM OLD.CODE_COUNTRY
+                 OR NEW.CODE_REGION IS DISTINCT FROM OLD.CODE_REGION)) THEN
+    EXECUTE PROCEDURE FTS$LOG_BY_ID('V_FARM', OLD.CODE_FARM, 'U');
+  IF (DELETING AND (OLD.ADDRESS IS NOT NULL
+                 OR OLD.CODE_COUNTRY IS NOT NULL
+                 OR OLD.CODE_REGION IS NOT NULL)) THEN
+    EXECUTE PROCEDURE FTS$LOG_BY_ID('V_FARM', OLD.CODE_FARM, 'D');
+END
+^
+
+-- Field COUNTRYNAME from table COUNTRY (COUNTRY.NAME)
+CREATE OR ALTER TRIGGER FTS$V_FARM_AU_2 FOR COUNTRY
+ACTIVE AFTER UPDATE POSITION 100
+AS
+DECLARE CODE_FARM INTEGER;
+BEGIN
+  IF (NEW.NAME IS DISTINCT FROM OLD.NAME) THEN
+  BEGIN
+    FOR
+      SELECT CODE_FARM
+      FROM FARM
+      WHERE CODE_COUNTRY = OLD.CODE_COUNTRY
+      INTO :CODE_FARM
+    DO
+      EXECUTE PROCEDURE FTS$LOG_BY_ID('V_FARM', :CODE_FARM, 'U');
+  END
+END
+^
+
+-- Field REGIONNAME from table REGION (REGION.NAME)
+CREATE OR ALTER TRIGGER FTS$V_FARM_AU_3 FOR REGION
+ACTIVE AFTER UPDATE POSITION 100
+AS
+DECLARE CODE_FARM INTEGER;
+BEGIN
+  IF (NEW.NAME IS DISTINCT FROM OLD.NAME) THEN
+  BEGIN
+    FOR
+      SELECT CODE_FARM
+      FROM FARM
+      WHERE CODE_REGION = OLD.CODE_REGION
+      INTO :CODE_FARM
+    DO
+      EXECUTE PROCEDURE FTS$LOG_BY_ID('V_FARM', :CODE_FARM, 'U');
+  END
+END
+^
+
+SET TERM ;^
+```
 
 ## Описание процедур и функций для работы с полнотекстовым поиском
 
@@ -893,7 +977,7 @@ isql -user SYSDBA -pas masterkey -i fts$update.sql inet://localhost/mydatabase
 
 #### Функция FTS$MANAGEMENT.FTS$GET_DIRECTORY
 
-Функция `FTS$MANAGEMENT.FTS$GET_DIRECTORY()` возвращает директорию в которой расположены файлы и папки полнотекстового индекса для текущей базы данных.
+Функция `FTS$MANAGEMENT.FTS$GET_DIRECTORY` возвращает директорию в которой расположены файлы и папки полнотекстового индекса для текущей базы данных.
 
 ```sql
   FUNCTION FTS$GET_DIRECTORY ()
@@ -903,7 +987,7 @@ isql -user SYSDBA -pas masterkey -i fts$update.sql inet://localhost/mydatabase
 
 #### Процедура FTS$MANAGEMENT.FTS$ANALYZERS
 
-Процедура `FTS$MANAGEMENT.FTS$ANALYZERS()` возвращает список доступных анализаторов.
+Процедура `FTS$MANAGEMENT.FTS$ANALYZERS` возвращает список доступных анализаторов.
 
 ```sql
   PROCEDURE FTS$ANALYZERS
@@ -917,7 +1001,7 @@ isql -user SYSDBA -pas masterkey -i fts$update.sql inet://localhost/mydatabase
 
 #### Процедура FTS$MANAGEMENT.FTS$CREATE_INDEX
 
-Процедура `FTS$MANAGEMENT.FTS$CREATE_INDEX()` создаёт новый полнотекстовый индекс. 
+Процедура `FTS$MANAGEMENT.FTS$CREATE_INDEX` создаёт новый полнотекстовый индекс. 
 
 ```sql
   PROCEDURE FTS$CREATE_INDEX (
@@ -938,7 +1022,7 @@ isql -user SYSDBA -pas masterkey -i fts$update.sql inet://localhost/mydatabase
 
 #### Процедура FTS$MANAGEMENT.FTS$DROP_INDEX
 
-Процедура `FTS$MANAGEMENT.FTS$DROP_INDEX()` удаляет полнотекстовый индекс.
+Процедура `FTS$MANAGEMENT.FTS$DROP_INDEX` удаляет полнотекстовый индекс.
 
 ```sql
   PROCEDURE FTS$DROP_INDEX (
@@ -951,7 +1035,7 @@ isql -user SYSDBA -pas masterkey -i fts$update.sql inet://localhost/mydatabase
 
 #### Процедура FTS$MANAGEMENT.SET_INDEX_ACTIVE
 
-Процедура `FTS$MANAGEMENT.SET_INDEX_ACTIVE()` позволяет сделать индекс активным или неактивным. 
+Процедура `FTS$MANAGEMENT.SET_INDEX_ACTIVE` позволяет сделать индекс активным или неактивным. 
 
 ```sql
   PROCEDURE FTS$SET_INDEX_ACTIVE (
@@ -970,7 +1054,7 @@ isql -user SYSDBA -pas masterkey -i fts$update.sql inet://localhost/mydatabase
 
 ```sql
   PROCEDURE FTS$COMMENT_ON_INDEX (
-      FTS$INDEX_NAME   VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+      FTS$INDEX_NAME  VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
       FTS$DESCRIPTION BLOB SUB_TYPE TEXT CHARACTER SET UTF8);
 ```
 
@@ -981,7 +1065,7 @@ isql -user SYSDBA -pas masterkey -i fts$update.sql inet://localhost/mydatabase
 
 #### Процедура FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD
 
-Процедура `FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD()` добавляет новый поле в полнотекстовый индекс. 
+Процедура `FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD` добавляет новый поле в полнотекстовый индекс. 
 
 ```sql
   PROCEDURE FTS$ADD_INDEX_FIELD (
@@ -998,7 +1082,7 @@ isql -user SYSDBA -pas masterkey -i fts$update.sql inet://localhost/mydatabase
 
 #### Процедура FTS$MANAGEMENT.FTS$DROP_INDEX_FIELD
 
-Процедура `FTS$MANAGEMENT.FTS$DROP_INDEX_FIELD()` удаляет поле из полнотекстового индекса. 
+Процедура `FTS$MANAGEMENT.FTS$DROP_INDEX_FIELD` удаляет поле из полнотекстового индекса. 
 
 ```sql
   PROCEDURE FTS$DROP_INDEX_FIELD (
@@ -1013,7 +1097,7 @@ isql -user SYSDBA -pas masterkey -i fts$update.sql inet://localhost/mydatabase
 
 #### Процедура FTS$MANAGEMENT.FTS$SET_INDEX_FIELD_BOOST
 
-Процедура `FTS$MANAGEMENT.FTS$SET_INDEX_FIELD_BOOST()` устанавливает коэффициент значимости для поля индекса. 
+Процедура `FTS$MANAGEMENT.FTS$SET_INDEX_FIELD_BOOST` устанавливает коэффициент значимости для поля индекса. 
 
 ```sql
   PROCEDURE FTS$SET_INDEX_FIELD_BOOST (
@@ -1029,12 +1113,12 @@ isql -user SYSDBA -pas masterkey -i fts$update.sql inet://localhost/mydatabase
 - FTS$BOOST - коэффициент увеличения значимости сегмента.
 
 Если при добавлении поля в индекс не указать коэффициент значимости, то по умолчанию он равен 1.0.
-С помомщью процедуры `FTS$MANAGEMENT.FTS$SET_INDEX_FIELD_BOOST()` его можно изменить.
+С помомщью процедуры `FTS$MANAGEMENT.FTS$SET_INDEX_FIELD_BOOST` его можно изменить.
 Обратите внимание, что после запуска этой процедуры индекс необходимо перестроить.
 
 #### Процедура FTS$MANAGEMENT.FTS$REBUILD_INDEX
 
-Процедура `FTS$MANAGEMENT.FTS$REBUILD_INDEX()` перестраивает полнотекстовый индекс. 
+Процедура `FTS$MANAGEMENT.FTS$REBUILD_INDEX` перестраивает полнотекстовый индекс. 
 
 ```sql
   PROCEDURE FTS$REBUILD_INDEX (
@@ -1047,7 +1131,7 @@ isql -user SYSDBA -pas masterkey -i fts$update.sql inet://localhost/mydatabase
 
 #### Процедура FTS$MANAGEMENT.FTS$REINDEX_TABLE
 
-Процедура `FTS$MANAGEMENT.FTS$REINDEX_TABLE()` перестраивает все полнотекстовые индексы для указанной таблицы.
+Процедура `FTS$MANAGEMENT.FTS$REINDEX_TABLE` перестраивает все полнотекстовые индексы для указанной таблицы.
 
 ```sql
   PROCEDURE FTS$REINDEX_TABLE (
@@ -1060,11 +1144,11 @@ isql -user SYSDBA -pas masterkey -i fts$update.sql inet://localhost/mydatabase
 
 #### Процедура FTS$MANAGEMENT.FTS$FULL_REINDEX
 
-Процедура `FTS$MANAGEMENT.FTS$FULL_REINDEX()` перестраивает все полнотекстовые индексы в базе данных.
+Процедура `FTS$MANAGEMENT.FTS$FULL_REINDEX` перестраивает все полнотекстовые индексы в базе данных.
 
 #### Процедура FTS$MANAGEMENT.FTS$OPTIMIZE_INDEX
 
-Процедура `FTS$MANAGEMENT.FTS$OPTIMIZE_INDEX()` оптимизирует указанный индекс.
+Процедура `FTS$MANAGEMENT.FTS$OPTIMIZE_INDEX` оптимизирует указанный индекс.
 
 ```sql
   PROCEDURE FTS$OPTIMIZE_INDEX (
@@ -1078,7 +1162,7 @@ isql -user SYSDBA -pas masterkey -i fts$update.sql inet://localhost/mydatabase
 
 #### Процедура FTS$MANAGEMENT.FTS$OPTIMIZE_INDEXES
 
-Процедура `FTS$MANAGEMENT.FTS$OPTIMIZE_INDEXES()` оптимизирует все полнотекстовые индексы в базе данных.
+Процедура `FTS$MANAGEMENT.FTS$OPTIMIZE_INDEXES` оптимизирует все полнотекстовые индексы в базе данных.
 
 
 ### Процедура FTS$SEARCH
@@ -1121,16 +1205,70 @@ RETURNS (
 - FTS$EXPLANATION - объяснение результатов поиска.
 
 
-### Процедура FTS$LOG_CHANGE
+### Процедура FTS$LOG_BY_ID
 
-Процедура `FTS$LOG_CHANGE` добавляет запись об изменении одного из полей входящих в полнотекстовые индексы, 
+Процедура `FTS$LOG_BY_ID` добавляет запись об изменении одного из полей входящих в полнотекстовые индексы, 
 построенные на таблице, в журнал изменений `FTS$LOG`, на основе которого будут обновляться полнотекстовые индексы.
+Эту процедуру следует применять если в качестве первичного ключа используется целочисленное поле. Такие ключи
+часто генерируются с помощью генераторов/последовательностей.
+
+```sql
+PROCEDURE FTS$LOG_BY_ID (
+    FTS$RELATION_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+    FTS$ID            BIGINT NOT NULL,
+    FTS$CHANGE_TYPE   FTS$D_CHANGE_TYPE NOT NULL
+)
+```
 
 Входные параметры:
 
-- FTS$RELATION_NAME - имя таблицы для которой добавляется ссылка на запись;
-- FTS$REC_ID - ссылка на запись в таблице (соответствует псевдо полю RDB$DB_KEY);
+- FTS$RELATION_NAME - имя таблицы для которой добавляется запись об изменении;
+- FTS$ID - значение ключевого поля;
 - FTS$CHANGE_TYPE - тип изменения (I - INSERT, U - UPDATE, D - DELETE).
+
+
+### Процедура FTS$LOG_BY_UUID
+
+Процедура `FTS$LOG_BY_UUID` добавляет запись об изменении одного из полей входящих в полнотекстовые индексы, 
+построенные на таблице, в журнал изменений `FTS$LOG`, на основе которого будут обновляться полнотекстовые индексы.
+Эту процедуру следует применять если в качестве первичного ключа используется UUID (GUID). Такие ключи
+часто генерируются с помощью функции `GEN_UUID`. 
+
+```sql
+PROCEDURE FTS$LOG_BY_UUID (
+    FTS$RELATION_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+    FTS$UUID          CHAR(16) CHARACTER SET OCTETS NOT NULL,
+    FTS$CHANGE_TYPE   FTS$D_CHANGE_TYPE NOT NULL
+)
+```
+
+Входные параметры:
+
+- FTS$RELATION_NAME - имя таблицы для которой добавляется запись об изменении;
+- FTS$UUID - значение ключевого поля;
+- FTS$CHANGE_TYPE - тип изменения (I - INSERT, U - UPDATE, D - DELETE).
+
+
+### Процедура FTS$LOG_BY_DBKEY
+
+Процедура `FTS$LOG_BY_DBKEY` добавляет запись об изменении одного из полей входящих в полнотекстовые индексы, 
+построенные на таблице, в журнал изменений `FTS$LOG`, на основе которого будут обновляться полнотекстовые индексы.
+Эту процедуру следует применять если в качестве первичного ключа используется псевдо поле `RDB$DB_KEY`. 
+
+```sql
+PROCEDURE FTS$LOG_BY_DBKEY (
+    FTS$RELATION_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+    FTS$DBKEY         CHAR(8) CHARACTER SET OCTETS NOT NULL,
+    FTS$CHANGE_TYPE   FTS$D_CHANGE_TYPE NOT NULL
+)
+```
+
+Входные параметры:
+
+- FTS$RELATION_NAME - имя таблицы для которой добавляется запись об изменении;
+- FTS$DBKEY - значение псевдо поля `RDB$DB_KEY`;
+- FTS$CHANGE_TYPE - тип изменения (I - INSERT, U - UPDATE, D - DELETE).
+
 
 ### Процедура FTS$CLEAR_LOG
 
@@ -1148,7 +1286,7 @@ RETURNS (
 
 #### Функция FTS$HIGHLIGHTER.FTS$BEST_FRAGMENT
 
-Функция `FTS$HIGHLIGHTER.FTS$BEST_FRAGMENT()` возвращает лучший фрагмент текста, который соответствует выражению полнотекстового поиска,
+Функция `FTS$HIGHLIGHTER.FTS$BEST_FRAGMENT` возвращает лучший фрагмент текста, который соответствует выражению полнотекстового поиска,
 и выделяет в нем найденные слова.
 
 ```sql
@@ -1175,7 +1313,7 @@ RETURNS (
 
 #### Процедура FTS$HIGHLIGHTER.FTS$BEST_FRAGMENTS
 
-Процедура `FTS$HIGHLIGHTER.FTS$BEST_FRAGMENTS()` возвращает лучшие фрагменты текста, которые соответствуют выражению полнотекстового поиска,
+Процедура `FTS$HIGHLIGHTER.FTS$BEST_FRAGMENTS` возвращает лучшие фрагменты текста, которые соответствуют выражению полнотекстового поиска,
 и выделяет в них найденные слова.
 
 ```sql
@@ -1207,170 +1345,152 @@ RETURNS (
 
 - FTS$FRAGMENT - фрагмент текста, соответствующий поисковой фразе.
 
+
 ### Пакет FTS$TRIGGER_HELPER
 
 Пакет `FTS$TRIGGER_HELPER` содержит процедуры и функции помогающие создавать триггеры для поддержки актуальности 
 полнотекстовых индексов.
 
-Заголовок этого пакета выглядит следующим образом:
+#### Процедура FTS$TRIGGER_HELPER.FTS$MAKE_TRIGGERS
+
+Процедура `FTS$TRIGGER_HELPER.FTS$MAKE_TRIGGERS` генерирует исходные коды триггеров для заданной таблицы, 
+чтобы поддерживать полнотекстовые индексы в актуальном состоянии.
 
 ```sql
-CREATE OR ALTER PACKAGE FTS$TRIGGER_HELPER
-AS
-BEGIN
-  /**
-   * The FTS$MAKE_TRIGGERS procedure generates trigger source codes for
-   * a given table to keep full-text indexes up-to-date.
-   *
-   * Input parameters:
-   *   FTS$RELATION_NAME - table name for which triggers are created;
-   *   FTS$MULTI_ACTION - universal trigger flag. If set to TRUE,
-   *      then a trigger for multiple actions will be created,
-   *      otherwise a separate trigger will be created for each action.
-   *
-   * Output parameters:
-   *   FTS$TRIGGER_SOURCE - the text of the source code of the trigger.
-  **/
   PROCEDURE FTS$MAKE_TRIGGERS (
-    FTS$RELATION_NAME VARCHAR(63) CHARACTER SET UTF8,
-    FTS$MULTI_ACTION BOOLEAN DEFAULT TRUE
+    FTS$RELATION_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+    FTS$MULTI_ACTION BOOLEAN NOT NULL DEFAULT TRUE,
+    FTS$POSITION SMALLINT NOT NULL DEFAULT 100
   )
   RETURNS (
-    FTS$TRIGGER_SOURCE BLOB SUB_TYPE TEXT CHARACTER SET UTF8
+    FTS$TRIGGER_NAME VARCHAR(63) CHARACTER SET UTF8,
+    FTS$TRIGGER_RELATION VARCHAR(63) CHARACTER SET UTF8,
+    FTS$TRIGGER_EVENTS VARCHAR(26) CHARACTER SET UTF8,
+    FTS$TRIGGER_POSITION SMALLINT,
+    FTS$TRIGGER_SOURCE BLOB SUB_TYPE TEXT CHARACTER SET UTF8,
+    FTS$TRIGGER_SCRIPT BLOB SUB_TYPE TEXT CHARACTER SET UTF8
   );
-
-  /**
-   * The FTS$MAKE_TRIGGERS_BY_INDEX procedure generates trigger source codes
-   * for a given index to keep the full-text index up to date.
-   *
-   * Input parameters:
-   *   FTS$INDEX_NAME - index name for which triggers are created; 
-   *   FTS$MULTI_ACTION - universal trigger flag. If set to TRUE,
-   *      then a trigger for multiple actions will be created,
-   *      otherwise a separate trigger will be created for each action.
-   *
-   * Output parameters:
-   *   FTS$TRIGGER_SOURCE - the text of the source code of the trigger.
-  **/
-  PROCEDURE FTS$MAKE_TRIGGERS_BY_INDEX (
-    FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8,
-    FTS$MULTI_ACTION BOOLEAN DEFAULT TRUE
-  )
-  RETURNS (
-    FTS$TRIGGER_SOURCE BLOB SUB_TYPE TEXT CHARACTER SET UTF8
-  );
-
-
-  /**
-   * The FTS$MAKE_ALL_TRIGGERS procedure generates trigger source codes
-   * to keep all full-text indexes up to date.
-   *
-   * Input parameters:
-   *   FTS$MULTI_ACTION - universal trigger flag. If set to TRUE,
-   *      then a trigger for multiple actions will be created,
-   *      otherwise a separate trigger will be created for each action.
-   *
-   * Output parameters:
-   *   FTS$TRIGGER_SOURCE - the text of the source code of the trigger.
-  **/
-  PROCEDURE FTS$MAKE_ALL_TRIGGERS (
-    FTS$MULTI_ACTION BOOLEAN DEFAULT TRUE
-  )
-  RETURNS (
-    FTS$TRIGGER_SOURCE BLOB SUB_TYPE TEXT CHARACTER SET UTF8
-  );
-   
-END
 ```
-
-#### Процедура FTS$MAKE_TRIGGERS
-
-Процедура `FTS$MAKE_TRIGGERS()` генерирует исходные коды триггеров для заданной таблицы, 
-чтобы поддерживать полнотекстовые индексы в актуальном состоянии.
 
 Входные параметры:
 
 - FTS$RELATION_NAME - имя таблицы, для которой создаются триггеры;
 - FTS$MULTI_ACTION - универсальный флаг триггера. Если установлено значение TRUE, 
-то будет создан триггер для нескольких действий, в противном случае для каждого действия будет создан отдельный триггер.
+то будет сгенерирован скрипт триггера для нескольких действий, в противном случае для каждого действия будет сгенерирован скрипт отдельного триггера;
+- FTS$POSITION - позиция триггеров. 
 
 Выходные параметры:
 
-- FTS$TRIGGER_SOURCE - текст исходного кода триггера. 
+- FTS$TRIGGER_NAME - имя триггера;
+- FTS$TRIGGER_RELATION - таблица для который создаётся триггер;
+- FTS$TRIGGER_EVENTS - события триггера;
+- FTS$TRIGGER_POSITION - позиция триггера;
+- FTS$TRIGGER_SOURCE - исходный кода тела триггера;
+- FTS$TRIGGER_SCRIPT - скрипт создания. 
 
-#### Процедура FTS$MAKE_TRIGGERS_BY_INDEX
+#### Процедура FTS$TRIGGER_HELPER.FTS$MAKE_TRIGGERS_BY_INDEX
 
-Процедура `FTS$MAKE_TRIGGERS_BY_INDEX()` генерирует исходные коды триггеров для заданного индекса, 
+Процедура `FTS$TRIGGER_HELPER.FTS$MAKE_TRIGGERS_BY_INDEX` генерирует исходные коды триггеров для заданного индекса, 
 чтобы поддерживать полнотекстовый индекс в актуальном состоянии. 
+
+```sql
+  PROCEDURE FTS$MAKE_TRIGGERS_BY_INDEX (
+    FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+    FTS$MULTI_ACTION BOOLEAN NOT NULL DEFAULT TRUE,
+    FTS$POSITION SMALLINT NOT NULL DEFAULT 100
+  )
+  RETURNS (
+    FTS$TRIGGER_NAME VARCHAR(63) CHARACTER SET UTF8,
+    FTS$TRIGGER_RELATION VARCHAR(63) CHARACTER SET UTF8,
+    FTS$TRIGGER_EVENTS VARCHAR(26) CHARACTER SET UTF8,
+    FTS$TRIGGER_POSITION SMALLINT,
+    FTS$TRIGGER_SOURCE BLOB SUB_TYPE TEXT CHARACTER SET UTF8,
+    FTS$TRIGGER_SCRIPT BLOB SUB_TYPE TEXT CHARACTER SET UTF8
+  );
+```
 
 Входные параметры:
 
 - FTS$INDEX_NAME - имя индекса, для которого создаются триггеры; 
 - FTS$MULTI_ACTION - универсальный флаг триггера. Если установлено значение TRUE, 
-то будет создан триггер для нескольких действий, в противном случае для каждого действия будет создан отдельный триггер.
+то будет сгенерирован скрипт триггера для нескольких действий, в противном случае для каждого действия будет сгенерирован скрипт отдельного триггера;
+- FTS$POSITION - позиция триггеров. 
 
 Выходные параметры:
 
-- FTS$TRIGGER_SOURCE - текст исходного кода триггера. 
+- FTS$TRIGGER_NAME - имя триггера;
+- FTS$TRIGGER_RELATION - таблица для который создаётся триггер;
+- FTS$TRIGGER_EVENTS - события триггера;
+- FTS$TRIGGER_POSITION - позиция триггера;
+- FTS$TRIGGER_SOURCE - исходный кода тела триггера;
+- FTS$TRIGGER_SCRIPT - скрипт создания. 
 
-#### Процедура FTS$MAKE_ALL_TRIGGERS
+#### Процедура FTS$TRIGGER_HELPER.FTS$MAKE_ALL_TRIGGERS
 
-Процедура `FTS$MAKE_ALL_TRIGGERS()` генерирует исходные коды триггеров для поддержания всех полнотекстовых индексов в актуальном состоянии. 
+Процедура `FTS$TRIGGER_HELPER.FTS$MAKE_ALL_TRIGGERS` генерирует исходные коды триггеров для поддержания всех полнотекстовых индексов в актуальном состоянии.
+
+```sql
+  PROCEDURE FTS$MAKE_ALL_TRIGGERS (
+    FTS$MULTI_ACTION BOOLEAN NOT NULL DEFAULT TRUE,
+    FTS$POSITION SMALLINT NOT NULL DEFAULT 100
+  )
+  RETURNS (
+    FTS$TRIGGER_NAME VARCHAR(63) CHARACTER SET UTF8,
+    FTS$TRIGGER_RELATION VARCHAR(63) CHARACTER SET UTF8,
+    FTS$TRIGGER_EVENTS VARCHAR(26) CHARACTER SET UTF8,
+    FTS$TRIGGER_POSITION SMALLINT,
+    FTS$TRIGGER_SOURCE BLOB SUB_TYPE TEXT CHARACTER SET UTF8,
+    FTS$TRIGGER_SCRIPT BLOB SUB_TYPE TEXT CHARACTER SET UTF8
+  );
+```
 
 Входные параметры:
 
 - FTS$MULTI_ACTION - универсальный флаг триггера. Если установлено значение TRUE, 
-то будет создан триггер для нескольких действий, в противном случае для каждого действия будет создан отдельный триггер.
+то будет сгенерирован скрипт триггера для нескольких действий, в противном случае для каждого действия будет сгенерирован скрипт отдельного триггера;
+- FTS$POSITION - позиция триггеров. 
 
 Выходные параметры:
 
-- FTS$TRIGGER_SOURCE - текст исходного кода триггера. 
+- FTS$TRIGGER_NAME - имя триггера;
+- FTS$TRIGGER_RELATION - таблица для который создаётся триггер;
+- FTS$TRIGGER_EVENTS - события триггера;
+- FTS$TRIGGER_POSITION - позиция триггера;
+- FTS$TRIGGER_SOURCE - исходный кода тела триггера;
+- FTS$TRIGGER_SCRIPT - скрипт создания. 
+
 
 ### Пакет FTS$STATISTICS
 
 Пакет `FTS$STATISTICS` содержит процедуры и функции для получения информации о полнотекстовых индексах и их статистике.
 Этот пакет предназначен прежде всего для администраторов баз данных.
 
-Заголовок этого пакета выглядит следующим образом:
+#### Функция FTS$STATISTICS.FTS$LUCENE_VERSION
+
+Функция `FTS$STATISTICS.FTS$LUCENE_VERSION` возвращает версию библиотеки lucene++ на основе которой построен полнотектосовый поиск.
 
 ```sql
-CREATE OR ALTER PACKAGE FTS$STATISTICS
-AS
-BEGIN
-  /**
-   * Returns the version of the lucene++ library.
-  **/
   FUNCTION FTS$LUCENE_VERSION ()
-  RETURNS VARCHAR(20) CHARACTER SET UTF8 DETERMINISTIC;
+  RETURNS VARCHAR(20) CHARACTER SET UTF8 
+  DETERMINISTIC;
+```
 
-  /**
-   * Returns the directory where the files and folders
-   * of the full-text index for the current database are located.
-  **/
+#### Функция FTS$STATISTICS.FTS$GET_DIRECTORY
+
+Функция `FTS$STATISTICS.FTS$GET_DIRECTORY` возвращает директорию в которой расположены файлы и папки полнотекстового индекса для 
+текущей базы данных.
+
+```sql
   FUNCTION FTS$GET_DIRECTORY ()
-  RETURNS VARCHAR(255) CHARACTER SET UTF8 DETERMINISTIC;
+  RETURNS VARCHAR(255) CHARACTER SET UTF8 
+  DETERMINISTIC;
+```
 
-  /**
-   * Returns information and statistics for the specified full-text index.
-   *
-   * Input parameters:
-   *   FTS$INDEX_NAME - name of the index.
-   *
-   * Output parameters:
-   *   FTS$ANALYZER - analyzer name;
-   *   FTS$INDEX_STATUS - index status
-   *       I - Inactive,
-   *       N - New index (need rebuild),
-   *       C - complete and active,
-   *       U - updated metadata (need rebuild);
-   *   FTS$INDEX_DIRECTORY - index location directory;
-   *   FTS$INDEX_EXISTS - does the index physically exist;
-   *   FTS$HAS_DELETIONS - there have been deletions of documents from the index;
-   *   FTS$NUM_DOCS - number of indexed documents;
-   *   FTS$NUM_DELETED_DOCS - number of deleted documents (before optimization);
-   *   FTS$NUM_FIELDS - number of internal index fields;
-   *   FTS$INDEX_SIZE - index size in bytes.
-  **/
+#### Процедура FTS$STATISTICS.FTS$INDEX_STATISTICS
+
+Процедура `FTS$STATISTICS.FTS$INDEX_STATISTICS` возвращает низкоуровневую информацию и статистику для указанного индекса.
+
+```sql
   PROCEDURE FTS$INDEX_STATISTICS (
       FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL)
   RETURNS (
@@ -1383,147 +1503,8 @@ BEGIN
       FTS$NUM_DOCS         INTEGER,
       FTS$NUM_DELETED_DOCS INTEGER,
       FTS$NUM_FIELDS       SMALLINT,
-      FTS$INDEX_SIZE       /*BIGINT*/ INTEGER);
-
-  /**
-   * Returns information and statistics for all full-text indexes.
-   *
-   * Output parameters:
-   *   FTS$INDEX_NAME - index name;
-   *   FTS$ANALYZER - analyzer name;
-   *   FTS$INDEX_STATUS - index status
-   *       I - Inactive,
-   *       N - New index (need rebuild),
-   *       C - complete and active,
-   *       U - updated metadata (need rebuild);
-   *   FTS$INDEX_DIRECTORY - index location directory;
-   *   FTS$INDEX_EXISTS - does the index physically exist;
-   *   FTS$HAS_DELETIONS - there have been deletions of documents from the index;
-   *   FTS$NUM_DOCS - number of indexed documents;
-   *   FTS$NUM_DELETED_DOCS - number of deleted documents (before optimization);
-   *   FTS$NUM_FIELDS - number of internal index fields;
-   *   FTS$INDEX_SIZE - index size in bytes.
-  **/
-  PROCEDURE FTS$INDICES_STATISTICS
-  RETURNS (
-      FTS$INDEX_NAME       VARCHAR(63) CHARACTER SET UTF8,
-      FTS$ANALYZER         VARCHAR(63) CHARACTER SET UTF8,
-      FTS$INDEX_STATUS     TYPE OF FTS$D_INDEX_STATUS,
-      FTS$INDEX_DIRECTORY  VARCHAR(255) CHARACTER SET UTF8,
-      FTS$INDEX_EXISTS     BOOLEAN,
-      FTS$INDEX_OPTIMIZED  BOOLEAN,
-      FTS$HAS_DELETIONS    BOOLEAN,
-      FTS$NUM_DOCS         INTEGER,
-      FTS$NUM_DELETED_DOCS INTEGER,
-      FTS$NUM_FIELDS       SMALLINT,
-      FTS$INDEX_SIZE       /*BIGINT*/ INTEGER);
-
-  /**
-   * Returns information about index segments.
-   * Here the segment is defined in terms of Lucene.
-   *
-   * Input parameters:
-   *   FTS$INDEX_NAME - name of the index.
-   *
-   * Output parameters:
-   *   FTS$SEGMENT_NAME - segment name;
-   *   FTS$DOC_COUNT - number of documents in the segment;
-   *   FTS$SEGMENT_SIZE - segment size in bytes;
-   *   FTS$USE_COMPOUND_FILE - segment use compound file;
-   *   FTS$HAS_DELETIONS - there have been deletions of documents from the segment;
-   *   FTS$DEL_COUNT - number of deleted documents (before optimization);
-   *   FTS$DEL_FILENAME - file with deleted documents.
-  **/
-  PROCEDURE FTS$INDEX_SEGMENT_INFOS (
-      FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL)
-  RETURNS (
-      FTS$SEGMENT_NAME      VARCHAR(63) CHARACTER SET UTF8,
-      FTS$DOC_COUNT         INTEGER,
-      FTS$SEGMENT_SIZE      /*BIGINT*/ INTEGER,
-      FTS$USE_COMPOUND_FILE BOOLEAN,
-      FTS$HAS_DELETIONS     BOOLEAN,
-      FTS$DEL_COUNT         INTEGER,
-      FTS$DEL_FILENAME      VARCHAR(255) CHARACTER SET UTF8);
-
-  /**
-   * Returns the names of the index's internal fields.
-   *
-   * Input parameters:
-   *   FTS$INDEX_NAME - name of the index.
-   *
-   * Output parameters:
-   *   FTS$FIELD_NAME - field name.
-  **/
-  PROCEDURE FTS$INDEX_FIELDS (
-      FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL)
-  RETURNS (
-      FTS$FIELD_NAME VARCHAR(127) CHARACTER SET UTF8);
-
-  /**
-   * Returns information about index files.
-   *
-   * Input parameters:
-   *   FTS$INDEX_NAME - name of the index.
-   *
-   * Output parameters:
-   *   FTS$FILE_NAME - file name;
-   *   FTS$FILE_TYPE - file type;
-   *   FTS$FILE_SIZE - file size in bytes
-  **/
-  PROCEDURE FTS$INDEX_FILES (
-      FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL)
-  RETURNS (
-      FTS$FILE_NAME VARCHAR(127) CHARACTER SET UTF8,
-      FTS$FILE_TYPE VARCHAR(63) CHARACTER SET UTF8,
-      FTS$FILE_SIZE /*BIGINT*/ INTEGER);
-
-  /**
-   * Returns information about index fields.
-   *
-   * Input parameters:
-   *   FTS$INDEX_NAME - name of the index;
-   *   FTS$SEGMENT_NAME - name of the index segment,
-   *      if not specified, then the active segment is taken.
-   *
-   * Output parameters:
-   *   FTS$FIELD_NAME - field name;
-   *   FTS$FIELD_NUMBER - field number;
-   *   FTS$IS_INDEXED - field is indexed;
-   *   FTS$STORE_TERM_VECTOR - reserved;
-   *   FTS$STORE_OFFSET_TERM_VECTOR - reserved;
-   *   FTS$STORE_POSITION_TERM_VECTOR - reserved;
-   *   FTS$OMIT_NORMS - reserved;
-   *   FTS$OMIT_TERM_FREQ_AND_POS - reserved;
-   *   FTS$STORE_PAYLOADS - reserved.
-  **/
-  PROCEDURE FTS$INDEX_FIELD_INFOS (
-      FTS$INDEX_NAME   VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
-      FTS$SEGMENT_NAME VARCHAR(63) CHARACTER SET UTF8 DEFAULT NULL)
-  RETURNS (
-      FTS$FIELD_NAME                      VARCHAR(127) CHARACTER SET UTF8,
-      FTS$FIELD_NUMBER                    SMALLINT,
-      FTS$IS_INDEXED                      BOOLEAN,
-      FTS$STORE_TERM_VECTOR               BOOLEAN,
-      FTS$STORE_OFFSET_TERM_VECTOR        BOOLEAN,
-      FTS$STORE_POSITION_TERM_VECTOR      BOOLEAN,
-      FTS$OMIT_NORMS                      BOOLEAN,
-      FTS$OMIT_TERM_FREQ_AND_POS          BOOLEAN,
-      FTS$STORE_PAYLOADS                  BOOLEAN);
-END
+      FTS$INDEX_SIZE       INTEGER);
 ```
-
-#### Функция FTS$LUCENE_VERSION
-
-Функция `FTS$LUCENE_VERSION` возвращает версию библиотеки lucene++ на основе которой построен полнотектосовый поиск.
-
-#### Функция FTS$GET_DIRECTORY
-
-Функция `FTS$GET_DIRECTORY()` возвращает директорию в которой расположены файлы и папки полнотекстового индекса для 
-текущей базы данных.
-
-#### Процедура FTS$INDEX_STATISTICS
-
-Процедура `FTS$INDEX_STATISTICS` возвращает низкоуровневую информацию и статистику для указанного индекса. 
 
 Входные параметры:
 
@@ -1546,9 +1527,25 @@ END
 - FTS$INDEX_SIZE - размер индекса в байтах.
 
 
-#### Процедура FTS$INDICES_STATISTICS
+#### Процедура FTS$STATISTICS.FTS$INDICES_STATISTICS
 
-Процедура `FTS$INDICES_STATISTICS` возвращает низкоуровневую информацию и статистику для всех полнотекстовых индексов. 
+Процедура `FTS$STATISTICS.FTS$INDICES_STATISTICS` возвращает низкоуровневую информацию и статистику для всех полнотекстовых индексов. 
+
+```sql
+  PROCEDURE FTS$INDICES_STATISTICS
+  RETURNS (
+      FTS$INDEX_NAME       VARCHAR(63) CHARACTER SET UTF8,
+      FTS$ANALYZER         VARCHAR(63) CHARACTER SET UTF8,
+      FTS$INDEX_STATUS     TYPE OF FTS$D_INDEX_STATUS,
+      FTS$INDEX_DIRECTORY  VARCHAR(255) CHARACTER SET UTF8,
+      FTS$INDEX_EXISTS     BOOLEAN,
+      FTS$INDEX_OPTIMIZED  BOOLEAN,
+      FTS$HAS_DELETIONS    BOOLEAN,
+      FTS$NUM_DOCS         INTEGER,
+      FTS$NUM_DELETED_DOCS INTEGER,
+      FTS$NUM_FIELDS       SMALLINT,
+      FTS$INDEX_SIZE       INTEGER);
+```
 
 Выходные параметры:
 
@@ -1568,10 +1565,23 @@ END
 - FTS$INDEX_SIZE - размер индекса в байтах.
 
 
-#### Процедура FTS$INDEX_SEGMENT_INFOS
+#### Процедура FTS$STATISTICS.FTS$INDEX_SEGMENT_INFOS
 
-Процедура `FTS$INDEX_SEGMENT_INFOS` возвращает информацию о сегментах индекса.
+Процедура `FTS$STATISTICS.FTS$INDEX_SEGMENT_INFOS` возвращает информацию о сегментах индекса.
 Здесь сегмент определяется с точки зрения Lucene.
+
+```sql
+  PROCEDURE FTS$INDEX_SEGMENT_INFOS (
+      FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL)
+  RETURNS (
+      FTS$SEGMENT_NAME      VARCHAR(63) CHARACTER SET UTF8,
+      FTS$DOC_COUNT         INTEGER,
+      FTS$SEGMENT_SIZE      INTEGER,
+      FTS$USE_COMPOUND_FILE BOOLEAN,
+      FTS$HAS_DELETIONS     BOOLEAN,
+      FTS$DEL_COUNT         INTEGER,
+      FTS$DEL_FILENAME      VARCHAR(255) CHARACTER SET UTF8);
+```
    
 Входные параметры:
 
@@ -1588,9 +1598,16 @@ END
 - FTS$DEL_FILENAME - файл с удаленными документами.
 
 
-#### Процедура FTS$INDEX_FIELDS
+#### Процедура FTS$STATISTICS.FTS$INDEX_FIELDS
 
-Процедура `FTS$INDEX_FIELDS` возвращает имена внутренних полей индекса.
+Процедура `FTS$STATISTICS.FTS$INDEX_FIELDS` возвращает имена внутренних полей индекса.
+
+```sql
+  PROCEDURE FTS$INDEX_FIELDS (
+      FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL)
+  RETURNS (
+      FTS$FIELD_NAME VARCHAR(127) CHARACTER SET UTF8);
+```
    
 Входные параметры:
 
@@ -1601,9 +1618,18 @@ END
 - FTS$FIELD_NAME - имя поля.
 
 
-#### Процедура FTS$INDEX_FILES
+#### Процедура FTS$STATISTICS.FTS$INDEX_FILES
 
-Процедура `FTS$INDEX_FILES` возвращает информацию об индексных файлах.
+Процедура `FTS$STATISTICS.FTS$INDEX_FILES` возвращает информацию об индексных файлах.
+
+```sql
+  PROCEDURE FTS$INDEX_FILES (
+      FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL)
+  RETURNS (
+      FTS$FILE_NAME VARCHAR(127) CHARACTER SET UTF8,
+      FTS$FILE_TYPE VARCHAR(63) CHARACTER SET UTF8,
+      FTS$FILE_SIZE INTEGER);
+```
    
 Входные параметры:
 
@@ -1616,9 +1642,25 @@ END
 - FTS$FILE_SIZE - размер файла в байтах.
 
 
-#### Процедура FTS$INDEX_FIELD_INFOS
+#### Процедура FTS$STATISTICS.FTS$INDEX_FIELD_INFOS
 
-Процедура `FTS$INDEX_FIELD_INFOS` возвращает информацию о полях индекса.
+Процедура `FTS$STATISTICS.FTS$INDEX_FIELD_INFOS` возвращает информацию о полях индекса.
+
+```sql
+  PROCEDURE FTS$INDEX_FIELD_INFOS (
+      FTS$INDEX_NAME   VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+      FTS$SEGMENT_NAME VARCHAR(63) CHARACTER SET UTF8 DEFAULT NULL)
+  RETURNS (
+      FTS$FIELD_NAME                      VARCHAR(127) CHARACTER SET UTF8,
+      FTS$FIELD_NUMBER                    SMALLINT,
+      FTS$IS_INDEXED                      BOOLEAN,
+      FTS$STORE_TERM_VECTOR               BOOLEAN,
+      FTS$STORE_OFFSET_TERM_VECTOR        BOOLEAN,
+      FTS$STORE_POSITION_TERM_VECTOR      BOOLEAN,
+      FTS$OMIT_NORMS                      BOOLEAN,
+      FTS$OMIT_TERM_FREQ_AND_POS          BOOLEAN,
+      FTS$STORE_PAYLOADS                  BOOLEAN);
+```
    
 Входные параметры:
 
@@ -1637,6 +1679,8 @@ END
 - FTS$OMIT_NORMS - зарезервировано;
 - FTS$OMIT_TERM_FREQ_AND_POS - зарезервировано;
 - FTS$STORE_PAYLOADS - зарезервировано.
+
+
 
 
 
