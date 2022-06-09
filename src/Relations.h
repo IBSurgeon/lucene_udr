@@ -41,7 +41,7 @@ namespace LuceneUDR
 		string relationName;
 		RelationType relationType;
 		bool systemFlag;
-
+	public:
 		RelationInfo()
 			: relationName()
 			, relationType(RelationType::RT_REGULAR)
@@ -66,7 +66,7 @@ namespace LuceneUDR
 		short fieldSubType;
 		short fieldPrecision;
 		short fieldScale;
-
+	public:
 		RelationFieldInfo()
 			: relationName()
 			, fieldName()

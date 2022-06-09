@@ -45,8 +45,9 @@ namespace LuceneUDR
 		{}
 
 		FTSLogRepository(IMaster* master)
-			: m_master(master),
-			stmt_append_log(nullptr)
+			: m_master(master)
+			, stmt_append_log(nullptr)
+			, stmt_delete_log(nullptr)
 		{
 		}
 

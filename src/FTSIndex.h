@@ -42,6 +42,18 @@ namespace LuceneUDR
 	/// </summary>
 	class FTSIndex final
 	{
+	public:
+		string indexName;
+		string relationName;
+		string analyzer;
+		string description;
+		string status; // N - new index, I - inactive, U - need rebuild, C - complete
+
+		FTSIndexSegmentList segments;
+
+		FTSKeyType keyFieldType;
+		wstring unicodeKeyFieldName;
+		wstring unicodeIndexDir;
 	private:
 		AutoRelease<IStatement> stmtExtractRecord;
 		AutoRelease<IMessageMetadata> outMetaExtractRecord;
@@ -54,27 +66,15 @@ namespace LuceneUDR
 			, analyzer()
 			, description()
 			, status()
+			, segments()
 			, keyFieldType(FTSKeyType::NONE)
 			, unicodeKeyFieldName()
-			, segments()
+			, unicodeIndexDir()
 			, stmtExtractRecord(nullptr)
 			, inMetaExtractRecord(nullptr)
 			, outMetaExtractRecord(nullptr)
-			, unicodeIndexDir()
+			
 		{}
-
-		string indexName;
-		string relationName;
-		string analyzer;		
-		string description;
-		string status; // N - new index, I - inactive, U - need rebuild, C - complete
-
-		FTSKeyType keyFieldType;
-		wstring unicodeKeyFieldName;
-
-		FTSIndexSegmentList segments;
-		
-		wstring unicodeIndexDir;
 
 		bool inline isActive() {
 			return (status == "C") || (status == "U");
@@ -131,7 +131,7 @@ namespace LuceneUDR
 		double boost;
 		bool boostNull;
 		bool fieldExists;
-
+	public:
 		FTSIndexSegment()
 			: indexName()
 			, fieldName()
@@ -149,6 +149,14 @@ namespace LuceneUDR
 	class FTSKeyFieldBlock final
 	{
 	public:
+		string keyFieldName;
+		FTSKeyType keyFieldType;
+		list<string> fieldNames;
+
+		string insertingCondition;
+		string updatingCondition;
+		string deletingCondition;
+	public:
 		FTSKeyFieldBlock()
 			: keyFieldName()
 			, keyFieldType(FTSKeyType::NONE)
@@ -157,14 +165,6 @@ namespace LuceneUDR
 			, updatingCondition()
 			, deletingCondition()
 		{}
-
-		string keyFieldName;
-		FTSKeyType keyFieldType;
-		list<string> fieldNames;
-
-		string insertingCondition;
-		string updatingCondition;
-		string deletingCondition;
 
 		const string getProcedureName()
 		{
@@ -191,8 +191,8 @@ namespace LuceneUDR
 		string relationName;
 		string triggerEvents;
 		unsigned int position;
-		string triggerSource;		
-
+		string triggerSource;
+	public:
 		FTSTrigger()
 			: triggerName()
 			, relationName()
@@ -246,6 +246,7 @@ namespace LuceneUDR
 		AutoRelease<IStatement> stmt_key_segment;
 	public:
 		RelationHelper relationHelper;
+	public:
 
 		FTSIndexRepository()
 			: FTSIndexRepository(nullptr)
@@ -253,12 +254,12 @@ namespace LuceneUDR
 
 		FTSIndexRepository(IMaster* master)
 			: m_master(master)
-			, relationHelper(master)
 			, stmt_exists_index(nullptr)
 			, stmt_get_index(nullptr)
 			, stmt_index_segments(nullptr)
 			, stmt_rel_segments(nullptr)
 			, stmt_key_segment(nullptr)
+			, relationHelper(master)
 		{
 		}
 
