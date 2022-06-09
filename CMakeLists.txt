@@ -111,6 +111,7 @@ target_include_directories(luceneudr
 
 target_link_libraries(luceneudr ICU::uc)
 target_link_libraries(luceneudr fbclient)
+target_link_libraries(luceneudr -lstdc++fs)
 
 target_link_libraries(luceneudr ${liblucene++_LIBRARIES})
 target_link_libraries(luceneudr ${liblucene++-contrib_LIBRARIES})
