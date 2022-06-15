@@ -481,12 +481,6 @@ EXTERNAL NAME 'luceneudr!ftsClearLog'
 ENGINE UDR;
 ***/
 FB_UDR_BEGIN_PROCEDURE(ftsClearLog)
-	FB_UDR_CONSTRUCTOR
-		, logRepository(context->getMaster())
-	{
-	}
-
-	FTSLogRepository logRepository;
 
 	FB_UDR_EXECUTE_PROCEDURE
 	{
@@ -496,7 +490,17 @@ FB_UDR_BEGIN_PROCEDURE(ftsClearLog)
 
 		const unsigned int sqlDialect = getSqlDialect(status, att);
 
-		procedure->logRepository.clearLog(status, att, tra, sqlDialect);
+		att->execute(
+			status,
+			tra,
+			0,
+			"DELETE FROM FTS$LOG",
+			sqlDialect,
+			nullptr,
+			nullptr,
+			nullptr,
+			nullptr
+		);
 	}
 
 	FB_UDR_FETCH_PROCEDURE
@@ -525,15 +529,6 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 	FTSLogRepository logRepository;
 	LuceneAnalyzerFactory analyzerFactory;
 
-	void setIndexToRebuild(ThrowStatusWrapper* const status, IAttachment* const att, const unsigned int sqlDialect, const FTSIndexPtr& ftsIndex)
-	{
-		ftsIndex->status = "U";
-		// this is done in an autonomous transaction				
-		AutoRelease<ITransaction> tra(att->startTransaction(status, 0, nullptr));
-		indexRepository.setIndexStatus(status, att, tra, sqlDialect, ftsIndex->indexName, ftsIndex->status);
-		tra->commit(status);
-	}
-
 	FB_UDR_EXECUTE_PROCEDURE
 	{
 		AutoRelease<IAttachment> att(context->getAttachment(status));
@@ -557,7 +552,7 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 			const auto& indexDirectoryPath = ftsDirectoryPath / indexName;
 			if (!ftsIndex->checkAllFieldsExists() || !fs::is_directory(indexDirectoryPath)) {
 				// index need to rebuild
-				procedure->setIndexToRebuild(status, att, sqlDialect, ftsIndex);
+				setIndexToRebuild(status, att, sqlDialect, ftsIndex);
 				// go to next index
 				continue;
 			}
@@ -570,7 +565,7 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 			if (inMetadata->getCount(status) != 1) {
 				// The number of input parameters must be equal to 1.
 				// index need to rebuild
-				procedure->setIndexToRebuild(status, att, sqlDialect, ftsIndex);
+				setIndexToRebuild(status, att, sqlDialect, ftsIndex);
 				// go to next index
 				continue;
 			}
@@ -586,7 +581,7 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 					break;
 				default:
 					// index need to rebuild
-					procedure->setIndexToRebuild(status, att, sqlDialect, ftsIndex);
+					setIndexToRebuild(status, att, sqlDialect, ftsIndex);
 					// go to next index
 					continue;
 				}
@@ -596,7 +591,7 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 			}
 			else {
 				// index need to rebuild
-				procedure->setIndexToRebuild(status, att, sqlDialect, ftsIndex);
+				setIndexToRebuild(status, att, sqlDialect, ftsIndex);
 				// go to next index
 				continue;
 			}
@@ -610,7 +605,7 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 				auto iSegment = ftsIndex->findSegment(field->fieldName);
 				if (iSegment == ftsIndex->segments.end()) {
 					// index need to rebuild
-					procedure->setIndexToRebuild(status, att, sqlDialect, ftsIndex);
+					setIndexToRebuild(status, att, sqlDialect, ftsIndex);
 					// go to next index
 					continue;
 				}
@@ -639,48 +634,35 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 
 		try 
 		{
-			FB_MESSAGE(DBKEYInput, ThrowStatusWrapper,
-				(FB_INTL_VARCHAR(8, CS_BINARY), dbKey)
-			) dbKeyInput(status, context->getMaster());
-
-			FB_MESSAGE(UUIDInput, ThrowStatusWrapper,
-				(FB_INTL_VARCHAR(16, CS_BINARY), uuid)
-			) uuidInput(status, context->getMaster());
-
-			FB_MESSAGE(IDInput, ThrowStatusWrapper,
-				(FB_BIGINT, id)
-			) idInput(status, context->getMaster());
+			DBKEYInput dbKeyInput(status, context->getMaster());
+			UUIDInput uuidInput(status, context->getMaster());
+			IDInput idInput(status, context->getMaster());
 
 			FBStringEncoder fbStringEncoder(fbCharset);
 
-			// get the log of changes of records for the index
-			AutoRelease<IStatement> logStmt(att->prepare(
+			// prepare statement for delete record from FTS log
+			AutoRelease<IStatement> logDeleteStmt(att->prepare(
 				status,
 				tra,
 				0,
-				"SELECT\n"
-				"    FTS$LOG_ID\n"
-				"  , TRIM(FTS$RELATION_NAME) AS FTS$RELATION_NAME\n"
-				"  , FTS$DB_KEY\n"
-				"  , FTS$REC_UUID\n"
-				"  , FTS$REC_ID\n"
-				"  , FTS$CHANGE_TYPE\n"
-				"FROM FTS$LOG\n"
-				"ORDER BY FTS$LOG_ID\n",
+				SQL_DELETE_FTS_LOG,
 				sqlDialect,
 				IStatement::PREPARE_PREFETCH_METADATA
 			));
 
-			FB_MESSAGE(LogOutput, ThrowStatusWrapper,
-				(FB_BIGINT, id)
-				(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
-				(FB_VARCHAR(8), dbKey)
-				(FB_VARCHAR(16), uuid)
-				(FB_BIGINT, recId)
-				(FB_INTL_VARCHAR(4, CS_UTF8), changeType)
+			LogDelInput logDelInput(status, context->getMaster());
 
-			) logOutput(status, context->getMaster());
-			logOutput.clear();
+			// prepare statement for retrieval record from FTS log 
+			AutoRelease<IStatement> logStmt(att->prepare(
+				status,
+				tra,
+				0,
+				SQL_SELECT_FTS_LOG,
+				sqlDialect,
+				IStatement::PREPARE_PREFETCH_METADATA
+			));
+
+			LogOutput logOutput(status, context->getMaster());
 
 			AutoRelease<IResultSet> logRs(logStmt->openCursor(
 				status,
@@ -861,7 +843,18 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 						rs->close(status);
 					}
 				}
-				procedure->logRepository.deleteLog(status, att, tra, sqlDialect, logId);
+				// delete record from FTS log
+				logDelInput->idNull = false;
+				logDelInput->id = logId;
+				logDeleteStmt->execute(
+					status,
+					tra,
+					logDelInput.getMetadata(),
+					logDelInput.getData(),
+					nullptr,
+					nullptr
+				);
+				
 			}
 			logRs->close(status);
 			// commit changes for all indexes
@@ -882,8 +875,67 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 		}
 	}
 
+	// Input message for extracting a record by RDB$DB_KEY
+	FB_MESSAGE(DBKEYInput, ThrowStatusWrapper,
+		(FB_INTL_VARCHAR(8, CS_BINARY), dbKey)
+	);
+
+	// Input message for extracting a record by UUID
+	FB_MESSAGE(UUIDInput, ThrowStatusWrapper,
+		(FB_INTL_VARCHAR(16, CS_BINARY), uuid)
+	);
+
+	// Input message for extracting a record by integer ID
+	FB_MESSAGE(IDInput, ThrowStatusWrapper,
+		(FB_BIGINT, id)
+	);
+
+	// Input message for the FTS log record delete statement
+	FB_MESSAGE(LogDelInput, ThrowStatusWrapper,
+		(FB_BIGINT, id)
+	);
+
+	const char* SQL_DELETE_FTS_LOG =
+R"SQL(
+DELETE FROM FTS$LOG
+WHERE FTS$LOG_ID = ?
+)SQL";
+
+	// FTS log output message
+	FB_MESSAGE(LogOutput, ThrowStatusWrapper,
+		(FB_BIGINT, id)
+		(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
+		(FB_VARCHAR(8), dbKey)
+		(FB_VARCHAR(16), uuid)
+		(FB_BIGINT, recId)
+		(FB_INTL_VARCHAR(4, CS_UTF8), changeType)
+	);
+
+	const char* SQL_SELECT_FTS_LOG =
+R"SQL(
+SELECT
+    FTS$LOG_ID
+  , TRIM(FTS$RELATION_NAME) AS FTS$RELATION_NAME
+  , FTS$DB_KEY
+  , FTS$REC_UUID
+  , FTS$REC_ID
+  , FTS$CHANGE_TYPE
+FROM FTS$LOG
+ORDER BY FTS$LOG_ID
+)SQL";
+
 	map<string, FbFieldsInfoPtr> fieldsInfoMap;
 	map<string, IndexWriterPtr> indexWriters;
+
+
+	void setIndexToRebuild(ThrowStatusWrapper* const status, IAttachment* const att, const unsigned int sqlDialect, const FTSIndexPtr& ftsIndex)
+	{
+		ftsIndex->status = "U";
+		// this is done in an autonomous transaction				
+		AutoRelease<ITransaction> tra(att->startTransaction(status, 0, nullptr));
+		procedure->indexRepository.setIndexStatus(status, att, tra, sqlDialect, ftsIndex->indexName, ftsIndex->status);
+		tra->commit(status);
+	}
 
 	IndexWriterPtr const getIndexWriter(ThrowStatusWrapper* const status, const FTSIndexPtr& ftsIndex)
 	{

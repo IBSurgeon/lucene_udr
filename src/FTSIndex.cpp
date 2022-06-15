@@ -81,7 +81,7 @@ namespace LuceneUDR
 		}
 		auto iKeySegment = findKey();
 		if (iKeySegment == segments.end()) {
-			const string error_message = string_format("Key field not exists in index \"%s\".", indexName);
+			const string error_message = string_format(R"(Key field not exists in index "%s".)"s, indexName);
 			ISC_STATUS statusVector[] = {
 			   isc_arg_gds, isc_random,
 			   isc_arg_string, (ISC_STATUS)error_message.c_str(),
@@ -180,7 +180,7 @@ namespace LuceneUDR
 
 		// check for index existence
 		if (hasIndex(status, att, tra, sqlDialect, indexName)) {
-			const string error_message = string_format("Index \"%s\" already exists", indexName);
+			const string error_message = string_format(R"(Index "%s" already exists)"s, indexName);
 			ISC_STATUS statusVector[] = {
 			   isc_arg_gds, isc_random,
 			   isc_arg_string, (ISC_STATUS)error_message.c_str(),
@@ -192,7 +192,7 @@ namespace LuceneUDR
 		// checking the existence of the analyzer
 		LuceneAnalyzerFactory analyzerFactory;
 		if (!analyzerFactory.hasAnalyzer(analyzerName)) {
-			const string error_message = string_format("Analyzer \"%s\" not exists", analyzerName);
+			const string error_message = string_format(R"(Analyzer "%s" not exists)"s, analyzerName);
 			ISC_STATUS statusVector[] = {
 			   isc_arg_gds, isc_random,
 			   isc_arg_string, (ISC_STATUS)error_message.c_str(),
@@ -205,8 +205,7 @@ namespace LuceneUDR
 			status,
 			tra,
 			0,
-			"INSERT INTO FTS$INDICES(FTS$INDEX_NAME, FTS$RELATION_NAME, FTS$ANALYZER, FTS$DESCRIPTION, FTS$INDEX_STATUS)\n"
-			"VALUES(?, ?, ?, ?, ?)",
+			SQL_CREATE_FTS_INDEX,
 			sqlDialect,
 			input.getMetadata(),
 			input.getData(),
@@ -243,7 +242,7 @@ namespace LuceneUDR
 
 		// check for index existence
 		if (!hasIndex(status, att, tra, sqlDialect, indexName)) {
-			const string error_message = string_format("Index \"%s\" not exists", indexName);
+			const string error_message = string_format(R"(Index "%s" not exists)"s, indexName);
 			ISC_STATUS statusVector[] = {
 			   isc_arg_gds, isc_random,
 			   isc_arg_string, (ISC_STATUS)error_message.c_str(),
@@ -256,7 +255,7 @@ namespace LuceneUDR
 			status,
 			tra,
 			0,
-			"DELETE FROM FTS$INDICES WHERE FTS$INDEX_NAME = ?",
+			SQL_DROP_FTS_INDEX,
 			sqlDialect,
 			input.getMetadata(),
 			input.getData(),
@@ -300,7 +299,7 @@ namespace LuceneUDR
 			status,
 			tra,
 			0,
-			"UPDATE FTS$INDICES SET FTS$INDEX_STATUS = ? WHERE FTS$INDEX_NAME = ?",
+			SQL_SET_FTS_INDEX_STATUS,
 			sqlDialect,
 			input.getMetadata(),
 			input.getData(),
@@ -345,9 +344,7 @@ namespace LuceneUDR
 				status,
 				tra,
 				0,
-				"SELECT COUNT(*) AS CNT\n"
-				"FROM FTS$INDICES\n"
-				"WHERE FTS$INDEX_NAME = ?",
+				SQL_FTS_INDEX_EXISTS,
 				sqlDialect,
 				IStatement::PREPARE_PREFETCH_METADATA
 			));
@@ -415,9 +412,7 @@ namespace LuceneUDR
 				status,
 				tra,
 				0,
-				"SELECT FTS$INDEX_NAME, FTS$RELATION_NAME, FTS$ANALYZER, FTS$DESCRIPTION, FTS$INDEX_STATUS\n"
-				"FROM FTS$INDICES\n"
-				"WHERE FTS$INDEX_NAME = ?",
+				SQL_GET_FTS_INDEX,
 				sqlDialect,
 				IStatement::PREPARE_PREFETCH_METADATA
 			));
@@ -447,7 +442,7 @@ namespace LuceneUDR
 		}
 		rs->close(status);
 		if (!foundFlag) {
-			const string error_message = string_format("Index \"%s\" not exists", indexName);
+			const string error_message = string_format(R"(Index "%s" not exists)", indexName);
 			ISC_STATUS statusVector[] = {
 			   isc_arg_gds, isc_random,
 			   isc_arg_string, (ISC_STATUS)error_message.c_str(),
@@ -493,9 +488,7 @@ namespace LuceneUDR
 				status,
 				tra,
 				0,
-				"SELECT FTS$INDEX_NAME, FTS$RELATION_NAME, FTS$ANALYZER, FTS$DESCRIPTION, FTS$INDEX_STATUS\n"
-				"FROM FTS$INDICES\n"
-				"ORDER BY FTS$INDEX_NAME",
+			    SQL_ALL_FTS_INDECES,
 				sqlDialect,
 				IStatement::PREPARE_PREFETCH_METADATA
 			));

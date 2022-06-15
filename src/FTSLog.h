@@ -31,14 +31,22 @@ namespace LuceneUDR
 		AutoRelease<IStatement> stmt_delete_log;
 
 		const char* SQL_APPEND_LOG = 
-			"INSERT INTO FTS$LOG (\n"
-			"  FTS$RELATION_NAME,\n"
-			"  FTS$DB_KEY,\n"
-			"  FTS$REC_UUID,\n"
-			"  FTS$REC_ID,\n"
-			"  FTS$CHANGE_TYPE\n"
-			")\n"
-			"VALUES(?, ?, ?, ?, ?)";
+R"SQL(
+INSERT INTO FTS$LOG (
+  FTS$RELATION_NAME,
+  FTS$DB_KEY,
+  FTS$REC_UUID,
+  FTS$REC_ID,
+  FTS$CHANGE_TYPE
+)
+VALUES(?, ?, ?, ?, ?)
+)SQL";
+
+		const char* SQL_DELETE_LOG =
+R"SQL(
+DELETE FROM FTS$LOG
+WHERE FTS$LOG_ID = ?
+)SQL";
 	public:
 		FTSLogRepository()
 			: FTSLogRepository(nullptr)
@@ -63,7 +71,7 @@ namespace LuceneUDR
 		/// <param name="relationName">Relation name</param>
 		/// <param name="dbKey">Record ID</param>
 		/// <param name="changeType">Type of change</param>
-		void appendLogByDbKey(
+		void appendLogByDbKey (
 			ThrowStatusWrapper* const status,
 			IAttachment* const att,
 			ITransaction* const tra,
@@ -83,7 +91,7 @@ namespace LuceneUDR
 		/// <param name="relationName">Relation name</param>
 		/// <param name="dbKey">Record ID</param>
 		/// <param name="changeType">Type of change</param>
-		void appendLogById(
+		void appendLogById (
 			ThrowStatusWrapper* const status,
 			IAttachment* const att,
 			ITransaction* const tra,
@@ -103,7 +111,7 @@ namespace LuceneUDR
 		/// <param name="relationName">Relation name</param>
 		/// <param name="dbKey">Record ID</param>
 		/// <param name="changeType">Type of change</param>
-		void appendLogByUuid(
+		void appendLogByUuid (
 			ThrowStatusWrapper* const status,
 			IAttachment* const att,
 			ITransaction* const tra,
@@ -112,36 +120,6 @@ namespace LuceneUDR
 			const string& uuid,
 			const string& changeType);
 
-
-		/// <summary>
-		/// Removes an entry from the changelog.
-		/// </summary>
-		/// 
-		/// <param name="status">Firebird status</param>
-		/// <param name="att">Firebird attachment</param>
-		/// <param name="tra">Firebird transaction</param>
-		/// <param name="sqlDialect">SQL dialect</param>
-		/// <param name="id">Identifier</param>
-		void deleteLog(
-			ThrowStatusWrapper* const status,
-			IAttachment* const att,
-			ITransaction* const tra,
-			const unsigned int sqlDialect,
-			const ISC_INT64 id);
-
-		/// <summary>
-		/// Clears the changelog.
-		/// </summary>
-		/// 
-		/// <param name="status">Firebird status</param>
-		/// <param name="att">Firebird attachment</param>
-		/// <param name="tra">Firebird transaction</param>
-		/// <param name="sqlDialect">SQL dialect</param>
-		void clearLog(
-			ThrowStatusWrapper* const status,
-			IAttachment* const att,
-			ITransaction* const tra,
-			const unsigned int sqlDialect);
 	};
 }
 

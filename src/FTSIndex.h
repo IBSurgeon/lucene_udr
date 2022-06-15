@@ -244,6 +244,52 @@ namespace LuceneUDR
 		AutoRelease<IStatement> stmt_index_segments;
 		AutoRelease<IStatement> stmt_rel_segments;
 		AutoRelease<IStatement> stmt_key_segment;
+
+		const char* SQL_CREATE_FTS_INDEX = R"SQL(
+INSERT INTO FTS$INDICES (
+  FTS$INDEX_NAME, 
+  FTS$RELATION_NAME, 
+  FTS$ANALYZER, 
+  FTS$DESCRIPTION, 
+  FTS$INDEX_STATUS)
+VALUES(?, ?, ?, ?, ?)
+)SQL";
+
+		const char* SQL_DROP_FTS_INDEX = R"SQL(
+DELETE FROM FTS$INDICES WHERE FTS$INDEX_NAME = ?
+)SQL";
+
+		const char* SQL_FTS_INDEX_EXISTS = R"SQL(
+SELECT COUNT(*) AS CNT
+FROM FTS$INDICES
+WHERE FTS$INDEX_NAME = ?
+)SQL";
+
+		const char* SQL_SET_FTS_INDEX_STATUS = R"SQL(
+UPDATE FTS$INDICES SET FTS$INDEX_STATUS = ? WHERE FTS$INDEX_NAME = ?
+)SQL";
+
+		const char* SQL_GET_FTS_INDEX = R"SQL(
+SELECT 
+  FTS$INDEX_NAME, 
+  FTS$RELATION_NAME, 
+  FTS$ANALYZER, 
+  FTS$DESCRIPTION, 
+  FTS$INDEX_STATUS
+FROM FTS$INDICES
+WHERE FTS$INDEX_NAME = ?
+)SQL";
+
+		const char* SQL_ALL_FTS_INDECES = R"SQL(
+SELECT 
+  FTS$INDEX_NAME, 
+  FTS$RELATION_NAME, 
+  FTS$ANALYZER, 
+  FTS$DESCRIPTION, 
+  FTS$INDEX_STATUS
+FROM FTS$INDICES
+ORDER BY FTS$INDEX_NAME
+)SQL";
 	public:
 		RelationHelper relationHelper;
 	public:

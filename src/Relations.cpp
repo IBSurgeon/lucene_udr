@@ -56,15 +56,7 @@ namespace LuceneUDR
 				status,
 				tra,
 				0,
-				"SELECT\n"
-				"  TRIM(R.RDB$RELATION_NAME) AS RDB$RELATION_NAME,\n"
-				"  CASE\n"
-				"    WHEN R.RDB$RELATION_TYPE IS NOT NULL THEN R.RDB$RELATION_TYPE\n"
-				"    ELSE IIF(R.RDB$VIEW_BLR IS NULL, 0, 1)\n"
-				"  END AS RDB$RELATION_TYPE,\n"
-				"  COALESCE(R.RDB$SYSTEM_FLAG, 0) AS RDB$SYSTEM_FLAG\n"
-				"FROM RDB$RELATIONS R\n"
-				"WHERE R.RDB$RELATION_NAME = ?",
+				SQL_RELATION_INFO,
 				sqlDialect,
 				IStatement::PREPARE_PREFETCH_METADATA
 			));
@@ -90,7 +82,7 @@ namespace LuceneUDR
 		}
 		rs->close(status);
 		if (!foundFlag) {
-			const string error_message = string_format("Relation \"%s\" not exists", relationName);
+			const string error_message = string_format(R"(Relation "%s" not exists)"s, relationName);
 			ISC_STATUS statusVector[] = {
 			   isc_arg_gds, isc_random,
 			   isc_arg_string, (ISC_STATUS)error_message.c_str(),
@@ -137,9 +129,7 @@ namespace LuceneUDR
 				status,
 				tra,
 				0,
-				"SELECT COUNT(*) AS CNT\n"
-				"FROM RDB$RELATIONS\n"
-				"WHERE RDB$RELATION_NAME = ?",
+				SQL_RELATION_EXISTS,
 				sqlDialect,
 				IStatement::PREPARE_PREFETCH_METADATA
 			));
@@ -206,20 +196,7 @@ namespace LuceneUDR
 				status,
 				tra,
 				0,
-				"SELECT\n"
-				"    TRIM(RF.RDB$RELATION_NAME) AS RDB$RELATION_NAME\n"
-				"  , TRIM(RF.RDB$FIELD_NAME) AS RDB$FIELD_NAME\n"
-				"  , F.RDB$FIELD_TYPE\n"
-				"  , F.RDB$FIELD_LENGTH\n"
-				"  , F.RDB$CHARACTER_LENGTH\n"
-				"  , F.RDB$CHARACTER_SET_ID\n"
-				"  , F.RDB$FIELD_SUB_TYPE\n"
-				"  , F.RDB$FIELD_PRECISION\n"
-				"  , F.RDB$FIELD_SCALE\n"
-				"FROM RDB$RELATION_FIELDS RF\n"
-				"JOIN RDB$FIELDS F\n"
-				"  ON F.RDB$FIELD_NAME = RF.RDB$FIELD_SOURCE\n"
-				"WHERE RF.RDB$RELATION_NAME = ?",
+				SQL_RELATION_FIELDS,
 				sqlDialect,
 				IStatement::PREPARE_PREFETCH_METADATA
 			));
@@ -298,26 +275,7 @@ namespace LuceneUDR
 				status,
 				tra,
 				0,
-				"SELECT\n"
-				"    TRIM(RF.RDB$RELATION_NAME) AS RDB$RELATION_NAME\n"
-				"  , TRIM(RF.RDB$FIELD_NAME) AS RDB$FIELD_NAME\n"
-				"  , F.RDB$FIELD_TYPE\n"
-				"  , F.RDB$FIELD_LENGTH\n"
-				"  , F.RDB$CHARACTER_LENGTH\n"
-				"  , F.RDB$CHARACTER_SET_ID\n"
-				"  , F.RDB$FIELD_SUB_TYPE\n"
-				"  , F.RDB$FIELD_PRECISION\n"
-				"  , F.RDB$FIELD_SCALE\n"
-				"FROM RDB$RELATION_CONSTRAINTS RC\n"
-				"JOIN RDB$INDEX_SEGMENTS INDS\n"
-				"  ON INDS.RDB$INDEX_NAME = RC.RDB$INDEX_NAME\n"
-				"JOIN RDB$RELATION_FIELDS RF\n"
-				"  ON RF.RDB$RELATION_NAME = RC.RDB$RELATION_NAME\n"
-				" AND RF.RDB$FIELD_NAME = INDS.RDB$FIELD_NAME\n"
-				"JOIN RDB$FIELDS F\n"
-				"  ON F.RDB$FIELD_NAME = RF.RDB$FIELD_SOURCE\n"
-				"WHERE RC.RDB$RELATION_NAME = ?\n"
-				"  AND RC.RDB$CONSTRAINT_TYPE = 'PRIMARY KEY'",
+				SQL_RELATION_KEY_FIELDS,
 				sqlDialect,
 				IStatement::PREPARE_PREFETCH_METADATA
 			));
@@ -401,20 +359,7 @@ namespace LuceneUDR
 				status,
 				tra,
 				0,
-				"SELECT\n"
-				"    TRIM(RF.RDB$RELATION_NAME) AS RDB$RELATION_NAME\n"
-				"  , TRIM(RF.RDB$FIELD_NAME) AS RDB$FIELD_NAME\n"
-				"  , F.RDB$FIELD_TYPE\n"
-				"  , F.RDB$FIELD_LENGTH\n"
-				"  , F.RDB$CHARACTER_LENGTH\n"
-				"  , F.RDB$CHARACTER_SET_ID\n"
-				"  , F.RDB$FIELD_SUB_TYPE\n"
-				"  , F.RDB$FIELD_PRECISION\n"
-				"  , F.RDB$FIELD_SCALE\n"
-				"FROM RDB$RELATION_FIELDS RF\n"
-				"JOIN RDB$FIELDS F\n"
-				"  ON F.RDB$FIELD_NAME = RF.RDB$FIELD_SOURCE\n"
-				"WHERE RF.RDB$RELATION_NAME = ? AND RF.RDB$FIELD_NAME = ?",
+				SQL_RELATION_FIELD,
 				sqlDialect,
 				IStatement::PREPARE_PREFETCH_METADATA
 			));
@@ -447,7 +392,7 @@ namespace LuceneUDR
 		rs->close(status);
 
 		if (!foundFlag) {
-			const string error_message = string_format("Field \"%s\" not found in relation \"%s\".", fieldName, relationName);
+			const string error_message = string_format(R"(Field "%s" not found in relation "%s".)"s, fieldName, relationName);
 			ISC_STATUS statusVector[] = {
 			   isc_arg_gds, isc_random,
 			   isc_arg_string, (ISC_STATUS)error_message.c_str(),
@@ -501,9 +446,7 @@ namespace LuceneUDR
 				status,
 				tra,
 				0,
-				"SELECT COUNT(*) AS CNT\n"
-				"FROM RDB$RELATION_FIELDS\n"
-				"WHERE RDB$RELATION_NAME = ? AND RDB$FIELD_NAME = ?",
+				SQL_RELATION_FIELD_EXISTS,
 				sqlDialect,
 				IStatement::PREPARE_PREFETCH_METADATA
 			));
