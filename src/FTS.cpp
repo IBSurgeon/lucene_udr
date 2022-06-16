@@ -22,6 +22,7 @@
 #include "FileUtils.h"
 #include "QueryScorer.h"
 #include "LuceneAnalyzerFactory.h"
+#include <string_view>
 #include <sstream>
 #include <vector>
 #include <memory>
@@ -31,7 +32,72 @@ using namespace Firebird;
 using namespace Lucene;
 using namespace LuceneUDR;
 
+const string queryEscape(const string_view& query)
+{
+	stringstream ss;
+	for (const auto ch : query) {
+		switch (ch) {
+		case '+':
+		case '-':
+		case '!':
+		case '^':
+		case '"':
+		case '~':
+		case '*':
+		case '?':
+		case ':':
+		case '\\':
+		case '&':
+		case '|':
+		case '(':
+		case ')':
+		case '[':
+		case ']':
+		case '{':
+		case '}':
+			ss << '\\' << ch;
+			break;
+		default:
+			ss << ch;
+		}
+	}
+	return ss.str();
+}
 
+/***
+FUNCTION FTS$ESCAPE_QUERY (
+    FTS$QUERY VARCHAR(8191) CHARACTER SET UTF8
+)
+RETURNS VARCHAR(8191) CHARACTER SET UTF8
+EXTERNAL NAME 'luceneudr!ftsEscapeQuery'
+ENGINE UDR;
+***/
+FB_UDR_BEGIN_FUNCTION(ftsEscapeQuery)
+	FB_UDR_MESSAGE(InMessage,
+		(FB_INTL_VARCHAR(32765, CS_UTF8), query)
+	);
+
+	FB_UDR_MESSAGE(OutMessage,
+		(FB_INTL_VARCHAR(32765, CS_UTF8), query)
+	);
+
+	FB_UDR_EXECUTE_FUNCTION
+	{
+		if (!in->queryNull) {
+			string queryStr;
+			queryStr.assign(in->query.str, in->query.length);
+
+			const auto escapedQuery = queryEscape(queryStr);
+
+			out->queryNull = false;
+			out->query.length = static_cast<ISC_USHORT>(escapedQuery.length());
+			escapedQuery.copy(out->query.str, out->query.length);
+		}
+		else {
+			out->queryNull = true;
+		}
+	}
+FB_UDR_END_FUNCTION
 
 /***
 PROCEDURE FTS$SEARCH (
@@ -82,12 +148,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 	FB_UDR_EXECUTE_PROCEDURE
 	{
 		if (in->indexNameNull) {
-			ISC_STATUS statusVector[] = {
-				isc_arg_gds, isc_random,
-				isc_arg_string, (ISC_STATUS)"Index name can not be NULL",
-				isc_arg_end
-			};
-			throw FbException(status, statusVector);
+			throwException(status, "Index name can not be NULL");
 		}
 		const string indexName(in->indexName.str, in->indexName.length);
 
@@ -116,24 +177,14 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 		const auto& indexDirectoryPath = ftsDirectoryPath / indexName;
 		if (ftsIndex->status == "N" || !fs::is_directory(indexDirectoryPath)) {
 			string error_message = string_format(R"(Index "%s" exists, but is not build. Please rebuild index.)"s, indexName);
-			ISC_STATUS statusVector[] = {
-				isc_arg_gds, isc_random,
-				isc_arg_string, (ISC_STATUS)error_message.c_str(),
-				isc_arg_end
-			};
-			throw FbException(status, statusVector);
+			throwException(status, error_message);
 		}
 
 		try {
 			const auto& ftsIndexDir = FSDirectory::open(indexDirectoryPath.wstring());
 			if (!IndexReader::indexExists(ftsIndexDir)) {
 				const string error_message = string_format(R"(Index "%s" exists, but is not build. Please rebuild index.)", indexName);
-				ISC_STATUS statusVector[] = {
-					isc_arg_gds, isc_random,
-					isc_arg_string, (ISC_STATUS)error_message.c_str(),
-					isc_arg_end
-				};
-				throw FbException(status, statusVector);
+				throwException(status, error_message);
 			}
 
 			IndexReaderPtr reader = IndexReader::open(ftsIndexDir, true);
@@ -185,12 +236,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 		}
 		catch (LuceneException& e) {
 			const string error_message = StringUtils::toUTF8(e.getError());
-			ISC_STATUS statusVector[] = {
-				isc_arg_gds, isc_random,
-				isc_arg_string, (ISC_STATUS)error_message.c_str(),
-				isc_arg_end
-			};
-			throw FbException(status, statusVector);
+			throwException(status, error_message);
 		}
 	}
 
@@ -290,34 +336,16 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogByDdKey)
     FB_UDR_EXECUTE_PROCEDURE
 	{
 		if (in->relationNameNull) {
-			ISC_STATUS statusVector[] = {
-				isc_arg_gds, isc_random,
-				isc_arg_string, (ISC_STATUS)"FTS$RELATION_NAME can not be NULL",
-				isc_arg_end
-			};
-			throw FbException(status, statusVector);
+			throwException(status, "FTS$RELATION_NAME can not be NULL");
 		}
-	    const string relationName(in->relationName.str, in->relationName.length);
 
 		if (in->dbKeyNull) {
-			ISC_STATUS statusVector[] = {
-				isc_arg_gds, isc_random,
-				isc_arg_string, (ISC_STATUS)"FTS$DBKEY can not be NULL",
-				isc_arg_end
-			};
-			throw FbException(status, statusVector);
+			throwException(status, "FTS$DBKEY can not be NULL");
 		}
-		const string dbKey(in->dbKey.str, in->dbKey.length);
 
 		if (in->changeTypeNull) {
-			ISC_STATUS statusVector[] = {
-				isc_arg_gds, isc_random,
-				isc_arg_string, (ISC_STATUS)"FTS$CHANGE_TYPE can not be NULL",
-				isc_arg_end
-			};
-			throw FbException(status, statusVector);
+			throwException(status, "FTS$CHANGE_TYPE can not be NULL");
 		}
-		const string changeType(in->changeType.str, in->changeType.length);
 
 		AutoRelease<IAttachment> att(context->getAttachment(status));
 		AutoRelease<ITransaction> tra(context->getTransaction(status));
@@ -394,30 +422,15 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogById)
 	FB_UDR_EXECUTE_PROCEDURE
 	{
 		if (in->relation_nameNull) {
-			ISC_STATUS statusVector[] = {
-				isc_arg_gds, isc_random,
-				isc_arg_string, (ISC_STATUS)"FTS$RELATION_NAME can not be NULL",
-				isc_arg_end
-			};
-			throw FbException(status, statusVector);
+			throwException(status, "FTS$RELATION_NAME can not be NULL");
 		}
 
 		if (in->idNull) {
-			ISC_STATUS statusVector[] = {
-				isc_arg_gds, isc_random,
-				isc_arg_string, (ISC_STATUS)"FTS$ID can not be NULL",
-				isc_arg_end
-			};
-			throw FbException(status, statusVector);
+			throwException(status, "FTS$ID can not be NULL");
 		}
 
 		if (in->change_typeNull) {
-			ISC_STATUS statusVector[] = {
-				isc_arg_gds, isc_random,
-				isc_arg_string, (ISC_STATUS)"FTS$CHANGE_TYPE can not be NULL",
-				isc_arg_end
-			};
-			throw FbException(status, statusVector);
+			throwException(status, "FTS$CHANGE_TYPE can not be NULL");
 		}
 
 		AutoRelease<IAttachment> att(context->getAttachment(status));
@@ -446,6 +459,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogById)
 			nullptr
 		);
 	}
+
 
 	const char* SQL_APPEND_LOG =
 		R"SQL(
@@ -495,30 +509,15 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogByUuid)
 	FB_UDR_EXECUTE_PROCEDURE
 	{
 		if (in->relationNameNull) {
-			ISC_STATUS statusVector[] = {
-				isc_arg_gds, isc_random,
-				isc_arg_string, (ISC_STATUS)"FTS$RELATION_NAME can not be NULL",
-				isc_arg_end
-			};
-			throw FbException(status, statusVector);
+			throwException(status, "FTS$RELATION_NAME can not be NULL");
 		}
 
 		if (in->uuidNull) {
-			ISC_STATUS statusVector[] = {
-				isc_arg_gds, isc_random,
-				isc_arg_string, (ISC_STATUS)"FTS$UUID can not be NULL",
-				isc_arg_end
-			};
-			throw FbException(status, statusVector);
+			throwException(status, "FTS$UUID can not be NULL");
 		}
 
 		if (in->changeTypeNull) {
-			ISC_STATUS statusVector[] = {
-				isc_arg_gds, isc_random,
-				isc_arg_string, (ISC_STATUS)"FTS$CHANGE_TYPE can not be NULL",
-				isc_arg_end
-			};
-			throw FbException(status, statusVector);
+			throwException(status, "FTS$CHANGE_TYPE can not be NULL");
 		}
 
 		AutoRelease<IAttachment> att(context->getAttachment(status));
@@ -559,6 +558,7 @@ INSERT INTO FTS$LOG (
 )
 VALUES(?, NULL, ?, NULL, ?)
 )SQL";
+
 
 	FB_UDR_FETCH_PROCEDURE
 	{

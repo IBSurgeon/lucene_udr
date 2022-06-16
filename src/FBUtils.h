@@ -99,7 +99,7 @@ namespace LuceneUDR
 	/// <param name="name">Metadata object name</param>
 	/// 
 	/// <returns>Returns the escaped name of the metadata object.</returns>
-	static inline string escapeMetaName(const unsigned int sqlDialect, const string& name)
+	inline string escapeMetaName(const unsigned int sqlDialect, const string& name)
 	{
 		switch (sqlDialect) {
 		case 1:
@@ -108,6 +108,17 @@ namespace LuceneUDR
 		default:
 			return "\"" + name + "\"";
 		}
+	}
+
+	template <class StatusType>
+	inline void throwException(StatusType* const status, const string& message)
+	{
+		ISC_STATUS statusVector[] = {
+			isc_arg_gds, isc_random,
+			isc_arg_string, (ISC_STATUS)message.c_str(),
+			isc_arg_end
+		};
+		throw FbException(status, statusVector);
 	}
 
 	template <class StatusType>
