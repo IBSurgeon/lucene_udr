@@ -37,9 +37,6 @@
     <ClCompile Include="src\Relations.cpp">
       <Filter>Source files</Filter>
     </ClCompile>
-    <ClCompile Include="src\FTSLog.cpp">
-      <Filter>Source files</Filter>
-    </ClCompile>
     <ClCompile Include="src\FTS_MANAGEMENT.cpp">
       <Filter>Source files</Filter>
     </ClCompile>
@@ -79,9 +76,6 @@
       <Filter>Header files</Filter>
     </ClInclude>
     <ClInclude Include="src\EncodeUtils.h">
-      <Filter>Header files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\FTSLog.h">
       <Filter>Header files</Filter>
     </ClInclude>
     <ClInclude Include="src\LuceneAnalyzerFactory.h">

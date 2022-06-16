@@ -14,7 +14,6 @@
 #include "LuceneUdr.h"
 #include "FTSIndex.h"
 #include "FTSUtils.h"
-#include "FTSLog.h"
 #include "Relations.h"
 #include "FBUtils.h"
 #include "FBFieldInfo.h"
@@ -31,6 +30,8 @@
 using namespace Firebird;
 using namespace Lucene;
 using namespace LuceneUDR;
+
+
 
 /***
 PROCEDURE FTS$SEARCH (
@@ -114,7 +115,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 		// check if directory exists for index
 		const auto& indexDirectoryPath = ftsDirectoryPath / indexName;
 		if (ftsIndex->status == "N" || !fs::is_directory(indexDirectoryPath)) {
-			string error_message = string_format("Index \"%s\" exists, but is not build. Please rebuild index.", indexName);
+			string error_message = string_format(R"(Index "%s" exists, but is not build. Please rebuild index.)"s, indexName);
 			ISC_STATUS statusVector[] = {
 				isc_arg_gds, isc_random,
 				isc_arg_string, (ISC_STATUS)error_message.c_str(),
@@ -126,7 +127,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 		try {
 			const auto& ftsIndexDir = FSDirectory::open(indexDirectoryPath.wstring());
 			if (!IndexReader::indexExists(ftsIndexDir)) {
-				const string error_message = string_format("Index \"%s\" exists, but is not build. Please rebuild index.", indexName);
+				const string error_message = string_format(R"(Index "%s" exists, but is not build. Please rebuild index.)", indexName);
 				ISC_STATUS statusVector[] = {
 					isc_arg_gds, isc_random,
 					isc_arg_string, (ISC_STATUS)error_message.c_str(),
@@ -241,7 +242,6 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 			throw FbException(status, statusVector);
 		}
 
-
 		out->scoreNull = false;
 		out->score = scoreDoc->score;
 
@@ -279,11 +279,13 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogByDdKey)
     );
 
 	FB_UDR_CONSTRUCTOR
-		, logRepository(context->getMaster())
+		, inputMetadata(metadata->getInputMetadata(status))
+		, appendLogStmt(nullptr)
 	{
 	}
 
-	FTSLogRepository logRepository;
+	AutoRelease<IMessageMetadata> inputMetadata;
+	AutoRelease<IStatement> appendLogStmt;
 
     FB_UDR_EXECUTE_PROCEDURE
 	{
@@ -322,8 +324,39 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogByDdKey)
 
 		const unsigned int sqlDialect = getSqlDialect(status, att);
 
-		procedure->logRepository.appendLogByDbKey(status, att, tra, sqlDialect, relationName, dbKey, changeType);
+		// prepare statement for append record to FTS log
+		if (!procedure->appendLogStmt.hasData()) {
+			procedure->appendLogStmt.reset(att->prepare(
+				status,
+				tra,
+				0,
+				SQL_APPEND_LOG,
+				sqlDialect,
+				IStatement::PREPARE_PREFETCH_METADATA
+			));
+		}
+
+		procedure->appendLogStmt->execute(
+			status,
+			tra,
+			procedure->inputMetadata,
+			in,
+			nullptr,
+			nullptr
+		);
 	}
+
+	const char* SQL_APPEND_LOG =
+		R"SQL(
+INSERT INTO FTS$LOG (
+  FTS$RELATION_NAME,
+  FTS$DB_KEY,
+  FTS$REC_UUID,
+  FTS$REC_ID,
+  FTS$CHANGE_TYPE
+)
+VALUES(?, ?, NULL, NULL, ?)
+)SQL";
 
     FB_UDR_FETCH_PROCEDURE
 	{
@@ -350,11 +383,13 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogById)
 	);
 
 	FB_UDR_CONSTRUCTOR
-		, logRepository(context->getMaster())
+		, inputMetadata(metadata->getInputMetadata(status))
+		, appendLogStmt(nullptr)
 	{
 	}
 
-	FTSLogRepository logRepository;
+	AutoRelease<IMessageMetadata> inputMetadata;
+	AutoRelease<IStatement> appendLogStmt;
 
 	FB_UDR_EXECUTE_PROCEDURE
 	{
@@ -366,7 +401,6 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogById)
 			};
 			throw FbException(status, statusVector);
 		}
-		const string relationName(in->relation_name.str, in->relation_name.length);
 
 		if (in->idNull) {
 			ISC_STATUS statusVector[] = {
@@ -376,7 +410,6 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogById)
 			};
 			throw FbException(status, statusVector);
 		}
-		const ISC_INT64 id = in->id;
 
 		if (in->change_typeNull) {
 			ISC_STATUS statusVector[] = {
@@ -386,15 +419,45 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogById)
 			};
 			throw FbException(status, statusVector);
 		}
-		const string changeType(in->change_type.str, in->change_type.length);
 
 		AutoRelease<IAttachment> att(context->getAttachment(status));
 		AutoRelease<ITransaction> tra(context->getTransaction(status));
 
 		const unsigned int sqlDialect = getSqlDialect(status, att);
 
-		procedure->logRepository.appendLogById(status, att, tra, sqlDialect, relationName, id, changeType);
+		// prepare statement for append record to FTS log
+		if (!procedure->appendLogStmt.hasData()) {
+			procedure->appendLogStmt.reset(att->prepare(
+				status,
+				tra,
+				0,
+				SQL_APPEND_LOG,
+				sqlDialect,
+				IStatement::PREPARE_PREFETCH_METADATA
+			));
+		}
+
+		procedure->appendLogStmt->execute(
+			status,
+			tra,
+			procedure->inputMetadata,
+			in,
+			nullptr,
+			nullptr
+		);
 	}
+
+	const char* SQL_APPEND_LOG =
+		R"SQL(
+INSERT INTO FTS$LOG (
+  FTS$RELATION_NAME,
+  FTS$DB_KEY,
+  FTS$REC_UUID,
+  FTS$REC_ID,
+  FTS$CHANGE_TYPE
+)
+VALUES(?, NULL, NULL, ?, ?)
+)SQL";
 
 	FB_UDR_FETCH_PROCEDURE
 	{
@@ -421,11 +484,13 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogByUuid)
 	);
 
 	FB_UDR_CONSTRUCTOR
-		, logRepository(context->getMaster())
+		, inputMetadata(metadata->getInputMetadata(status))
+		, appendLogStmt(nullptr)
 	{
 	}
 
-	FTSLogRepository logRepository;
+	AutoRelease<IMessageMetadata> inputMetadata;
+	AutoRelease<IStatement> appendLogStmt;
 
 	FB_UDR_EXECUTE_PROCEDURE
 	{
@@ -437,7 +502,6 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogByUuid)
 			};
 			throw FbException(status, statusVector);
 		}
-		const string relationName(in->relationName.str, in->relationName.length);
 
 		if (in->uuidNull) {
 			ISC_STATUS statusVector[] = {
@@ -447,7 +511,6 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogByUuid)
 			};
 			throw FbException(status, statusVector);
 		}
-		const string uuid(in->uuid.str, in->uuid.length);
 
 		if (in->changeTypeNull) {
 			ISC_STATUS statusVector[] = {
@@ -457,15 +520,45 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogByUuid)
 			};
 			throw FbException(status, statusVector);
 		}
-		const string changeType(in->changeType.str, in->changeType.length);
 
 		AutoRelease<IAttachment> att(context->getAttachment(status));
 		AutoRelease<ITransaction> tra(context->getTransaction(status));
 
 		const unsigned int sqlDialect = getSqlDialect(status, att);
 
-		procedure->logRepository.appendLogByUuid(status, att, tra, sqlDialect, relationName, uuid, changeType);
+		// prepare statement for append record to FTS log
+		if (!procedure->appendLogStmt.hasData()) {
+			procedure->appendLogStmt.reset(att->prepare(
+				status,
+				tra,
+				0,
+				SQL_APPEND_LOG,
+				sqlDialect,
+				IStatement::PREPARE_PREFETCH_METADATA
+			));
+		}
+
+		procedure->appendLogStmt->execute(
+			status,
+			tra,
+			procedure->inputMetadata,
+			in,
+			nullptr,
+			nullptr
+		);
 	}
+
+	const char* SQL_APPEND_LOG =
+		R"SQL(
+INSERT INTO FTS$LOG (
+  FTS$RELATION_NAME,
+  FTS$DB_KEY,
+  FTS$REC_UUID,
+  FTS$REC_ID,
+  FTS$CHANGE_TYPE
+)
+VALUES(?, NULL, ?, NULL, ?)
+)SQL";
 
 	FB_UDR_FETCH_PROCEDURE
 	{
@@ -519,15 +612,17 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 
 	FB_UDR_CONSTRUCTOR
 		, indexRepository(context->getMaster())
-		, logRepository(context->getMaster())
 		, analyzerFactory()
+		, logDeleteStmt(nullptr)
+		, logStmt(nullptr)
 	{
 	}
 
 
 	FTSIndexRepository indexRepository;
-	FTSLogRepository logRepository;
 	LuceneAnalyzerFactory analyzerFactory;
+	AutoRelease<IStatement> logDeleteStmt;
+	AutoRelease<IStatement> logStmt;
 
 	FB_UDR_EXECUTE_PROCEDURE
 	{
@@ -641,30 +736,34 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 			FBStringEncoder fbStringEncoder(fbCharset);
 
 			// prepare statement for delete record from FTS log
-			AutoRelease<IStatement> logDeleteStmt(att->prepare(
-				status,
-				tra,
-				0,
-				SQL_DELETE_FTS_LOG,
-				sqlDialect,
-				IStatement::PREPARE_PREFETCH_METADATA
-			));
+			if (!procedure->logDeleteStmt.hasData()) {
+				procedure->logDeleteStmt.reset(att->prepare(
+					status,
+					tra,
+					0,
+					SQL_DELETE_FTS_LOG,
+					sqlDialect,
+					IStatement::PREPARE_PREFETCH_METADATA
+				));
+			}
 
 			LogDelInput logDelInput(status, context->getMaster());
 
 			// prepare statement for retrieval record from FTS log 
-			AutoRelease<IStatement> logStmt(att->prepare(
-				status,
-				tra,
-				0,
-				SQL_SELECT_FTS_LOG,
-				sqlDialect,
-				IStatement::PREPARE_PREFETCH_METADATA
-			));
+			if (!procedure->logStmt.hasData()) {
+				procedure->logStmt.reset(att->prepare(
+					status,
+					tra,
+					0,
+					SQL_SELECT_FTS_LOG,
+					sqlDialect,
+					IStatement::PREPARE_PREFETCH_METADATA
+				));
+			}
 
 			LogOutput logOutput(status, context->getMaster());
 
-			AutoRelease<IResultSet> logRs(logStmt->openCursor(
+			AutoRelease<IResultSet> logRs(procedure->logStmt->openCursor(
 				status,
 				tra,
 				nullptr,
@@ -846,7 +945,7 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 				// delete record from FTS log
 				logDelInput->idNull = false;
 				logDelInput->id = logId;
-				logDeleteStmt->execute(
+				procedure->logDeleteStmt->execute(
 					status,
 					tra,
 					logDelInput.getMetadata(),

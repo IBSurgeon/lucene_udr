@@ -24,7 +24,6 @@
     <ClCompile Include="src\FTS_TRIGGER_HELPER.cpp" />
     <ClCompile Include="src\FTS.cpp" />
     <ClCompile Include="src\FTSIndex.cpp" />
-    <ClCompile Include="src\FTSLog.cpp" />
     <ClCompile Include="src\FTS_HIGHLIGHTER.cpp" />
     <ClCompile Include="src\FTS_MANAGEMENT.cpp" />
     <ClCompile Include="src\FTS_STATISTICS.cpp" />
@@ -37,7 +36,6 @@
     <ClInclude Include="src\FBUtils.h" />
     <ClInclude Include="src\FBFieldInfo.h" />
     <ClInclude Include="src\FTSIndex.h" />
-    <ClInclude Include="src\FTSLog.h" />
     <ClInclude Include="src\LuceneAnalyzerFactory.h" />
     <ClInclude Include="src\LuceneFiles.h" />
     <ClInclude Include="src\LuceneUdr.h" />

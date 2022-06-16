@@ -555,21 +555,7 @@ namespace LuceneUDR
 			status,
 			tra,
 			0,
-			"SELECT\n"
-			"  FTS$INDICES.FTS$INDEX_NAME,\n"
-			"  FTS$INDICES.FTS$RELATION_NAME,\n"
-			"  FTS$INDICES.FTS$ANALYZER,\n"
-			"  FTS$INDICES.FTS$INDEX_STATUS,\n"
-			"  FTS$INDEX_SEGMENTS.FTS$FIELD_NAME,\n"
-			"  FTS$INDEX_SEGMENTS.FTS$KEY,\n"
-			"  FTS$INDEX_SEGMENTS.FTS$BOOST,\n"
-			"  (RF.RDB$FIELD_NAME IS NOT NULL) AS FIELD_EXISTS\n"
-			"FROM FTS$INDICES\n"
-			"LEFT JOIN FTS$INDEX_SEGMENTS ON FTS$INDEX_SEGMENTS.FTS$INDEX_NAME = FTS$INDICES.FTS$INDEX_NAME\n"
-			"LEFT JOIN RDB$RELATION_FIELDS RF\n"
-			"    ON RF.RDB$RELATION_NAME = FTS$INDICES.FTS$RELATION_NAME\n"
-			"   AND RF.RDB$FIELD_NAME = FTS$INDEX_SEGMENTS.FTS$FIELD_NAME\n"
-			"ORDER BY FTS$INDICES.FTS$INDEX_NAME",
+			SQL_ALL_FTS_INDECES_AND_SEGMENTS,
 			sqlDialect,
 			IStatement::PREPARE_PREFETCH_METADATA
 		));
@@ -655,19 +641,7 @@ namespace LuceneUDR
 				status,
 				tra,
 				0,
-				"SELECT"
-				"  FTS$INDEX_SEGMENTS.FTS$INDEX_NAME,\n"
-				"  FTS$INDEX_SEGMENTS.FTS$FIELD_NAME,\n"
-				"  FTS$INDEX_SEGMENTS.FTS$KEY,\n"
-				"  FTS$INDEX_SEGMENTS.FTS$BOOST,\n"
-				"  (RF.RDB$FIELD_NAME IS NOT NULL) AS FIELD_EXISTS\n"
-				"FROM FTS$INDICES\n"
-				"JOIN FTS$INDEX_SEGMENTS\n"
-				"    ON FTS$INDEX_SEGMENTS.FTS$INDEX_NAME = FTS$INDICES.FTS$INDEX_NAME\n"
-				"LEFT JOIN RDB$RELATION_FIELDS RF\n"
-				"    ON RF.RDB$RELATION_NAME = FTS$INDICES.FTS$RELATION_NAME\n"
-				"   AND RF.RDB$FIELD_NAME = FTS$INDEX_SEGMENTS.FTS$FIELD_NAME\n"
-				"WHERE FTS$INDICES.FTS$INDEX_NAME = ?",
+				SQL_FTS_INDEX_SEGMENTS,
 				sqlDialect,
 				IStatement::PREPARE_PREFETCH_METADATA
 			));
@@ -736,9 +710,7 @@ namespace LuceneUDR
 			status,
 			tra,
 			0,
-			"SELECT COUNT(*) AS CNT\n"
-			"FROM  FTS$INDEX_SEGMENTS\n"
-			"WHERE FTS$INDEX_NAME = ? AND FTS$KEY IS TRUE",
+			SQL_FTS_KEY_INDEX_FIELD_EXISTS,
 			sqlDialect,
 			IStatement::PREPARE_PREFETCH_METADATA
 		));
@@ -785,8 +757,6 @@ namespace LuceneUDR
 		FB_MESSAGE(Output, ThrowStatusWrapper,
 			(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
 			(FB_INTL_VARCHAR(252, CS_UTF8), fieldName)
-			(FB_BOOLEAN, key)
-			(FB_DOUBLE, boost)
 		) output(status, m_master);
 
 		input.clear();
@@ -799,9 +769,7 @@ namespace LuceneUDR
 				status,
 				tra,
 				0,
-				"SELECT FTS$INDEX_NAME, FTS$FIELD_NAME, FTS$KEY, FTS$BOOST\n"
-				"FROM FTS$INDEX_SEGMENTS\n"
-				"WHERE FTS$INDEX_NAME = ? AND FTS$KEY IS TRUE",
+				SQL_GET_FTS_KEY_INDEX_FIELD,
 				sqlDialect,
 				IStatement::PREPARE_PREFETCH_METADATA
 			));
@@ -828,7 +796,7 @@ namespace LuceneUDR
 		rs->close(status);
 
 		if (!foundFlag) {
-			const string error_message = string_format("Key field not exists in index \"%s\".", indexName);
+			const string error_message = string_format(R"(Key field not exists in index "%s".)"s, indexName);
 			ISC_STATUS statusVector[] = {
 			   isc_arg_gds, isc_random,
 			   isc_arg_string, (ISC_STATUS)error_message.c_str(),
@@ -888,7 +856,7 @@ namespace LuceneUDR
 
 		// Checking whether the key field exists in the index.
 		if (key && hasKeyIndexField(status, att, tra, sqlDialect, indexName)) {
-			const string error_message = string_format("The key field already exists in the \"%s\" index.", indexName);
+			const string error_message = string_format(R"(The key field already exists in the "%s" index.)"s, indexName);
 			ISC_STATUS statusVector[] = {
 			   isc_arg_gds, isc_random,
 			   isc_arg_string, (ISC_STATUS)error_message.c_str(),
@@ -899,7 +867,7 @@ namespace LuceneUDR
 
 		// Checking whether the field exists in the index.
 		if (hasIndexSegment(status, att, tra, sqlDialect, indexName, fieldName)) {			
-			const string error_message = string_format("Field \"%s\" already exists in index \"%s\"", fieldName, indexName);
+			const string error_message = string_format(R"(Field "%s" already exists in index "%s")"s, fieldName, indexName);
 			ISC_STATUS statusVector[] = {
 			   isc_arg_gds, isc_random,
 			   isc_arg_string, (ISC_STATUS)error_message.c_str(),
@@ -911,7 +879,7 @@ namespace LuceneUDR
 		if (fieldName != "RDB$DB_KEY") {
 			// Checking whether the field exists in relation.
 			if (!relationHelper.fieldExists(status, att, tra, sqlDialect, index->relationName, fieldName)) {
-				const string error_message = string_format("Field \"%s\" not exists in relation \"%s\".", fieldName, index->relationName);
+				const string error_message = string_format(R"(Field "%s" not exists in relation "%s".)"s, fieldName, index->relationName);
 				ISC_STATUS statusVector[] = {
 				   isc_arg_gds, isc_random,
 				   isc_arg_string, (ISC_STATUS)error_message.c_str(),
@@ -925,8 +893,7 @@ namespace LuceneUDR
 			status,
 			tra,
 			0,
-			"INSERT INTO FTS$INDEX_SEGMENTS(FTS$INDEX_NAME, FTS$FIELD_NAME, FTS$KEY, FTS$BOOST)\n"
-			"VALUES(?, ?, ?, ?)",
+			SQL_FTS_ADD_INDEX_FIELD,
 			sqlDialect,
 			input.getMetadata(),
 			input.getData(),
@@ -972,7 +939,7 @@ namespace LuceneUDR
 
 		// Checking whether the index exists.
 		if (!hasIndex(status, att, tra, sqlDialect, indexName)) {
-			const string error_message = string_format("Index \"%s\" not exists", indexName);
+			const string error_message = string_format(R"(Index "%s" not exists)"s, indexName);
 			ISC_STATUS statusVector[] = {
 			   isc_arg_gds, isc_random,
 			   isc_arg_string, (ISC_STATUS)error_message.c_str(),
@@ -983,7 +950,7 @@ namespace LuceneUDR
 
 		// Checking whether the field exists in the index.
 		if (!hasIndexSegment(status, att, tra, sqlDialect, indexName, fieldName)) {
-			const string error_message = string_format("Field \"%s\" not exists in index \"%s\"", fieldName, indexName);
+			const string error_message = string_format(R"(Field "%s" not exists in index "%s")"s, fieldName, indexName);
 			ISC_STATUS statusVector[] = {
 			   isc_arg_gds, isc_random,
 			   isc_arg_string, (ISC_STATUS)error_message.c_str(),
@@ -996,8 +963,7 @@ namespace LuceneUDR
 			status,
 			tra,
 			0,
-			"DELETE FROM FTS$INDEX_SEGMENTS\n"
-			"WHERE FTS$INDEX_NAME = ? AND FTS$FIELD_NAME = ?",
+			SQL_FTS_DROP_INDEX_FIELD,
 			sqlDialect,
 			input.getMetadata(),
 			input.getData(),
