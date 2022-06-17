@@ -56,8 +56,8 @@ namespace LuceneUDR
 		wstring unicodeIndexDir;
 	private:
 		AutoRelease<IStatement> stmtExtractRecord;
-		AutoRelease<IMessageMetadata> outMetaExtractRecord;
 		AutoRelease<IMessageMetadata> inMetaExtractRecord;
+		AutoRelease<IMessageMetadata> outMetaExtractRecord;
 	public: 
 
 		FTSIndex()

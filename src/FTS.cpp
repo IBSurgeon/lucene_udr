@@ -695,7 +695,7 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 			const auto& outMetadata =  ftsIndex->getOutExtractRecordMetadata();
 			auto fields = make_unique<FbFieldsInfo>(status, outMetadata);
 			// initial specific FTS property for fields
-			for (int i = 0; i < fields->size(); i++) {
+			for (unsigned int i = 0; i < fields->size(); i++) {
 				const auto& field = fields->at(i);
 				auto iSegment = ftsIndex->findSegment(field->fieldName);
 				if (iSegment == ftsIndex->segments.end()) {
