@@ -64,7 +64,6 @@ namespace LuceneUDR
 		));
 		// get a description of the fields				
 		AutoRelease<IMessageMetadata> outputMetadata(stmtExtractRecord->getOutputMetadata(status));
-		const unsigned colCount = outputMetadata->getCount(status);
 		// make all fields of string type except BLOB
 		outMetaExtractRecord.reset(prepareTextMetaData(status, outputMetadata));
 		inMetaExtractRecord.reset(stmtExtractRecord->getInputMetadata(status));
@@ -1201,7 +1200,6 @@ namespace LuceneUDR
 			const string keyFieldName(output->keyFieldName.str, output->keyFieldName.length);
 			const string keyFieldType(output->keyFieldType.str, output->keyFieldType.length);
 			const string fieldName(output->fieldName.str, output->fieldName.length);
-			const auto& i = keyFieldBlocks.find(keyFieldName);
 
 			auto [it, result] = keyFieldBlocks.try_emplace(keyFieldName, make_unique<FTSKeyFieldBlock>());
 			const auto& block = it->second;
