@@ -38,15 +38,11 @@ namespace LuceneUDR
 	class RelationInfo final
 	{
 	public:
-		string relationName;
-		RelationType relationType;
-		bool systemFlag;
+		string relationName{ "" };
+		RelationType relationType{ RelationType::RT_REGULAR };
+		bool systemFlag = false;
 	public:
-		RelationInfo()
-			: relationName()
-			, relationType(RelationType::RT_REGULAR)
-			, systemFlag(false)
-		{}
+		RelationInfo() = default;
 
 		bool findKeyFieldSupported() {
 			return (relationType == RelationType::RT_REGULAR || relationType == RelationType::RT_GTT_PRESERVE_ROWS || relationType == RelationType::RT_GTT_DELETE_ROWS);
@@ -57,28 +53,17 @@ namespace LuceneUDR
 	class RelationFieldInfo final
 	{
 	public:
-		string relationName;
-		string fieldName;
-		short  fieldType;
-		short fieldLength;
-		short charLength;
-		short charsetId;
-		short fieldSubType;
-		short fieldPrecision;
-		short fieldScale;
+		string relationName{ "" };
+		string fieldName{ "" };
+		short  fieldType = 0;
+		short fieldLength = 0;
+		short charLength = 0;
+		short charsetId = 0;
+		short fieldSubType = 0;
+		short fieldPrecision = 0;
+		short fieldScale = 0;
 	public:
-		RelationFieldInfo()
-			: relationName()
-			, fieldName()
-			, fieldType(0)
-			, fieldLength(0)
-			, charLength(0)
-			, charsetId(0)
-			, fieldSubType(0)
-			, fieldPrecision(0)
-			, fieldScale(0)
-		{
-		}
+		RelationFieldInfo() = default;
 
 		bool isInt() {
 			return (fieldScale == 0) && (fieldType == 7 || fieldType == 8 || fieldType == 16 || fieldType == 26);
@@ -119,16 +104,16 @@ namespace LuceneUDR
 	class RelationHelper final
 	{
 	private:
-		IMaster* m_master;
+		IMaster* m_master = nullptr;
 		// prepared statements
-		AutoRelease<IStatement> stmt_get_relation;
-		AutoRelease<IStatement> stmt_exists_relation;
-		AutoRelease<IStatement> stmt_relation_fields;
-		AutoRelease<IStatement> stmt_pk_fields;
-		AutoRelease<IStatement> stmt_get_field;
-		AutoRelease<IStatement> stmt_exists_field;
+		AutoRelease<IStatement> m_stmt_get_relation{ nullptr };
+		AutoRelease<IStatement> m_stmt_exists_relation{ nullptr };
+		AutoRelease<IStatement> m_stmt_relation_fields{ nullptr };
+		AutoRelease<IStatement> m_stmt_pk_fields{ nullptr };
+		AutoRelease<IStatement> m_stmt_get_field{ nullptr };
+		AutoRelease<IStatement> m_stmt_exists_field{ nullptr };
 
-		// sql texts
+		// SQL texts
 		const char* SQL_RELATION_INFO = 
 R"SQL(
 SELECT
@@ -216,18 +201,10 @@ FROM RDB$RELATION_FIELDS
 WHERE RDB$RELATION_NAME = ? AND RDB$FIELD_NAME = ?
 )SQL";
 	public:
-		RelationHelper()
-			: RelationHelper(nullptr)
-		{}
+		RelationHelper() = delete;
 
-		RelationHelper(IMaster* master)
+		explicit RelationHelper(IMaster* master)
 			: m_master(master)
-			, stmt_get_relation(nullptr)
-			, stmt_exists_relation(nullptr)
-			, stmt_relation_fields(nullptr)
-			, stmt_pk_fields(nullptr)
-			, stmt_get_field(nullptr)
-			, stmt_exists_field(nullptr)
 		{}
 
 		/// <summary>
@@ -348,6 +325,8 @@ WHERE RDB$RELATION_NAME = ? AND RDB$FIELD_NAME = ?
 			const string &relationName,
 			const string &fieldName);
 	};
+
+	using RelationHelperPtr = unique_ptr<RelationHelper>;
 }
 
 #endif	// FTS_RELATIONS_H

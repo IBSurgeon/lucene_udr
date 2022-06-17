@@ -54,7 +54,7 @@ namespace LuceneUDR
 	)
 	{
 		const auto sql = buildSqlSelectFieldValues(status, sqlDialect, true);
-		stmtExtractRecord.reset(att->prepare(
+		m_stmtExtractRecord.reset(att->prepare(
 			status,
 			tra,
 			static_cast<unsigned int>(sql.length()),
@@ -63,10 +63,10 @@ namespace LuceneUDR
 			IStatement::PREPARE_PREFETCH_METADATA
 		));
 		// get a description of the fields				
-		AutoRelease<IMessageMetadata> outputMetadata(stmtExtractRecord->getOutputMetadata(status));
+		AutoRelease<IMessageMetadata> outputMetadata(m_stmtExtractRecord->getOutputMetadata(status));
 		// make all fields of string type except BLOB
-		outMetaExtractRecord.reset(prepareTextMetaData(status, outputMetadata));
-		inMetaExtractRecord.reset(stmtExtractRecord->getInputMetadata(status));
+		m_outMetaExtractRecord.reset(prepareTextMetaData(status, outputMetadata));
+		m_inMetaExtractRecord.reset(m_stmtExtractRecord->getInputMetadata(status));
 	}
 
 	string FTSIndex::buildSqlSelectFieldValues(
@@ -81,12 +81,7 @@ namespace LuceneUDR
 		auto iKeySegment = findKey();
 		if (iKeySegment == segments.end()) {
 			const string error_message = string_format(R"(Key field not exists in index "%s".)"s, indexName);
-			ISC_STATUS statusVector[] = {
-			   isc_arg_gds, isc_random,
-			   isc_arg_string, (ISC_STATUS)error_message.c_str(),
-			   isc_arg_end
-			};
-			throw FbException(status, statusVector);
+			throwException(status, error_message.c_str());
 		}
 		const string keyFieldName = (*iKeySegment)->fieldName;
 
@@ -166,7 +161,7 @@ namespace LuceneUDR
 
 		if (!description.empty()) {
 			AutoRelease<IBlob> blob(att->createBlob(status, tra, &input->description, 0, nullptr));
-			blob_set_string(status, blob, description);
+			BlobUtils::setString(status, blob, description);
 			blob->close(status);
 		}
 		else {
@@ -180,24 +175,14 @@ namespace LuceneUDR
 		// check for index existence
 		if (hasIndex(status, att, tra, sqlDialect, indexName)) {
 			const string error_message = string_format(R"(Index "%s" already exists)"s, indexName);
-			ISC_STATUS statusVector[] = {
-			   isc_arg_gds, isc_random,
-			   isc_arg_string, (ISC_STATUS)error_message.c_str(),
-			   isc_arg_end
-			};
-			throw FbException(status, statusVector);
+			throwException(status, error_message.c_str());
 		}
 
 		// checking the existence of the analyzer
 		LuceneAnalyzerFactory analyzerFactory;
 		if (!analyzerFactory.hasAnalyzer(analyzerName)) {
 			const string error_message = string_format(R"(Analyzer "%s" not exists)"s, analyzerName);
-			ISC_STATUS statusVector[] = {
-			   isc_arg_gds, isc_random,
-			   isc_arg_string, (ISC_STATUS)error_message.c_str(),
-			   isc_arg_end
-			};
-			throw FbException(status, statusVector);
+			throwException(status, error_message.c_str());
 		}
 
 		att->execute(
@@ -242,12 +227,7 @@ namespace LuceneUDR
 		// check for index existence
 		if (!hasIndex(status, att, tra, sqlDialect, indexName)) {
 			const string error_message = string_format(R"(Index "%s" not exists)"s, indexName);
-			ISC_STATUS statusVector[] = {
-			   isc_arg_gds, isc_random,
-			   isc_arg_string, (ISC_STATUS)error_message.c_str(),
-			   isc_arg_end
-			};
-			throw FbException(status, statusVector);
+			throwException(status, error_message.c_str());
 		}
 
 		att->execute(
@@ -338,8 +318,8 @@ namespace LuceneUDR
 		input->indexName.length = static_cast<ISC_USHORT>(indexName.length());
 		indexName.copy(input->indexName.str, input->indexName.length);
 
-		if (!stmt_exists_index.hasData()) {
-			stmt_exists_index.reset(att->prepare(
+		if (!m_stmt_exists_index.hasData()) {
+			m_stmt_exists_index.reset(att->prepare(
 				status,
 				tra,
 				0,
@@ -348,7 +328,7 @@ namespace LuceneUDR
 				IStatement::PREPARE_PREFETCH_METADATA
 			));
 		}
-		AutoRelease<IResultSet> rs(stmt_exists_index->openCursor(
+		AutoRelease<IResultSet> rs(m_stmt_exists_index->openCursor(
 			status,
 			tra,
 			input.getMetadata(),
@@ -406,8 +386,8 @@ namespace LuceneUDR
 		input->indexName.length = static_cast<ISC_USHORT>(indexName.length());
 		indexName.copy(input->indexName.str, input->indexName.length);
 
-		if (!stmt_get_index.hasData()) {
-			stmt_get_index.reset(att->prepare(
+		if (!m_stmt_get_index.hasData()) {
+			m_stmt_get_index.reset(att->prepare(
 				status,
 				tra,
 				0,
@@ -416,7 +396,7 @@ namespace LuceneUDR
 				IStatement::PREPARE_PREFETCH_METADATA
 			));
 		}
-		AutoRelease<IResultSet> rs(stmt_get_index->openCursor(
+		AutoRelease<IResultSet> rs(m_stmt_get_index->openCursor(
 			status,
 			tra,
 			input.getMetadata(),
@@ -434,7 +414,7 @@ namespace LuceneUDR
 			ftsIndex->analyzer.assign(output->analyzer.str, output->analyzer.length);
 			if (!output->descriptionNull) {
 				AutoRelease<IBlob> blob(att->openBlob(status, tra, &output->description, 0, nullptr));
-				ftsIndex->description = blob_get_string(status, blob);
+				ftsIndex->description = BlobUtils::getString(status, blob);
 				blob->close(status);
 			}
 			ftsIndex->status.assign(output->indexStatus.str, output->indexStatus.length);
@@ -442,15 +422,10 @@ namespace LuceneUDR
 		rs->close(status);
 		if (!foundFlag) {
 			const string error_message = string_format(R"(Index "%s" not exists)", indexName);
-			ISC_STATUS statusVector[] = {
-			   isc_arg_gds, isc_random,
-			   isc_arg_string, (ISC_STATUS)error_message.c_str(),
-			   isc_arg_end
-			};
-			throw FbException(status, statusVector);
+			throwException(status, error_message.c_str());
 		}
 		if (withSegments) {
-			fillIndexSegments(status, att, tra, sqlDialect, indexName, ftsIndex->segments);
+			fillIndexFields(status, att, tra, sqlDialect, indexName, ftsIndex->segments);
 		}
 
 		return std::move(ftsIndex);
@@ -509,7 +484,7 @@ namespace LuceneUDR
 
 			if (!output->descriptionNull) {
 				AutoRelease<IBlob> blob(att->openBlob(status, tra, &output->description, 0, nullptr));
-				ftsIndex->description = blob_get_string(status, blob);
+				ftsIndex->description = BlobUtils::getString(status, blob);
 				blob->close(status);
 			}
 
@@ -531,7 +506,7 @@ namespace LuceneUDR
 	/// <param name="sqlDialect">SQL dialect</param>
 	/// <param name="indexes">Map indexes of name with segments</param>
 	/// 
-	void FTSIndexRepository::fillAllIndexesWithSegments(
+	void FTSIndexRepository::fillAllIndexesWithFields(
 		ThrowStatusWrapper* const status,
 		IAttachment* const att,
 		ITransaction* const tra,
@@ -610,7 +585,7 @@ namespace LuceneUDR
 	/// <param name="segments">Segments list</param>
 	/// 
 	/// <returns>List of index segments</returns>
-	void FTSIndexRepository::fillIndexSegments(
+	void FTSIndexRepository::fillIndexFields(
 		ThrowStatusWrapper* const status,
 		IAttachment* const att,
 		ITransaction* const tra,
@@ -635,8 +610,8 @@ namespace LuceneUDR
 		input->indexName.length = static_cast<ISC_USHORT>(indexName.length());
 		indexName.copy(input->indexName.str, input->indexName.length);
 
-		if (!stmt_index_segments.hasData()) {
-			stmt_index_segments.reset(att->prepare(
+		if (!m_stmt_index_fields.hasData()) {
+			m_stmt_index_fields.reset(att->prepare(
 				status,
 				tra,
 				0,
@@ -645,7 +620,7 @@ namespace LuceneUDR
 				IStatement::PREPARE_PREFETCH_METADATA
 			));
 		}
-		AutoRelease<IResultSet> rs(stmt_index_segments->openCursor(
+		AutoRelease<IResultSet> rs(m_stmt_index_fields->openCursor(
 			status,
 			tra,
 			input.getMetadata(),
@@ -763,8 +738,8 @@ namespace LuceneUDR
 		input->indexName.length = static_cast<ISC_USHORT>(indexName.length());
 		indexName.copy(input->indexName.str, input->indexName.length);
 
-		if (!stmt_key_segment.hasData()) {
-			stmt_key_segment.reset(att->prepare(
+		if (!m_stmt_index_key_field.hasData()) {
+			m_stmt_index_key_field.reset(att->prepare(
 				status,
 				tra,
 				0,
@@ -773,7 +748,7 @@ namespace LuceneUDR
 				IStatement::PREPARE_PREFETCH_METADATA
 			));
 		}
-		AutoRelease<IResultSet> rs(stmt_key_segment->openCursor(
+		AutoRelease<IResultSet> rs(m_stmt_index_key_field->openCursor(
 			status,
 			tra,
 			input.getMetadata(),
@@ -796,12 +771,7 @@ namespace LuceneUDR
 
 		if (!foundFlag) {
 			const string error_message = string_format(R"(Key field not exists in index "%s".)"s, indexName);
-			ISC_STATUS statusVector[] = {
-			   isc_arg_gds, isc_random,
-			   isc_arg_string, (ISC_STATUS)error_message.c_str(),
-			   isc_arg_end
-			};
-			throw FbException(status, statusVector);
+			throwException(status, error_message.c_str());
 		}
 
 		return std::move(keyIndexSegment);
@@ -856,35 +826,20 @@ namespace LuceneUDR
 		// Checking whether the key field exists in the index.
 		if (key && hasKeyIndexField(status, att, tra, sqlDialect, indexName)) {
 			const string error_message = string_format(R"(The key field already exists in the "%s" index.)"s, indexName);
-			ISC_STATUS statusVector[] = {
-			   isc_arg_gds, isc_random,
-			   isc_arg_string, (ISC_STATUS)error_message.c_str(),
-			   isc_arg_end
-			};
-			throw FbException(status, statusVector);
+			throwException(status, error_message.c_str());
 		}
 
 		// Checking whether the field exists in the index.
-		if (hasIndexSegment(status, att, tra, sqlDialect, indexName, fieldName)) {			
+		if (hasIndexField(status, att, tra, sqlDialect, indexName, fieldName)) {			
 			const string error_message = string_format(R"(Field "%s" already exists in index "%s")"s, fieldName, indexName);
-			ISC_STATUS statusVector[] = {
-			   isc_arg_gds, isc_random,
-			   isc_arg_string, (ISC_STATUS)error_message.c_str(),
-			   isc_arg_end
-			};
-			throw FbException(status, statusVector);
+			throwException(status, error_message.c_str());
 		}
 
 		if (fieldName != "RDB$DB_KEY") {
 			// Checking whether the field exists in relation.
-			if (!relationHelper.fieldExists(status, att, tra, sqlDialect, index->relationName, fieldName)) {
+			if (!m_relationHelper->fieldExists(status, att, tra, sqlDialect, index->relationName, fieldName)) {
 				const string error_message = string_format(R"(Field "%s" not exists in relation "%s".)"s, fieldName, index->relationName);
-				ISC_STATUS statusVector[] = {
-				   isc_arg_gds, isc_random,
-				   isc_arg_string, (ISC_STATUS)error_message.c_str(),
-				   isc_arg_end
-				};
-				throw FbException(status, statusVector);
+				throwException(status, error_message.c_str());
 			}
 		}
 
@@ -939,23 +894,13 @@ namespace LuceneUDR
 		// Checking whether the index exists.
 		if (!hasIndex(status, att, tra, sqlDialect, indexName)) {
 			const string error_message = string_format(R"(Index "%s" not exists)"s, indexName);
-			ISC_STATUS statusVector[] = {
-			   isc_arg_gds, isc_random,
-			   isc_arg_string, (ISC_STATUS)error_message.c_str(),
-			   isc_arg_end
-			};
-			throw FbException(status, statusVector);
+			throwException(status, error_message.c_str());
 		}
 
 		// Checking whether the field exists in the index.
-		if (!hasIndexSegment(status, att, tra, sqlDialect, indexName, fieldName)) {
+		if (!hasIndexField(status, att, tra, sqlDialect, indexName, fieldName)) {
 			const string error_message = string_format(R"(Field "%s" not exists in index "%s")"s, fieldName, indexName);
-			ISC_STATUS statusVector[] = {
-			   isc_arg_gds, isc_random,
-			   isc_arg_string, (ISC_STATUS)error_message.c_str(),
-			   isc_arg_end
-			};
-			throw FbException(status, statusVector);
+			throwException(status, error_message.c_str());
 		}
 
 		att->execute(
@@ -1014,33 +959,21 @@ namespace LuceneUDR
 
 		// Checking whether the index exists.
 		if (!hasIndex(status, att, tra, sqlDialect, indexName)) {
-			const string error_message = string_format("Index \"%s\" not exists", indexName);
-			ISC_STATUS statusVector[] = {
-			   isc_arg_gds, isc_random,
-			   isc_arg_string, (ISC_STATUS)error_message.c_str(),
-			   isc_arg_end
-			};
-			throw FbException(status, statusVector);
+			const string error_message = string_format(R"(Index "%s" not exists)"s, indexName);
+			throwException(status, error_message.c_str());
 		}
 
 		// Checking whether the field exists in the index.
-		if (!hasIndexSegment(status, att, tra, sqlDialect, indexName, fieldName)) {
-			const string error_message = string_format("Field \"%s\" not exists in index \"%s\"", fieldName, indexName);
-			ISC_STATUS statusVector[] = {
-			   isc_arg_gds, isc_random,
-			   isc_arg_string, (ISC_STATUS)error_message.c_str(),
-			   isc_arg_end
-			};
-			throw FbException(status, statusVector);
+		if (!hasIndexField(status, att, tra, sqlDialect, indexName, fieldName)) {
+			const string error_message = string_format(R"(Field "%s" not exists in index "%s")"s, fieldName, indexName);
+			throwException(status, error_message.c_str());
 		}
 
 		att->execute(
 			status,
 			tra,
 			0,
-			"UPDATE FTS$INDEX_SEGMENTS\n"
-			"SET FTS$BOOST = ?"
-			"WHERE FTS$INDEX_NAME = ? AND FTS$FIELD_NAME = ?",
+			SQL_FTS_SET_INDEX_FIELD_BOOST,
 			sqlDialect,
 			input.getMetadata(),
 			input.getData(),
@@ -1062,7 +995,7 @@ namespace LuceneUDR
 	/// <param name="indexName">Index name</param>
 	/// <param name="fieldName">Field name</param>
 	/// <returns>Returns true if the field (segment) exists in the index, false otherwise</returns>
-	bool FTSIndexRepository::hasIndexSegment(
+	bool FTSIndexRepository::hasIndexField(
 		ThrowStatusWrapper* const status,
 		IAttachment* const att,
 		ITransaction* const tra,

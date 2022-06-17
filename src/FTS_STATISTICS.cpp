@@ -95,34 +95,24 @@ FB_UDR_BEGIN_PROCEDURE(getIndexStatistics)
 	);
 
 	FB_UDR_CONSTRUCTOR
-	, indexRepository(context->getMaster())
+	, indexRepository(make_unique<FTSIndexRepository>(context->getMaster()))
 	{
 	}
 
-	FTSIndexRepository indexRepository;
+	FTSIndexRepositoryPtr indexRepository{nullptr};
 
 	FB_UDR_EXECUTE_PROCEDURE
 	{
 		if (in->index_nameNull) {
-			ISC_STATUS statusVector[] = {
-				isc_arg_gds, isc_random,
-				isc_arg_string, (ISC_STATUS)"Index name can not be NULL",
-				isc_arg_end
-			};
-			throw FbException(status, statusVector);
+			throwException(status, "Index name can not be NULL");
 		}
 		const string indexName(in->index_name.str, in->index_name.length);
 
 		const auto& ftsDirectoryPath = getFtsDirectory(context);
 		// check if there is a directory for full-text indexes
 		if (!fs::is_directory(ftsDirectoryPath)) {
-			const string error_message = string_format("Fts directory \"%s\" not exists", ftsDirectoryPath.u8string());
-			ISC_STATUS statusVector[] = {
-				isc_arg_gds, isc_random,
-				isc_arg_string, (ISC_STATUS)error_message.c_str(),
-				isc_arg_end
-			};
-			throw FbException(status, statusVector);
+			const string error_message = string_format(R"(Fts directory "%s" not exists)"s, ftsDirectoryPath.u8string());
+			throwException(status, error_message.c_str());
 		}
 
 		att.reset(context->getAttachment(status));
@@ -143,7 +133,7 @@ FB_UDR_BEGIN_PROCEDURE(getIndexStatistics)
 
 		try {
 			// check for index existence
-			auto ftsIndex = procedure->indexRepository.getIndex(status, att, tra, sqlDialect, indexName);
+			auto ftsIndex = procedure->indexRepository->getIndex(status, att, tra, sqlDialect, indexName);
 
 			out->analyzerNameNull = false;
 			out->analyzerName.length = static_cast<ISC_USHORT>(ftsIndex->analyzer.length());
@@ -208,17 +198,12 @@ FB_UDR_BEGIN_PROCEDURE(getIndexStatistics)
 		}
 		catch (const LuceneException& e) {
 			const string error_message = StringUtils::toUTF8(e.getError());
-			ISC_STATUS statusVector[] = {
-				isc_arg_gds, isc_random,
-				isc_arg_string, (ISC_STATUS)error_message.c_str(),
-				isc_arg_end
-			};
-			throw FbException(status, statusVector);
+			throwException(status, error_message.c_str());
 		}
 	}
 
-	AutoRelease<IAttachment> att;
-	AutoRelease<ITransaction> tra;
+	AutoRelease<IAttachment> att{nullptr};
+	AutoRelease<ITransaction> tra{nullptr};
 	bool fetched = false;
 
 	FB_UDR_FETCH_PROCEDURE
@@ -252,34 +237,24 @@ FB_UDR_BEGIN_PROCEDURE(getIndexFields)
 	);
 
 	FB_UDR_CONSTRUCTOR
-		, indexRepository(context->getMaster())
+		, indexRepository(make_unique<FTSIndexRepository>(context->getMaster()))
 	{
 	}
 
-	FTSIndexRepository indexRepository;
+	FTSIndexRepositoryPtr indexRepository{nullptr};
 
 	FB_UDR_EXECUTE_PROCEDURE
 	{
 		if (in->index_nameNull) {
-			ISC_STATUS statusVector[] = {
-				isc_arg_gds, isc_random,
-				isc_arg_string, (ISC_STATUS)"Index name can not be NULL",
-				isc_arg_end
-			};
-			throw FbException(status, statusVector);
+			throwException(status, "Index name can not be NULL");
 		}
 		const string indexName(in->index_name.str, in->index_name.length);
 
 		const auto& ftsDirectoryPath = getFtsDirectory(context);
 		// check if there is a directory for full-text indexes
 		if (!fs::is_directory(ftsDirectoryPath)) {
-			const string error_message = string_format("Fts directory \"%s\" not exists", ftsDirectoryPath.u8string());
-			ISC_STATUS statusVector[] = {
-				isc_arg_gds, isc_random,
-				isc_arg_string, (ISC_STATUS)error_message.c_str(),
-				isc_arg_end
-			};
-			throw FbException(status, statusVector);
+			const string error_message = string_format(R"(Fts directory "%s" not exists)"s, ftsDirectoryPath.u8string());
+			throwException(status, error_message.c_str());
 		}
 
 		att.reset(context->getAttachment(status));
@@ -291,18 +266,9 @@ FB_UDR_BEGIN_PROCEDURE(getIndexFields)
 
 		try {
 			// check for index existence
-			// TODO: not need create index instance
-			//auto ftsIndex = procedure->indexRepository.getIndex(status, att, tra, sqlDialect, indexName);
-
-			// check for index existence
-			if (!procedure->indexRepository.hasIndex(status, att, tra, sqlDialect, indexName)) {
-				const string error_message = string_format("Index \"%s\" not exists", indexName);
-				ISC_STATUS statusVector[] = {
-				   isc_arg_gds, isc_random,
-				   isc_arg_string, (ISC_STATUS)error_message.c_str(),
-				   isc_arg_end
-				};
-				throw FbException(status, statusVector);
+			if (!procedure->indexRepository->hasIndex(status, att, tra, sqlDialect, indexName)) {
+				const string error_message = string_format(R"(Index "%s" not exists)"s, indexName);
+				throwException(status, error_message.c_str());
 			}
 
 
@@ -310,24 +276,14 @@ FB_UDR_BEGIN_PROCEDURE(getIndexFields)
 
 			// Check if the index directory exists
 			if (!fs::is_directory(indexDirectoryPath)) {
-				const string error_message = string_format("Index directory \"%s\" not exists.", indexDirectoryPath.u8string());
-				ISC_STATUS statusVector[] = {
-					isc_arg_gds, isc_random,
-					isc_arg_string, (ISC_STATUS)error_message.c_str(),
-					isc_arg_end
-				};
-				throw FbException(status, statusVector);
+				const string error_message = string_format(R"(Index directory "%s" not exists.)"s, indexDirectoryPath.u8string());
+				throwException(status, error_message.c_str());
 			}
 
 			const auto& ftsIndexDir = FSDirectory::open(indexDirectoryPath.wstring());
 			if (!IndexReader::indexExists(ftsIndexDir)) {
-				const string error_message = string_format("Index \"%s\" not build.", indexName);
-				ISC_STATUS statusVector[] = {
-					isc_arg_gds, isc_random,
-					isc_arg_string, (ISC_STATUS)error_message.c_str(),
-					isc_arg_end
-				};
-				throw FbException(status, statusVector);
+				const string error_message = string_format(R"(Index "%s" not build.)"s, indexName);
+				throwException(status, error_message.c_str());
 			}
 				
 			const auto& reader = IndexReader::open(ftsIndexDir, true);
@@ -341,12 +297,7 @@ FB_UDR_BEGIN_PROCEDURE(getIndexFields)
 		}
 		catch (const LuceneException& e) {
 			const string error_message = StringUtils::toUTF8(e.getError());
-			ISC_STATUS statusVector[] = {
-				isc_arg_gds, isc_random,
-				isc_arg_string, (ISC_STATUS)error_message.c_str(),
-				isc_arg_end
-			};
-			throw FbException(status, statusVector);
+			throwException(status, error_message.c_str());
 		}
 	}
 
@@ -396,34 +347,24 @@ FB_UDR_BEGIN_PROCEDURE(getIndexFiles)
 	);
 
 	FB_UDR_CONSTRUCTOR
-		, indexRepository(context->getMaster())
+		, indexRepository(make_unique<FTSIndexRepository>(context->getMaster()))
 	{
 	}
 
-	FTSIndexRepository indexRepository;
+	FTSIndexRepositoryPtr indexRepository{nullptr};
 
 	FB_UDR_EXECUTE_PROCEDURE
 	{
 		if (in->index_nameNull) {
-			ISC_STATUS statusVector[] = {
-				isc_arg_gds, isc_random,
-				isc_arg_string, (ISC_STATUS)"Index name can not be NULL",
-				isc_arg_end
-			};
-			throw FbException(status, statusVector);
+			throwException(status, "Index name can not be NULL");
 		}
 		const string indexName(in->index_name.str, in->index_name.length);
 
 		const auto& ftsDirectoryPath = getFtsDirectory(context);
 		// check if there is a directory for full-text indexes
 		if (!fs::is_directory(ftsDirectoryPath)) {
-			const string error_message = string_format("Fts directory \"%s\" not exists", ftsDirectoryPath.u8string());
-			ISC_STATUS statusVector[] = {
-				isc_arg_gds, isc_random,
-				isc_arg_string, (ISC_STATUS)error_message.c_str(),
-				isc_arg_end
-			};
-			throw FbException(status, statusVector);
+			const string error_message = string_format(R"(Fts directory "%s" not exists)"s, ftsDirectoryPath.u8string());
+			throwException(status, error_message.c_str());
 		}
 
 		att.reset(context->getAttachment(status));
@@ -437,21 +378,18 @@ FB_UDR_BEGIN_PROCEDURE(getIndexFiles)
 
 		try {
 			// check for index existence
-			// TODO: not need create index instance
-			const auto& ftsIndex = procedure->indexRepository.getIndex(status, att, tra, sqlDialect, indexName);
+			if (!procedure->indexRepository->hasIndex(status, att, tra, sqlDialect, indexName)) {
+				const string error_message = string_format(R"(Index "%s" not exists)"s, indexName);
+				throwException(status, error_message.c_str());
+			}
 
 
 			const auto& indexDirectoryPath = ftsDirectoryPath / indexName;
 
 			// Check if the index directory exists
 			if (!fs::is_directory(indexDirectoryPath)) {
-				const string error_message = string_format("Index directory \"%s\" not exists.", indexDirectoryPath.u8string());
-				ISC_STATUS statusVector[] = {
-					isc_arg_gds, isc_random,
-					isc_arg_string, (ISC_STATUS)error_message.c_str(),
-					isc_arg_end
-				};
-				throw FbException(status, statusVector);
+				const string error_message = string_format(R"(Index directory "%s" not exists.)"s, indexDirectoryPath.u8string());
+				throwException(status, error_message.c_str());
 			}
 
 			const auto& unicodeIndexDir = indexDirectoryPath.wstring();
@@ -468,12 +406,7 @@ FB_UDR_BEGIN_PROCEDURE(getIndexFiles)
 		}
 		catch (const LuceneException& e) {
 			const string error_message = StringUtils::toUTF8(e.getError());
-			ISC_STATUS statusVector[] = {
-				isc_arg_gds, isc_random,
-				isc_arg_string, (ISC_STATUS)error_message.c_str(),
-				isc_arg_end
-			};
-			throw FbException(status, statusVector);
+			throwException(status, error_message.c_str());
 		}
 	}
 
@@ -541,34 +474,24 @@ FB_UDR_BEGIN_PROCEDURE(getIndexSegments)
 	);
 
 	FB_UDR_CONSTRUCTOR
-		, indexRepository(context->getMaster())
+		, indexRepository(make_unique<FTSIndexRepository>(context->getMaster()))
 	{
 	}
 
-	FTSIndexRepository indexRepository;
+	FTSIndexRepositoryPtr indexRepository{nullptr};
 
 	FB_UDR_EXECUTE_PROCEDURE
 	{
 		if (in->index_nameNull) {
-			ISC_STATUS statusVector[] = {
-				isc_arg_gds, isc_random,
-				isc_arg_string, (ISC_STATUS)"Index name can not be NULL",
-				isc_arg_end
-			};
-			throw FbException(status, statusVector);
+			throwException(status, "Index name can not be NULL");
 		}
 		const string indexName(in->index_name.str, in->index_name.length);
 
 		const auto& ftsDirectoryPath = getFtsDirectory(context);
 		// check if there is a directory for full-text indexes
 		if (!fs::is_directory(ftsDirectoryPath)) {
-			const string error_message = string_format("Fts directory \"%s\" not exists", ftsDirectoryPath.u8string());
-			ISC_STATUS statusVector[] = {
-				isc_arg_gds, isc_random,
-				isc_arg_string, (ISC_STATUS)error_message.c_str(),
-				isc_arg_end
-			};
-			throw FbException(status, statusVector);
+			const string error_message = string_format(R"(Fts directory "%s" not exists)"s, ftsDirectoryPath.u8string());
+			throwException(status, error_message.c_str());
 		}
 
 		att.reset(context->getAttachment(status));
@@ -586,20 +509,17 @@ FB_UDR_BEGIN_PROCEDURE(getIndexSegments)
 
 		try {
 			// check for index existence
-			// TODO: not need create index instance
-			const auto& ftsIndex = procedure->indexRepository.getIndex(status, att, tra, sqlDialect, indexName);
+			if (!procedure->indexRepository->hasIndex(status, att, tra, sqlDialect, indexName)) {
+				const string error_message = string_format(R"(Index "%s" not exists)"s, indexName);
+				throwException(status, error_message.c_str());
+			}
 
 			const auto& indexDirectoryPath = ftsDirectoryPath / indexName;
 
 			// Check if the index directory exists
 			if (!fs::is_directory(indexDirectoryPath)) {
-				const string error_message = string_format("Index directory \"%s\" not exists.", indexDirectoryPath.u8string());
-				ISC_STATUS statusVector[] = {
-					isc_arg_gds, isc_random,
-					isc_arg_string, (ISC_STATUS)error_message.c_str(),
-					isc_arg_end
-				};
-				throw FbException(status, statusVector);
+				const string error_message = string_format(R"(Index directory "%s" not exists.)"s, indexDirectoryPath.u8string());
+				throwException(status, error_message.c_str());
 			}
 			
 			const auto& ftsIndexDir = FSDirectory::open(indexDirectoryPath.wstring());
@@ -610,17 +530,12 @@ FB_UDR_BEGIN_PROCEDURE(getIndexSegments)
 		}
 		catch (const LuceneException& e) {
 			const string error_message = StringUtils::toUTF8(e.getError());
-			ISC_STATUS statusVector[] = {
-				isc_arg_gds, isc_random,
-				isc_arg_string, (ISC_STATUS)error_message.c_str(),
-				isc_arg_end
-			};
-			throw FbException(status, statusVector);
+			throwException(status, error_message.c_str());
 		}
 	}
 
-	AutoRelease<IAttachment> att;
-	AutoRelease<ITransaction> tra;
+	AutoRelease<IAttachment> att{nullptr};
+	AutoRelease<ITransaction> tra{nullptr};
 	SegmentInfosPtr segmentInfos;
 	int32_t segNo = 0;
 
@@ -706,21 +621,16 @@ FB_UDR_BEGIN_PROCEDURE(getFieldInfos)
 	);
 
 	FB_UDR_CONSTRUCTOR
-		, indexRepository(context->getMaster())
+		, indexRepository(make_unique<FTSIndexRepository>(context->getMaster()))
 	{
 	}
 
-	FTSIndexRepository indexRepository;
+	FTSIndexRepositoryPtr indexRepository{nullptr};
 
 	FB_UDR_EXECUTE_PROCEDURE
 	{
 		if (in->indexNameNull) {
-			ISC_STATUS statusVector[] = {
-				isc_arg_gds, isc_random,
-				isc_arg_string, (ISC_STATUS)"Index name can not be NULL",
-				isc_arg_end
-			};
-			throw FbException(status, statusVector);
+			throwException(status, "Index name can not be NULL");
 		}
 		const string indexName(in->indexName.str, in->indexName.length);
 
@@ -734,13 +644,8 @@ FB_UDR_BEGIN_PROCEDURE(getFieldInfos)
 		const auto& ftsDirectoryPath = getFtsDirectory(context);
 		// check if there is a directory for full-text indexes
 		if (!fs::is_directory(ftsDirectoryPath)) {
-			const string error_message = string_format("Fts directory \"%s\" not exists", ftsDirectoryPath.u8string());
-			ISC_STATUS statusVector[] = {
-				isc_arg_gds, isc_random,
-				isc_arg_string, (ISC_STATUS)error_message.c_str(),
-				isc_arg_end
-			};
-			throw FbException(status, statusVector);
+			const string error_message = string_format(R"(Fts directory "%s" not exists)"s, ftsDirectoryPath.u8string());
+			throwException(status, error_message.c_str());
 		}
 
 		att.reset(context->getAttachment(status));
@@ -752,20 +657,17 @@ FB_UDR_BEGIN_PROCEDURE(getFieldInfos)
 
 		try {
 			// check for index existence
-			// TODO: not need create index instance
-			const auto& ftsIndex = procedure->indexRepository.getIndex(status, att, tra, sqlDialect, indexName);
+			if (!procedure->indexRepository->hasIndex(status, att, tra, sqlDialect, indexName)) {
+				const string error_message = string_format(R"(Index "%s" not exists)"s, indexName);
+				throwException(status, error_message.c_str());
+			}
 
 			const auto& indexDirectoryPath = ftsDirectoryPath / indexName;
 
 			// Check if the index directory exists
 			if (!fs::is_directory(indexDirectoryPath)) {
-				const string error_message = string_format("Index directory \"%s\" not exists.", indexDirectoryPath.u8string());
-				ISC_STATUS statusVector[] = {
-					isc_arg_gds, isc_random,
-					isc_arg_string, (ISC_STATUS)error_message.c_str(),
-					isc_arg_end
-				};
-				throw FbException(status, statusVector);
+				const string error_message = string_format(R"(Index directory "%s" not exists.)"s, indexDirectoryPath.u8string());
+				throwException(status, error_message.c_str());
 			}
 
 			const auto& ftsIndexDir = FSDirectory::open(indexDirectoryPath.wstring());
@@ -788,13 +690,8 @@ FB_UDR_BEGIN_PROCEDURE(getFieldInfos)
 			}
 			
 			if (segmentInfo == nullptr) {
-				const string error_message = string_format("Segment \"%s\" not found", segmentName);
-				ISC_STATUS statusVector[] = {
-					isc_arg_gds, isc_random,
-					isc_arg_string, (ISC_STATUS)error_message.c_str(),
-					isc_arg_end
-				};
-				throw FbException(status, statusVector);
+				const string error_message = string_format(R"(Segment "%s" not found)"s, segmentName);
+				throwException(status, error_message.c_str());
 			}
 			
 			DirectoryPtr ftsFieldDir(ftsIndexDir);
@@ -806,17 +703,12 @@ FB_UDR_BEGIN_PROCEDURE(getFieldInfos)
 		}
 		catch (const LuceneException& e) {
 			const string error_message = StringUtils::toUTF8(e.getError());
-			ISC_STATUS statusVector[] = {
-				isc_arg_gds, isc_random,
-				isc_arg_string, (ISC_STATUS)error_message.c_str(),
-				isc_arg_end
-			};
-			throw FbException(status, statusVector);
+			throwException(status, error_message.c_str());
 		}
 	}
 
-	AutoRelease<IAttachment> att;
-	AutoRelease<ITransaction> tra;
+	AutoRelease<IAttachment> att{nullptr};
+	AutoRelease<ITransaction> tra{nullptr};
 	FieldInfosPtr fieldInfos;
 	int32_t fieldNo = 0;
 

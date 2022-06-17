@@ -95,13 +95,8 @@ namespace LuceneUDR {
 		{
 			auto pFactory = factories.find(analyzerName);
 			if (pFactory == factories.end()) {
-				string error_message = string_format("Analyzer \"%s\" not found.", analyzerName);
-				ISC_STATUS statusVector[] = {
-				   isc_arg_gds, isc_random,
-				   isc_arg_string, (ISC_STATUS)error_message.c_str(),
-				   isc_arg_end
-				};
-				throw FbException(status, statusVector);
+				string error_message = string_format(R"(Analyzer "%s" not found.)"s, analyzerName);
+				throwException(status, error_message.c_str());
 			}
 			auto factory = pFactory->second;
 			return factory();

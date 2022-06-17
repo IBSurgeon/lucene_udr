@@ -107,7 +107,9 @@ public:
 		return FBCharsetMap[0];
 	}
 
-	FBStringEncoder(const char* sourceCharsetName) 
+	FBStringEncoder() = delete;
+
+	explicit FBStringEncoder(const char* sourceCharsetName) 
 #ifndef WIN32_LEAN_AND_MEAN
 		: uConverter(nullptr)
 #endif

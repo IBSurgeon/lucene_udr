@@ -51,8 +51,8 @@ namespace LuceneUDR
 		input->relationName.length = static_cast<ISC_USHORT>(relationName.length());
 		relationName.copy(input->relationName.str, input->relationName.length);
 
-		if (!stmt_get_relation.hasData()) {
-			stmt_get_relation.reset(att->prepare(
+		if (!m_stmt_get_relation.hasData()) {
+			m_stmt_get_relation.reset(att->prepare(
 				status,
 				tra,
 				0,
@@ -61,7 +61,7 @@ namespace LuceneUDR
 				IStatement::PREPARE_PREFETCH_METADATA
 			));
 		}
-		AutoRelease<IResultSet> rs(stmt_get_relation->openCursor(
+		AutoRelease<IResultSet> rs(m_stmt_get_relation->openCursor(
 			status,
 			tra,
 			input.getMetadata(),
@@ -83,12 +83,7 @@ namespace LuceneUDR
 		rs->close(status);
 		if (!foundFlag) {
 			const string error_message = string_format(R"(Relation "%s" not exists)"s, relationName);
-			ISC_STATUS statusVector[] = {
-			   isc_arg_gds, isc_random,
-			   isc_arg_string, (ISC_STATUS)error_message.c_str(),
-			   isc_arg_end
-			};
-			throw FbException(status, statusVector);
+			throwException(status, error_message.c_str());
 		}
 
 		return std::move(relationInfo);
@@ -124,8 +119,8 @@ namespace LuceneUDR
 		input->relationName.length = static_cast<ISC_USHORT>(relationName.length());
 		relationName.copy(input->relationName.str, input->relationName.length);
 
-		if (!stmt_exists_relation.hasData()) {
-			stmt_exists_relation.reset(att->prepare(
+		if (!m_stmt_exists_relation.hasData()) {
+			m_stmt_exists_relation.reset(att->prepare(
 				status,
 				tra,
 				0,
@@ -134,7 +129,7 @@ namespace LuceneUDR
 				IStatement::PREPARE_PREFETCH_METADATA
 			));
 		}
-		AutoRelease<IResultSet> rs(stmt_exists_relation->openCursor(
+		AutoRelease<IResultSet> rs(m_stmt_exists_relation->openCursor(
 			status,
 			tra,
 			input.getMetadata(),
@@ -191,8 +186,8 @@ namespace LuceneUDR
 		input->relationName.length = static_cast<ISC_USHORT>(relationName.length());
 		relationName.copy(input->relationName.str, input->relationName.length);
 
-		if (!stmt_relation_fields.hasData()) {
-			stmt_relation_fields.reset(att->prepare(
+		if (!m_stmt_relation_fields.hasData()) {
+			m_stmt_relation_fields.reset(att->prepare(
 				status,
 				tra,
 				0,
@@ -202,7 +197,7 @@ namespace LuceneUDR
 			));
 		}
 		
-		AutoRelease<IResultSet> rs(stmt_relation_fields->openCursor(
+		AutoRelease<IResultSet> rs(m_stmt_relation_fields->openCursor(
 			status,
 			tra,
 			input.getMetadata(),
@@ -270,8 +265,8 @@ namespace LuceneUDR
 		input->relationName.length = static_cast<ISC_USHORT>(relationName.length());
 		relationName.copy(input->relationName.str, input->relationName.length);
 
-		if (!stmt_pk_fields.hasData()) {
-			stmt_pk_fields.reset(att->prepare(
+		if (!m_stmt_pk_fields.hasData()) {
+			m_stmt_pk_fields.reset(att->prepare(
 				status,
 				tra,
 				0,
@@ -281,7 +276,7 @@ namespace LuceneUDR
 			));
 		}
 
-		AutoRelease<IResultSet> rs(stmt_pk_fields->openCursor(
+		AutoRelease<IResultSet> rs(m_stmt_pk_fields->openCursor(
 			status,
 			tra,
 			input.getMetadata(),
@@ -354,8 +349,8 @@ namespace LuceneUDR
 		input->fieldName.length = static_cast<ISC_USHORT>(fieldName.length());
 		fieldName.copy(input->fieldName.str, input->fieldName.length);
 
-		if (!stmt_get_field.hasData()) {
-			stmt_get_field.reset(att->prepare(
+		if (!m_stmt_get_field.hasData()) {
+			m_stmt_get_field.reset(att->prepare(
 				status,
 				tra,
 				0,
@@ -365,7 +360,7 @@ namespace LuceneUDR
 			));
 		}
 
-		AutoRelease<IResultSet> rs(stmt_get_field->openCursor(
+		AutoRelease<IResultSet> rs(m_stmt_get_field->openCursor(
 			status,
 			tra,
 			input.getMetadata(),
@@ -393,12 +388,7 @@ namespace LuceneUDR
 
 		if (!foundFlag) {
 			const string error_message = string_format(R"(Field "%s" not found in relation "%s".)"s, fieldName, relationName);
-			ISC_STATUS statusVector[] = {
-			   isc_arg_gds, isc_random,
-			   isc_arg_string, (ISC_STATUS)error_message.c_str(),
-			   isc_arg_end
-			};
-			throw FbException(status, statusVector);
+			throwException(status, error_message.c_str());
 		}
 
 		return std::move(fieldInfo);
@@ -441,8 +431,8 @@ namespace LuceneUDR
 		input->fieldName.length = static_cast<ISC_USHORT>(fieldName.length());
 		fieldName.copy(input->fieldName.str, input->fieldName.length);
 
-		if (!stmt_exists_field.hasData()) {
-			stmt_exists_field.reset(att->prepare(
+		if (!m_stmt_exists_field.hasData()) {
+			m_stmt_exists_field.reset(att->prepare(
 				status,
 				tra,
 				0,
@@ -451,7 +441,7 @@ namespace LuceneUDR
 				IStatement::PREPARE_PREFETCH_METADATA
 			));
 		}
-		AutoRelease<IResultSet> rs(stmt_exists_field->openCursor(
+		AutoRelease<IResultSet> rs(m_stmt_exists_field->openCursor(
 			status,
 			tra,
 			input.getMetadata(),

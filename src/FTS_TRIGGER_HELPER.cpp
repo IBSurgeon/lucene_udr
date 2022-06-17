@@ -62,21 +62,16 @@ FB_UDR_BEGIN_PROCEDURE(ftsMakeTrigger)
 	);
 
 	FB_UDR_CONSTRUCTOR
-	, indexRepository(context->getMaster())
+	, indexRepository(make_unique<FTSIndexRepository>(context->getMaster()))
 	{
 	}
 
-	FTSIndexRepository indexRepository;
+	FTSIndexRepositoryPtr indexRepository{nullptr};
 
 	FB_UDR_EXECUTE_PROCEDURE
 	{
 		if (in->relationNameNull) {
-			ISC_STATUS statusVector[] = {
-				isc_arg_gds, isc_random,
-				isc_arg_string, (ISC_STATUS)"FTS$RELATION_NAME can not be NULL",
-				isc_arg_end
-			};
-			throw FbException(status, statusVector);
+			throwException(status, "FTS$RELATION_NAME can not be NULL");
 		}
 		string relationName(in->relationName.str, in->relationName.length);
 
@@ -91,17 +86,12 @@ FB_UDR_BEGIN_PROCEDURE(ftsMakeTrigger)
 
 
 		try {
-			procedure->indexRepository.makeTriggerSourceByRelation(status, att, tra, sqlDialect, relationName, multiActionFlag, triggerPosition, triggers);
+			procedure->indexRepository->makeTriggerSourceByRelation(status, att, tra, sqlDialect, relationName, multiActionFlag, triggerPosition, triggers);
 			it = triggers.cbegin();
 		}
 		catch (LuceneException& e) {
 			string error_message = StringUtils::toUTF8(e.getError());
-			ISC_STATUS statusVector[] = {
-				isc_arg_gds, isc_random,
-				isc_arg_string, (ISC_STATUS)error_message.c_str(),
-				isc_arg_end
-			};
-			throw FbException(status, statusVector);
+			throwException(status, error_message.c_str());
 		}
 	}
 
@@ -138,14 +128,14 @@ FB_UDR_BEGIN_PROCEDURE(ftsMakeTrigger)
 		out->triggerSourceNull = false;
 		{
 			AutoRelease<IBlob> blob(att->createBlob(status, tra, &out->triggerSource, 0, nullptr));
-			blob_set_string(status, blob, trigger->triggerSource);
+			BlobUtils::setString(status, blob, trigger->triggerSource);
 			blob->close(status);
 		}
 
 		out->triggerScriptNull = false;
 		{
 			AutoRelease<IBlob> blob(att->createBlob(status, tra, &out->triggerScript, 0, nullptr));
-			blob_set_string(status, blob, trigger->getScript(sqlDialect));
+			BlobUtils::setString(status, blob, trigger->getScript(sqlDialect));
 			blob->close(status);
 		}
 
@@ -205,24 +195,14 @@ FB_UDR_BEGIN_TRIGGER(trFtsLog)
 				int fieldIndex = findFieldByName(fieldsInfo, segment.fieldName);
 				if (fieldIndex < 0) {
 					string error_message = string_format("Invalid index segment \"%s\".\"%s\" for index \"%s\".", segment.relationName, segment.fieldName, segment.indexName);
-					ISC_STATUS statusVector[] = {
-						isc_arg_gds, isc_random,
-						isc_arg_string, (ISC_STATUS)error_message.c_str(),
-						isc_arg_end
-					};
-					throw FbException(status, statusVector);
+					throwException(status, error_message.c_str());
 				}
 			}
 		}
 		if (action == IExternalTrigger::ACTION_UPDATE) {
 			string dbKey = fieldsInfo[dbKeyIndex].getStringValue(status, att, tra, newFields);
 			string hexDbKey = string_to_hex(dbKey);
-			ISC_STATUS statusVector[] = {
-				isc_arg_gds, isc_random,
-				isc_arg_string, (ISC_STATUS)hexDbKey.c_str(),
-				isc_arg_end
-			};
-			throw FbException(status, statusVector);
+			throwException(status, hexDbKey.c_str());
 		}
 		if (action == IExternalTrigger::ACTION_DELETE) {
 			string dbKey = fieldsInfo[dbKeyIndex].getStringValue(status, att, tra, newFields);

@@ -43,38 +43,24 @@ namespace LuceneUDR
 	class FTSIndex final
 	{
 	public:
-		string indexName;
-		string relationName;
-		string analyzer;
-		string description;
-		string status; // N - new index, I - inactive, U - need rebuild, C - complete
+		string indexName{ "" };
+		string relationName{ "" };
+		string analyzer{ "" };
+		string description{ "" };
+		string status{ "" }; // N - new index, I - inactive, U - need rebuild, C - complete
 
 		FTSIndexSegmentList segments;
 
-		FTSKeyType keyFieldType;
-		wstring unicodeKeyFieldName;
-		wstring unicodeIndexDir;
+		FTSKeyType keyFieldType{ FTSKeyType::NONE };
+		wstring unicodeKeyFieldName{ L"" };
+		wstring unicodeIndexDir{ L"" };
 	private:
-		AutoRelease<IStatement> stmtExtractRecord;
-		AutoRelease<IMessageMetadata> inMetaExtractRecord;
-		AutoRelease<IMessageMetadata> outMetaExtractRecord;
+		AutoRelease<IStatement> m_stmtExtractRecord{ nullptr };
+		AutoRelease<IMessageMetadata> m_inMetaExtractRecord{ nullptr };
+		AutoRelease<IMessageMetadata> m_outMetaExtractRecord{ nullptr };
 	public: 
 
-		FTSIndex()
-			: indexName()
-			, relationName()
-			, analyzer()
-			, description()
-			, status()
-			, segments()
-			, keyFieldType(FTSKeyType::NONE)
-			, unicodeKeyFieldName()
-			, unicodeIndexDir()
-			, stmtExtractRecord(nullptr)
-			, inMetaExtractRecord(nullptr)
-			, outMetaExtractRecord(nullptr)
-			
-		{}
+		FTSIndex() = default;
 
 		bool inline isActive() {
 			return (status == "C") || (status == "U");
@@ -100,17 +86,17 @@ namespace LuceneUDR
 
 		IStatement* const getPreparedExtractRecordStmt()
 		{
-			return stmtExtractRecord;
+			return m_stmtExtractRecord;
 		}
 
 		IMessageMetadata* const getOutExtractRecordMetadata()
 		{
-			return outMetaExtractRecord;
+			return m_outMetaExtractRecord;
 		}
 
 		IMessageMetadata* const getInExtractRecordMetadata()
 		{
-			return inMetaExtractRecord;
+			return m_inMetaExtractRecord;
 		}
 	};
 
@@ -125,21 +111,14 @@ namespace LuceneUDR
 	class FTSIndexSegment final
 	{
 	public:
-		string indexName;
-		string fieldName;
-		bool key;
-		double boost;
-		bool boostNull;
-		bool fieldExists;
+		string indexName{""};
+		string fieldName{""};
+		bool key = false;
+		double boost = 1.0;
+		bool boostNull = true;
+		bool fieldExists = false;
 	public:
-		FTSIndexSegment()
-			: indexName()
-			, fieldName()
-			, key(false)
-			, boost(1.0)
-			, boostNull(true)
-			, fieldExists(false)
-		{}
+		FTSIndexSegment() = default;
 
 		bool inline compareFieldName(const string& aFieldName) {
 			return (fieldName == aFieldName) || (fieldName == "RDB$DB_KEY" && aFieldName == "DB_KEY");
@@ -149,22 +128,15 @@ namespace LuceneUDR
 	class FTSKeyFieldBlock final
 	{
 	public:
-		string keyFieldName;
-		FTSKeyType keyFieldType;
+		string keyFieldName{""};
+		FTSKeyType keyFieldType{ FTSKeyType::NONE };
 		list<string> fieldNames;
 
-		string insertingCondition;
-		string updatingCondition;
-		string deletingCondition;
+		string insertingCondition{""};
+		string updatingCondition{""};
+		string deletingCondition{""};
 	public:
-		FTSKeyFieldBlock()
-			: keyFieldName()
-			, keyFieldType(FTSKeyType::NONE)
-			, fieldNames()
-			, insertingCondition()
-			, updatingCondition()
-			, deletingCondition()
-		{}
+		FTSKeyFieldBlock() = default;
 
 		const string getProcedureName()
 		{
@@ -187,19 +159,13 @@ namespace LuceneUDR
 	class FTSTrigger final 
 	{
 	public:
-		string triggerName;
-		string relationName;
-		string triggerEvents;
-		unsigned int position;
-		string triggerSource;
+		string triggerName{""};
+		string relationName{""};
+		string triggerEvents{""};
+		unsigned int position = 0;
+		string triggerSource{""};
 	public:
-		FTSTrigger()
-			: triggerName()
-			, relationName()
-			, triggerEvents()
-			, position(0)
-			, triggerSource()
-		{}
+		FTSTrigger() = default;
 
 		FTSTrigger(const string& aTriggerName, const string& aRelationName, const string& aTriggerEvents, const unsigned int aPosition, const string& aTriggerSource)
 			: triggerName(aTriggerName)
@@ -237,13 +203,13 @@ namespace LuceneUDR
 	{
 
 	private:
-		IMaster* m_master;	
+		IMaster* m_master = nullptr;	
+		RelationHelperPtr m_relationHelper{ nullptr };
 		// prepared statements
-		AutoRelease<IStatement> stmt_exists_index;
-		AutoRelease<IStatement> stmt_get_index;
-		AutoRelease<IStatement> stmt_index_segments;
-		AutoRelease<IStatement> stmt_rel_segments;
-		AutoRelease<IStatement> stmt_key_segment;
+		AutoRelease<IStatement> m_stmt_exists_index{ nullptr };
+		AutoRelease<IStatement> m_stmt_get_index{ nullptr };
+		AutoRelease<IStatement> m_stmt_index_fields{ nullptr };
+		AutoRelease<IStatement> m_stmt_index_key_field{ nullptr };
 
 		const char* SQL_CREATE_FTS_INDEX = R"SQL(
 INSERT INTO FTS$INDICES (
@@ -352,26 +318,25 @@ DELETE FROM FTS$INDEX_SEGMENTS
 WHERE FTS$INDEX_NAME = ? AND FTS$FIELD_NAME = ?
 )SQL";
 
-
+		const char* SQL_FTS_SET_INDEX_FIELD_BOOST = R"SQL(
+UPDATE FTS$INDEX_SEGMENTS
+SET FTS$BOOST = ?
+WHERE FTS$INDEX_NAME = ? AND FTS$FIELD_NAME = ?
+)SQL";
 	public:
-		RelationHelper relationHelper;
-	public:
 
-		FTSIndexRepository()
-			: FTSIndexRepository(nullptr)
-		{}
+		FTSIndexRepository() = delete;
 
-		FTSIndexRepository(IMaster* master)
+		explicit FTSIndexRepository(IMaster* master)
 			: m_master(master)
-			, stmt_exists_index(nullptr)
-			, stmt_get_index(nullptr)
-			, stmt_index_segments(nullptr)
-			, stmt_rel_segments(nullptr)
-			, stmt_key_segment(nullptr)
-			, relationHelper(master)
+			, m_relationHelper(make_unique<RelationHelper>(master))
 		{
 		}
 
+		const RelationHelperPtr& getRelationHelper()
+		{
+			return m_relationHelper;
+		}
 
 		/// <summary>
 		/// Create a new full-text index. 
@@ -487,16 +452,16 @@ WHERE FTS$INDEX_NAME = ? AND FTS$FIELD_NAME = ?
 			FTSIndexList& indexes);
 
 		/// <summary>
-		/// Returns a list of indexes with segments. 
+		/// Returns a list of indexes with fields (segments). 
 		/// </summary>
 		/// 
 		/// <param name="status">Firebird status</param>
 		/// <param name="att">Firebird attachment</param>
 		/// <param name="tra">Firebird transaction</param>
 		/// <param name="sqlDialect">SQL dialect</param>
-		/// <param name="indexes">Map indexes of name with segments</param>
+		/// <param name="indexes">Map indexes of name with fields (segments)</param>
 		/// 
-		void fillAllIndexesWithSegments(
+		void fillAllIndexesWithFields(
 			ThrowStatusWrapper* const status,
 			IAttachment* const att,
 			ITransaction* const tra,
@@ -504,7 +469,7 @@ WHERE FTS$INDEX_NAME = ? AND FTS$FIELD_NAME = ?
 			FTSIndexMap& indexes);
 
 		/// <summary>
-		/// Returns a list of index segments with the given name.
+		/// Returns a list of index fields with the given name.
 		/// </summary>
 		/// 
 		/// <param name="status">Firebird status</param>
@@ -514,8 +479,8 @@ WHERE FTS$INDEX_NAME = ? AND FTS$FIELD_NAME = ?
 		/// <param name="indexName">Index name</param>
 		/// <param name="segments">Segments list</param>
 		/// 
-		/// <returns>List of index segments</returns>
-		void fillIndexSegments(
+		/// <returns>List of index fields (segments)</returns>
+		void fillIndexFields(
 			ThrowStatusWrapper* const status,
 			IAttachment* const att,
 			ITransaction* const tra,
@@ -639,7 +604,7 @@ WHERE FTS$INDEX_NAME = ? AND FTS$FIELD_NAME = ?
 		/// <param name="indexName">Index name</param>
 		/// <param name="fieldName">Field name</param>
 		/// <returns>Returns true if the field (segment) exists in the index, false otherwise</returns>
-		bool hasIndexSegment (
+		bool hasIndexField (
 			ThrowStatusWrapper* const status,
 			IAttachment* const att,
 			ITransaction* const tra,
@@ -671,50 +636,52 @@ WHERE FTS$INDEX_NAME = ? AND FTS$FIELD_NAME = ?
 			const unsigned short position,
 			FTSTriggerList& triggers);
 
-		private:
-			/// <summary>
-			/// Returns a map of field blocks by table keys to create triggers that support full-text indexes.
-			/// </summary>
-			/// 
-			/// <param name="status">Firebird status</param>
-			/// <param name="att">Firebird attachment</param>
-			/// <param name="tra">Firebird transaction</param>
-			/// <param name="sqlDialect">SQL dialect</param>
-			/// <param name="relationName">Relation name</param>
-			/// <param name="keyFieldBlocks">Map of field blocks by table keys</param>
-			/// 
-			void fillKeyFieldBlocks(
-				ThrowStatusWrapper* const status,
-				IAttachment* const att,
-				ITransaction* const tra,
-				const unsigned int sqlDialect,
-				const string& relationName,
-				FTSKeyFieldBlockMap& keyFieldBlocks
-			);
+	private:
+		/// <summary>
+		/// Returns a map of field blocks by table keys to create triggers that support full-text indexes.
+		/// </summary>
+		/// 
+		/// <param name="status">Firebird status</param>
+		/// <param name="att">Firebird attachment</param>
+		/// <param name="tra">Firebird transaction</param>
+		/// <param name="sqlDialect">SQL dialect</param>
+		/// <param name="relationName">Relation name</param>
+		/// <param name="keyFieldBlocks">Map of field blocks by table keys</param>
+		/// 
+		void fillKeyFieldBlocks(
+			ThrowStatusWrapper* const status,
+			IAttachment* const att,
+			ITransaction* const tra,
+			const unsigned int sqlDialect,
+			const string& relationName,
+			FTSKeyFieldBlockMap& keyFieldBlocks
+		);
 
-			const string makeTriggerSourceByRelationMulti(
-				const FTSKeyFieldBlockMap& keyFieldBlocks,
-				const unsigned int sqlDialect,
-				const string& relationName
-			);
+		const string makeTriggerSourceByRelationMulti(
+			const FTSKeyFieldBlockMap& keyFieldBlocks,
+			const unsigned int sqlDialect,
+			const string& relationName
+		);
 
-			const string makeTriggerSourceByRelationInsert (
-				const FTSKeyFieldBlockMap& keyFieldBlocks,
-				const unsigned int sqlDialect,
-				const string& relationName
-			);
+		const string makeTriggerSourceByRelationInsert (
+			const FTSKeyFieldBlockMap& keyFieldBlocks,
+			const unsigned int sqlDialect,
+			const string& relationName
+		);
 
-			const string makeTriggerSourceByRelationUpdate(
-				const FTSKeyFieldBlockMap& keyFieldBlocks,
-				const unsigned int sqlDialect,
-				const string& relationName
-			);
+		const string makeTriggerSourceByRelationUpdate(
+			const FTSKeyFieldBlockMap& keyFieldBlocks,
+			const unsigned int sqlDialect,
+			const string& relationName
+		);
 
-			const string makeTriggerSourceByRelationDelete(
-				const FTSKeyFieldBlockMap& keyFieldBlocks,
-				const unsigned int sqlDialect,
-				const string& relationName
-			);
+		const string makeTriggerSourceByRelationDelete(
+			const FTSKeyFieldBlockMap& keyFieldBlocks,
+			const unsigned int sqlDialect,
+			const string& relationName
+		);
 	};
+	using FTSIndexRepositoryPtr = unique_ptr<FTSIndexRepository>;
+
 }
 #endif	// FTS_INDEX_H

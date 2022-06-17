@@ -78,7 +78,7 @@ FB_UDR_BEGIN_FUNCTION(bestFragementHighligh)
 		string text;
 		if (!in->textNull) {
 			AutoRelease<IBlob> blob(att->openBlob(status, tra, &in->text, 0, nullptr));
-			text = blob_get_string(status, blob);
+			text = BlobUtils::getString(status, blob);
 			blob->close(status);
 		}
 
@@ -101,20 +101,10 @@ FB_UDR_BEGIN_FUNCTION(bestFragementHighligh)
 
 		if (fragmentSize > 8191) {
 			// exceeds Firebird's maximum string size
-			ISC_STATUS statusVector[] = {
-				isc_arg_gds, isc_random,
-				isc_arg_string, (ISC_STATUS)"Fragment size cannot exceed 8191 characters",
-				isc_arg_end
-			};
-			throw FbException(status, statusVector);
+			throwException(status, "Fragment size cannot exceeds 8191 characters");
 		}
 		if (fragmentSize <= 0) {
-			ISC_STATUS statusVector[] = {
-				isc_arg_gds, isc_random,
-				isc_arg_string, (ISC_STATUS)"Fragment size must be greater than 0",
-				isc_arg_end
-			};
-			throw FbException(status, statusVector);
+			throwException(status, "Fragment size must be greater than 0");
 		}
 
 		string leftTag;
@@ -128,24 +118,19 @@ FB_UDR_BEGIN_FUNCTION(bestFragementHighligh)
 		}
 
 		try {
-			auto analyzer = analyzerFactory.createAnalyzer(status, analyzerName);
-			auto parser = newLucene<QueryParser>(LuceneVersion::LUCENE_CURRENT, StringUtils::toUnicode(fieldName), analyzer);
-			auto query = parser->parse(StringUtils::toUnicode(queryStr));
-			auto formatter = newLucene<SimpleHTMLFormatter>(StringUtils::toUnicode(leftTag), StringUtils::toUnicode(rightTag));
-			auto scorer = newLucene<QueryScorer>(query);
-			auto highlighter = newLucene<Highlighter>(formatter, scorer);
-			auto fragmenter = newLucene<SimpleSpanFragmenter>(scorer, fragmentSize);
+			const auto& analyzer = analyzerFactory.createAnalyzer(status, analyzerName);
+			const auto& parser = newLucene<QueryParser>(LuceneVersion::LUCENE_CURRENT, StringUtils::toUnicode(fieldName), analyzer);
+			const auto& query = parser->parse(StringUtils::toUnicode(queryStr));
+			const auto& formatter = newLucene<SimpleHTMLFormatter>(StringUtils::toUnicode(leftTag), StringUtils::toUnicode(rightTag));
+			const auto& scorer = newLucene<QueryScorer>(query);
+			const auto& highlighter = newLucene<Highlighter>(formatter, scorer);
+			const auto& fragmenter = newLucene<SimpleSpanFragmenter>(scorer, fragmentSize);
 			highlighter->setTextFragmenter(fragmenter);
-			auto content = highlighter->getBestFragment(analyzer, StringUtils::toUnicode(fieldName), StringUtils::toUnicode(text));
+			const auto content = highlighter->getBestFragment(analyzer, StringUtils::toUnicode(fieldName), StringUtils::toUnicode(text));
 
 			if (!content.empty()) {
 				if (content.length() > 8191) {
-					ISC_STATUS statusVector[] = {
-						isc_arg_gds, isc_random,
-						isc_arg_string, (ISC_STATUS)"Fragment size exceeds 8191 characters",
-						isc_arg_end
-					};
-					throw FbException(status, statusVector);
+					throwException(status, "Fragment size exceeds 8191 characters");
 				}
 				string fragment = StringUtils::toUTF8(content);
 				out->fragmentNull = false;
@@ -155,12 +140,7 @@ FB_UDR_BEGIN_FUNCTION(bestFragementHighligh)
 		}
 		catch (LuceneException& e) {
 			const string error_message = StringUtils::toUTF8(e.getError());
-			ISC_STATUS statusVector[] = {
-				isc_arg_gds, isc_random,
-				isc_arg_string, (ISC_STATUS)error_message.c_str(),
-				isc_arg_end
-			};
-			throw FbException(status, statusVector);
+			throwException(status, error_message.c_str());
 		}
 	}
 FB_UDR_END_FUNCTION
@@ -215,7 +195,7 @@ FB_UDR_BEGIN_PROCEDURE(bestFragementsHighligh)
 		string text;
 		if (!in->textNull) {
 			AutoRelease<IBlob> blob(att->openBlob(status, tra, &in->text, 0, nullptr));
-			text = blob_get_string(status, blob);
+			text = BlobUtils::getString(status, blob);
 			blob->close(status);
 		}
 
@@ -238,20 +218,10 @@ FB_UDR_BEGIN_PROCEDURE(bestFragementsHighligh)
 
 		if (fragmentSize > 8191) {
 			// exceeds Firebird's maximum string size
-			ISC_STATUS statusVector[] = {
-				isc_arg_gds, isc_random,
-				isc_arg_string, (ISC_STATUS)"Fragment size cannot exceed 8191 characters",
-				isc_arg_end
-			};
-			throw FbException(status, statusVector);
+			throwException(status, "Fragment size cannot exceed 8191 characters");
 		}
 		if (fragmentSize <= 0) {
-			ISC_STATUS statusVector[] = {
-				isc_arg_gds, isc_random,
-				isc_arg_string, (ISC_STATUS)"Fragment size must be greater than 0",
-				isc_arg_end
-			};
-			throw FbException(status, statusVector);
+			throwException(status, "Fragment size must be greater than 0");
 		}
 
 		const ISC_LONG maxNumFragments = in->maxNumFragments;
@@ -267,13 +237,13 @@ FB_UDR_BEGIN_PROCEDURE(bestFragementsHighligh)
 		}
 
 		try {
-			auto analyzer = procedure->analyzerFactory.createAnalyzer(status, analyzerName);
-			auto parser = newLucene<QueryParser>(LuceneVersion::LUCENE_CURRENT, StringUtils::toUnicode(fieldName), analyzer);
-			auto query = parser->parse(StringUtils::toUnicode(queryStr));
-			auto formatter = newLucene<SimpleHTMLFormatter>(StringUtils::toUnicode(leftTag), StringUtils::toUnicode(rightTag));
-			auto scorer = newLucene<QueryScorer>(query);
-			auto highlighter = newLucene<Highlighter>(formatter, scorer);
-			auto fragmenter = newLucene<SimpleSpanFragmenter>(scorer, fragmentSize);
+			const auto& analyzer = procedure->analyzerFactory.createAnalyzer(status, analyzerName);
+			const auto& parser = newLucene<QueryParser>(LuceneVersion::LUCENE_CURRENT, StringUtils::toUnicode(fieldName), analyzer);
+			const auto& query = parser->parse(StringUtils::toUnicode(queryStr));
+			const auto& formatter = newLucene<SimpleHTMLFormatter>(StringUtils::toUnicode(leftTag), StringUtils::toUnicode(rightTag));
+			const auto& scorer = newLucene<QueryScorer>(query);
+			const auto& highlighter = newLucene<Highlighter>(formatter, scorer);
+			const auto& fragmenter = newLucene<SimpleSpanFragmenter>(scorer, fragmentSize);
 			highlighter->setTextFragmenter(fragmenter);
 
 			fragments = highlighter->getBestFragments(analyzer, StringUtils::toUnicode(fieldName), StringUtils::toUnicode(text), maxNumFragments);
@@ -281,17 +251,12 @@ FB_UDR_BEGIN_PROCEDURE(bestFragementsHighligh)
 		}
 		catch (LuceneException& e) {
 			const string error_message = StringUtils::toUTF8(e.getError());
-			ISC_STATUS statusVector[] = {
-				isc_arg_gds, isc_random,
-				isc_arg_string, (ISC_STATUS)error_message.c_str(),
-				isc_arg_end
-			};
-			throw FbException(status, statusVector);
+			throwException(status, error_message.c_str());
 		}
 	}
 
-	AutoRelease<IAttachment> att;
-	AutoRelease<ITransaction> tra;
+	AutoRelease<IAttachment> att{nullptr};
+	AutoRelease<ITransaction> tra{nullptr};
 	Collection<String> fragments;
 	Collection<String>::iterator it;
 
@@ -305,12 +270,7 @@ FB_UDR_BEGIN_PROCEDURE(bestFragementsHighligh)
 
 		if (!content.empty()) {
 			if (content.length() > 8191) {
-				ISC_STATUS statusVector[] = {
-					isc_arg_gds, isc_random,
-					isc_arg_string, (ISC_STATUS)"Fragment size exceeds 8191 characters",
-					isc_arg_end
-				};
-				throw FbException(status, statusVector);
+				throwException(status, "Fragment size exceeds 8191 characters");
 			}
 			const string fragment = StringUtils::toUTF8(content);
 			out->fragmentNull = false;

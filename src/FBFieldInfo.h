@@ -42,45 +42,27 @@ namespace LuceneUDR
 
 	class FbFieldInfo {
 	public:
-		unsigned fieldIndex;
+		unsigned fieldIndex = 0;
 
-		string fieldName;
-		string relationName;
-		string owner;
-		string alias;
-		bool nullable;
-		unsigned dataType;
-		int subType;
-		unsigned length;
-		int scale;
-		unsigned charSet;
-		unsigned offset;
-		unsigned nullOffset;
+		string fieldName{""};
+		string relationName{""};
+		string owner{""};
+		string alias{""};
+		bool nullable = false;
+		unsigned dataType = 0;
+		int subType = 0;
+		unsigned length = 0;
+		int scale = 0;
+		unsigned charSet = 0;
+		unsigned offset = 0;
+		unsigned nullOffset = 0;
 
-		wstring ftsFieldName;
-		bool ftsKey;
-		double ftsBoost;
-		bool ftsBoostNull;
+		wstring ftsFieldName{L""};
+		bool ftsKey = false;
+		double ftsBoost = 1.0;
+		bool ftsBoostNull = true;
 
-		FbFieldInfo()
-			: fieldIndex(0)
-			, fieldName("")
-			, relationName("")
-			, owner("")
-			, nullable(false)
-			, dataType(0)
-			, subType(0)
-			, length(0)
-			, scale(0)
-			, charSet(0)
-			, offset(0)
-			, nullOffset(0)
-			, ftsFieldName()
-			, ftsKey(false)
-			, ftsBoost(1.0)
-			, ftsBoostNull(true)
-		{
-		}
+		FbFieldInfo() = default;
 
 		inline bool isNull(unsigned char* buffer) {
 			return as<short>(buffer + nullOffset);
@@ -227,7 +209,7 @@ namespace LuceneUDR
 		{
 			ISC_QUAD blobId = getQuadValue(buffer);
 			AutoRelease<IBlob> blob(att->openBlob(status, tra, &blobId, 0, nullptr));
-			string s = blob_get_string(status, blob);
+			string s = BlobUtils::getString(status, blob);
 			blob->close(status);
 			return s;
 		}
@@ -263,6 +245,8 @@ namespace LuceneUDR
 	private:
 		map<string, unsigned> fieldByNameMap;
 	public:
+		FbFieldsInfo() = delete;
+
 		template <class StatusType>
 		FbFieldsInfo(StatusType* status, IMessageMetadata* const meta)
 			: FbFieldInfoVector()

@@ -578,6 +578,12 @@ NOT "world"
 \( 1 \+ 1 \) \: 2
 ```
 
+Для экранирования специальных символов вы можете воспользоваться функцией `FTS$ESCAPE_QUERY`.
+
+```sql
+  FTS$ESCAPE_QUERY('(1 + 1) : 2')
+```
+
 Более подробное англоязычное описание синтаксиса расположено на официальном сайте
 Lucene: [https://lucene.apache.org](https://lucene.apache.org).
 
@@ -1205,6 +1211,20 @@ RETURNS (
 - FTS$SCORE - степень соответствия поисковому запросу;
 - FTS$EXPLANATION - объяснение результатов поиска.
 
+### Функция FTS$ESCAPE_QUERY
+
+Функция `FTS$ESCAPE_QUERY` экранирует специальные символы в поисковом запросе.
+
+```sql
+FUNCTION FTS$ESCAPE_QUERY (
+    FTS$QUERY VARCHAR(8191) CHARACTER SET UTF8
+)
+RETURNS VARCHAR(8191) CHARACTER SET UTF8;
+```
+
+Входные параметры:
+
+- FTS$QUERY - поисквоый запрос или его часть, в котором необходимо экранировать специальные символы.
 
 ### Процедура FTS$LOG_BY_ID
 

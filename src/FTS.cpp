@@ -137,12 +137,12 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 	);
 
 	FB_UDR_CONSTRUCTOR
-	, indexRepository(context->getMaster())
-	, analyzerFactory()
+		, indexRepository(make_unique<FTSIndexRepository>(context->getMaster()))
+		, analyzerFactory()
 	{
 	}
 
-	FTSIndexRepository indexRepository;
+	FTSIndexRepositoryPtr indexRepository;
 	LuceneAnalyzerFactory analyzerFactory;
 
 	FB_UDR_EXECUTE_PROCEDURE
@@ -171,20 +171,20 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 
 		const unsigned int sqlDialect = getSqlDialect(status, att);
 
-		const auto& ftsIndex = procedure->indexRepository.getIndex(status, att, tra, sqlDialect, indexName, true);
+		const auto& ftsIndex = procedure->indexRepository->getIndex(status, att, tra, sqlDialect, indexName, true);
 
 		// check if directory exists for index
 		const auto& indexDirectoryPath = ftsDirectoryPath / indexName;
 		if (ftsIndex->status == "N" || !fs::is_directory(indexDirectoryPath)) {
 			string error_message = string_format(R"(Index "%s" exists, but is not build. Please rebuild index.)"s, indexName);
-			throwException(status, error_message);
+			throwException(status, error_message.c_str());
 		}
 
 		try {
 			const auto& ftsIndexDir = FSDirectory::open(indexDirectoryPath.wstring());
 			if (!IndexReader::indexExists(ftsIndexDir)) {
 				const string error_message = string_format(R"(Index "%s" exists, but is not build. Please rebuild index.)", indexName);
-				throwException(status, error_message);
+				throwException(status, error_message.c_str());
 			}
 
 			IndexReaderPtr reader = IndexReader::open(ftsIndexDir, true);
@@ -204,7 +204,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 			}
 
 			if (keyFieldName != "RDB$DB_KEY") {
-				keyFieldInfo = procedure->indexRepository.relationHelper.getField(status, att, tra, sqlDialect, ftsIndex->relationName, keyFieldName);
+				keyFieldInfo = procedure->indexRepository->getRelationHelper()->getField(status, att, tra, sqlDialect, ftsIndex->relationName, keyFieldName);
 			}
 			else {
 				keyFieldInfo = make_unique<RelationFieldInfo>();
@@ -236,13 +236,13 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 		}
 		catch (LuceneException& e) {
 			const string error_message = StringUtils::toUTF8(e.getError());
-			throwException(status, error_message);
+			throwException(status, error_message.c_str());
 		}
 	}
 
 	bool explainFlag = false;
-	AutoRelease<IAttachment> att;
-	AutoRelease<ITransaction> tra;
+	AutoRelease<IAttachment> att{ nullptr };
+	AutoRelease<ITransaction> tra{ nullptr };
 	RelationFieldInfoPtr keyFieldInfo;
 	String unicodeKeyFieldName;
 	QueryPtr query;
@@ -280,12 +280,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 			}
 		}
 		catch (invalid_argument& e) {
-			ISC_STATUS statusVector[] = {
-				isc_arg_gds, isc_random,
-				isc_arg_string, (ISC_STATUS)e.what(),
-				isc_arg_end
-			};
-			throw FbException(status, statusVector);
+			throwException(status, e.what());
 		}
 
 		out->scoreNull = false;
@@ -296,7 +291,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 			const auto explanation = searcher->explain(query, scoreDoc->doc);
 			const string explanationStr = StringUtils::toUTF8(explanation->toString());
 			AutoRelease<IBlob> blob(att->createBlob(status, tra, &out->explanation, 0, nullptr));
-			blob_set_string(status, blob, explanationStr);
+			BlobUtils::setString(status, blob, explanationStr);
 			blob->close(status);
 		}
 		else {
@@ -611,7 +606,7 @@ ENGINE UDR;
 FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 
 	FB_UDR_CONSTRUCTOR
-		, indexRepository(context->getMaster())
+		, indexRepository(make_unique<FTSIndexRepository>(context->getMaster()))
 		, analyzerFactory()
 		, logDeleteStmt(nullptr)
 		, logStmt(nullptr)
@@ -619,10 +614,10 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 	}
 
 
-	FTSIndexRepository indexRepository;
+	FTSIndexRepositoryPtr indexRepository{nullptr};
 	LuceneAnalyzerFactory analyzerFactory;
-	AutoRelease<IStatement> logDeleteStmt;
-	AutoRelease<IStatement> logStmt;
+	AutoRelease<IStatement> logDeleteStmt{nullptr};
+	AutoRelease<IStatement> logStmt{nullptr};
 
 	FB_UDR_EXECUTE_PROCEDURE
 	{
@@ -637,7 +632,7 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 		
 		// get all indexes with segments
 		FTSIndexMap indexes;
-		procedure->indexRepository.fillAllIndexesWithSegments(status, att, tra, sqlDialect, indexes);
+		procedure->indexRepository->fillAllIndexesWithFields(status, att, tra, sqlDialect, indexes);
 		// fill map indexes of relationName
 		map<string, list<string>> indexesByRelation;
 		for (const auto& [indexName, ftsIndex] : indexes) {	
@@ -965,12 +960,7 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 		}
 		catch (const LuceneException& e) {
 			const string error_message = StringUtils::toUTF8(e.getError());
-			ISC_STATUS statusVector[] = {
-				isc_arg_gds, isc_random,
-				isc_arg_string, (ISC_STATUS)error_message.c_str(),
-				isc_arg_end
-			};
-			throw FbException(status, statusVector);
+			throwException(status, error_message.c_str());
 		}
 	}
 
@@ -1032,7 +1022,7 @@ ORDER BY FTS$LOG_ID
 		ftsIndex->status = "U";
 		// this is done in an autonomous transaction				
 		AutoRelease<ITransaction> tra(att->startTransaction(status, 0, nullptr));
-		procedure->indexRepository.setIndexStatus(status, att, tra, sqlDialect, ftsIndex->indexName, ftsIndex->status);
+		procedure->indexRepository->setIndexStatus(status, att, tra, sqlDialect, ftsIndex->indexName, ftsIndex->status);
 		tra->commit(status);
 	}
 
