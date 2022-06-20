@@ -113,6 +113,9 @@
     <None Include="sql\fts$install_1.sql">
       <Filter>SQL scripts</Filter>
     </None>
+    <None Include="README_EN.md">
+      <Filter>Documentation</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="src\lucene_udr.rc">
