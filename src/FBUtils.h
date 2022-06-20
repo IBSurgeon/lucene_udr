@@ -105,6 +105,8 @@ namespace LuceneUDR
 	/// <returns>Returns the escaped name of the metadata object.</returns>
 	inline string escapeMetaName(const unsigned int sqlDialect, const string& name)
 	{
+		if (name == "RDB$DB_KEY")
+			return name;
 		switch (sqlDialect) {
 		case 1:
 			return name;
