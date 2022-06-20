@@ -22,6 +22,10 @@ Lucene, но обладает немного меньшими возможнос
 
 Под ОС Linux вы можете скомпилировать библиотеку самостоятельно.
 
+Скачать демонстрационную базу данных, для которой подготовленны примеры можно по следующим ссылкам:
+* [fts_demo_3.0.zip](https://github.com/sim1984/lucene_udr/releases/download/1.0/fts_demo_3.0.zip) - база данных для Firebird 3.0;
+* [fts_demo_4.0.zip](https://github.com/sim1984/lucene_udr/releases/download/1.0/fts_demo_4.0.zip) - база данных для Firebird 4.0.
+
 ## Сборка и установка библиотеки под Linux
 
 Поскольку Lucene UDR построена на основе [Lucene++](https://github.com/luceneplusplus/LucenePlusPlus) вам предварительно 
