@@ -14,9 +14,9 @@ Lucene, но обладает немного меньшими возможнос
 1. Распаковать zip архив с динамическими библиотеками в каталог `plugins\udr`
 2. Выполнить скрипт [fts$install.sql](https://github.com/sim1984/lucene_udr/blob/main/sql/fts%24install.sql) 
 для регистрации процедур и функций в индексируемой БД. 
-Для баз данных 1 SQL диалекта [fts$install_1.sql](https://github.com/sim1984/lucene_udr/blob/main/sql/fts%24install_1.sql) 
+Для баз данных 1-ого SQL диалекта используйте скрипт [fts$install_1.sql](https://github.com/sim1984/lucene_udr/blob/main/sql/fts%24install_1.sql) 
 
-Скачать готовые сборки можно по ссылкам:
+Скачать готовые сборки под ОС Windows можно по ссылкам:
 * [LuceneUdr_Win_x64.zip](https://github.com/sim1984/lucene_udr/releases/download/1.0/LuceneUdr_Win_x64.zip)
 * [LuceneUdr_Win_x86.zip](https://github.com/sim1984/lucene_udr/releases/download/1.0/LuceneUdr_Win_x86.zip)
 
@@ -28,8 +28,9 @@ Lucene, но обладает немного меньшими возможнос
 
 ## Сборка и установка библиотеки под Linux
 
-Поскольку Lucene UDR построена на основе [Lucene++](https://github.com/luceneplusplus/LucenePlusPlus) вам предварительно 
-потребуется скачать и собрать её из исходников. 
+Lucene UDR построена на основе [Lucene++](https://github.com/luceneplusplus/LucenePlusPlus). 
+В некоторых дистрибутивах Linux вы можете установить `lucene++` и `lucene++-contrib` из 
+их репозиториев. Если же библиотеки в репозиториях отсутствуют, то вам потребуется скачать и собрать их из исходников.
 
 ```
 $ git clone https://github.com/luceneplusplus/LucenePlusPlus.git
@@ -66,8 +67,7 @@ Call Stack (most recent call first):
   CMakeLists.txt:78 (find_package)
 ```
 
-Для её исправления необходимо исправить файл `liblucene++Config.cmake` и `liblucene++-contribConfig.cmake` 
-
+Для её исправления необходимо исправить файлы `liblucene++Config.cmake` и `liblucene++-contribConfig.cmake`, где 
 заменить строчку
 
 ```
@@ -86,7 +86,7 @@ get_filename_component(PACKAGE_PREFIX_DIR "${CMAKE_CURRENT_LIST_DIR}/../../.." A
 Перед использованием полнотекстового поиска в вашей базе данных необходимо произвести предварительную настройку.
 Настройки Lucene UDR находятся в файле `$(root)\fts.ini`. Если этого файла нет, то создайте его самостоятельно.
 
-В этом файле задаётся путь к папке в которой будут создаваться полнотекстовые индексы для конкретной базы данных.
+В этом файле задаётся путь к директории, в которой будут создаваться полнотекстовые индексы для указанной базы данных.
 
 В качестве имени секции ini файла должен быть задан полный путь к базе данных или алиас (в зависимости от значения 
 параметра `DatabaseAccess` в `firebird.conf`). Путь к директории полнотекстовых индексов указывается в ключе `ftsDirectory`. 
@@ -112,11 +112,8 @@ FROM RDB$DATABASE
 ## Создание полнотекстовых индексов
 
 Для создания полнотекстового индекса необходимо выполнить последовательно три шага:
-
 1. Создание полнотекстового индекса для таблицы с помощью процедуры `FTS$MANAGEMENT.FTS$CREATE_INDEX`;
-
 2. Добавление индексируемых полей с помощью процедуры `FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD`;
-
 3. Построение индекса с помощью процедуры `FTS$MANAGEMENT.FTS$REBUILD_INDEX`.
 
 
@@ -189,7 +186,7 @@ CREATE TABLE PRODUCTS (
 ```
 
 Пример ниже создаёт индекс `IDX_PRODUCT_NAME` для таблицы `PRODUCTS` с использованием анализатора `STANDARD`. 
-Возвращается поле `PRODUCT_ID`. Его имя было автоматически извлечено из первичного ключа таблицы `HORSE`.
+Возвращается поле `PRODUCT_ID`. Его имя было автоматически извлечено из первичного ключа таблицы `PRODUCTS`.
 
 ```sql
 EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$CREATE_INDEX('IDX_PRODUCT_NAME', 'PRODUCTS');
