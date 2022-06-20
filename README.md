@@ -237,7 +237,7 @@ COMMIT;
 В индексах `IDX_PRODUCT_NAME_EN`, `IDX_PRODUCT_DBKEY_EN` и `IDX_PRODUCT_UUID_EN` обрабатывается одно поле `PRODUCT_NAME`, 
 а в индексе `IDX_PRODUCT_ID_2_EN` - два поля `PRODUCT_NAME` и `ABOUT_PRODUCT`.
 
-В следующем примере показано создание индекса с 2 полями `PRODUCT_NAME` и `ABOUT_PRODUCT`. Значимость поля `PRODUCT_NAME` в 4 раз выше значимости поля `ABOUT_PRODUCT`.
+В следующем примере показано создание индекса с двумя полями `PRODUCT_NAME` и `ABOUT_PRODUCT`. Значимость поля `PRODUCT_NAME` в 4 раз выше значимости поля `ABOUT_PRODUCT`.
 
 ```sql
 EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$CREATE_INDEX('IDX_PRODUCT_ID_2X_EN', 'PRODUCTS', 'ENGLISH', 'PRODUCT_ID');
@@ -250,7 +250,7 @@ COMMIT;
 
 ### Построение индекса
 
-Для построения индекса используется процедура `FTS$MANAGEMENT.FTS$REBUILD_INDEX()`. В качестве 
+Для построения индекса используется процедура `FTS$MANAGEMENT.FTS$REBUILD_INDEX`. В качестве 
 входного параметра необходимо указать имя полнотекстового индекса.
 
 ```sql
@@ -312,9 +312,9 @@ FROM FTS$SEARCH('IDX_PRODUCT_NAME_EN', 'Transformers Bumblebee')
 
 - FTS$RELATION_NAME - имя таблицы в которой найден документ;
 - FTS$KEY_FIELD_NAME - имя ключевого поля в таблице;
-- FTS$DB_KEY - значение ключевого поля в формате RDB$DB_KEY;
-- FTS$ID - значение ключевого поля типа BIGINT или INTEGER;
-- FTS$UUID - значение ключевого поля типа BINARY(16). Такой тип используется для хранения GUID;
+- FTS$DB_KEY - значение ключевого поля в формате `RDB$DB_KEY`;
+- FTS$ID - значение ключевого поля типа `BIGINT` или `INTEGER`;
+- FTS$UUID - значение ключевого поля типа `BINARY(16)`. Такой тип используется для хранения GUID;
 - FTS$SCORE - степень соответствия поисковому запросу;
 - FTS$EXPLANATION - объяснение результатов поиска.
 
@@ -360,7 +360,7 @@ FROM FTS$SEARCH('IDX_PRODUCT_ID_2_EN', 'Transformers Bumblebee') FTS
 JOIN PRODUCTS P ON P.PRODUCT_ID = FTS.FTS$ID;
 ```
 
-Для объяснения результатов поиска, установите последний параметр в TRUE
+Для объяснения результатов поиска, установите последний параметр в TRUE.
 
 ```sql
 SELECT
@@ -476,7 +476,7 @@ Transformers Bumblebee
 Вы можете указать по какому полю вы хотите произвести поиск, для этого в запросе необходимо указать имя поля, символ двоеточия ":", 
 после чего поисковую фразу для этого поля.
 
-Пример поиска слова "Polyester" в поле ABOUT_PRODUCT и слов "Transformers Bumblebee" в поле PRODUCT_NAME:
+Пример поиска слова "Polyester" в поле `ABOUT_PRODUCT` и слов "Transformers Bumblebee" в поле `PRODUCT_NAME`:
 
 ```sql
 SELECT
@@ -685,7 +685,7 @@ EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$REBUILD_INDEX('IDX_PRODUCT_CATEGORIES');
 COMMIT;
 ```
 
-Поиск товара по его категории выгядит так:
+Поиск товара по его категории выглядит так:
 
 ```sql
 SELECT
@@ -888,15 +888,15 @@ WHERE BOOKS.ID = 8
 
 Для облегчения задачи написания таких триггеров существует специальный пакет `FTS$TRIGGER_HELPER`, в котором 
 расположены процедуры генерирования исходных текстов триггеров. Так например, для того чтобы сгенерировать триггеры 
-для поддержки полнотекстовых индексов созданных для таблицы `HORSE`, необходимо выполнить следующий запрос:
+для поддержки полнотекстовых индексов созданных для таблицы `PRODUCTS`, необходимо выполнить следующий запрос:
 
 ```sql
 SELECT
     FTS$TRIGGER_SCRIPT
-FROM FTS$TRIGGER_HELPER.FTS$MAKE_TRIGGERS('HORSE', TRUE)
+FROM FTS$TRIGGER_HELPER.FTS$MAKE_TRIGGERS('PRODUCTS', TRUE)
 ```
 
-Этот запрос вернёт следующий текст триггера для всех созданных FTS индексов на таблице `HORSE`:
+Этот запрос вернёт следующий текст триггера для всех созданных FTS индексов на таблице `PRODUCTS`:
 
 ```sql
 CREATE OR ALTER TRIGGER "FTS$PRODUCTS_AIUD" FOR "PRODUCTS"
