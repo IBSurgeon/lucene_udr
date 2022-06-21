@@ -26,6 +26,10 @@ Download the demo database, for which the examples are prepared, using the follo
 * [fts_demo_3.0.zip](https://github.com/sim1984/lucene_udr/releases/download/1.0/fts_demo_3.0.zip) - database for Firebird 3.0;
 * [fts_demo_4.0.zip](https://github.com/sim1984/lucene_udr/releases/download/1.0/fts_demo_4.0.zip) - database for Firebird 4.0.
 
+Documentation in English and Russian is available at the links:
+* [lucene-udr.pdf](https://github.com/sim1984/lucene_udr/releases/download/1.0/lucene-udr.pdf);
+* [lucene-udr-rus.pdf](https://github.com/sim1984/lucene_udr/releases/download/1.0/lucene-udr-rus.pdf).
+
 ## Building and installing the library under Linux
 
 Lucene UDR is based on [Lucene++](https://github.com/luceneplusplus/LucenePlusPlus). 
@@ -344,7 +348,7 @@ FROM FTS$SEARCH('IDX_PRODUCT_DBKEY_EN', 'Transformers Bumblebee') FTS
 JOIN PRODUCTS P ON P.RDB$DB_KEY = FTS.FTS$DB_KEY;
 ```
 
-To search for two fields at once, we use the index `IDX_PRODUCT_ID_2_EN`, in which the fields `REMARK` and `RUNTOTAL` were specified during creation.
+To search for two fields at once, we use the index `IDX_PRODUCT_ID_2_EN`, in which the fields `PRODUCT_NAME` and `ABOUT_PRODUCT` were specified during creation.
 
 ```sql
 SELECT
