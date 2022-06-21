@@ -1,36 +1,36 @@
-# UDR full-text search based on Lucene++
+﻿# UDR full-text search based on Lucene++
 
-В Firebird отсутствует встроенная подсистема полнотекстового поиска. Библиотека Lucene UDR реализует
-процедуры и функции полнотекстового поиска с помощью основан на свободно распространяемой библиотеки Lucene. 
-Оригинальный поисковый движок Lucene написан на языке Java. К сожалению плагин FB Java для написания внешних 
-хранимых процедур и функций пока ещё в стадии Beta версии. Поэтому Lucene UDR использует порт Lucene на язык C++  
-[Lucene++](https://github.com/luceneplusplus/LucenePlusPlus). Lucene++ чуть более быстрый, чем оригинальный движок 
-Lucene, но обладает немного меньшими возможностями.
+There is no built-in full-text search subsystem in Firebird. The Lucene UDR library implements 
+full-text search procedures and functions using the freely distributed Lucene library. The original 
+Lucene search engine is written in Java. Unfortunately the FB Java plugin for writing external
+stored procedures and functions are still in Beta stage. Therefore, Lucene UDP uses the Lucene port to 
+the C++ language [Lucene++](https://github.com/luceneplusplus/LucenePlusPlus). Lucene++ is slightly 
+faster than the original Lucene engine, but has slightly less features.
 
-## Установка Lucene UDR
+## Installing Lucene UDR
 
-Для установки Lucene UDR необходимо:
+To install Lucene UDR, you need:
 
-1. Распаковать zip архив с динамическими библиотеками в каталог `plugins\udr`
-2. Выполнить скрипт [fts$install.sql](https://github.com/sim1984/lucene_udr/blob/main/sql/fts%24install.sql) 
-для регистрации процедур и функций в индексируемой БД. 
-Для баз данных 1-ого SQL диалекта используйте скрипт [fts$install_1.sql](https://github.com/sim1984/lucene_udr/blob/main/sql/fts%24install_1.sql) 
+1. Unpack the zip archive with dynamic libraries into the `plugins/udr` directory
+2. Execute the script [fts$install.sql](https://github.com/sim1984/lucene_udr/blob/main/sql/fts%24install.sql)  
+to register procedures and functions in an indexed database.
+For databases of the 1st SQL dialect, use the script [fts$install_1.sql](https://github.com/sim1984/lucene_udr/blob/main/sql/fts%24install_1.sql)
 
-Скачать готовые сборки под ОС Windows можно по ссылкам:
+You can download ready-made builds for Windows OS using the links:
 * [LuceneUdr_Win_x64.zip](https://github.com/sim1984/lucene_udr/releases/download/1.0/LuceneUdr_Win_x64.zip)
 * [LuceneUdr_Win_x86.zip](https://github.com/sim1984/lucene_udr/releases/download/1.0/LuceneUdr_Win_x86.zip)
 
-Под ОС Linux вы можете скомпилировать библиотеку самостоятельно.
+Under Linux, you can compile the library yourself.
 
-Скачать демонстрационную базу данных, для которой подготовленны примеры можно по следующим ссылкам:
-* [fts_demo_3.0.zip](https://github.com/sim1984/lucene_udr/releases/download/1.0/fts_demo_3.0.zip) - база данных для Firebird 3.0;
-* [fts_demo_4.0.zip](https://github.com/sim1984/lucene_udr/releases/download/1.0/fts_demo_4.0.zip) - база данных для Firebird 4.0.
+Download the demo database, for which the examples are prepared, using the following links:
+* [fts_demo_3.0.zip](https://github.com/sim1984/lucene_udr/releases/download/1.0/fts_demo_3.0.zip) - database for Firebird 3.0;
+* [fts_demo_4.0.zip](https://github.com/sim1984/lucene_udr/releases/download/1.0/fts_demo_4.0.zip) - database for Firebird 4.0.
 
-## Сборка и установка библиотеки под Linux
+## Building and installing the library under Linux
 
-Lucene UDR построена на основе [Lucene++](https://github.com/luceneplusplus/LucenePlusPlus). 
-В некоторых дистрибутивах Linux вы можете установить `lucene++` и `lucene++-contrib` из 
-их репозиториев. Если же библиотеки в репозиториях отсутствуют, то вам потребуется скачать и собрать их из исходников.
+Lucene UDR is based on [Lucene++](https://github.com/luceneplusplus/LucenePlusPlus). 
+In some Linux distributions, you can install `lucene++` and `lucene++-contrib` from their repositories. 
+If there are no libraries in the repositories, then you will need to download and build them from the source.
 
 ```
 $ git clone https://github.com/luceneplusplus/LucenePlusPlus.git
@@ -41,11 +41,11 @@ $ make
 $ sudo make install
 ```
 
-Чтобы lucene++ была установлена в `/usr/lib`, а не в `/usr/local/lib`, выполните `cmake -DCMAKE_INSTALL_PREFIX=/usr ..` вместо `cmake ..`
+In order for the `lucene++` library to be installed in `/usr/lib` and not in `/usr/local/lib`, run `cmake -DCMAKE_INSTALL_PREFIX=/usr..` instead of `cmake ..`
 
-Более подробно сборка библиотеки lucene++ описана в [BUILDING.md](https://github.com/luceneplusplus/LucenePlusPlus/blob/master/doc/BUILDING.md).
+The building of the lucene++ library is described in more detail in [BUILDING.md](https://github.com/luceneplusplus/LucenePlusPlus/blob/master/doc/BUILDING.md).
 
-Теперь можно приступать к сборке UDR Lucene.
+Now you can start building UDR Lucene.
 
 ```
 $ git clone https://github.com/sim1984/lucene_udr.git
@@ -56,7 +56,7 @@ $ make
 $ sudo make install
 ```
 
-В процессе выполнения `cmake ..` может возникнуть следующая ошибка
+In the process of executing `cmake ..` the following error may occur
 
 ```
 CMake Error at /usr/lib64/cmake/liblucene++/liblucene++Config.cmake:41 (message):
@@ -67,29 +67,29 @@ Call Stack (most recent call first):
   CMakeLists.txt:78 (find_package)
 ```
 
-Для её исправления необходимо исправить файлы `liblucene++Config.cmake` и `liblucene++-contribConfig.cmake`, где 
-заменить строчку
+To fix it, you need to fix the files `liblucene++Config.cmake` and `liblucene++-contrib Config.cmake`, where
+to replace the line
 
 ```
 get_filename_component(PACKAGE_PREFIX_DIR "${CMAKE_CURRENT_LIST_DIR}/../../usr" ABSOLUTE)
 ```
 
-на
+with 
 
 ```
 get_filename_component(PACKAGE_PREFIX_DIR "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
 ```
 
+## Configuring Lucene UDR
 
-## Настройка Lucene UDR
+Before using full-text search in your database, you need to make a preliminary configuration.
+The Lucene UDR settings are in the file `$(root)\ftp.ini`. If this file does not exist, then create it yourself.
 
-Перед использованием полнотекстового поиска в вашей базе данных необходимо произвести предварительную настройку.
-Настройки Lucene UDR находятся в файле `$(root)\fts.ini`. Если этого файла нет, то создайте его самостоятельно.
+This file specifies the path to the directory where full-text indexes for the specified database will be created.
 
-В этом файле задаётся путь к директории, в которой будут создаваться полнотекстовые индексы для указанной базы данных.
-
-В качестве имени секции ini файла должен быть задан полный путь к базе данных или алиас (в зависимости от значения 
-параметра `DatabaseAccess` в `firebird.conf`). Путь к директории полнотекстовых индексов указывается в ключе `ftsDirectory`. 
+The full path to the database or alias must be set as the section name of the ini file 
+(depending on the value of the `DatabaseAccess` parameter in `firebird.conf`). 
+The path to the full-text index directory is specified in the `ftsDirectory` key.
 
 ```ini
 [fts_demo]
@@ -99,70 +99,65 @@ ftsDirectory=f:\fbdata\3.0\fts\fts_demo
 ftsDirectory=f:\fbdata\3.0\fts\fts_demo
 ```
 
-Важно: пользователь или группа, под которым выполняется служба Firebird, должен иметь права на чтение и запись для 
-директории с полнотекстовыми индексами.
+Important: The user or group under which the Firebird service is running must have read and write permissions for the directory with full-text indexes.
 
-Получить расположение директории для полнотекстовых индексов можно с помощью запроса:
+You can get the directory location for full-text indexes using a query:
 
 ```sql
 SELECT FTS$MANAGEMENT.FTS$GET_DIRECTORY() AS DIR_NAME
 FROM RDB$DATABASE
 ```
 
-## Создание полнотекстовых индексов
+## Creating full-text indexes
 
-Для создания полнотекстового индекса необходимо выполнить последовательно три шага:
-1. Создание полнотекстового индекса для таблицы с помощью процедуры `FTS$MANAGEMENT.FTS$CREATE_INDEX`;
-2. Добавление индексируемых полей с помощью процедуры `FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD`;
-3. Построение индекса с помощью процедуры `FTS$MANAGEMENT.FTS$REBUILD_INDEX`.
+To create a full-text index, you need to perform three steps sequentially:
+1. Creating a full-text index for a table using the procedure `FTS$MANAGEMENT.FTS$CREATE_INDEX`;
+2. Adding indexed fields using the procedure `FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD`;
+3. Building an index using the procedure `FTS$MANAGEMENT.FTS$REBUILD_INDEX`.
 
+### Creating a full-text index for a table
 
-### Создание полнотекстового индекса для таблицы
+To create a full-text index for a table, call the procedure `FTS$MANAGEMENT.FTS$CREATE_INDEX`.
 
-Для создания полнотекстового индекса для таблицы необходимо вызвать процедуру `FTS$MANAGEMENT.FTS$CREATE_INDEX`.
+The first parameter specifies the name of the full-text index, the second - the name of the indexed table. The remaining parameters are optional.
 
-Первым параметром задаёт имя полнотекстового индекса, вторым - имя индексируемой таблицы. Остальные параметры являются 
-необязательными.
+The third parameter specifies the name of the analyzer. The analyzer specifies for which language the indexed fields will be analyzed. 
+If the parameter is omitted, the STANDARD analyzer (for English) will be used. The list of available analyzers can be found 
+using the procedure `FTS$MANAGEMENT.FTS$ANALYZERS`.
 
-Третьим параметром задаётся имя анализатора. Анализатор задаёт для какого языка будет сделан анализ индексируемых полей.
-Если параметр не задан, то будет использован анализатор STANDARD (для английского языка). Список доступных анализаторов 
-можно узнать с помощью процедуры `FTS$MANAGEMENT.FTS$ANALYZERS`.
+List of available analyzers:
 
-Список доступных анализаторов:
+* STANDARD - StandardAnalyzer (English);
+* ARABIC - Arabic Analyzer;
+* BRAZILIAN - BrazilianAnalyzer;
+* CHINESE - ChineseAnalyzer;
+* CJK - CJKAnalyzer (Chinese Letter);
+* CZECH - CzechAnalyzer;
+* DUTCH - DutchAnalyzer;
+* ENGLISH - StandardAnalyzer (English);
+* FRENCH - FrenchAnalyzer;
+* GERMAN - GermanAnalyzer;
+* GREEK - GreekAnalyzer;
+* PERSIAN - PersianAnalyzer;
+* RUSSIAN - RussianAnalyzer.
 
-* STANDARD - StandardAnalyzer (Английский язык);
-* ARABIC - ArabicAnalyzer (Арабский язык);
-* BRAZILIAN - BrazilianAnalyzer (Бразильский язык);
-* CHINESE - ChineseAnalyzer (Китайский язык);
-* CJK - CJKAnalyzer (Китайское письмо);
-* CZECH - CzechAnalyzer (Чешский язык);
-* DUTCH - DutchAnalyzer (Голландский язык);
-* ENGLISH - StandardAnalyzer (Английский язык);
-* FRENCH - FrenchAnalyzer (Французский язык);
-* GERMAN - GermanAnalyzer (Немецкий язык);
-* GREEK - GreekAnalyzer (Греческий язык);
-* PERSIAN - PersianAnalyzer (Персидский язык);
-* RUSSIAN - RussianAnalyzer (Русский язык).
+The fourth parameter specifies the name of the table field that will be returned as a search result. 
+This is usually a primary or unique key field. Setting a special pseudo field `RDB$DB_KEY` is also supported. 
+The value of only one field of one of the types can be returned:
 
-Четвёртым параметром задаётся имя поля таблицы, которое будет возвращено в качестве результата поиска. Обычно это
-поле первичного или уникального ключа. Также поддерживается задание специального псевдо поля `RDB$DB_KEY`.
-Может быть возвращено значение только одного поля одного из типов:
+* `SMALLINT`, `INTEGER`, `BIGINT` - fields of these types are often used as artificial primary key based on generators (sequences);
 
-* `SMALLINT`, `INTEGER`, `BIGINT` - поля этих типов часто используются в качестве искусственного первичного 
-ключа на основе генераторов (последовательностей);
+* `CHAR(16) CHARACTER SET OCTETS` or `BINARY(16)` - fields of these types are used as an artificial primary key based on GUID, that is, generated using `GEN_UUID()`;
 
-* `CHAR(16) CHARACTER SET OCTETS` или `BINARY(16)` - поля этих типов используются в качестве искусственного первичного
-ключа на основе GUID, то есть сгенерированных с помощью `GEN_UUID()`;
+* the `RDB$DB_KEY` field of type `CHAR(8) CHARACTER SET OCTETS`.
 
-* поле `RDB$DB_KEY` типа `CHAR(8) CHARACTER SET OCTETS`.
+If this parameter is not set (NULL value), then an attempt will be made to find the field in the primary key for permanent tables and GTT. 
+This attempt will be successful if the key is not composite and the field on which it is built has one of the data types described above. 
+If the primary key does not exist, the pseudo field `RDB$DB_KEY` will be used.
 
-Если этот параметр не задан (значение NULL), то для постоянных таблиц и GTT будет произведена попытка найти поле в первичном ключе.
-Эта попытка будет удачной, если ключ не является составным и поле, на котором он построен имеет один из типов данных описанных выше.
-Если первичного ключа не существует, то будет использовано псевдо поле `RDB$DB_KEY`.
+The fifth parameter can be set to describe the field.
 
-Пятым параметром можно задать описание поля.
-
-Для примеров используется таблица со следующей с структурой:
+For examples, a table with the following structure is used:
 
 ```sql
 CREATE TABLE PRODUCTS (
@@ -185,8 +180,8 @@ CREATE TABLE PRODUCTS (
 );
 ```
 
-Пример ниже создаёт индекс `IDX_PRODUCT_NAME` для таблицы `PRODUCTS` с использованием анализатора `STANDARD`. 
-Возвращается поле `PRODUCT_ID`. Его имя было автоматически извлечено из первичного ключа таблицы `PRODUCTS`.
+The example below creates an index `IDX_PRODUCT_NAME` for the `PRODUCTS` table using the `STANDARD` analyzer.
+The `PRODUCT_ID` field is returned. Its name was automatically extracted from the primary key of the `PRODUCTS` table.
 
 ```sql
 EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$CREATE_INDEX('IDX_PRODUCT_NAME', 'PRODUCTS');
@@ -194,7 +189,7 @@ EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$CREATE_INDEX('IDX_PRODUCT_NAME', 'PRODUCTS'
 COMMIT;
 ```
 
-Следующий пример создаст индекс `IDX_PRODUCT_NAME_EN` с использованием анализатора `ENGLISH`.
+The following example will create an index `IDX_PRODUCT_NAME_EN` using the analyzer `ENGLISH`.
 
 ```sql
 EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$CREATE_INDEX('IDX_PRODUCT_NAME_EN', 'PRODUCTS', 'ENGLISH');
@@ -202,23 +197,24 @@ EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$CREATE_INDEX('IDX_PRODUCT_NAME_EN', 'PRODUC
 COMMIT;
 ```
 
-Можно указать конкретное имя поля которое будет возвращено в качестве результата поиска.
+You can specify the name of the field that will be returned as a search result.
 
 ```sql
 EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$CREATE_INDEX('IDX_PRODUCT_ID_2_EN', 'PRODUCTS', 'ENGLISH', 'PRODUCT_ID');
 
-EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$CREATE_INDEX('IDX_PRODUCT_DBKEY_EN', 'PRODUCTS', 'ENGLISH', 'RDB$DB_KEY');
-
 EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$CREATE_INDEX('IDX_PRODUCT_UUID_EN', 'PRODUCTS', 'ENGLISH', 'PRODUCT_UUID');
+
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$CREATE_INDEX('IDX_PRODUCT_DBKEY_EN', 'PRODUCTS', 'ENGLISH', 'RDB$DB_KEY');
 
 COMMIT;
 ```
 
-### Добавление полей для индексирования
+### Adding fields for indexing
 
-После создания индекса, необходимо добавить поля по которым будет производиться поиск с помощью
-процедуры `FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD`. Первым параметром указывается имя индекса, вторым имя добавляемого поля.
-Третьим необязательным параметром можно указать множитель значимости для поля. По умолчанию значимость всех полей индекса одинакова и равна 1.
+After creating the index, you need to add fields that will be searched using the procedure `FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD`. 
+The first parameter specifies the index name, the second the name of the field to be added.
+The third optional parameter can specify the significance multiplier for the field. 
+By default, the significance of all index fields is the same and equal to 1.
 
 ```sql
 EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD('IDX_PRODUCT_NAME_EN', 'PRODUCT_NAME');
@@ -234,10 +230,11 @@ EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD('IDX_PRODUCT_ID_2_EN', 'ABO
 COMMIT;
 ```
 
-В индексах `IDX_PRODUCT_NAME_EN`, `IDX_PRODUCT_DBKEY_EN` и `IDX_PRODUCT_UUID_EN` обрабатывается одно поле `PRODUCT_NAME`, 
-а в индексе `IDX_PRODUCT_ID_2_EN` - два поля `PRODUCT_NAME` и `ABOUT_PRODUCT`.
+In the indexes `IDX_PRODUCT_NAME_EN`, `IDX_PRODUCT_DBKEY_EN` and `IDX_PRODUCT_UUID_EN` one field `PRODUCT_NAME` is processed, 
+and in the index `IDX_PRODUCT_ID_2_EN` two fields `PRODUCT_NAME` and `ABOUT_PRODUCT` are processed.
 
-В следующем примере показано создание индекса с двумя полями `PRODUCT_NAME` и `ABOUT_PRODUCT`. Значимость поля `PRODUCT_NAME` в 4 раз выше значимости поля `ABOUT_PRODUCT`.
+The following example shows the creation of an index with two fields `PRODUCT_NAME` and `ABOUT_PRODUCT`. 
+The significance of the `PRODUCT_NAME` field is 4 times higher than the significance of the `ABOUT_PRODUCT` field.
 
 ```sql
 EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$CREATE_INDEX('IDX_PRODUCT_ID_2X_EN', 'PRODUCTS', 'ENGLISH', 'PRODUCT_ID');
@@ -248,10 +245,9 @@ EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD('IDX_PRODUCT_ID_2X_EN', 'AB
 COMMIT;
 ```
 
-### Построение индекса
+### Building an index
 
-Для построения индекса используется процедура `FTS$MANAGEMENT.FTS$REBUILD_INDEX`. В качестве 
-входного параметра необходимо указать имя полнотекстового индекса.
+To build the index, the procedure `FTS$MANAGEMENT.FTS$REBUILD_INDEX` is used. The name of the full-text index must be specified as an input parameter.
 
 ```sql
 EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$REBUILD_INDEX('IDX_PRODUCT_NAME_EN');
@@ -267,34 +263,34 @@ EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$REBUILD_INDEX('IDX_PRODUCT_ID_2X_EN');
 COMMIT;
 ```
 
-На этапе построения для индекса создаётся соответсвующая одноимённая папка в директории для полнотекстовых индексов.
-В этих папках располагаются файлы индекса Lucene. Эта часть процесса происходит вне контроля транзакций, поэтому ROLLBACK не удалит файлы индекса.
+At the stage of building for the index, a corresponding folder of the same name is created in the directory for full-text indexes.
+These folders contain the Lucene index files. This part of the process happens outside of transaction control, so ROLLBACK will not remove the index files.
 
-Кроме того, в случае успешного построения у индекса меняется статус на 'C' (Complete). Изменение статуса происходят в текущей транзакции.
+In addition, in case of a successful build, the status of the index changes to 'C' (Complete). Status changes occur in the current transaction.
 
-## Статусы индекса
+## Index statuses
 
-Описание индексов хранится в служебной таблице `FTS$INDICES`.
+The description of the indexes is stored in the service table `FTS$INDEXES`.
 
-Поле `FTS$INDEX_STATUS` хранит статус индекса. Индекс может иметь 4 статуса:
+The `FTS$INDEX_STATUS` field stores the index status. The index can have 4 statuses:
 
-* *N* - New index. Новый индекс. Устанавливается при создании индекса, в котором ещё нет ни одного сегмента.
-* *U* - Updated metadata. Устанавливается каждый раз, когда изменяются метаданные индекса, например при добавлении 
-или удалении сегмента индекса. Если индекс имеет такой статус, то он требует перестроения, чтобы поиск по нему 
-работал корректно.
-* *I* - Inactive. Неактивный индекс. Неактивные индексы не обновляются процедурой `FTS$UPDATE_INDEXES`.
-* *C* - Complete. Активный индекс. Такие индексы обновляются процедурой `FTS$UPDATE_INDEXES`. 
-Индекс переходит в это состояние только после полного построения или перестроения.
+* *N* - New index. It is set when creating an index in which there is not a single segment yet.
+* *U* - Updated metadata. It is set every time the index metadata changes, for example, when
+an index segment is added or deleted. If the index has such a status, then it needs to be rebuilt so that the search for it
+works correctly.
+* *I* - Inactive. Inactive index. Inactive indexes are not updated by the `FTS$UPDATE_INDEXES` procedure.
+* *C* - Complete. Active index. Such indexes are updated by the procedure `FTS$UPDATE_INDEXES`.
+The index enters this state only after a complete build or rebuild.
 
-## Поиск с использованием полнотекстовых индексов
+## Search using full-text indexes
 
-Для поиска по полнотекстовому индексу используется процедура `FTS$SEARCH`.
+The `FTS$SEARCH` procedure is used to search the full-text index.
 
-Первым параметром задаётся имя индекса, с помощью которого будет осуществлён поиск, а вторым - поисковая фраза.
-Третий необязательный параметр задаёт ограничение на количество возвращаемых записей, по умолчанию 1000.
-Четвёртый параметр позволяет включить режим объяснения результатов поиска, по умолчанию FALSE.
+The first parameter specifies the name of the index with which the search will be performed, and the second parameter specifies the search phrase.
+The third optional parameter sets a limit on the number of records returned, by default 1000.
+The fourth parameter allows you to enable the search results explanation mode, FALSE by default.
 
-Пример поиска:
+Search example:
 
 ```sql
 SELECT
@@ -308,21 +304,21 @@ SELECT
 FROM FTS$SEARCH('IDX_PRODUCT_NAME_EN', 'Transformers Bumblebee')
 ```
 
-Выходные параметры:
+Output parameters:
 
-- FTS$RELATION_NAME - имя таблицы в которой найден документ;
-- FTS$KEY_FIELD_NAME - имя ключевого поля в таблице;
-- FTS$DB_KEY - значение ключевого поля в формате `RDB$DB_KEY`;
-- FTS$ID - значение ключевого поля типа `BIGINT` или `INTEGER`;
-- FTS$UUID - значение ключевого поля типа `BINARY(16)`. Такой тип используется для хранения GUID;
-- FTS$SCORE - степень соответствия поисковому запросу;
-- FTS$EXPLANATION - объяснение результатов поиска.
+- FTS$RELATION_NAME - the name of the table in which the document was found;
+- FTS$KEY_FIELD_NAME - the name of the key field in the table;
+- FTS$DB_KEY - the value of the key field in the format `RDB$DB_KEY`;
+- FTS$ID - value of a key field of type `BIGINT` or `INTEGER`;
+- FTS$UUID - value of a key field of type `BINARY(16)`. This type is used to store the GUID;
+- FTS$SCORE - the degree of compliance with the search query;
+- FTS$EXPLANATION - explanation of search results.
 
-Результат запроса будет доступен в одном из полей `FTS$DB_KEY`, `FTS$ID`, `FTS$UUID` в зависимости от того какое результирующие поле было указано при создании индекса.
+The query result will be available in one of the fields `FTS$DB_KEY`, `FTS$ID`, `FTS$UUID`, depending on which resulting field was specified when creating the index.
 
-Для извлечения данных из целевой таблицы достаточно просто выполнить с ней соединение условие которого зависит от того как создавался индекс.
+To extract data from the target table, it is enough to simply make a join with it, the condition of which depends on how the index was created.
 
-Вот примеры различных вариантов соединения:
+Here are examples of different join options:
 
 ```sql
 SELECT
@@ -348,7 +344,7 @@ FROM FTS$SEARCH('IDX_PRODUCT_DBKEY_EN', 'Transformers Bumblebee') FTS
 JOIN PRODUCTS P ON P.RDB$DB_KEY = FTS.FTS$DB_KEY;
 ```
 
-Для поиска сразу по двум полям используем индекс `IDX_PRODUCT_ID_2_EN`, в котором при создании были заданы поля `REMARK` и `RUNTOTAL`.
+To search for two fields at once, we use the index `IDX_PRODUCT_ID_2_EN`, in which the fields `REMARK` and `RUNTOTAL` were specified during creation.
 
 ```sql
 SELECT
@@ -360,7 +356,7 @@ FROM FTS$SEARCH('IDX_PRODUCT_ID_2_EN', 'Transformers Bumblebee') FTS
 JOIN PRODUCTS P ON P.PRODUCT_ID = FTS.FTS$ID;
 ```
 
-Для объяснения результатов поиска, установите последний параметр в TRUE.
+To explain the search results, set the last parameter to TRUE.
 
 ```sql
 SELECT
@@ -373,7 +369,7 @@ FROM FTS$SEARCH('IDX_PRODUCT_ID_2_EN', 'Transformers Bumblebee', 5, TRUE) FTS
 JOIN PRODUCTS P ON P.PRODUCT_ID = FTS.FTS$ID;
 ```
 
-Поле `FTS$EXPLANATION` будет содержать объяснение результата.
+The `FTS$EXPLANATION` field will contain an explanation of the result.
 
 ```
 4.12074 = (MATCH) sum of:
@@ -413,7 +409,7 @@ JOIN PRODUCTS P ON P.PRODUCT_ID = FTS.FTS$ID;
         0.125 = fieldNorm(field=ABOUT_PRODUCT, doc=3329)
 ```
 
-Для сравнения показано объяснение результатов поиска по индексу с полями у которых указан разный коэффициент значимости.
+For comparison, an explanation of the index search results with fields that have a different significance coefficient is shown.
 
 ```sql
 SELECT
@@ -448,35 +444,35 @@ JOIN PRODUCTS P ON P.PRODUCT_ID = FTS.FTS$ID;
         1.5 = fieldNorm(field=PRODUCT_NAME, doc=166)
 ```
 
-## Синтаксис поисковых запросов
+## Syntax of search queries
 
-### Термы
+### Terms
 
-Поисковые запросы (фразы поиска) состоят из термов и операторов. Lucene поддерживает простые и сложные термы. 
-Простые термы состоят из одного слова, сложные из нескольких. Первые из них, это обычные слова, 
-например, "Hello", "world". Второй же тип термов это группа слов, например, "Hello world". 
-Несколько термов можно связывать вместе при помощи логических операторов.
+Search queries (search phrases) consist of terms and operators. Lucene supports simple and complex terms.
+Simple terms consist of one word, complex terms consist of several. The first of them are ordinary words,
+for example, "Hello", "world". The second type of terms is a group of words, for example, "Hello world".
+Several terms can be linked together using logical operators.
 
-### Поля
+### Fields
 
-Lucene поддерживает поиск по нескольким полям. По умолчанию поиск осуществляется во всех полях полнотекстового индекса, 
-выражение по каждому полю повторяется и соединяется оператором `OR`. Например, если у вас индекс содержащий 
-поля `PRODUCT_NAME` и `ABOUT_PRODUCT`, то запрос
+Lucene supports multi-field search. By default, the search is performed in all fields of the full-text index,
+the expression for each field is repeated and connected by the `OR` operator. For example, if you have an index containing
+the fields `PRODUCT_NAME` and `ABOUT_PRODUCT`, then the query
 
 ```
 Transformers Bumblebee
 ```
 
-будет эквивалентен запросу
+will be equivalent to the query
 
 ```
 (PRODUCT_NAME: Transformers Bumblebee) OR (ABOUT_PRODUCT: Transformers Bumblebee)
 ```
 
-Вы можете указать по какому полю вы хотите произвести поиск, для этого в запросе необходимо указать имя поля, символ двоеточия ":", 
-после чего поисковую фразу для этого поля.
+You can specify which field you want to search by, to do this, specify the field name, the colon symbol ":" in the request,
+and then the search phrase for this field.
 
-Пример поиска слова "Polyester" в поле `ABOUT_PRODUCT` и слов "Transformers Bumblebee" в поле `PRODUCT_NAME`:
+Example of searching for the word "Polyester" in the `ABOUT_PRODUCT` field and the words "Transformers Bumblebee" in the `PRODUCT_NAME` field:
 
 ```sql
 SELECT
@@ -489,154 +485,153 @@ FROM FTS$SEARCH('IDX_PRODUCT_ID_2_EN', '(PRODUCT_NAME: Transformers Bumblebee) A
 JOIN PRODUCTS P ON P.PRODUCT_ID = FTS.FTS$ID;
 ```
 
-Замечание: Lucene как и Firebird поддерживает поля с разделителями. Настоятельно не рекомендуется использовать пробелы и другие специальные символы в именах полей,
-поскольку это значительно затруднит написание поисковых запросов. Если же ваше поле содержит пробел или другой специальный символ, его необходимо экранировать с помощью
-символа "\\".
+Note: Lucene, like Firebird, supports delimited fields. It is strongly discouraged to use spaces and other special characters in field names, 
+as this will make it much more difficult to write search queries. If your field contains a space or other special character, 
+it must be escaped using the "\\" character.
 
-Например, если у вас индекс по двум полям "Product Name" и "Product Specification" и вы хотите найти в спецификации слово "Weight", то запрос должен выглядеть следующим образом:
+For example, if you have an index for two fields "Product Name" and "Product Specification" and you want to find the word "Weight" in the specification, 
+then the query should look like this:
 
 ```
 Product\ Specification: Weight
 ```
 
-### Маска
+### Mask
 
-Lucene позволяет производить поиск документов по маске, используя в термах символы "?" и "\*". В этом случае символ "?" 
-заменяет один любой символ, а "\*" - любое количество символов, например
+Lucene allows you to search for documents by mask, using the symbols "?" and "\*" in terms. In this case, the character "?" 
+replaces any one character, and "\*" replaces any number of characters, for example
 
 ```
 "te?t" "test*" "tes*t"
 ```
 
-Поисковый запрос нельзя начинать с символов "?" или "\*".
+You cannot start a search query with the characters "?" or "\*".
 
-### Нечёткий поиск
+### Fuzzy search
 
-Для выполнения нечёткого поиска в конец терма следует добавить тильду "~". В этом случае будут искаться все 
-похожие слова, например при поиске "roam\~" будут также найдены слова "foam" и "roams".
+To perform a fuzzy search, add the tilde "~" to the end of the term. In this case, all
+similar words will be searched, for example, when searching for "roam\~", the words "foam" and "roams" will also be found.
 
-### Усиление термов
+### Amplification of terms
 
-Lucene позволяет изменять значимость термов во фразе поиска. Например, вы ищете фразу "Hello world" и хотите, 
-чтобы слово «world» было более значимым. Значимость терма во фразе поиска можно увеличить, используя символ «ˆ», 
-после которого указывается коэффициент усиления. В следующем примере значимость слова «world» в четыре раза больше 
-значимости слова «Hello», которая по умолчанию равна единице.
+Lucene allows you to change the meaning of terms in a search phrase. For example, you are looking for the phrase "Hello world" and
+want the word "world" to be more meaningful. The significance of the term in the search phrase can be increased by using the symbol "ˆ",
+after which the gain is indicated. In the following example, the significance of the word "world" is four times greater
+than the significance of the word "Hello", which is equal to one by default.
 
 ```
 "Hello worldˆ4"
 ```
 
-### Логические операторы
+### Logical operators
 
-Логические операторы позволяют использовать логические конструкции при задании условий
-поиска, и позволяют комбинировать несколько термов. 
-Lucene поддерживает следующие логические операторы: `AND`, `+`, `OR`, `NOT`, `-`.
+Logical operators allow you to use logical constructions when setting
+search conditions, and allow you to combine several terms.
+Lucene supports the following logical operators: `AND`, `+`, `OR`, `NOT`, `-`.
 
-Логические операторы должны указываться заглавными буквами.
+Logical operators must be specified in capital letters.
 
-#### Оператор OR
+#### OR operator
 
-`OR` является логическим оператором по умолчанию, это означает, что если между двумя термами
-фразы поиска не указан другой логический оператор, то подставляется оператор `OR`. При этом система поиска находит 
-документ, если одна из указанных во фразе поиска терм в нем присутствует.
-Альтернативным обозначением оператора `OR` является `||`.
+`OR` is the default logical operator, which means that if
+no other logical operator is specified between the two terms of the search phrase, then the `OR` operator is substituted. In this case, the search system finds
+the document if one of the terms specified in the search phrase is present in it.
+An alternative notation for the `OR` operator is `||`.
 
 ```
 "Hello world" "world"
 ```
 
-Эквивалентно:
+Equivalent to:
 
 ```
 "Hello world" OR "world"
 ```
 
-#### Оператор AND
+#### AND operator
 
-Оператор `AND` указывает на то, что в тексте должны присутствовать все, объединенные оператором термы поиска. 
-Альтернативным обозначением оператора является `&&`.
+The `AND` operator indicates that all search terms combined by the operator must be present in the text.
+An alternative notation of the operator is `&&`.
 
 ```
 "Hello" AND "world"
 ```
 
-#### Оператор +
+#### Operator +
 
-Оператор `+` указывает на то, что следующее за ним слово должно обязательно присутствовать в тексте. 
-Например, для поиска записей, которые должны содержать слово "hello" и могут
-содержать слово "world", фраза поиска может иметь вид:
+The `+` operator indicates that the word following it must necessarily be present in the text.
+For example, to search for records that must contain the word "hello" and may
+contain the word "world", the search phrase may look like:
 
 ```
 +Hello world
 ```
 
-#### Оператор NOT
+#### NOT operator
 
-Оператор `NOT` позволяет исключить из результатов поиска те, в которых встречается терм,
-следующий за оператором. Вместо слова `NOT` может использоваться символ "!". Например, для
-поиска записей, которые должны содержать слово "hello", и не должны содержать слово "world",
-фраза поиска может иметь вид:
+The `NOT` operator allows you to exclude from the search results those in which the term following the operator occurs. Instead of the word `NOT`, 
+the symbol "!" can be used. For example, to search for records that should contain the word "hello" and should not contain the word "world", 
+the search phrase may look like:
 
 ```
 "Hello" NOT "world"
 ```
 
-Замечание: Оператор `NOT` не может использоваться только с одним термом. Например, поиск с таким
-условием не вернет результатов:
+Note: The `NOT` operator cannot be used with only one term. For example, a search with this condition will not return results:
 
 ```
 NOT "world"
 ```
 
-#### Оператор –
+#### Operator –
 
-Этот оператор является аналогичным оператору `NOT`. Пример использования:
+This operator is analogous to the `NOT` operator. Usage example:
 
 ```
 "Hello" -"world"
 ```
 
-#### Группировка логических операторов
+#### Grouping of logical operators
 
-Анализатор запросов Lucene поддерживает группировку логических операторов. Допустим, требуется найти либо слово "word", 
-либо слово "dolly" и обязательно слово "hello", для этого используется такой запрос:
+The Lucene query analyzer supports grouping of logical operators. Let's say you need to find either the word "word"
+or the word "dolly" and necessarily the word "hello", this query is used for this:
 
 ```
 "Hello" && ("world" || "dolly")
 ```
 
-### Экранирование специальных символов
+### Escaping special characters
 
-Для включения специальных символов во фразу поиска выполняется их экранирование с помощью символа "\\". 
-Ниже приведен список специальных символов, используемых в Lucene на данный момент:
+To include special characters in the search phrase, they are escaped using the "\\" character.
+Below is a list of special characters used in Lucene at the moment:
 
 ```
 + - && || ! ( ) { } [ ] ˆ " ˜ * ? : \
 ```
 
-Фраза поиска для выражения "(1 + 1) : 2" будет иметь вид:
+The search phrase for the expression "(1 + 1) : 2" will have the form:
 
 ```
 \( 1 \+ 1 \) \: 2
 ```
 
-Для экранирования специальных символов вы можете воспользоваться функцией `FTS$ESCAPE_QUERY`.
+To escape special characters, you can use the `FTS$ESCAPE_QUERY` function.
 
 ```sql
-  FTS$ESCAPE_QUERY('(1 + 1) : 2')
+FTS$ESCAPE_QUERY('(1 + 1) : 2')
 ```
 
-Более подробное англоязычное описание синтаксиса расположено на официальном сайте
+A more detailed English-language description of the syntax is available on the official website
 Lucene: [https://lucene.apache.org](https://lucene.apache.org).
 
-## Индексация представлений
+## Indexing views
 
-Вы можете индексировать не только постоянные таблицы, но и сложные представления.
+You can index not only permanent tables, but also complex views.
 
-Для того чтобы индексировать представление должно быть соблюдено одно требование: 
-в представлении должно быть поле, по которому вы можете однозначно идентифицировать запись.
+In order to index a view, one requirement must be met:
+there must be a field in the view by which you can uniquely identify the record.
 
-Допустим у вас есть представление `V_PRODUCT_CATEGORIES`, где `PRODUCT_UUID` - уникальный идентификатор таблицы `PRODUCTS`:
+Let's say you have a view `V_PRODUCT_CATEGORIES`, where `PRODUCT_UUID` is the unique identifier of the `PRODUCTS` table:
 
 ```sql
 CREATE TABLE CATEGORIES (
@@ -670,8 +665,8 @@ GROUP BY 1
 ;
 ```
 
-Вы хотите производить поиск товаров категории, но наименование категории находится в справочной таблицы и у одного товара может быть несколько категорий.
-В этом случае можно создать следующий полнотекстовый индекс:
+You want to search for products of a category, but the name of the category is in the reference table and one product can have several categories. 
+In this case, you can create the following full-text index:
 
 ```sql
 EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$CREATE_INDEX('IDX_PRODUCT_CATEGORIES', 'V_PRODUCT_CATEGORIES', 'ENGLISH', 'PRODUCT_UUID');
@@ -685,7 +680,7 @@ EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$REBUILD_INDEX('IDX_PRODUCT_CATEGORIES');
 COMMIT;
 ```
 
-Поиск товара по его категории выглядит так:
+The search for a product by its category looks like this:
 
 ```sql
 SELECT
@@ -699,20 +694,20 @@ JOIN V_PRODUCT_CATEGORIES PC ON PC.PRODUCT_UUID = FTS.FTS$UUID
 JOIN PRODUCTS P ON P.PRODUCT_UUID = PC.PRODUCT_UUID;
 ```
 
-## Выделение найденных термов во фрагменте текста
+## Highlighting found terms in a text fragment
 
-Часто необходимо не просто найти документы по запросу, но и выделить, то что было найдено.
+It is often necessary not only to find documents on request, but also to highlight what was found.
 
-Для выделения найденных термов во фрагменте текста используется пакет `FTS$HIGHLIGHTER`. В пакете присутствуют:
+To highlight the found terms in a text fragment, the package `FTS$HIGHLIGHTER` is used. The package contains:
 
-- функция `FTS$HIGHLIGHTER.FTS$BEST_FRAGMENT` для выделения найденной термов во фрагменте текста;
-- процедура `FTS$HIGHLIGHTER.FTS$BEST_FRAGMENTS` возвращающая несколько фрагментов текста с выделением термов во фрагменте.
+- function `FTS$HIGHLIGHTER.FTS$BEST_FRAGMENT` to highlight the found terms in a text fragment;
+- procedure `FTS$HIGHLIGHTER.FTS$BEST_FRAGMENTS` returns several fragments of text with the highlight of terms in the fragment.
 
-### Выделение найденных термов с помощью функции FTS$HIGHLIGHTER.FTS$BEST_FRAGMENT
+### Highlighting found terms using the FTS$HIGHLIGHTER.FTS$BEST_FRAGMENT function
 
-Функция `FTS$HIGHLIGHTER.FTS$BEST_FRAGMENT` возвращает лучший фрагмент текста в котором найденные термы выделены тегами.
+The function `FTS$HIGHLIGHTER.FTS$BEST_FRAGMENT` returns the best text fragment in which the found terms are highlighted with tags.
 
-Функция описана как 
+The function is described as
 
 ```sql
   FUNCTION FTS$BEST_FRAGMENT (
@@ -726,24 +721,24 @@ JOIN PRODUCTS P ON P.PRODUCT_UUID = PC.PRODUCT_UUID;
   RETURNS VARCHAR(8191) CHARACTER SET UTF8;
 ```
 
-В параметре `FTS$TEXT` указывается текст в котором производится поиск и выделение фрагментов.
+The `FTS$TEXT` parameter specifies the text in which fragments are searched and selected.
 
-В параметре `FTS$QUERY` указывается поисковая фраза.
+The `FTS$QUERY` parameter specifies the search phrase.
 
-В третьем необязательном параметре `FTS$ANALYZER` указывается имя анализатора с помощью которого происходит выделение термов.
+The third optional parameter `FTS$ANALYZER` specifies the name of the analyzer with which the terms are allocated.
 
-В параметре `FTS$FIELD_NAME` указывается имя поля по которому производится поиск. Его необходимо указывать необходимо если поисковый запрос явно содержит несколько полей,
-в противном случае параметр можно не указывать или установить в качестве значения NULL.
+The `FTS$FIELD_NAME` parameter specifies the name of the field being searched for. It must be specified if the search query explicitly contains several fields,
+otherwise the parameter can be omitted or set as NULL.
 
-В параметре `FTS$FRAGMENT_SIZE` указывается ограничение на длину возвращаемого фрагмента. 
-Обратите внимание, реальная длина возвращаемого текста может быть больше. Возвращаемый фрагмент, обычно не разрывает слова, 
-кроме того в нём не учитывается длина самих тегов для выделения.
+The `FTS$FRAGMENT_SIZE` parameter specifies a limit on the length of the returned fragment.
+Please note that the actual length of the returned text may be longer. The returned fragment usually does not break the words,
+in addition, it does not take into account the length of the tags themselves for selection.
 
-В параметре `FTS$LEFT_TAG` указывается тег, который добавляется к найденному терму слева.
+The `FTS$LEFT_TAG` parameter specifies the tag that is added to the found term on the left.
 
-В параметре `FTS$RIGHT_TAG` указывается тег, который добавляется к найденному фрагменту справа.
+The `FTS$RIGHT_TAG` parameter specifies the tag that is added to the found fragment on the right.
 
-Простейший пример использования:
+The simplest example of use:
 
 ```sql
 SELECT
@@ -760,7 +755,7 @@ SELECT
 FROM RDB$DATABASE
 ```
 
-Теперь объединим сам поиск и выделение найденных термов:
+Now let's combine the search itself and the selection of the found terms:
 
 ```sql
 EXECUTE BLOCK (
@@ -798,11 +793,11 @@ BEGIN
 END
 ```
 
-### Выделение найденных термов с помощью процедуры FTS$HIGHLIGHTER.FTS$BEST_FRAGMENTS
+### Highlighting the found terms using the FTS$HIGHLIGHTER.FTS$BEST_FRAGMENTS procedure
 
-Процедура `FTS$HIGHLIGHTER.FTS$BEST_FRAGMENTS` возвращает несколько фрагментов текста в котором найденные термы выделены тегами.
+The procedure `FTS$HIGHLIGHTER.FTS$BEST_FRAGMENTS` returns several fragments of text in which the found terms are marked with tags.
 
-Процедура описана как 
+The procedure is described as
 
 ```sql
   PROCEDURE FTS$BEST_FRAGMENTS (
@@ -818,13 +813,14 @@ END
       FTS$FRAGMENT VARCHAR(8191) CHARACTER SET UTF8);
 ```
 
-Входные параметры процедуры `FTS$HIGHLIGHTER.FTS$BEST_FRAGMENTS` идентичны параметрам функции `FTS$HIGHLIGHTER.FTS$BEST_FRAGMENT`, но есть
-один дополнительный параметр `FTS$MAX_NUM_FRAGMENTS`, который ограничивает количество возвращаемых фрагментов. 
+The input parameters of the procedure `FTS$HIGHLIGHTER.FTS$BEST_FRAGMENTS` are identical to the parameters of 
+the function `FTS$HIGHLIGHTER.FTS$BEST_FRAGMENT`, but there is one additional parameter `FTS$MAX_NUM_FRAGMENTS`, 
+which limits the number of fragments returned.
 
-Текст найденных фрагментов с выделенными вхождениями термов возвращается в выходном параметре `FTS$FRAGMENT`. Эту процедуру следует применять в уже найденном
-одном документе.
+The text of the found fragments with selected occurrences of terms is returned in the output parameter `FTS$FRAGMENT`. 
+This procedure should be applied in one document already found.
 
-Пример использования:
+Usage example:
 
 ```sql
 SELECT
@@ -840,55 +836,53 @@ LEFT JOIN FTS$HIGHLIGHTER.FTS$BEST_FRAGMENTS(
 WHERE BOOKS.ID = 8
 ```
 
+## Keeping data up-to-date in full-text indexes
 
-## Поддержание актуальности данных в полнотекстовых индексах
+There are several ways to keep full-text indexes up-to- date:
 
-Для поддержки актуальности полнотекстовых индексов существует несколько способов:
+1. Periodically call the procedure `FTS$MANAGEMENT.FTS$REBUILD_INDEX` for the specified index.
+This method completely rebuilds the full-text index. In this case, all records of the table or view are read
+for which the index was created.
 
-1. Периодически вызывать процедуру `FTS$MANAGEMENT.FTS$REBUILD_INDEX` для заданного индекса. 
-Этот способ полностью перестраивает полнотекстовый индекс. В этом случае читаются все записи таблицы или представления 
-для которой создан индекс.
+2. You can maintain full-text indexes using triggers and calling one of the `FTS$LOG_BY_ID` procedures inside them,
+`FTS$LOG_BY_UUID` or `FTS$LOG_BY_DBKEY`. Which of the procedures to call
+depends on which type of field is selected as the key (integer, UUID (GIUD) or `RDB$DB_KEY`).
+When calling these procedures, the change record is added to a special table `FTS$LOG` (change log).
+Changes from the log are transferred to full-text indexes by calling the procedure `FTS$UPDATE_INDEXES'.
+The call to this procedure must be done in a separate script, which can be placed in the task scheduler (Windows)
+or cron (Linux) with some frequency, for example 5 minutes.
 
-2. Поддерживать полнотекстовые индексы можно с помощью триггеров и вызова внутри них одной из процедур `FTS$LOG_BY_ID`,
-`FTS$LOG_BY_UUID` или `FTS$LOG_BY_DBKEY`. Какую из процедур вызывать 
-зависит от того какой тип поля выбран в качестве ключевого (целочисленный, UUID (GIUD) или RDB$DB_KEY).
-При вызове этих процедур запись об изменении добавляется в специальную таблицу `FTS$LOG` (журнал изменений).
-Изменения из журнала переносятся в полнотекстовые индексы с помощью вызова процедуры `FTS$UPDATE_INDEXES`.
-Вызов этой процедуры необходимо делать в отдельном скрипте, который можно поставить в планировщике заданий (Windows) 
-или cron (Linux) с некоторой периодичностью, например 5 минут.
+3. Delayed updating of full-text indexes, using FirebirdStreaming technology. In this case, a special
+service reads the replication logs and extracts from them the information necessary to update the full-text indexes.
+(under development).
 
-3. Отложенное обновление полнотекстовых индексов, с помощью технологии FirebirdStreaming. В этом случае специальная 
-служба читает логи репликации и извлекает из них информацию необходимую для обновления полнотекстовых индексов 
-(в процессе разработки).
+### Triggers to keep full-text indexes up-to-date
 
+To maintain the relevance of full-text indexes, it is necessary to create triggers that, when changing
+any of the fields included in the full-text index, writes information about the record change to a special table
+`FTS$LOG` (log).
 
-### Триггеры для поддержки актуальности полнотекстовых индексов
+Rules for writing triggers to support full-text indexes:
 
-Для поддержки актуальности полнотекстовых индексов необходимо создать триггеры, которые при изменении
-любого из полей, входящих в полнотекстовый индекс, записывает информацию об изменении записи в специальную таблицу 
-`FTS$LOG` (журнал).
+1. In the trigger, it is necessary to check all fields that participate in the full-text index.
+The field validation conditions must be combined via `OR`.
 
-Правила написания триггеров для поддержки полнотекстовых индексов:
+2. For the `INSERT` operation, it is necessary to check all fields included in full-text indexes whose value is different
+from `NULL`. If this condition is met, then one of the procedures must be performed
+`FTS$LOG_BY_DBKEY('<table name>', NEW.RDB$DB_KEY, 'I');` or `FTS$LOG_BY_ID('<table name>', NEW.<key field>, 'I')`
+or `FTS$LOG_BY_UUID('<table name>', NEW.<key field>, 'I')`.
 
-1. В триггере необходимо проверять всем поля, которые участвуют в полнотекстовом индексе.
-Условия проверки полей должны быть объединены через `OR`.
+3. For the `UPDATE` operation, it is necessary to check all fields included in full-text indexes whose value has changed.
+If this condition is met, then the procedure `FTS$LOG_BY_DBKEY('<table name>', OLD.RDB$DB_KEY, 'U');`
+or `FTS$LOG_BY_ID('<table name>', OLD.<key field>, 'U')`or `FTS$LOG_BY_UUID('<table name>', OLD.<key field>, 'U')`.
 
-2. Для операции `INSERT` необходимо проверять все поля, входящие в полнотекстовые индексы значение которых отличается 
-от `NULL`. Если это условие соблюдается, то необходимо выполнить одну из процедур 
-`FTS$LOG_BY_DBKEY('<имя таблицы>', NEW.RDB$DB_KEY, 'I');` или `FTS$LOG_BY_ID('<имя таблицы>', NEW.<ключевое поле>, 'I')`
-или `FTS$LOG_BY_UUID('<имя таблицы>', NEW.<ключевое поле>, 'I')`.
+4. For the `DELETE` operation, it is necessary to check all fields included in full-text indexes whose value is different
+from `NULL`. If this condition is met, then it is necessary to perform the procedure
+`FTS$LOG_CHANGE('<table name>', OLD.RDB$DB_KEY, 'D');`.
 
-3. Для операции `UPDATE` необходимо проверять все поля, входящие в полнотекстовые индексы значение которых изменилось.
-Если это условие соблюдается, то необходимо выполнить процедуру `FTS$LOG_BY_DBKEY('<имя таблицы>', OLD.RDB$DB_KEY, 'U');`
-или `FTS$LOG_BY_ID('<имя таблицы>', OLD.<ключевое поле>, 'U')` или `FTS$LOG_BY_UUID('<имя таблицы>', OLD.<ключевое поле>, 'U')`.
-
-4. Для операции `DELETE` необходимо проверять все поля, входящие в полнотекстовые индексы значение которых отличается 
-от `NULL`. Если это условие соблюдается, то необходимо выполнить процедуру 
-`FTS$LOG_CHANGE('<имя таблицы>', OLD.RDB$DB_KEY, 'D');`.
-
-Для облегчения задачи написания таких триггеров существует специальный пакет `FTS$TRIGGER_HELPER`, в котором 
-расположены процедуры генерирования исходных текстов триггеров. Так например, для того чтобы сгенерировать триггеры 
-для поддержки полнотекстовых индексов созданных для таблицы `PRODUCTS`, необходимо выполнить следующий запрос:
+To facilitate the task of writing such triggers, there is a special package `FTS$TRIGGER_HELPER`, which
+contains procedures for generating trigger source texts. So for example, in order to generate triggers
+to support full-text indexes created for the `PRODUCTS` table, you need to run the following query:
 
 ```sql
 SELECT
@@ -896,7 +890,7 @@ SELECT
 FROM FTS$TRIGGER_HELPER.FTS$MAKE_TRIGGERS('PRODUCTS', TRUE)
 ```
 
-Этот запрос вернёт следующий текст триггера для всех созданных FTS индексов на таблице `PRODUCTS`:
+This query will return the following trigger text for all created FTS indexes on the `PRODUCTS` table:
 
 ```sql
 CREATE OR ALTER TRIGGER "FTS$PRODUCTS_AIUD" FOR "PRODUCTS"
@@ -931,23 +925,22 @@ BEGIN
 END
 ```
 
-Обновление всех полнотекстовых индексов необходимо создать SQL скрипт `fts$update.sql`
+Updating all full-text indexes, you need to create an SQL script `fts$update.sql`
 
 ```sql
 EXECUTE PROCEDURE FTS$UPDATE_INDEXES;
 ```
 
-Затем скрипт для вызова SQL скрипта через ISQL, примерно следующего содержания
+Then a script to call the SQL script via ISQL, something like the following
 
 ```bash
 isql -user SYSDBA -pas masterkey -i fts$update.sql inet://localhost/mydatabase
 ```
 
-Обратите внимание! Пакет `FTS$TRIGGER_HELPER` помогает генерировать триггеры поддержки полнотекстовых индексов
-только для обычных таблиц. Если вы хотите поддерживать полнотекстовый индекс на представлении, то необходимо 
-самостоятельно разработать такие триггеры для базовых таблиц представления. 
-Ниже приведён пример, поддерживающих полнотекстовый индекс триггеров для представления
-`V_PRODUCT_CATEGORIES`.
+Pay attention! The package `FTS$TRIGGER_HELPER` helps to generate triggers to support full-text indexes
+only for regular tables. If you want to maintain a full-text index on the view, then you need
+to develop such triggers for the base tables of the view yourself.
+Below is an example that supports a full-text index of triggers for a view `V_PRODUCT_CATEGORIES`.
 
 ```sql
 SET TERM ^;
@@ -997,17 +990,17 @@ END
 SET TERM ;^
 ```
 
-## Описание процедур и функций для работы с полнотекстовым поиском
+## Description of procedures and functions for working with full-text search
 
-### Пакет FTS$MANAGEMENT
+### FTS$MANAGEMENT package
 
-Пакет `FTS$MANAGEMENT` содержит процедуры и функции для управления полнотекстовыми индексами. Этот пакет предназначен
-для администраторов базы данных.
+The `FTS$MANAGEMENT` package contains procedures and functions for managing full-text indexes. This package is intended
+for database administrators.
 
+#### Function FTS$MANAGEMENT.FTS$GET_DIRECTORY
 
-#### Функция FTS$MANAGEMENT.FTS$GET_DIRECTORY
-
-Функция `FTS$MANAGEMENT.FTS$GET_DIRECTORY` возвращает директорию в которой расположены файлы и папки полнотекстовых индексов для текущей базы данных.
+The function `FTS$MANAGEMENT.FTS$GET_DIRECTORY` returns the directory where the files and folders of full-text indexes for
+the current database are located.
 
 ```sql
   FUNCTION FTS$GET_DIRECTORY ()
@@ -1015,9 +1008,9 @@ SET TERM ;^
   DETERMINISTIC;
 ```
 
-#### Процедура FTS$MANAGEMENT.FTS$ANALYZERS
+#### Procedure FTS$MANAGEMENT.FTS$ANALYZERS
 
-Процедура `FTS$MANAGEMENT.FTS$ANALYZERS` возвращает список доступных анализаторов.
+The procedure `FTS$MANAGEMENT.FTS$ANALYZERS` returns a list of available analyzers.
 
 ```sql
   PROCEDURE FTS$ANALYZERS
@@ -1025,13 +1018,13 @@ SET TERM ;^
       FTS$ANALYZER VARCHAR(63) CHARACTER SET UTF8);
 ```
 
-Выходные параметры:
+Output parameters:
 
-- FTS$ANALYZER - имя анализатора.
+- FTS$ANALYZER - the name of the analyzer.
 
-#### Процедура FTS$MANAGEMENT.FTS$CREATE_INDEX
+#### Procedure FTS$MANAGEMENT.FTS$CREATE_INDEX
 
-Процедура `FTS$MANAGEMENT.FTS$CREATE_INDEX` создаёт новый полнотекстовый индекс. 
+The procedure `FTS$MANAGEMENT.FTS$CREATE_INDEX` creates a new full-text index.
 
 ```sql
   PROCEDURE FTS$CREATE_INDEX (
@@ -1042,30 +1035,30 @@ SET TERM ;^
       FTS$DESCRIPTION BLOB SUB_TYPE TEXT CHARACTER SET UTF8 DEFAULT NULL);
 ```
 
-Входные параметры:
+Input parameters:
 
-- FTS$INDEX_NAME - имя индекса. Должно быть уникальным среди имён полнотекстовых индексов;
-- FTS$RELATION_NAME - имя таблицы, которая должна быть проиндексирована;
-- FTS$ANALYZER - имя анализатора. Если не задано используется анализатор STANDARD (StandardAnalyzer);
-- FTS$KEY_FIELD_NAME - имя поля значение которого будет возращено процедурой поиска `FTS$SEARCH`, обычно это ключевое поле таблицы;
-- FTS$DESCRIPTION - описание индекса.
+- FTS$INDEX_NAME - index name. Must be unique among full-text index names;
+- FTS$RELATION_NAME - name of the table to be indexed;
+- FTS$ANALYZER - the name of the analyzer. If not specified, the STANDARD analyzer (StandardAnalyzer) is used;
+- FTS$KEY_FIELD_NAME - the name of the field whose value will be returned by the search procedure `FTS$SEARCH`, usually this is the key field of the table;
+- FTS$DESCRIPTION - description of the index.
 
-#### Процедура FTS$MANAGEMENT.FTS$DROP_INDEX
+#### Procedure FTS$MANAGEMENT.FTS$DROP_INDEX
 
-Процедура `FTS$MANAGEMENT.FTS$DROP_INDEX` удаляет полнотекстовый индекс.
+The procedure `FTS$MANAGEMENT.FTS$DROP_INDEX` deletes the full-text index.
 
 ```sql
   PROCEDURE FTS$DROP_INDEX (
       FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL);
 ```
 
-Входные параметры:
+Input parameters:
 
-- FTS$INDEX_NAME - имя индекса.
+- FTS$INDEX_NAME - index name.
 
-#### Процедура FTS$MANAGEMENT.SET_INDEX_ACTIVE
+#### Procedure FTS$MANAGEMENT.SET_INDEX_ACTIVE
 
-Процедура `FTS$MANAGEMENT.SET_INDEX_ACTIVE` позволяет сделать индекс активным или неактивным. 
+The procedure `FTS$MANAGEMENT.SET_INDEX_ACTIVE` allows you to make the index active or inactive.
 
 ```sql
   PROCEDURE FTS$SET_INDEX_ACTIVE (
@@ -1073,14 +1066,14 @@ SET TERM ;^
       FTS$INDEX_ACTIVE BOOLEAN NOT NULL);
 ```
 
-Входные параметры:
+Input parameters:
 
-- FTS$INDEX_NAME - имя индекса;
-- FTS$INDEX_ACTIVE - флаг активности.
+- FTS$INDEX_NAME - index name;
+- FTS$INDEX_ACTIVE - activity flag.
 
-#### Процедура FTS$MANAGEMENT.FTS$COMMENT_ON_INDEX
+#### Procedure FTS$MANAGEMENT.FTS$COMMENT_ON_INDEX
 
-Процедура `FTS$MANAGEMENT.FTS$COMMENT_ON_INDEX` добавляет или удаляет пользовательский комментарий к индексу.
+The procedure `FTS$MANAGEMENT.FTS$COMMENT_ON_INDEX` adds or deletes a user comment to the index.
 
 ```sql
   PROCEDURE FTS$COMMENT_ON_INDEX (
@@ -1088,14 +1081,14 @@ SET TERM ;^
       FTS$DESCRIPTION BLOB SUB_TYPE TEXT CHARACTER SET UTF8);
 ```
 
-Входные параметры:
+Input parameters:
 
-- FTS$INDEX_NAME - имя индекса;
-- FTS$DESCRIPTION - пользовательское описание индекса.
+- FTS$INDEX_NAME - index name;
+- FTS$DESCRIPTION - user description of the index.
 
-#### Процедура FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD
+#### Procedure FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD
 
-Процедура `FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD` добавляет новый поле в полнотекстовый индекс. 
+The procedure `FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD` adds a new field to the full-text index.
 
 ```sql
   PROCEDURE FTS$ADD_INDEX_FIELD (
@@ -1104,15 +1097,15 @@ SET TERM ;^
       FTS$BOOST         DOUBLE PRECISION DEFAULT NULL);
 ```
 
-Входные параметры:
+Input parameters:
 
-- FTS$INDEX_NAME - имя индекса;
-- FTS$FIELD_NAME - имя поля, которое должно быть проиндексировано;
-- FTS$BOOST - коэффициент увеличения значимости сегмента (по умолчанию 1.0).
+- FTS$INDEX_NAME - index name;
+- FTS$FIELD_NAME - the name of the field to be indexed;
+- FTS$BOOST - the coefficient of increasing the significance of the segment (by default 1.0).
 
-#### Процедура FTS$MANAGEMENT.FTS$DROP_INDEX_FIELD
+#### Procedure FTS$MANAGEMENT.FTS$DROP_INDEX_FIELD
 
-Процедура `FTS$MANAGEMENT.FTS$DROP_INDEX_FIELD` удаляет поле из полнотекстового индекса. 
+The procedure `FTS$MANAGEMENT.FTS$DROP_INDEX_FIELD` removes the field from the full-text index.
 
 ```sql
   PROCEDURE FTS$DROP_INDEX_FIELD (
@@ -1120,14 +1113,14 @@ SET TERM ;^
       FTS$FIELD_NAME    VARCHAR(63) CHARACTER SET UTF8 NOT NULL);
 ```
 
-Входные параметры:
+Input parameters:
 
-- FTS$INDEX_NAME - имя индекса;
-- FTS$FIELD_NAME - имя поля.
+- FTS$INDEX_NAME - index name;
+- FTS$FIELD_NAME - field name.
 
-#### Процедура FTS$MANAGEMENT.FTS$SET_INDEX_FIELD_BOOST
+#### Procedure FTS$MANAGEMENT.FTS$SET_INDEX_FIELD_BOOST
 
-Процедура `FTS$MANAGEMENT.FTS$SET_INDEX_FIELD_BOOST` устанавливает коэффициент значимости для поля индекса. 
+The procedure `FTS$MANAGEMENT.FTS$SET_INDEX_FIELD_BOOST` sets the significance coefficient for the index field.
 
 ```sql
   PROCEDURE FTS$SET_INDEX_FIELD_BOOST (
@@ -1136,49 +1129,49 @@ SET TERM ;^
       FTS$BOOST DOUBLE PRECISION);
 ```
 
-Входные параметры:
+Input parameters:
 
-- FTS$INDEX_NAME - имя индекса;
-- FTS$FIELD_NAME - имя поля, которое должно быть проиндексировано;
-- FTS$BOOST - коэффициент увеличения значимости сегмента.
+- FTS$INDEX_NAME - index name;
+- FTS$FIELD_NAME - the name of the field to be indexed;
+- FTS$BOOST - the coefficient of increasing the significance of the segment.
 
-Если при добавлении поля в индекс не указать коэффициент значимости, то по умолчанию он равен 1.0.
-С помощью процедуры `FTS$MANAGEMENT.FTS$SET_INDEX_FIELD_BOOST` его можно изменить.
-Обратите внимание, что после запуска этой процедуры индекс необходимо перестроить.
+If you do not specify a significance factor when adding a field to the index, then by default it is 1.0.
+Using the procedure `FTS$MANAGEMENT.FTS$SET_INDEX_FIELD_BOOST` it can be changed.
+Note that after running this procedure, the index needs to be rebuilt.
 
-#### Процедура FTS$MANAGEMENT.FTS$REBUILD_INDEX
+#### Procedure FTS$MANAGEMENT.FTS$REBUILD_INDEX
 
-Процедура `FTS$MANAGEMENT.FTS$REBUILD_INDEX` перестраивает полнотекстовый индекс. 
+The procedure `FTS$MANAGEMENT.FTS$REBUILD_INDEX` rebuilds the full-text index.
 
 ```sql
   PROCEDURE FTS$REBUILD_INDEX (
       FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL);
 ```
 
-Входные параметры:
+Input parameters:
 
-- FTS$INDEX_NAME - имя индекса.
+- FTS$INDEX_NAME - index name.
 
-#### Процедура FTS$MANAGEMENT.FTS$REINDEX_TABLE
+#### Procedure FTS$MANAGEMENT.FTS$REINDEX_TABLE
 
-Процедура `FTS$MANAGEMENT.FTS$REINDEX_TABLE` перестраивает все полнотекстовые индексы для указанной таблицы.
+The procedure `FTS$MANAGEMENT.FTS$REINDEX_TABLE` rebuilds all full-text indexes for the specified table.
 
 ```sql
   PROCEDURE FTS$REINDEX_TABLE (
       FTS$RELATION_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL);
 ```
 
-Входные параметры:
+Input parameters:
 
-- FTS$RELATION_NAME - имя таблицы.
+- FTS$RELATION_NAME - the name of the table.
 
-#### Процедура FTS$MANAGEMENT.FTS$FULL_REINDEX
+#### Procedure FTS$MANAGEMENT.FTS$FULL_REINDEX
 
-Процедура `FTS$MANAGEMENT.FTS$FULL_REINDEX` перестраивает все полнотекстовые индексы в базе данных.
+The procedure `FTS$MANAGEMENT.FTS$FULL_REINDEX` rebuilds all full-text indexes in the database.
 
-#### Процедура FTS$MANAGEMENT.FTS$OPTIMIZE_INDEX
+#### Procedure FTS$MANAGEMENT.FTS$OPTIMIZE_INDEX
 
-Процедура `FTS$MANAGEMENT.FTS$OPTIMIZE_INDEX` оптимизирует указанный индекс.
+The procedure `FTS$MANAGEMENT.FTS$OPTIMIZE_INDEX` optimizes the specified index.
 
 ```sql
   PROCEDURE FTS$OPTIMIZE_INDEX (
@@ -1186,18 +1179,17 @@ SET TERM ;^
   );
 ```
 
-Входные параметры:
+Input parameters:
 
-- FTS$INDEX_NAME - имя индекса.
+- FTS$INDEX_NAME - index name.
 
-#### Процедура FTS$MANAGEMENT.FTS$OPTIMIZE_INDEXES
+#### Procedure FTS$MANAGEMENT.FTS$OPTIMIZE_INDEXES
 
-Процедура `FTS$MANAGEMENT.FTS$OPTIMIZE_INDEXES` оптимизирует все полнотекстовые индексы в базе данных.
+The procedure `FTS$MANAGEMENT.FTS$OPTIMIZE_INDEXES` optimizes all full-text indexes in the database.
 
+### FTS$SEARCH procedure
 
-### Процедура FTS$SEARCH
-
-Процедура `FTS$SEARCH` осуществляет полнотекстовый поиск по заданному индексу.
+The `FTS$SEARCH` procedure performs a full-text search by the specified index.
 
 ```sql
 PROCEDURE FTS$SEARCH (
@@ -1217,26 +1209,26 @@ RETURNS (
 )
 ```
 
-Входные параметры:
+Input parameters:
 
-- FTS$INDEX_NAME - имя полнотекстового индекса, в котором осуществляется поиск;
-- FTS$QUERY - выражение для полнотекстового поиска;
-- FTS$LIMIT - ограничение на количество записей (результата поиска). По умолчанию 1000;
-- FTS$EXPLAIN - объяснять ли результат поиска. По умолчанию FALSE.
+- FTS$INDEX_NAME - the name of the full-text index in which the search is performed;
+- FTS$QUERY - expression for full-text search;
+- FTS$LIMIT - limit on the number of records (search result). By default 1000;
+- FTS$EXPLAIN - whether to explain the search result. By default, FALSE.
 
-Выходные параметры:
+Output parameters:
 
-- FTS$RELATION_NAME - имя таблицы в которой найден документ;
-- FTS$KEY_FIELD_NAME - имя ключевого поля в таблице;
-- FTS$DB_KEY - значение ключевого поля в формате `RDB$DB_KEY`;
-- FTS$ID - значение ключевого поля типа `BIGINT` или `INTEGER`;
-- FTS$UUID - значение ключевого поля типа `BINARY(16)`. Такой тип используется для хранения GUID;
-- FTS$SCORE - степень соответствия поисковому запросу;
-- FTS$EXPLANATION - объяснение результатов поиска.
+- FTS$RELATION_NAME - the name of the table in which the document was found;
+- FTS$KEY_FIELD_NAME - the name of the key field in the table;
+- FTS$DB_KEY - the value of the key field in the format `RDB$DB_KEY`;
+- FTS$ID - value of a key field of type `BIGINT` or `INTEGER`;
+- FTS$UUID - value of a key field of type `BINARY(16)`. This type is used to store the GUID;
+- FTS$SCORE - the degree of compliance with the search query;
+- FTS$EXPLANATION - explanation of search results.
 
-### Функция FTS$ESCAPE_QUERY
+### Function FTS$ESCAPE_QUERY
 
-Функция `FTS$ESCAPE_QUERY` экранирует специальные символы в поисковом запросе.
+The 'FTS$ESCAPE_QUERY` function escapes special characters in the search query.
 
 ```sql
 FUNCTION FTS$ESCAPE_QUERY (
@@ -1245,16 +1237,16 @@ FUNCTION FTS$ESCAPE_QUERY (
 RETURNS VARCHAR(8191) CHARACTER SET UTF8;
 ```
 
-Входные параметры:
+Input parameters:
 
-- FTS$QUERY - поисковый запрос или его часть, в котором необходимо экранировать специальные символы.
+- FTS$QUERY - a search query or part of it in which special characters need to be escaped.
 
-### Процедура FTS$LOG_BY_ID
+### Procedure FTS$LOG_BY_ID
 
-Процедура `FTS$LOG_BY_ID` добавляет запись об изменении одного из полей входящих в полнотекстовые индексы, 
-построенные на таблице, в журнал изменений `FTS$LOG`, на основе которого будут обновляться полнотекстовые индексы.
-Эту процедуру следует применять если в качестве первичного ключа используется целочисленное поле. Такие ключи
-часто генерируются с помощью генераторов/последовательностей.
+The procedure `FTS$LOG_BY_ID` adds a record of a change in one of the fields included in the full-text indexes
+built on the table to the change log `FTS$LOG`, on the basis of which the full-text indexes will be updated.
+This procedure should be used if an integer field is used as the primary key. Such keys
+are often generated using generators/sequences.
 
 ```sql
 PROCEDURE FTS$LOG_BY_ID (
@@ -1264,19 +1256,18 @@ PROCEDURE FTS$LOG_BY_ID (
 )
 ```
 
-Входные параметры:
+Input parameters:
 
-- FTS$RELATION_NAME - имя таблицы для которой добавляется запись об изменении;
-- FTS$ID - значение ключевого поля;
-- FTS$CHANGE_TYPE - тип изменения (I - INSERT, U - UPDATE, D - DELETE).
+- FTS$RELATION_NAME - the name of the table for which the change record is added;
+- FTS$ID - value of the key field;
+- FTS$CHANGE_TYPE - type of change (I - INSERT, U - UPDATE, D - DELETE).
 
+### Procedure FTS$LOG_BY_UUID
 
-### Процедура FTS$LOG_BY_UUID
-
-Процедура `FTS$LOG_BY_UUID` добавляет запись об изменении одного из полей входящих в полнотекстовые индексы, 
-построенные на таблице, в журнал изменений `FTS$LOG`, на основе которого будут обновляться полнотекстовые индексы.
-Эту процедуру следует применять если в качестве первичного ключа используется UUID (GUID). Такие ключи
-часто генерируются с помощью функции `GEN_UUID`. 
+The procedure `FTS$LOG_BY_UUID` adds a record of a change in one of the fields included in the full-text indexes
+built on the table to the change log `FTS$LOG`, on the basis of which the full-text indexes will be updated.
+This procedure should be used if a UUID (GUID) is used as the primary key. Such keys
+are often generated using the `GEN_UUID` function.
 
 ```sql
 PROCEDURE FTS$LOG_BY_UUID (
@@ -1286,18 +1277,17 @@ PROCEDURE FTS$LOG_BY_UUID (
 )
 ```
 
-Входные параметры:
+Input parameters:
 
-- FTS$RELATION_NAME - имя таблицы для которой добавляется запись об изменении;
-- FTS$UUID - значение ключевого поля;
-- FTS$CHANGE_TYPE - тип изменения (I - INSERT, U - UPDATE, D - DELETE).
+- FTS$RELATION_NAME - the name of the table for which the change record is added;
+- FTS$UUID - value of the key field;
+- FTS$CHANGE_TYPE - type of change (I - INSERT, U - UPDATE, D - DELETE).
 
+### Procedure FTS$LOG_BY_DBKEY
 
-### Процедура FTS$LOG_BY_DBKEY
-
-Процедура `FTS$LOG_BY_DBKEY` добавляет запись об изменении одного из полей входящих в полнотекстовые индексы, 
-построенные на таблице, в журнал изменений `FTS$LOG`, на основе которого будут обновляться полнотекстовые индексы.
-Эту процедуру следует применять если в качестве первичного ключа используется псевдо поле `RDB$DB_KEY`. 
+The procedure `FTS$LOG_BY_DBKEY` adds a record of a change in one of the fields included in the full-text indexes
+built on the table to the change log `FTS$LOG`, on the basis of which the full-text indexes will be updated.
+This procedure should be used if the pseudo field `RDB$DB_KEY` is used as the primary key.
 
 ```sql
 PROCEDURE FTS$LOG_BY_DBKEY (
@@ -1307,31 +1297,30 @@ PROCEDURE FTS$LOG_BY_DBKEY (
 )
 ```
 
-Входные параметры:
+Input parameters:
 
-- FTS$RELATION_NAME - имя таблицы для которой добавляется запись об изменении;
-- FTS$DBKEY - значение псевдо поля `RDB$DB_KEY`;
-- FTS$CHANGE_TYPE - тип изменения (I - INSERT, U - UPDATE, D - DELETE).
+- FTS$RELATION_NAME - the name of the table for which the change record is added;
+- FTS$DBKEY - value of the pseudo field `RDB$DB_KEY`;
+- FTS$CHANGE_TYPE - type of change (I - INSERT, U - UPDATE, D - DELETE).
 
+### Procedure FTS$CLEAR_LOG
 
-### Процедура FTS$CLEAR_LOG
+The procedure `FTS$CLEAR_LOG` clears the change log `FTS$LOG`, based on which the full-text indexes are updated.
 
-Процедура `FTS$CLEAR_LOG` очищает журнал изменений `FTS$LOG`, на основе которого обновляются полнотекстовые индексы.
+### Procedure FTS$UPDATE_INDEXES
 
-### Процедура FTS$UPDATE_INDEXES
+The procedure `FTS$UPDATE_INDEXES` updates full-text indexes on entries in the change log `FTS$LOG`.
+This procedure is usually run on a schedule (cron) in a separate session with some interval, for example 5 seconds.
 
-Процедура `FTS$UPDATE_INDEXES` обновляет полнотекстовые индексы по записям в журнале изменений `FTS$LOG`. 
-Эта процедура обычно запускается по расписанию (cron) в отдельной сессии с некоторым интервалом, например 5 секунд.
+### FTS$HIGHLIGHTER package
 
-### Пакет FTS$HIGHLIGHTER
+The `FTS$HIGHLIGHTER` package contains procedures and functions that return fragments of the text in which the original phrase was found,
+and highlights the terms found.
 
-Пакет `FTS$HIGHLIGHTER` содержит процедуры и функции возвращающие фрагменты текста, в котором найдена исходная фраза, 
-и выделяет найденные термы.
+#### Function FTS$HIGHLIGHTER.FTS$BEST_FRAGMENT
 
-#### Функция FTS$HIGHLIGHTER.FTS$BEST_FRAGMENT
-
-Функция `FTS$HIGHLIGHTER.FTS$BEST_FRAGMENT` возвращает лучший фрагмент текста, который соответствует выражению полнотекстового поиска,
-и выделяет в нем найденные термы.
+The `FTS$HIGHLIGHTER.FTS$BEST_FRAGMENT` function returns the best text fragment that matches the full-text search expression
+and highlights the terms found in it.
 
 ```sql
   FUNCTION FTS$BEST_FRAGMENT (
@@ -1345,20 +1334,20 @@ PROCEDURE FTS$LOG_BY_DBKEY (
   RETURNS VARCHAR(8191) CHARACTER SET UTF8;
 ```
 
-Входные параметры:
+Input parameters:
 
-- FTS$TEXT - текст, в котором делается поиск;
-- FTS$QUERY - выражение полнотекстового поиска;
-- FTS$ANALYZER - анализатор;
-- FTS$FIELD_NAME — имя поля, в котором выполняется поиск;
-- FTS$FRAGMENT_SIZE - длина возвращаемого фрагмента. Не меньше, чем требуется для возврата целых слов;
-- FTS$LEFT_TAG - левый тег для выделения;
-- FTS$RIGHT_TAG - правый тег для выделения. 
+- FTS$TEXT - the text in which the search is done;
+- FTS$QUERY - full-text search expression;
+- FTS$ANALYZER - analyzer;
+- FTS$FIELD_NAME — the name of the field in which the search is performed;
+- FTS$FRAGMENT_SIZE - the length of the returned fragment. No less than is required to return whole words;
+- FTS$LEFT_TAG - left tag for highlighting;
+- FTS$RIGHT_TAG - right tag for highlighting.
 
-#### Процедура FTS$HIGHLIGHTER.FTS$BEST_FRAGMENTS
+#### Procedure FTS$HIGHLIGHTER.FTS$BEST_FRAGMENTS
 
-Процедура `FTS$HIGHLIGHTER.FTS$BEST_FRAGMENTS` возвращает лучшие фрагменты текста, которые соответствуют выражению полнотекстового поиска,
-и выделяет в них найденные термы.
+The procedure `FTS$HIGHLIGHTER.FTS$BEST_FRAGMENTS` returns the best text fragments that match the full-text search expression
+and highlights the terms found in them.
 
 ```sql
   PROCEDURE FTS$BEST_FRAGMENTS (
@@ -1374,31 +1363,30 @@ PROCEDURE FTS$LOG_BY_DBKEY (
       FTS$FRAGMENT VARCHAR(8191) CHARACTER SET UTF8);
 ```
 
-Входные параметры:
+Input parameters:
 
-- FTS$TEXT - текст, в котором делается поиск;
-- FTS$QUERY - выражение полнотекстового поиска;
-- FTS$ANALYZER - анализатор;
-- FTS$FIELD_NAME — имя поля, в котором выполняется поиск;
-- FTS$FRAGMENT_SIZE - длина возвращаемого фрагмента. Не меньше, чем требуется для возврата целых слов;
-- FTS$MAX_NUM_FRAGMENTS - максимальное количество фрагментов;
-- FTS$LEFT_TAG - левый тег для выделения;
-- FTS$RIGHT_TAG - правый тег для выделения. 
+- FTS$TEXT - the text in which the search is done;
+- FTS$QUERY - full-text search expression;
+- FTS$ANALYZER - analyzer;
+- FTS$FIELD_NAME — the name of the field in which the search is performed;
+- FTS$FRAGMENT_SIZE - the length of the returned fragment. No less than is required to return whole words;
+- FTS$MAX_NUM_FRAGMENTS - maximum number of fragments;
+- FTS$LEFT_TAG - left tag for highlighting;
+- FTS$RIGHT_TAG - right tag for highlighting.
 
-Выходные параметры:
+Output parameters:
 
-- FTS$FRAGMENT - фрагмент текста, соответствующий поисковому запросу.
+- FTS$FRAGMENT - a text fragment corresponding to the search query.
 
+### FTS$TRIGGER_HELPER package
 
-### Пакет FTS$TRIGGER_HELPER
+The package `FTS$TRIGGER_HELPER` contains procedures and functions that help to create triggers to maintain the relevance
+of full-text indexes.
 
-Пакет `FTS$TRIGGER_HELPER` содержит процедуры и функции помогающие создавать триггеры для поддержки актуальности 
-полнотекстовых индексов.
+#### Procedure FTS$TRIGGER_HELPER.FTS$MAKE_TRIGGERS
 
-#### Процедура FTS$TRIGGER_HELPER.FTS$MAKE_TRIGGERS
-
-Процедура `FTS$TRIGGER_HELPER.FTS$MAKE_TRIGGERS` генерирует исходные коды триггеров для заданной таблицы, 
-чтобы поддерживать полнотекстовые индексы в актуальном состоянии.
+The procedure `FTS$TRIGGER_HELPER.FTS$MAKE_TRIGGERS` generates trigger source codes for a given table
+to keep full-text indexes up to date.
 
 ```sql
   PROCEDURE FTS$MAKE_TRIGGERS (
@@ -1416,26 +1404,26 @@ PROCEDURE FTS$LOG_BY_DBKEY (
   );
 ```
 
-Входные параметры:
+Input parameters:
 
-- FTS$RELATION_NAME - имя таблицы, для которой создаются триггеры;
-- FTS$MULTI_ACTION - универсальный флаг триггера. Если установлено значение TRUE, 
-то будет сгенерирован скрипт триггера для нескольких действий, в противном случае для каждого действия будет сгенерирован скрипт отдельного триггера;
-- FTS$POSITION - позиция триггеров. 
+- FTS$RELATION_NAME - name of the table for which triggers are created;
+- FTS$MULTI_ACTION - universal trigger flag. If set to TRUE,
+a trigger script for multiple actions will be generated, otherwise a separate trigger script will be generated for each action;
+- FTS$POSITION - position of triggers.
 
-Выходные параметры:
+Output parameters:
 
-- FTS$TRIGGER_NAME - имя триггера;
-- FTS$TRIGGER_RELATION - таблица для которой создаётся триггер;
-- FTS$TRIGGER_EVENTS - события триггера;
-- FTS$TRIGGER_POSITION - позиция триггера;
-- FTS$TRIGGER_SOURCE - исходный кода тела триггера;
-- FTS$TRIGGER_SCRIPT - скрипт создания триггера. 
+- FTS$TRIGGER_NAME - the name of the trigger;
+- FTS$TRIGGER_RELATION - the table for which the trigger is created;
+- FTS$TRIGGER_EVENTS - trigger events;
+- FTS$TRIGGER_POSITION - trigger position;
+- FTS$TRIGGER_SOURCE - the source code of the trigger body;
+- FTS$TRIGGER_SCRIPT - trigger creation script.
 
-#### Процедура FTS$TRIGGER_HELPER.FTS$MAKE_TRIGGERS_BY_INDEX
+#### Procedure FTS$TRIGGER_HELPER.FTS$MAKE_TRIGGERS_BY_INDEX
 
-Процедура `FTS$TRIGGER_HELPER.FTS$MAKE_TRIGGERS_BY_INDEX` генерирует исходные коды триггеров для заданного индекса, 
-чтобы поддерживать полнотекстовый индекс в актуальном состоянии. 
+The procedure `FTS$TRIGGER_HELPER.FTS$MAKE_TRIGGERS_BY_INDEX` generates trigger source codes for a given index
+to keep the full-text index up to date.
 
 ```sql
   PROCEDURE FTS$MAKE_TRIGGERS_BY_INDEX (
@@ -1453,25 +1441,25 @@ PROCEDURE FTS$LOG_BY_DBKEY (
   );
 ```
 
-Входные параметры:
+Input parameters:
 
-- FTS$INDEX_NAME - имя индекса, для которого создаются триггеры; 
-- FTS$MULTI_ACTION - универсальный флаг триггера. Если установлено значение TRUE, 
-то будет сгенерирован скрипт триггера для нескольких действий, в противном случае для каждого действия будет сгенерирован скрипт отдельного триггера;
-- FTS$POSITION - позиция триггеров. 
+- FTS$INDEX_NAME - the name of the index for which triggers are created;
+- FTS$MULTI_ACTION - universal trigger flag. If set to TRUE,
+a trigger script for multiple actions will be generated, otherwise a separate trigger script will be generated for each action;
+- FTS$POSITION - position of triggers.
 
-Выходные параметры:
+Output parameters:
 
-- FTS$TRIGGER_NAME - имя триггера;
-- FTS$TRIGGER_RELATION - таблица для которой создаётся триггер;
-- FTS$TRIGGER_EVENTS - события триггера;
-- FTS$TRIGGER_POSITION - позиция триггера;
-- FTS$TRIGGER_SOURCE - исходный кода тела триггера;
-- FTS$TRIGGER_SCRIPT - скрипт создания. 
+- FTS$TRIGGER_NAME - the name of the trigger;
+- FTS$TRIGGER_RELATION - the table for which the trigger is created;
+- FTS$TRIGGER_EVENTS - trigger events;
+- FTS$TRIGGER_POSITION - trigger position;
+- FTS$TRIGGER_SOURCE - the source code of the trigger body;
+- FTS$TRIGGER_SCRIPT - trigger creation script.
 
-#### Процедура FTS$TRIGGER_HELPER.FTS$MAKE_ALL_TRIGGERS
+#### Procedure FTS$TRIGGER_HELPER.FTS$MAKE_ALL_TRIGGERS
 
-Процедура `FTS$TRIGGER_HELPER.FTS$MAKE_ALL_TRIGGERS` генерирует исходные коды триггеров для поддержания всех полнотекстовых индексов в актуальном состоянии.
+The procedure `FTS$TRIGGER_HELPER.FTS$MAKE_ALL_TRIGGERS` generates trigger source codes to keep all full-text indexes up to date.
 
 ```sql
   PROCEDURE FTS$MAKE_ALL_TRIGGERS (
@@ -1488,30 +1476,29 @@ PROCEDURE FTS$LOG_BY_DBKEY (
   );
 ```
 
-Входные параметры:
+Input parameters:
 
-- FTS$MULTI_ACTION - универсальный флаг триггера. Если установлено значение TRUE, 
-то будет сгенерирован скрипт триггера для нескольких действий, в противном случае для каждого действия будет сгенерирован скрипт отдельного триггера;
-- FTS$POSITION - позиция триггеров. 
+- FTS$MULTI_ACTION - universal trigger flag. If set to TRUE,
+a trigger script for multiple actions will be generated, otherwise a separate trigger script will be generated for each action;
+- FTS$POSITION - position of triggers.
 
-Выходные параметры:
+Output parameters:
 
-- FTS$TRIGGER_NAME - имя триггера;
-- FTS$TRIGGER_RELATION - таблица для которой создаётся триггер;
-- FTS$TRIGGER_EVENTS - события триггера;
-- FTS$TRIGGER_POSITION - позиция триггера;
-- FTS$TRIGGER_SOURCE - исходный кода тела триггера;
-- FTS$TRIGGER_SCRIPT - скрипт создания. 
+- FTS$TRIGGER_NAME - the name of the trigger;
+- FTS$TRIGGER_RELATION - the table for which the trigger is created;
+- FTS$TRIGGER_EVENTS - trigger events;
+- FTS$TRIGGER_POSITION - trigger position;
+- FTS$TRIGGER_SOURCE - the source code of the trigger body;
+- FTS$TRIGGER_SCRIPT - trigger creation script.
 
+### FTS$STATISTICS package
 
-### Пакет FTS$STATISTICS
+The `FTS$STATISTICS` package contains procedures and functions for obtaining information about full-text indexes and their statistics.
+This package is intended primarily for database administrators.
 
-Пакет `FTS$STATISTICS` содержит процедуры и функции для получения информации о полнотекстовых индексах и их статистике.
-Этот пакет предназначен прежде всего для администраторов баз данных.
+#### Function FTS$STATISTICS.FTS$LUCENE_VERSION
 
-#### Функция FTS$STATISTICS.FTS$LUCENE_VERSION
-
-Функция `FTS$STATISTICS.FTS$LUCENE_VERSION` возвращает версию библиотеки lucene++ на основе которой построен полнотекстовый поиск.
+The function `FTS$STATISTICS.FTS$LUCENE_VERSION` returns the version of the lucene++ library based on which the full-text search is built.
 
 ```sql
   FUNCTION FTS$LUCENE_VERSION ()
@@ -1519,10 +1506,10 @@ PROCEDURE FTS$LOG_BY_DBKEY (
   DETERMINISTIC;
 ```
 
-#### Функция FTS$STATISTICS.FTS$GET_DIRECTORY
+#### Function FTS$STATISTICS.FTS$GET_DIRECTORY
 
-Функция `FTS$STATISTICS.FTS$GET_DIRECTORY` возвращает директорию в которой расположены файлы и папки полнотекстовых индексов для 
-текущей базы данных.
+The function `FTS$STATISTICS.FTS$GET_DIRECTORY` returns the directory where the files and folders of full-text indexes for
+the current database are located.
 
 ```sql
   FUNCTION FTS$GET_DIRECTORY ()
@@ -1530,9 +1517,9 @@ PROCEDURE FTS$LOG_BY_DBKEY (
   DETERMINISTIC;
 ```
 
-#### Процедура FTS$STATISTICS.FTS$INDEX_STATISTICS
+#### Procedure FTS$STATISTICS.FTS$INDEX_STATISTICS
 
-Процедура `FTS$STATISTICS.FTS$INDEX_STATISTICS` возвращает низкоуровневую информацию и статистику для указанного индекса.
+The procedure `FTS$STATISTICS.FTS$INDEX_STATISTICS` returns low-level information and statistics for the specified index.
 
 ```sql
   PROCEDURE FTS$INDEX_STATISTICS (
@@ -1550,30 +1537,29 @@ PROCEDURE FTS$LOG_BY_DBKEY (
       FTS$INDEX_SIZE       INTEGER);
 ```
 
-Входные параметры:
+Input parameters:
 
-- FTS$INDEX_NAME - имя индекса.
+- FTS$INDEX_NAME - index name.
 
-Выходные параметры:
+Output parameters:
 
-- FTS$ANALYZER - имя анализатора;
-- FTS$INDEX_STATUS - статус индекса:
-    - I - неактивный;
-    - N - новый индекс (требуется перестроение);
-    - С - завершённый и активный;
-    - U - обновлены метаданные (требуется перестроение);
-- FTS$INDEX_DIRECTORY - каталог расположения индекса;
-- FTS$INDEX_EXISTS - существует ли индекс физически;
-- FTS$HAS_DELETIONS - были ли удаления документов из индекса;
-- FTS$NUM_DOCS - количество проиндексированных документов;
-- FTS$NUM_DELETED_DOCS - количество удаленных документов (до оптимизации);
-- FTS$NUM_FIELDS - количество полей внутреннего индекса;
-- FTS$INDEX_SIZE - размер индекса в байтах.
+- FTS$ANALYZER - analyzer name;
+- FTS$INDEX_STATUS - index status:
+    - I - inactive;
+    - N - new index (rebuild required);
+    - C - completed and active;
+    - U - metadata updated (rebuild required);
+- FTS$INDEX_DIRECTORY - index location directory;
+- FTS$INDEX_EXISTS - does the index physically exist;
+- FTS$HAS_DELETIONS - were there any deletions of documents from the index;
+- FTS$NUM_DOCS - number of indexed documents;
+- FTS$NUM_DELETED_DOCS - number of deleted documents (before optimization);
+- FTS$NUM_FIELDS - number of internal index fields;
+- FTS$INDEX_SIZE - the size of the index in bytes.
 
+#### Procedure FTS$STATISTICS.FTS$INDICES_STATISTICS
 
-#### Процедура FTS$STATISTICS.FTS$INDICES_STATISTICS
-
-Процедура `FTS$STATISTICS.FTS$INDICES_STATISTICS` возвращает низкоуровневую информацию и статистику для всех полнотекстовых индексов. 
+The procedure `FTS$STATISTICS.FTS$INDICES_STATISTICS` returns low-level information and statistics for all full-text indexes.
 
 ```sql
   PROCEDURE FTS$INDICES_STATISTICS
@@ -1591,28 +1577,27 @@ PROCEDURE FTS$LOG_BY_DBKEY (
       FTS$INDEX_SIZE       INTEGER);
 ```
 
-Выходные параметры:
+Output parameters:
 
-- FTS$INDEX_NAME - имя индекса;
-- FTS$ANALYZER - имя анализатора;
-- FTS$INDEX_STATUS - статус индекса:
-    - I - неактивный;
-    - N - новый индекс (требуется перестроение);
-    - С - завершённый и активный;
-    - U - обновлены метаданные (требуется перестроение);
-- FTS$INDEX_DIRECTORY - каталог расположения индекса;
-- FTS$INDEX_EXISTS - существует ли индекс физически;
-- FTS$HAS_DELETIONS - были ли удаления документов из индекса;
-- FTS$NUM_DOCS - количество проиндексированных документов;
-- FTS$NUM_DELETED_DOCS - количество удаленных документов (до оптимизации);
-- FTS$NUM_FIELDS - количество полей внутреннего индекса;
-- FTS$INDEX_SIZE - размер индекса в байтах.
+- FTS$INDEX_NAME - index name;
+- FTS$ANALYZER - analyzer name;
+- FTS$INDEX_STATUS - index status:
+    - I - inactive;
+    - N - new index (rebuild required);
+    - C - completed and active;
+    - U - metadata updated (rebuild required);
+- FTS$INDEX_DIRECTORY - index location directory;
+- FTS$INDEX_EXISTS - does the index physically exist;
+- FTS$HAS_DELETIONS - were there any deletions of documents from the index;
+- FTS$NUM_DOCS - number of indexed documents;
+- FTS$NUM_DELETED_DOCS - number of deleted documents (before optimization);
+- FTS$NUM_FIELDS - number of internal index fields;
+- FTS$INDEX_SIZE - the size of the index in bytes.
 
+#### Procedure FTS$STATISTICS.FTS$INDEX_SEGMENT_INFOS
 
-#### Процедура FTS$STATISTICS.FTS$INDEX_SEGMENT_INFOS
-
-Процедура `FTS$STATISTICS.FTS$INDEX_SEGMENT_INFOS` возвращает информацию о сегментах индекса.
-Здесь сегмент определяется с точки зрения Lucene.
+The procedure `FTS$STATISTICS.FTS$INDEX_SEGMENT_INFOS` returns information about index segments.
+Here the segment is defined from the Lucene perspective.
 
 ```sql
   PROCEDURE FTS$INDEX_SEGMENT_INFOS (
@@ -1626,25 +1611,24 @@ PROCEDURE FTS$LOG_BY_DBKEY (
       FTS$DEL_COUNT         INTEGER,
       FTS$DEL_FILENAME      VARCHAR(255) CHARACTER SET UTF8);
 ```
-   
-Входные параметры:
 
-- FTS$INDEX_NAME - имя индекса.
-   
-Выходные параметры:
+Input parameters:
 
-- FTS$SEGMENT_NAME - имя сегмента;
-- FTS$DOC_COUNT - количество документов в сегменте;
-- FTS$SEGMENT_SIZE - размер сегмента в байтах;
-- FTS$USE_COMPOUND_FILE - сегмент использует составной файл;
-- FTS$HAS_DELETIONS - были удаления документов из сегмента;
-- FTS$DEL_COUNT - количество удаленных документов (до оптимизации);
-- FTS$DEL_FILENAME - файл с удаленными документами.
+- FTS$INDEX_NAME - index name.
 
+Output parameters:
 
-#### Процедура FTS$STATISTICS.FTS$INDEX_FIELDS
+- FTS$SEGMENT_NAME - segment name;
+- FTS$DOC_COUNT - number of documents in the segment;
+- FTS$SEGMENT_SIZE - segment size in bytes;
+- FTS$USE_COMPOUND_FILE - the segment uses a composite file;
+- FTS$HAS_DELETIONS - there were deletions of documents from the segment;
+- FTS$DEL_COUNT - number of deleted documents (before optimization);
+- FTS$DEL_FILENAME - file with deleted documents.
 
-Процедура `FTS$STATISTICS.FTS$INDEX_FIELDS` возвращает имена внутренних полей индекса.
+#### Procedure FTS$STATISTICS.FTS$INDEX_FIELDS
+
+The procedure `FTS$STATISTICS.FTS$INDEX_FIELDS` returns the names of the internal fields of the index.
 
 ```sql
   PROCEDURE FTS$INDEX_FIELDS (
@@ -1653,18 +1637,17 @@ PROCEDURE FTS$LOG_BY_DBKEY (
       FTS$FIELD_NAME VARCHAR(127) CHARACTER SET UTF8);
 ```
    
-Входные параметры:
+Input parameters:
 
-- FTS$INDEX_NAME - имя индекса.
-   
-Выходные параметры:
+- FTS$INDEX_NAME - index name.
 
-- FTS$FIELD_NAME - имя поля.
+Output parameters:
 
+- FTS$FIELD_NAME - field name.
 
-#### Процедура FTS$STATISTICS.FTS$INDEX_FILES
+#### Procedure FTS$STATISTICS.FTS$INDEX_FILES
 
-Процедура `FTS$STATISTICS.FTS$INDEX_FILES` возвращает информацию об индексных файлах.
+The procedure `FTS$STATISTICS.FTS$INDEX_FILES` returns information about index files.
 
 ```sql
   PROCEDURE FTS$INDEX_FILES (
@@ -1675,20 +1658,19 @@ PROCEDURE FTS$LOG_BY_DBKEY (
       FTS$FILE_SIZE INTEGER);
 ```
    
-Входные параметры:
+Input parameters:
 
-- FTS$INDEX_NAME - имя индекса.
-   
-Выходные параметры:
+- FTS$INDEX_NAME - index name.
 
-- FTS$FILE_NAME - имя файла;
-- FTS$FILE_TYPE - тип файла;
-- FTS$FILE_SIZE - размер файла в байтах.
+Output parameters:
 
+- FTS$FILE_NAME - file name;
+- FTS$FILE_TYPE - file type;
+- FTS$FILE_SIZE - file size in bytes.
 
-#### Процедура FTS$STATISTICS.FTS$INDEX_FIELD_INFOS
+#### Procedure FTS$STATISTICS.FTS$INDEX_FIELD_INFOS
 
-Процедура `FTS$STATISTICS.FTS$INDEX_FIELD_INFOS` возвращает информацию о полях индекса.
+The procedure `FTS$STATISTICS.FTS$INDEX_FIELD_INFOS` returns information about the index fields.
 
 ```sql
   PROCEDURE FTS$INDEX_FIELD_INFOS (
@@ -1706,21 +1688,21 @@ PROCEDURE FTS$LOG_BY_DBKEY (
       FTS$STORE_PAYLOADS                  BOOLEAN);
 ```
    
-Входные параметры:
+Input parameters:
 
-- FTS$INDEX_NAME - название индекса;
-- FTS$SEGMENT_NAME - имя сегмента индекса,
-          если не указано, то берется активный сегмент.
-   
-Выходные параметры:
+- FTS$INDEX_NAME - index name;
+- FTS$SEGMENT_NAME - index segment name,
+if not specified, the active segment is taken.
 
-- FTS$FIELD_NAME - имя поля;
-- FTS$FIELD_NUMBER - номер поля;
-- FTS$IS_INDEXED - поле проиндексировано;
-- FTS$STORE_TERM_VECTOR - зарезервировано;
-- FTS$STORE_OFFSET_TERM_VECTOR - зарезервировано;
-- FTS$STORE_POSITION_TERM_VECTOR - зарезервировано;
-- FTS$OMIT_NORMS - зарезервировано;
-- FTS$OMIT_TERM_FREQ_AND_POS - зарезервировано;
-- FTS$STORE_PAYLOADS - зарезервировано.
+Output parameters:
+
+- FTS$FIELD_NAME - field name;
+- FTS$FIELD_NUMBER - field number;
+- FTS$IS_INDEXED - the field is indexed;
+- FTS$STORE_TERM_VECTOR - reserved;
+- FTS$STORE_OFFSET_TERM_VECTOR - reserved;
+- FTS$STORE_POSITION_TERM_VECTOR - reserved;
+- FTS$OMIT_NORMS - reserved;
+- FTS$OMIT_TERM_FREQ_AND_POS - reserved;
+- FTS$STORE_PAYLOADS - reserved.
 

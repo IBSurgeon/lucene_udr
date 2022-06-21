@@ -101,7 +101,7 @@
     <None Include="sql\fts%24install.sql">
       <Filter>SQL scripts</Filter>
     </None>
-    <None Include="README.md">
+    <None Include="README_RUS.md">
       <Filter>Documentation</Filter>
     </None>
     <None Include="sql\fts$uninstall.sql">
@@ -113,7 +113,7 @@
     <None Include="sql\fts$install_1.sql">
       <Filter>SQL scripts</Filter>
     </None>
-    <None Include="README_EN.md">
+    <None Include="README.md">
       <Filter>Documentation</Filter>
     </None>
   </ItemGroup>
