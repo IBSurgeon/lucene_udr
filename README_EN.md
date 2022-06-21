@@ -990,3 +990,719 @@ END
 SET TERM ;^
 ```
 
+## Description of procedures and functions for working with full-text search
+
+### FTS$MANAGEMENT package
+
+The `FTS$MANAGEMENT` package contains procedures and functions for managing full-text indexes. This package is intended
+for database administrators.
+
+#### Function FTS$MANAGEMENT.FTS$GET_DIRECTORY
+
+The function `FTS$MANAGEMENT.FTS$GET_DIRECTORY` returns the directory where the files and folders of full-text indexes for
+the current database are located.
+
+```sql
+  FUNCTION FTS$GET_DIRECTORY ()
+  RETURNS VARCHAR(255) CHARACTER SET UTF8
+  DETERMINISTIC;
+```
+
+#### Procedure FTS$MANAGEMENT.FTS$ANALYZERS
+
+The procedure `FTS$MANAGEMENT.FTS$ANALYZERS` returns a list of available analyzers.
+
+```sql
+  PROCEDURE FTS$ANALYZERS
+  RETURNS (
+      FTS$ANALYZER VARCHAR(63) CHARACTER SET UTF8);
+```
+
+Output parameters:
+
+- FTS$ANALYZER - the name of the analyzer.
+
+#### Procedure FTS$MANAGEMENT.FTS$CREATE_INDEX
+
+The procedure `FTS$MANAGEMENT.FTS$CREATE_INDEX` creates a new full-text index.
+
+```sql
+  PROCEDURE FTS$CREATE_INDEX (
+      FTS$INDEX_NAME     VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+      FTS$RELATION_NAME  VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+      FTS$ANALYZER       VARCHAR(63) CHARACTER SET UTF8 DEFAULT 'STANDARD',
+      FTS$KEY_FIELD_NAME VARCHAR(63) CHARACTER SET UTF8 DEFAULT NULL,
+      FTS$DESCRIPTION BLOB SUB_TYPE TEXT CHARACTER SET UTF8 DEFAULT NULL);
+```
+
+Input parameters:
+
+- FTS$INDEX_NAME - index name. Must be unique among full-text index names;
+- FTS$RELATION_NAME - name of the table to be indexed;
+- FTS$ANALYZER - the name of the analyzer. If not specified, the STANDARD analyzer (StandardAnalyzer) is used;
+- FTS$KEY_FIELD_NAME - the name of the field whose value will be returned by the search procedure `FTS$SEARCH`, usually this is the key field of the table;
+- FTS$DESCRIPTION - description of the index.
+
+#### Procedure FTS$MANAGEMENT.FTS$DROP_INDEX
+
+The procedure `FTS$MANAGEMENT.FTS$DROP_INDEX` deletes the full-text index.
+
+```sql
+  PROCEDURE FTS$DROP_INDEX (
+      FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL);
+```
+
+Input parameters:
+
+- FTS$INDEX_NAME - index name.
+
+#### Procedure FTS$MANAGEMENT.SET_INDEX_ACTIVE
+
+The procedure `FTS$MANAGEMENT.SET_INDEX_ACTIVE` allows you to make the index active or inactive.
+
+```sql
+  PROCEDURE FTS$SET_INDEX_ACTIVE (
+      FTS$INDEX_NAME   VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+      FTS$INDEX_ACTIVE BOOLEAN NOT NULL);
+```
+
+Input parameters:
+
+- FTS$INDEX_NAME - index name;
+- FTS$INDEX_ACTIVE - activity flag.
+
+#### Procedure FTS$MANAGEMENT.FTS$COMMENT_ON_INDEX
+
+The procedure `FTS$MANAGEMENT.FTS$COMMENT_ON_INDEX` adds or deletes a user comment to the index.
+
+```sql
+  PROCEDURE FTS$COMMENT_ON_INDEX (
+      FTS$INDEX_NAME  VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+      FTS$DESCRIPTION BLOB SUB_TYPE TEXT CHARACTER SET UTF8);
+```
+
+Input parameters:
+
+- FTS$INDEX_NAME - index name;
+- FTS$DESCRIPTION - user description of the index.
+
+#### Procedure FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD
+
+The procedure `FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD` adds a new field to the full-text index.
+
+```sql
+  PROCEDURE FTS$ADD_INDEX_FIELD (
+      FTS$INDEX_NAME    VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+      FTS$FIELD_NAME    VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+      FTS$BOOST         DOUBLE PRECISION DEFAULT NULL);
+```
+
+Input parameters:
+
+- FTS$INDEX_NAME - index name;
+- FTS$FIELD_NAME - the name of the field to be indexed;
+- FTS$BOOST - the coefficient of increasing the significance of the segment (by default 1.0).
+
+#### Procedure FTS$MANAGEMENT.FTS$DROP_INDEX_FIELD
+
+The procedure `FTS$MANAGEMENT.FTS$DROP_INDEX_FIELD` removes the field from the full-text index.
+
+```sql
+  PROCEDURE FTS$DROP_INDEX_FIELD (
+      FTS$INDEX_NAME    VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+      FTS$FIELD_NAME    VARCHAR(63) CHARACTER SET UTF8 NOT NULL);
+```
+
+Input parameters:
+
+- FTS$INDEX_NAME - index name;
+- FTS$FIELD_NAME - field name.
+
+#### Procedure FTS$MANAGEMENT.FTS$SET_INDEX_FIELD_BOOST
+
+The procedure `FTS$MANAGEMENT.FTS$SET_INDEX_FIELD_BOOST` sets the significance coefficient for the index field.
+
+```sql
+  PROCEDURE FTS$SET_INDEX_FIELD_BOOST (
+      FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+      FTS$FIELD_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+      FTS$BOOST DOUBLE PRECISION);
+```
+
+Input parameters:
+
+- FTS$INDEX_NAME - index name;
+- FTS$FIELD_NAME - the name of the field to be indexed;
+- FTS$BOOST - the coefficient of increasing the significance of the segment.
+
+If you do not specify a significance factor when adding a field to the index, then by default it is 1.0.
+Using the procedure `FTS$MANAGEMENT.FTS$SET_INDEX_FIELD_BOOST` it can be changed.
+Note that after running this procedure, the index needs to be rebuilt.
+
+#### Procedure FTS$MANAGEMENT.FTS$REBUILD_INDEX
+
+The procedure `FTS$MANAGEMENT.FTS$REBUILD_INDEX` rebuilds the full-text index.
+
+```sql
+  PROCEDURE FTS$REBUILD_INDEX (
+      FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL);
+```
+
+Input parameters:
+
+- FTS$INDEX_NAME - index name.
+
+#### Procedure FTS$MANAGEMENT.FTS$REINDEX_TABLE
+
+The procedure `FTS$MANAGEMENT.FTS$REINDEX_TABLE` rebuilds all full-text indexes for the specified table.
+
+```sql
+  PROCEDURE FTS$REINDEX_TABLE (
+      FTS$RELATION_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL);
+```
+
+Input parameters:
+
+- FTS$RELATION_NAME - the name of the table.
+
+#### Procedure FTS$MANAGEMENT.FTS$FULL_REINDEX
+
+The procedure `FTS$MANAGEMENT.FTS$FULL_REINDEX` rebuilds all full-text indexes in the database.
+
+#### Procedure FTS$MANAGEMENT.FTS$OPTIMIZE_INDEX
+
+The procedure `FTS$MANAGEMENT.FTS$OPTIMIZE_INDEX` optimizes the specified index.
+
+```sql
+  PROCEDURE FTS$OPTIMIZE_INDEX (
+      FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL
+  );
+```
+
+Input parameters:
+
+- FTS$INDEX_NAME - index name.
+
+#### Procedure FTS$MANAGEMENT.FTS$OPTIMIZE_INDEXES
+
+The procedure `FTS$MANAGEMENT.FTS$OPTIMIZE_INDEXES` optimizes all full-text indexes in the database.
+
+### FTS$SEARCH procedure
+
+The `FTS$SEARCH` procedure performs a full-text search by the specified index.
+
+```sql
+PROCEDURE FTS$SEARCH (
+    FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+    FTS$QUERY VARCHAR(8191) CHARACTER SET UTF8,
+    FTS$LIMIT INT NOT NULL DEFAULT 1000,
+    FTS$EXPLAIN BOOLEAN DEFAULT FALSE
+)
+RETURNS (
+    FTS$RELATION_NAME VARCHAR(63) CHARACTER SET UTF8,
+    FTS$KEY_FIELD_NAME VARCHAR(63) CHARACTER SET UTF8,
+    FTS$DB_KEY CHAR(8) CHARACTER SET OCTETS,
+    FTS$ID BIGINT,
+    FTS$UUID CHAR(16) CHARACTER SET OCTETS,
+    FTS$SCORE DOUBLE PRECISION,
+    FTS$EXPLANATION BLOB SUB_TYPE TEXT CHARACTER SET UTF8
+)
+```
+
+Input parameters:
+
+- FTS$INDEX_NAME - the name of the full-text index in which the search is performed;
+- FTS$QUERY - expression for full-text search;
+- FTS$LIMIT - limit on the number of records (search result). By default 1000;
+- FTS$EXPLAIN - whether to explain the search result. By default, FALSE.
+
+Output parameters:
+
+- FTS$RELATION_NAME - the name of the table in which the document was found;
+- FTS$KEY_FIELD_NAME - the name of the key field in the table;
+- FTS$DB_KEY - the value of the key field in the format `RDB$DB_KEY`;
+- FTS$ID - value of a key field of type `BIGINT` or `INTEGER`;
+- FTS$UUID - value of a key field of type `BINARY(16)`. This type is used to store the GUID;
+- FTS$SCORE - the degree of compliance with the search query;
+- FTS$EXPLANATION - explanation of search results.
+
+### Function FTS$ESCAPE_QUERY
+
+The 'FTS$ESCAPE_QUERY` function escapes special characters in the search query.
+
+```sql
+FUNCTION FTS$ESCAPE_QUERY (
+    FTS$QUERY VARCHAR(8191) CHARACTER SET UTF8
+)
+RETURNS VARCHAR(8191) CHARACTER SET UTF8;
+```
+
+Input parameters:
+
+- FTS$QUERY - a search query or part of it in which special characters need to be escaped.
+
+### Procedure FTS$LOG_BY_ID
+
+The procedure `FTS$LOG_BY_ID` adds a record of a change in one of the fields included in the full-text indexes
+built on the table to the change log `FTS$LOG`, on the basis of which the full-text indexes will be updated.
+This procedure should be used if an integer field is used as the primary key. Such keys
+are often generated using generators/sequences.
+
+```sql
+PROCEDURE FTS$LOG_BY_ID (
+    FTS$RELATION_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+    FTS$ID            BIGINT NOT NULL,
+    FTS$CHANGE_TYPE   FTS$D_CHANGE_TYPE NOT NULL
+)
+```
+
+Input parameters:
+
+- FTS$RELATION_NAME - the name of the table for which the change record is added;
+- FTS$ID - value of the key field;
+- FTS$CHANGE_TYPE - type of change (I - INSERT, U - UPDATE, D - DELETE).
+
+### Procedure FTS$LOG_BY_UUID
+
+The procedure `FTS$LOG_BY_UUID` adds a record of a change in one of the fields included in the full-text indexes
+built on the table to the change log `FTS$LOG`, on the basis of which the full-text indexes will be updated.
+This procedure should be used if a UUID (GUID) is used as the primary key. Such keys
+are often generated using the `GEN_UUID` function.
+
+```sql
+PROCEDURE FTS$LOG_BY_UUID (
+    FTS$RELATION_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+    FTS$UUID          CHAR(16) CHARACTER SET OCTETS NOT NULL,
+    FTS$CHANGE_TYPE   FTS$D_CHANGE_TYPE NOT NULL
+)
+```
+
+Input parameters:
+
+- FTS$RELATION_NAME - the name of the table for which the change record is added;
+- FTS$UUID - value of the key field;
+- FTS$CHANGE_TYPE - type of change (I - INSERT, U - UPDATE, D - DELETE).
+
+### Procedure FTS$LOG_BY_DBKEY
+
+The procedure `FTS$LOG_BY_DBKEY` adds a record of a change in one of the fields included in the full-text indexes
+built on the table to the change log `FTS$LOG`, on the basis of which the full-text indexes will be updated.
+This procedure should be used if the pseudo field `RDB$DB_KEY` is used as the primary key.
+
+```sql
+PROCEDURE FTS$LOG_BY_DBKEY (
+    FTS$RELATION_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+    FTS$DBKEY         CHAR(8) CHARACTER SET OCTETS NOT NULL,
+    FTS$CHANGE_TYPE   FTS$D_CHANGE_TYPE NOT NULL
+)
+```
+
+Input parameters:
+
+- FTS$RELATION_NAME - the name of the table for which the change record is added;
+- FTS$DBKEY - value of the pseudo field `RDB$DB_KEY`;
+- FTS$CHANGE_TYPE - type of change (I - INSERT, U - UPDATE, D - DELETE).
+
+### Procedure FTS$CLEAR_LOG
+
+The procedure `FTS$CLEAR_LOG` clears the change log `FTS$LOG`, based on which the full-text indexes are updated.
+
+### Procedure FTS$UPDATE_INDEXES
+
+The procedure `FTS$UPDATE_INDEXES` updates full-text indexes on entries in the change log `FTS$LOG`.
+This procedure is usually run on a schedule (cron) in a separate session with some interval, for example 5 seconds.
+
+### FTS$HIGHLIGHTER package
+
+The `FTS$HIGHLIGHTER` package contains procedures and functions that return fragments of the text in which the original phrase was found,
+and highlights the terms found.
+
+#### Function FTS$HIGHLIGHTER.FTS$BEST_FRAGMENT
+
+The `FTS$HIGHLIGHTER.FTS$BEST_FRAGMENT` function returns the best text fragment that matches the full-text search expression
+and highlights the terms found in it.
+
+```sql
+  FUNCTION FTS$BEST_FRAGMENT (
+      FTS$TEXT BLOB SUB_TYPE TEXT CHARACTER SET UTF8,
+      FTS$QUERY VARCHAR(8191) CHARACTER SET UTF8,
+      FTS$ANALYZER VARCHAR(63) CHARACTER SET UTF8 NOT NULL DEFAULT 'STANDARD',
+      FTS$FIELD_NAME VARCHAR(63) CHARACTER SET UTF8 DEFAULT NULL,
+      FTS$FRAGMENT_SIZE SMALLINT NOT NULL DEFAULT 512,
+      FTS$LEFT_TAG VARCHAR(50) CHARACTER SET UTF8 NOT NULL DEFAULT '<b>',
+      FTS$RIGHT_TAG VARCHAR(50) CHARACTER SET UTF8 NOT NULL DEFAULT '</b>')
+  RETURNS VARCHAR(8191) CHARACTER SET UTF8;
+```
+
+Input parameters:
+
+- FTS$TEXT - the text in which the search is done;
+- FTS$QUERY - full-text search expression;
+- FTS$ANALYZER - analyzer;
+- FTS$FIELD_NAME — the name of the field in which the search is performed;
+- FTS$FRAGMENT_SIZE - the length of the returned fragment. No less than is required to return whole words;
+- FTS$LEFT_TAG - left tag for highlighting;
+- FTS$RIGHT_TAG - right tag for highlighting.
+
+#### Procedure FTS$HIGHLIGHTER.FTS$BEST_FRAGMENTS
+
+The procedure `FTS$HIGHLIGHTER.FTS$BEST_FRAGMENTS` returns the best text fragments that match the full-text search expression
+and highlights the terms found in them.
+
+```sql
+  PROCEDURE FTS$BEST_FRAGMENTS (
+      FTS$TEXT BLOB SUB_TYPE TEXT CHARACTER SET UTF8,
+      FTS$QUERY VARCHAR(8191) CHARACTER SET UTF8,
+      FTS$ANALYZER VARCHAR(63) CHARACTER SET UTF8 NOT NULL DEFAULT 'STANDARD',
+      FTS$FIELD_NAME VARCHAR(63) CHARACTER SET UTF8 DEFAULT NULL,
+      FTS$FRAGMENT_SIZE SMALLINT NOT NULL DEFAULT 512,
+      FTS$MAX_NUM_FRAGMENTS INTEGER NOT NULL DEFAULT 10,
+      FTS$LEFT_TAG VARCHAR(50) CHARACTER SET UTF8 NOT NULL DEFAULT '<b>',
+      FTS$RIGHT_TAG VARCHAR(50) CHARACTER SET UTF8 NOT NULL DEFAULT '</b>')
+  RETURNS (
+      FTS$FRAGMENT VARCHAR(8191) CHARACTER SET UTF8);
+```
+
+Input parameters:
+
+- FTS$TEXT - the text in which the search is done;
+- FTS$QUERY - full-text search expression;
+- FTS$ANALYZER - analyzer;
+- FTS$FIELD_NAME — the name of the field in which the search is performed;
+- FTS$FRAGMENT_SIZE - the length of the returned fragment. No less than is required to return whole words;
+- FTS$MAX_NUM_FRAGMENTS - maximum number of fragments;
+- FTS$LEFT_TAG - left tag for highlighting;
+- FTS$RIGHT_TAG - right tag for highlighting.
+
+Output parameters:
+
+- FTS$FRAGMENT - a text fragment corresponding to the search query.
+
+### FTS$TRIGGER_HELPER package
+
+The package `FTS$TRIGGER_HELPER` contains procedures and functions that help to create triggers to maintain the relevance
+of full-text indexes.
+
+#### Procedure FTS$TRIGGER_HELPER.FTS$MAKE_TRIGGERS
+
+The procedure `FTS$TRIGGER_HELPER.FTS$MAKE_TRIGGERS` generates trigger source codes for a given table
+to keep full-text indexes up to date.
+
+```sql
+  PROCEDURE FTS$MAKE_TRIGGERS (
+    FTS$RELATION_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+    FTS$MULTI_ACTION BOOLEAN NOT NULL DEFAULT TRUE,
+    FTS$POSITION SMALLINT NOT NULL DEFAULT 100
+  )
+  RETURNS (
+    FTS$TRIGGER_NAME VARCHAR(63) CHARACTER SET UTF8,
+    FTS$TRIGGER_RELATION VARCHAR(63) CHARACTER SET UTF8,
+    FTS$TRIGGER_EVENTS VARCHAR(26) CHARACTER SET UTF8,
+    FTS$TRIGGER_POSITION SMALLINT,
+    FTS$TRIGGER_SOURCE BLOB SUB_TYPE TEXT CHARACTER SET UTF8,
+    FTS$TRIGGER_SCRIPT BLOB SUB_TYPE TEXT CHARACTER SET UTF8
+  );
+```
+
+Input parameters:
+
+- FTS$RELATION_NAME - name of the table for which triggers are created;
+- FTS$MULTI_ACTION - universal trigger flag. If set to TRUE,
+a trigger script for multiple actions will be generated, otherwise a separate trigger script will be generated for each action;
+- FTS$POSITION - position of triggers.
+
+Output parameters:
+
+- FTS$TRIGGER_NAME - the name of the trigger;
+- FTS$TRIGGER_RELATION - the table for which the trigger is created;
+- FTS$TRIGGER_EVENTS - trigger events;
+- FTS$TRIGGER_POSITION - trigger position;
+- FTS$TRIGGER_SOURCE - the source code of the trigger body;
+- FTS$TRIGGER_SCRIPT - trigger creation script.
+
+#### Procedure FTS$TRIGGER_HELPER.FTS$MAKE_TRIGGERS_BY_INDEX
+
+The procedure `FTS$TRIGGER_HELPER.FTS$MAKE_TRIGGERS_BY_INDEX` generates trigger source codes for a given index
+to keep the full-text index up to date.
+
+```sql
+  PROCEDURE FTS$MAKE_TRIGGERS_BY_INDEX (
+    FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+    FTS$MULTI_ACTION BOOLEAN NOT NULL DEFAULT TRUE,
+    FTS$POSITION SMALLINT NOT NULL DEFAULT 100
+  )
+  RETURNS (
+    FTS$TRIGGER_NAME VARCHAR(63) CHARACTER SET UTF8,
+    FTS$TRIGGER_RELATION VARCHAR(63) CHARACTER SET UTF8,
+    FTS$TRIGGER_EVENTS VARCHAR(26) CHARACTER SET UTF8,
+    FTS$TRIGGER_POSITION SMALLINT,
+    FTS$TRIGGER_SOURCE BLOB SUB_TYPE TEXT CHARACTER SET UTF8,
+    FTS$TRIGGER_SCRIPT BLOB SUB_TYPE TEXT CHARACTER SET UTF8
+  );
+```
+
+Input parameters:
+
+- FTS$INDEX_NAME - the name of the index for which triggers are created;
+- FTS$MULTI_ACTION - universal trigger flag. If set to TRUE,
+a trigger script for multiple actions will be generated, otherwise a separate trigger script will be generated for each action;
+- FTS$POSITION - position of triggers.
+
+Output parameters:
+
+- FTS$TRIGGER_NAME - the name of the trigger;
+- FTS$TRIGGER_RELATION - the table for which the trigger is created;
+- FTS$TRIGGER_EVENTS - trigger events;
+- FTS$TRIGGER_POSITION - trigger position;
+- FTS$TRIGGER_SOURCE - the source code of the trigger body;
+- FTS$TRIGGER_SCRIPT - trigger creation script.
+
+#### Procedure FTS$TRIGGER_HELPER.FTS$MAKE_ALL_TRIGGERS
+
+The procedure `FTS$TRIGGER_HELPER.FTS$MAKE_ALL_TRIGGERS` generates trigger source codes to keep all full-text indexes up to date.
+
+```sql
+  PROCEDURE FTS$MAKE_ALL_TRIGGERS (
+    FTS$MULTI_ACTION BOOLEAN NOT NULL DEFAULT TRUE,
+    FTS$POSITION SMALLINT NOT NULL DEFAULT 100
+  )
+  RETURNS (
+    FTS$TRIGGER_NAME VARCHAR(63) CHARACTER SET UTF8,
+    FTS$TRIGGER_RELATION VARCHAR(63) CHARACTER SET UTF8,
+    FTS$TRIGGER_EVENTS VARCHAR(26) CHARACTER SET UTF8,
+    FTS$TRIGGER_POSITION SMALLINT,
+    FTS$TRIGGER_SOURCE BLOB SUB_TYPE TEXT CHARACTER SET UTF8,
+    FTS$TRIGGER_SCRIPT BLOB SUB_TYPE TEXT CHARACTER SET UTF8
+  );
+```
+
+Input parameters:
+
+- FTS$MULTI_ACTION - universal trigger flag. If set to TRUE,
+a trigger script for multiple actions will be generated, otherwise a separate trigger script will be generated for each action;
+- FTS$POSITION - position of triggers.
+
+Output parameters:
+
+- FTS$TRIGGER_NAME - the name of the trigger;
+- FTS$TRIGGER_RELATION - the table for which the trigger is created;
+- FTS$TRIGGER_EVENTS - trigger events;
+- FTS$TRIGGER_POSITION - trigger position;
+- FTS$TRIGGER_SOURCE - the source code of the trigger body;
+- FTS$TRIGGER_SCRIPT - trigger creation script.
+
+### FTS$STATISTICS package
+
+The `FTS$STATISTICS` package contains procedures and functions for obtaining information about full-text indexes and their statistics.
+This package is intended primarily for database administrators.
+
+#### Function FTS$STATISTICS.FTS$LUCENE_VERSION
+
+The function `FTS$STATISTICS.FTS$LUCENE_VERSION` returns the version of the lucene++ library based on which the full-text search is built.
+
+```sql
+  FUNCTION FTS$LUCENE_VERSION ()
+  RETURNS VARCHAR(20) CHARACTER SET UTF8 
+  DETERMINISTIC;
+```
+
+#### Function FTS$STATISTICS.FTS$GET_DIRECTORY
+
+The function `FTS$STATISTICS.FTS$GET_DIRECTORY` returns the directory where the files and folders of full-text indexes for
+the current database are located.
+
+```sql
+  FUNCTION FTS$GET_DIRECTORY ()
+  RETURNS VARCHAR(255) CHARACTER SET UTF8 
+  DETERMINISTIC;
+```
+
+#### Procedure FTS$STATISTICS.FTS$INDEX_STATISTICS
+
+The procedure `FTS$STATISTICS.FTS$INDEX_STATISTICS` returns low-level information and statistics for the specified index.
+
+```sql
+  PROCEDURE FTS$INDEX_STATISTICS (
+      FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL)
+  RETURNS (
+      FTS$ANALYZER         VARCHAR(63) CHARACTER SET UTF8,
+      FTS$INDEX_STATUS     TYPE OF FTS$D_INDEX_STATUS,
+      FTS$INDEX_DIRECTORY  VARCHAR(255) CHARACTER SET UTF8,
+      FTS$INDEX_EXISTS     BOOLEAN,
+      FTS$INDEX_OPTIMIZED  BOOLEAN,
+      FTS$HAS_DELETIONS    BOOLEAN,
+      FTS$NUM_DOCS         INTEGER,
+      FTS$NUM_DELETED_DOCS INTEGER,
+      FTS$NUM_FIELDS       SMALLINT,
+      FTS$INDEX_SIZE       INTEGER);
+```
+
+Input parameters:
+
+- FTS$INDEX_NAME - index name.
+
+Output parameters:
+
+- FTS$ANALYZER - analyzer name;
+- FTS$INDEX_STATUS - index status:
+    - I - inactive;
+    - N - new index (rebuild required);
+    - C - completed and active;
+    - U - metadata updated (rebuild required);
+- FTS$INDEX_DIRECTORY - index location directory;
+- FTS$INDEX_EXISTS - does the index physically exist;
+- FTS$HAS_DELETIONS - were there any deletions of documents from the index;
+- FTS$NUM_DOCS - number of indexed documents;
+- FTS$NUM_DELETED_DOCS - number of deleted documents (before optimization);
+- FTS$NUM_FIELDS - number of internal index fields;
+- FTS$INDEX_SIZE - the size of the index in bytes.
+
+#### Procedure FTS$STATISTICS.FTS$INDICES_STATISTICS
+
+The procedure `FTS$STATISTICS.FTS$INDICES_STATISTICS` returns low-level information and statistics for all full-text indexes.
+
+```sql
+  PROCEDURE FTS$INDICES_STATISTICS
+  RETURNS (
+      FTS$INDEX_NAME       VARCHAR(63) CHARACTER SET UTF8,
+      FTS$ANALYZER         VARCHAR(63) CHARACTER SET UTF8,
+      FTS$INDEX_STATUS     TYPE OF FTS$D_INDEX_STATUS,
+      FTS$INDEX_DIRECTORY  VARCHAR(255) CHARACTER SET UTF8,
+      FTS$INDEX_EXISTS     BOOLEAN,
+      FTS$INDEX_OPTIMIZED  BOOLEAN,
+      FTS$HAS_DELETIONS    BOOLEAN,
+      FTS$NUM_DOCS         INTEGER,
+      FTS$NUM_DELETED_DOCS INTEGER,
+      FTS$NUM_FIELDS       SMALLINT,
+      FTS$INDEX_SIZE       INTEGER);
+```
+
+Output parameters:
+
+- FTS$INDEX_NAME - index name;
+- FTS$ANALYZER - analyzer name;
+- FTS$INDEX_STATUS - index status:
+    - I - inactive;
+    - N - new index (rebuild required);
+    - C - completed and active;
+    - U - metadata updated (rebuild required);
+- FTS$INDEX_DIRECTORY - index location directory;
+- FTS$INDEX_EXISTS - does the index physically exist;
+- FTS$HAS_DELETIONS - were there any deletions of documents from the index;
+- FTS$NUM_DOCS - number of indexed documents;
+- FTS$NUM_DELETED_DOCS - number of deleted documents (before optimization);
+- FTS$NUM_FIELDS - number of internal index fields;
+- FTS$INDEX_SIZE - the size of the index in bytes.
+
+#### Procedure FTS$STATISTICS.FTS$INDEX_SEGMENT_INFOS
+
+The procedure `FTS$STATISTICS.FTS$INDEX_SEGMENT_INFOS` returns information about index segments.
+Here the segment is defined from the Lucene perspective.
+
+```sql
+  PROCEDURE FTS$INDEX_SEGMENT_INFOS (
+      FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL)
+  RETURNS (
+      FTS$SEGMENT_NAME      VARCHAR(63) CHARACTER SET UTF8,
+      FTS$DOC_COUNT         INTEGER,
+      FTS$SEGMENT_SIZE      INTEGER,
+      FTS$USE_COMPOUND_FILE BOOLEAN,
+      FTS$HAS_DELETIONS     BOOLEAN,
+      FTS$DEL_COUNT         INTEGER,
+      FTS$DEL_FILENAME      VARCHAR(255) CHARACTER SET UTF8);
+```
+
+Input parameters:
+
+- FTS$INDEX_NAME - index name.
+
+Output parameters:
+
+- FTS$SEGMENT_NAME - segment name;
+- FTS$DOC_COUNT - number of documents in the segment;
+- FTS$SEGMENT_SIZE - segment size in bytes;
+- FTS$USE_COMPOUND_FILE - the segment uses a composite file;
+- FTS$HAS_DELETIONS - there were deletions of documents from the segment;
+- FTS$DEL_COUNT - number of deleted documents (before optimization);
+- FTS$DEL_FILENAME - file with deleted documents.
+
+#### Procedure FTS$STATISTICS.FTS$INDEX_FIELDS
+
+The procedure `FTS$STATISTICS.FTS$INDEX_FIELDS` returns the names of the internal fields of the index.
+
+```sql
+  PROCEDURE FTS$INDEX_FIELDS (
+      FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL)
+  RETURNS (
+      FTS$FIELD_NAME VARCHAR(127) CHARACTER SET UTF8);
+```
+   
+Input parameters:
+
+- FTS$INDEX_NAME - index name.
+
+Output parameters:
+
+- FTS$FIELD_NAME - field name.
+
+#### Procedure FTS$STATISTICS.FTS$INDEX_FILES
+
+The procedure `FTS$STATISTICS.FTS$INDEX_FILES` returns information about index files.
+
+```sql
+  PROCEDURE FTS$INDEX_FILES (
+      FTS$INDEX_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL)
+  RETURNS (
+      FTS$FILE_NAME VARCHAR(127) CHARACTER SET UTF8,
+      FTS$FILE_TYPE VARCHAR(63) CHARACTER SET UTF8,
+      FTS$FILE_SIZE INTEGER);
+```
+   
+Input parameters:
+
+- FTS$INDEX_NAME - index name.
+
+Output parameters:
+
+- FTS$FILE_NAME - file name;
+- FTS$FILE_TYPE - file type;
+- FTS$FILE_SIZE - file size in bytes.
+
+#### Procedure FTS$STATISTICS.FTS$INDEX_FIELD_INFOS
+
+The procedure `FTS$STATISTICS.FTS$INDEX_FIELD_INFOS` returns information about the index fields.
+
+```sql
+  PROCEDURE FTS$INDEX_FIELD_INFOS (
+      FTS$INDEX_NAME   VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+      FTS$SEGMENT_NAME VARCHAR(63) CHARACTER SET UTF8 DEFAULT NULL)
+  RETURNS (
+      FTS$FIELD_NAME                      VARCHAR(127) CHARACTER SET UTF8,
+      FTS$FIELD_NUMBER                    SMALLINT,
+      FTS$IS_INDEXED                      BOOLEAN,
+      FTS$STORE_TERM_VECTOR               BOOLEAN,
+      FTS$STORE_OFFSET_TERM_VECTOR        BOOLEAN,
+      FTS$STORE_POSITION_TERM_VECTOR      BOOLEAN,
+      FTS$OMIT_NORMS                      BOOLEAN,
+      FTS$OMIT_TERM_FREQ_AND_POS          BOOLEAN,
+      FTS$STORE_PAYLOADS                  BOOLEAN);
+```
+   
+Input parameters:
+
+- FTS$INDEX_NAME - index name;
+- FTS$SEGMENT_NAME - index segment name,
+if not specified, the active segment is taken.
+
+Output parameters:
+
+- FTS$FIELD_NAME - field name;
+- FTS$FIELD_NUMBER - field number;
+- FTS$IS_INDEXED - the field is indexed;
+- FTS$STORE_TERM_VECTOR - reserved;
+- FTS$STORE_OFFSET_TERM_VECTOR - reserved;
+- FTS$STORE_POSITION_TERM_VECTOR - reserved;
+- FTS$OMIT_NORMS - reserved;
+- FTS$OMIT_TERM_FREQ_AND_POS - reserved;
+- FTS$STORE_PAYLOADS - reserved.
+
