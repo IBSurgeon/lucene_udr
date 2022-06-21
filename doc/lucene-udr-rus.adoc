@@ -4,15 +4,19 @@
 :sectanchors:
 :toc: left
 :toclevels: 3
+:toc-title: Содержание
+:chapter-label: Глава
 :outlinelevels: 6:0
 :icons: font
 :experimental:
 
+toc::[]
+
 В Firebird отсутствует встроенная подсистема полнотекстового поиска. Библиотека Lucene UDR реализует
 процедуры и функции полнотекстового поиска с помощью основан на свободно распространяемой библиотеки Lucene.
 Оригинальный поисковый движок Lucene написан на языке Java. К сожалению плагин FB Java для написания внешних
-хранимых процедур и функций пока ещё в стадии Beta версии. Поэтому Lucene UDR использует порт Lucene на язык C++ +
-https://github.com/luceneplusplus/LucenePlusPlus[Lucene++]. Lucene++ чуть более быстрый, чем оригинальный движок
+хранимых процедур и функций пока ещё в стадии Beta версии. Поэтому Lucene UDR использует порт Lucene на язык {cpp}
+https://github.com/luceneplusplus/LucenePlusPlus[https://github.com/luceneplusplus/LucenePlusPlus]. Lucene{pp} чуть более быстрый, чем оригинальный движок
 Lucene, но обладает немного меньшими возможностями.
 
 == Установка Lucene UDR
@@ -22,18 +26,25 @@ Lucene, но обладает немного меньшими возможнос
 . Распаковать zip архив с динамическими библиотеками в каталог `plugins\udr`
 . Выполнить скрипт https://github.com/sim1984/lucene_udr/blob/main/sql/fts%24install.sql[fts$install.sql]
 для регистрации процедур и функций в индексируемой БД.
-Для баз данных 1 SQL диалекта https://github.com/sim1984/lucene_udr/blob/main/sql/fts%24install_1.sql[fts$install_1.sql]
+Для баз данных 1-ого SQL диалекта используйте скрипт https://github.com/sim1984/lucene_udr/blob/main/sql/fts%24install_1.sql[fts$install_1.sql]
 
-Скачать готовые сборки можно по ссылкам:
+Скачать готовые сборки под ОС Windows можно по ссылкам:
+
 * https://github.com/sim1984/lucene_udr/releases/download/1.0/LuceneUdr_Win_x64.zip[LuceneUdr_Win_x64.zip]
 * https://github.com/sim1984/lucene_udr/releases/download/1.0/LuceneUdr_Win_x86.zip[LuceneUdr_Win_x86.zip]
 
 Под ОС Linux вы можете скомпилировать библиотеку самостоятельно.
 
+Скачать демонстрационную базу данных, для которой подготовлены примеры можно по следующим ссылкам:
+
+* https://github.com/sim1984/lucene_udr/releases/download/1.0/fts_demo_3.0.zip[fts_demo_3.0.zip] - база данных для Firebird 3.0;
+* https://github.com/sim1984/lucene_udr/releases/download/1.0/fts_demo_4.0.zip[fts_demo_4.0.zip] - база данных для Firebird 4.0.
+
 == Сборка и установка библиотеки под Linux
 
-Поскольку Lucene UDR построена на основе https://github.com/luceneplusplus/LucenePlusPlus[Lucene++] вам предварительно
-потребуется скачать и собрать её из исходников. 
+Lucene UDR построена на основе Lucene{pp} https://github.com/luceneplusplus/LucenePlusPlus[https://github.com/luceneplusplus/LucenePlusPlus].
+В некоторых дистрибутивах Linux вы можете установить `lucene{pp}` и `lucene{pp}-contrib` из
+их репозиториев. Если же библиотеки в репозиториях отсутствуют, то вам потребуется скачать и собрать их из исходников.
 
 ----
 $ git clone https://github.com/luceneplusplus/LucenePlusPlus.git
@@ -42,12 +53,11 @@ $ mkdir build; cd build
 $ cmake ..
 $ make
 $ sudo make install
-
 ----
 
 Чтобы lucene++ была установлена в `/usr/lib`, а не в `/usr/local/lib`, выполните `cmake -DCMAKE_INSTALL_PREFIX=/usr ..` вместо `cmake ..`
 
-Более подробно сборка библиотеки lucene++ описана в https://github.com/luceneplusplus/LucenePlusPlus/blob/master/doc/BUILDING.md[BUILDING.md].
+Более подробно сборка библиотеки lucene{pp} описана в https://github.com/luceneplusplus/LucenePlusPlus/blob/master/doc/BUILDING.md[https://github.com/luceneplusplus/LucenePlusPlus/blob/master/doc/BUILDING.md].
 
 Теперь можно приступать к сборке UDR Lucene.
 
@@ -58,7 +68,6 @@ $ mkdir build; cd build
 $ cmake ..
 $ make
 $ sudo make install
-
 ----
 
 В процессе выполнения `cmake ..` может возникнуть следующая ошибка
@@ -70,23 +79,19 @@ CMake Error at /usr/lib64/cmake/liblucene++/liblucene++Config.cmake:41 (message)
 Call Stack (most recent call first):
   /usr/lib64/cmake/liblucene++/liblucene++Config.cmake:47 (set_and_check)
   CMakeLists.txt:78 (find_package)
-
 ----
 
-Для её исправления необходимо исправить файл `liblucene++Config.cmake` и `liblucene++-contribConfig.cmake` 
-
+Для её исправления необходимо исправить файлы `liblucene{pp}Config.cmake` и `liblucene{pp}-contribConfig.cmake`, где
 заменить строчку
 
 ----
 get_filename_component(PACKAGE_PREFIX_DIR "${CMAKE_CURRENT_LIST_DIR}/../../usr" ABSOLUTE)
-
 ----
 
 на
 
 ----
 get_filename_component(PACKAGE_PREFIX_DIR "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
-
 ----
 
 == Настройка Lucene UDR
@@ -94,22 +99,26 @@ get_filename_component(PACKAGE_PREFIX_DIR "${CMAKE_CURRENT_LIST_DIR}/../../.." A
 Перед использованием полнотекстового поиска в вашей базе данных необходимо произвести предварительную настройку.
 Настройки Lucene UDR находятся в файле `$(root)\fts.ini`. Если этого файла нет, то создайте его самостоятельно.
 
-В этом файле задаётся путь к папке в которой будут создаваться полнотекстовые индексы для конкретной базы данных.
+В этом файле задаётся путь к директории, в которой будут создаваться полнотекстовые индексы для указанной базы данных.
 
 В качестве имени секции ini файла должен быть задан полный путь к базе данных или алиас (в зависимости от значения
 параметра `DatabaseAccess` в `firebird.conf`). Путь к директории полнотекстовых индексов указывается в ключе `ftsDirectory`. 
 
 [source,ini]
 ----
-[horses]
-ftsDirectory=f:\fbdata\3.0\fts\horses
+[fts_demo]
+ftsDirectory=f:\fbdata\3.0\fts\fts_demo
 
-[f:\fbdata\3.0\horses.fdb]
-ftsDirectory=f:\fbdata\3.0\fts\horses
+[f:\fbdata\3.0\fts_demo.fdb]
+ftsDirectory=f:\fbdata\3.0\fts\fts_demo
 ----
 
-Важно: пользователь или группа, под которым выполняется служба Firebird, должен иметь права на чтение и запись для
+[IMPORTANT]
+.Важно
+====
+Пользователь или группа, под которым выполняется служба Firebird, должен иметь права на чтение и запись для
 директории с полнотекстовыми индексами.
+====
 
 Получить расположение директории для полнотекстовых индексов можно с помощью запроса:
 
@@ -124,9 +133,7 @@ FROM RDB$DATABASE
 Для создания полнотекстового индекса необходимо выполнить последовательно три шага:
 
 . Создание полнотекстового индекса для таблицы с помощью процедуры `FTS$MANAGEMENT.FTS$CREATE_INDEX`;
-
 . Добавление индексируемых полей с помощью процедуры `FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD`;
-
 . Построение индекса с помощью процедуры `FTS$MANAGEMENT.FTS$REBUILD_INDEX`.
 
 === Создание полнотекстового индекса для таблицы
@@ -174,21 +181,45 @@ FROM RDB$DATABASE
 
 Пятым параметром можно задать описание поля.
 
-Пример ниже создаёт индекс `IDX_HORSE_REMARK` для таблицы `HORSE` с использованием анализатора `STANDARD`.
-Возвращается поле `CODE_HORSE`. Его имя было автоматически извлечено из первичного ключа таблицы `HORSE`.
+Для примеров используется таблица со следующей структурой:
 
 [source,sql]
 ----
-EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$CREATE_INDEX('IDX_HORSE_REMARK', 'HORSE');
+CREATE TABLE PRODUCTS (
+    PRODUCT_ID             BIGINT GENERATED BY DEFAULT AS IDENTITY,
+    PRODUCT_UUID           CHAR(16) CHARACTER SET OCTETS NOT NULL,
+    PRODUCT_NAME           VARCHAR(200) NOT NULL,
+    UPC_EAN_CODE           VARCHAR(150),
+    SELLING_PRICE          VARCHAR(400),
+    MODEL_NUMBER           VARCHAR(45),
+    ABOUT_PRODUCT          BLOB SUB_TYPE TEXT,
+    PRODUCT_SPECIFICATION  BLOB SUB_TYPE TEXT,
+    TECHNICAL_DETAILS      BLOB SUB_TYPE TEXT,
+    SHIPPING_WEIGHT        VARCHAR(15),
+    PRODUCT_DIMENSIONS     VARCHAR(50),
+    VARIANTS               BLOB SUB_TYPE TEXT,
+    PRODUCT_URL            VARCHAR(255) NOT NULL,
+    IS_AMAZON_SELLER       BOOLEAN,
+    CONSTRAINT PK_PRODUCT PRIMARY KEY (PRODUCT_ID),
+    CONSTRAINT UNQ_PRODUCT_UUID UNIQUE (PRODUCT_UUID)
+);
+----
+
+Пример ниже создаёт индекс `IDX_PRODUCT_NAME` для таблицы `PRODUCTS` с использованием анализатора `STANDARD`.
+Возвращается поле `PRODUCT_ID`. Его имя было автоматически извлечено из первичного ключа таблицы `PRODUCTS`.
+
+[source,sql]
+----
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$CREATE_INDEX('IDX_PRODUCT_NAME', 'PRODUCTS');
 
 COMMIT;
 ----
 
-Следующий пример создаст индекс `IDX_HORSE_REMARK_RU` с использованием анализатора `RUSSIAN`.
+Следующий пример создаст индекс `IDX_PRODUCT_NAME_EN` с использованием анализатора `ENGLISH`.
 
 [source,sql]
 ----
-EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$CREATE_INDEX('IDX_HORSE_REMARK_RU', 'HORSE', 'RUSSIAN');
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$CREATE_INDEX('IDX_PRODUCT_NAME_EN', 'PRODUCTS', 'ENGLISH');
 
 COMMIT;
 ----
@@ -197,11 +228,11 @@ COMMIT;
 
 [source,sql]
 ----
-EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$CREATE_INDEX('IDX_HORSE_REMARK_2_RU', 'HORSE', 'RUSSIAN', 'CODE_HORSE');
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$CREATE_INDEX('IDX_PRODUCT_ID_2_EN', 'PRODUCTS', 'ENGLISH', 'PRODUCT_ID');
 
-EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$CREATE_INDEX('IDX_HORSE_REMARK_DBKEY_RU', 'HORSE', 'RUSSIAN', 'RDB$DB_KEY');
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$CREATE_INDEX('IDX_PRODUCT_DBKEY_EN', 'PRODUCTS', 'ENGLISH', 'RDB$DB_KEY');
 
-EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$CREATE_INDEX('IDX_HORSE_REMARK_UUID_RU', 'HORSE', 'RUSSIAN', 'UUID');
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$CREATE_INDEX('IDX_PRODUCT_UUID_EN', 'PRODUCTS', 'ENGLISH', 'PRODUCT_UUID');
 
 COMMIT;
 ----
@@ -214,57 +245,49 @@ COMMIT;
 
 [source,sql]
 ----
-EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD('IDX_HORSE_REMARK_RU', 'REMARK');
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD('IDX_PRODUCT_NAME_EN', 'PRODUCT_NAME');
 
-EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD('IDX_HORSE_REMARK_DBKEY_RU', 'REMARK');
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD('IDX_PRODUCT_DBKEY_EN', 'PRODUCT_NAME');
 
-EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD('IDX_HORSE_REMARK_UUID_RU', 'REMARK');
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD('IDX_PRODUCT_UUID_EN', 'PRODUCT_NAME');
 
-EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD('IDX_HORSE_REMARK_2_RU', 'REMARK');
-EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD('IDX_HORSE_REMARK_2_RU', 'RUNTOTAL');
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD('IDX_PRODUCT_ID_2_EN', 'PRODUCT_NAME');
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD('IDX_PRODUCT_ID_2_EN', 'ABOUT_PRODUCT');
 
 COMMIT;
 ----
 
-В индексах `IDX_HORSE_REMARK_RU`, `IDX_HORSE_REMARK_DBKEY_RU` и `IDX_HORSE_REMARK_DBKEY_RU` обрабатывается одно поле `REMARK`,
-а в индексе `IDX_HORSE_REMARK_2_RU` - два поля `REMARK` и `RUNTOTAL`.
+В индексах `IDX_PRODUCT_NAME_EN`, `IDX_PRODUCT_DBKEY_EN` и `IDX_PRODUCT_UUID_EN` обрабатывается одно поле `PRODUCT_NAME`,
+а в индексе `IDX_PRODUCT_ID_2_EN` - два поля `PRODUCT_NAME` и `ABOUT_PRODUCT`.
 
-В следующем примере показано создание индекса с 2 полями `REMARK` и `RUNTOTAL`. Значимость поля `RUNTOTAL` в 4 раз выше значимости поля `REMARK`.
+В следующем примере показано создание индекса с двумя полями `PRODUCT_NAME` и `ABOUT_PRODUCT`. Значимость поля `PRODUCT_NAME` в 4 раз выше значимости поля `ABOUT_PRODUCT`.
 
 [source,sql]
 ----
-EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$CREATE_INDEX('IDX_HORSE_REMARK_2X_RU', 'HORSE', 'RUSSIAN');
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$CREATE_INDEX('IDX_PRODUCT_ID_2X_EN', 'PRODUCTS', 'ENGLISH', 'PRODUCT_ID');
 
-EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD('IDX_HORSE_REMARK_2X_RU', 'REMARK');
-EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD('IDX_HORSE_REMARK_2X_RU', 'RUNTOTAL', 4);
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD('IDX_PRODUCT_ID_2X_EN', 'PRODUCT_NAME', 4);
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD('IDX_PRODUCT_ID_2X_EN', 'ABOUT_PRODUCT');
 
 COMMIT;
 ----
 
 === Построение индекса
 
-Для построения индекса используется процедура `FTS$MANAGEMENT.FTS$REBUILD_INDEX()`. В качестве
+Для построения индекса используется процедура `FTS$MANAGEMENT.FTS$REBUILD_INDEX`. В качестве
 входного параметра необходимо указать имя полнотекстового индекса.
 
 [source,sql]
 ----
-EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$REBUILD_INDEX('IDX_HORSE_REMARK_RU');
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$REBUILD_INDEX('IDX_PRODUCT_NAME_EN');
 
-COMMIT;
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$REBUILD_INDEX('IDX_PRODUCT_DBKEY_EN');
 
-EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$REBUILD_INDEX('IDX_HORSE_REMARK_DBKEY_RU');
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$REBUILD_INDEX('IDX_PRODUCT_UUID_EN');
 
-COMMIT;
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$REBUILD_INDEX('IDX_PRODUCT_ID_2_EN');
 
-EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$REBUILD_INDEX('IDX_HORSE_REMARK_UUID_RU');
-
-COMMIT;
-
-EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$REBUILD_INDEX('IDX_HORSE_REMARK_2_RU');
-
-COMMIT;
-
-EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$REBUILD_INDEX('IDX_HORSE_REMARK_2X_RU');
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$REBUILD_INDEX('IDX_PRODUCT_ID_2X_EN');
 
 COMMIT;
 ----
@@ -308,16 +331,16 @@ SELECT
   , FTS$UUID
   , FTS$SCORE
   , FTS$EXPLANATION
-FROM FTS$SEARCH('IDX_HORSE_REMARK_RU', 'паспорт') 
+FROM FTS$SEARCH('IDX_PRODUCT_NAME_EN', 'Transformers Bumblebee')
 ----
 
 Выходные параметры:
 
 * FTS$RELATION_NAME - имя таблицы в которой найден документ;
 * FTS$KEY_FIELD_NAME - имя ключевого поля в таблице;
-* FTS$DB_KEY - значение ключевого поля в формате RDB$DB_KEY;
-* FTS$ID - значение ключевого поля типа BIGINT или INTEGER;
-* FTS$UUID - значение ключевого поля типа BINARY(16). Такой тип используется для хранения GUID;
+* FTS$DB_KEY - значение ключевого поля в формате `RDB$DB_KEY`;
+* FTS$ID - значение ключевого поля типа `BIGINT` или `INTEGER`;
+* FTS$UUID - значение ключевого поля типа `BINARY(16)`. Такой тип используется для хранения GUID;
 * FTS$SCORE - степень соответствия поисковому запросу;
 * FTS$EXPLANATION - объяснение результатов поиска.
 
@@ -330,77 +353,93 @@ FROM FTS$SEARCH('IDX_HORSE_REMARK_RU', 'паспорт')
 [source,sql]
 ----
 SELECT
-    FTS.FTS$SCORE,
-    HORSE.CODE_HORSE,
-    HORSE.REMARK
-FROM FTS$SEARCH('IDX_HORSE_REMARK', 'паспорт') FTS
-    JOIN HORSE ON
-          HORSE.CODE_HORSE = FTS.FTS$ID;
+  FTS.FTS$SCORE,
+  P.PRODUCT_ID,
+  P.PRODUCT_NAME
+FROM FTS$SEARCH('IDX_PRODUCT_NAME_EN', 'Transformers Bumblebee') FTS
+JOIN PRODUCTS P ON P.PRODUCT_ID = FTS.FTS$ID;
 
 SELECT
   FTS.FTS$SCORE,
-  HORSE.UUID,
-  HORSE.REMARK
-FROM FTS$SEARCH('IDX_HORSE_REMARK_UUID_RU', 'паспорт') FTS
-JOIN HORSE ON HORSE.UUID = FTS.FTS$UUID;
+  P.PRODUCT_UUID,
+  P.PRODUCT_NAME
+FROM FTS$SEARCH('IDX_PRODUCT_UUID_EN', 'Transformers Bumblebee') FTS
+JOIN PRODUCTS P ON P.PRODUCT_UUID = FTS.FTS$UUID;
 
 SELECT
   FTS.FTS$SCORE,
-  HORSE.CODE_HORSE,
-  HORSE.RDB$DB_KEY,
-  HORSE.REMARK
-FROM FTS$SEARCH('IDX_HORSE_REMARK_DBKEY_RU', 'паспорт') FTS
-JOIN HORSE ON HORSE.RDB$DB_KEY = FTS.FTS$DB_KEY;
+  P.RDB$DB_KEY,
+  P.PRODUCT_ID,
+  P.PRODUCT_NAME
+FROM FTS$SEARCH('IDX_PRODUCT_DBKEY_EN', 'Transformers Bumblebee') FTS
+JOIN PRODUCTS P ON P.RDB$DB_KEY = FTS.FTS$DB_KEY;
 ----
 
-Для поиска сразу по двум полям используем индекс `IDX_HORSE_REMARK_2_RU`, в котором при создании были заданы поля `REMARK` и `RUNTOTAL`.
+Для поиска сразу по двум полям используем индекс `IDX_PRODUCT_ID_2_EN`, в котором при создании были заданы поля `PRODUCT_NAME` и `ABOUT_PRODUCT`.
 
 [source,sql]
 ----
 SELECT
   FTS.FTS$SCORE,
-  HORSE.CODE_HORSE,
-  HORSE.REMARK,
-  HORSE.RUNTOTAL
-FROM FTS$SEARCH('IDX_HORSE_REMARK_2_RU', 'паспорт') FTS
-JOIN HORSE ON HORSE.CODE_HORSE = FTS.FTS$ID
+  P.PRODUCT_ID,
+  P.PRODUCT_NAME,
+  P.ABOUT_PRODUCT
+FROM FTS$SEARCH('IDX_PRODUCT_ID_2_EN', 'Transformers Bumblebee') FTS
+JOIN PRODUCTS P ON P.PRODUCT_ID = FTS.FTS$ID;
 ----
 
-Для объяснения результатов поиска, установите последний параметр в TRUE
+Для объяснения результатов поиска, установите последний параметр в TRUE.
 
 [source,sql]
 ----
 SELECT
   FTS.FTS$SCORE,
-  FTS.FTS$EXPLANATION,
-  HORSE.CODE_HORSE,
-  HORSE.REMARK,
-  HORSE.RUNTOTAL
-FROM FTS$SEARCH('IDX_HORSE_REMARK_2_RU', 'германия', 5, TRUE) FTS
-JOIN HORSE ON HORSE.CODE_HORSE = FTS.FTS$ID
+  P.PRODUCT_ID,
+  P.PRODUCT_NAME,
+  P.ABOUT_PRODUCT,
+  FTS.FTS$EXPLANATION
+FROM FTS$SEARCH('IDX_PRODUCT_ID_2_EN', 'Transformers Bumblebee', 5, TRUE) FTS
+JOIN PRODUCTS P ON P.PRODUCT_ID = FTS.FTS$ID;
 ----
 
 Поле `FTS$EXPLANATION` будет содержать объяснение результата.
 
 ----
-2.92948 = (MATCH) sum of:
-  1.33056 = (MATCH) weight(REMARK:герман in 22194), product of:
-    0.673941 = queryWeight(REMARK:герман), product of:
-      7.89718 = idf(docFreq=61, maxDocs=61348)
-      0.0853394 = queryNorm
-    1.9743 = (MATCH) fieldWeight(REMARK:герман in 22194), product of:
-      1 = tf(termFreq(REMARK:герман)=1)
-      7.89718 = idf(docFreq=61, maxDocs=61348)
-      0.25 = fieldNorm(field=REMARK, doc=22194)
-  1.59892 = (MATCH) weight(RUNTOTAL:герман in 22194), product of:
-    0.738785 = queryWeight(RUNTOTAL:герман), product of:
-      8.65702 = idf(docFreq=28, maxDocs=61348)
-      0.0853394 = queryNorm
-    2.16426 = (MATCH) fieldWeight(RUNTOTAL:герман in 22194), product of:
-      1 = tf(termFreq(RUNTOTAL:герман)=1)
-      8.65702 = idf(docFreq=28, maxDocs=61348)
-      0.25 = fieldNorm(field=RUNTOTAL, doc=22194)
-
+4.12074 = (MATCH) sum of:
+  1.7817 = (MATCH) sum of:
+    1.16911 = (MATCH) weight(PRODUCT_NAME:transformers in 3329), product of:
+      0.455576 = queryWeight(PRODUCT_NAME:transformers), product of:
+        6.84324 = idf(docFreq=28, maxDocs=10002)
+        0.0665732 = queryNorm
+      2.56622 = (MATCH) fieldWeight(PRODUCT_NAME:transformers in 3329), product of:
+        1 = tf(termFreq(PRODUCT_NAME:transformers)=1)
+        6.84324 = idf(docFreq=28, maxDocs=10002)
+        0.375 = fieldNorm(field=PRODUCT_NAME, doc=3329)
+    0.612596 = (MATCH) weight(ABOUT_PRODUCT:transformers in 3329), product of:
+      0.480313 = queryWeight(ABOUT_PRODUCT:transformers), product of:
+        7.21481 = idf(docFreq=19, maxDocs=10002)
+        0.0665732 = queryNorm
+      1.27541 = (MATCH) fieldWeight(ABOUT_PRODUCT:transformers in 3329), product of:
+        1.41421 = tf(termFreq(ABOUT_PRODUCT:transformers)=2)
+        7.21481 = idf(docFreq=19, maxDocs=10002)
+        0.125 = fieldNorm(field=ABOUT_PRODUCT, doc=3329)
+  2.33904 = (MATCH) sum of:
+    1.60308 = (MATCH) weight(PRODUCT_NAME:bumblebee in 3329), product of:
+      0.533472 = queryWeight(PRODUCT_NAME:bumblebee), product of:
+        8.01332 = idf(docFreq=8, maxDocs=10002)
+        0.0665732 = queryNorm
+      3.00499 = (MATCH) fieldWeight(PRODUCT_NAME:bumblebee in 3329), product of:
+        1 = tf(termFreq(PRODUCT_NAME:bumblebee)=1)
+        8.01332 = idf(docFreq=8, maxDocs=10002)
+        0.375 = fieldNorm(field=PRODUCT_NAME, doc=3329)
+    0.735957 = (MATCH) weight(ABOUT_PRODUCT:bumblebee in 3329), product of:
+      0.526458 = queryWeight(ABOUT_PRODUCT:bumblebee), product of:
+        7.90796 = idf(docFreq=9, maxDocs=10002)
+        0.0665732 = queryNorm
+      1.39794 = (MATCH) fieldWeight(ABOUT_PRODUCT:bumblebee in 3329), product of:
+        1.41421 = tf(termFreq(ABOUT_PRODUCT:bumblebee)=2)
+        7.90796 = idf(docFreq=9, maxDocs=10002)
+        0.125 = fieldNorm(field=ABOUT_PRODUCT, doc=3329)
 ----
 
 Для сравнения показано объяснение результатов поиска по индексу с полями у которых указан разный коэффициент значимости.
@@ -409,33 +448,34 @@ JOIN HORSE ON HORSE.CODE_HORSE = FTS.FTS$ID
 ----
 SELECT
   FTS.FTS$SCORE,
-  FTS.FTS$EXPLANATION,
-  HORSE.CODE_HORSE,
-  HORSE.REMARK,
-  HORSE.RUNTOTAL
-FROM FTS$SEARCH('IDX_HORSE_REMARK_2X_RU', 'германия', 5, TRUE) FTS
-JOIN HORSE ON HORSE.CODE_HORSE = FTS.FTS$ID
+  P.PRODUCT_ID,
+  P.PRODUCT_NAME,
+  P.ABOUT_PRODUCT,
+  FTS.FTS$EXPLANATION
+FROM FTS$SEARCH('IDX_PRODUCT_ID_2X_EN', 'Transformers Bumblebee', 5, TRUE) FTS
+JOIN PRODUCTS P ON P.PRODUCT_ID = FTS.FTS$ID;
 ----
 
 ----
-7.72624 = (MATCH) sum of:
-  1.33056 = (MATCH) weight(REMARK:герман in 22194), product of:
-    0.673941 = queryWeight(REMARK:герман), product of:
-      7.89718 = idf(docFreq=61, maxDocs=61348)
-      0.0853394 = queryNorm
-    1.9743 = (MATCH) fieldWeight(REMARK:герман in 22194), product of:
-      1 = tf(termFreq(REMARK:герман)=1)
-      7.89718 = idf(docFreq=61, maxDocs=61348)
-      0.25 = fieldNorm(field=REMARK, doc=22194)
-  6.39568 = (MATCH) weight(RUNTOTAL:герман in 22194), product of:
-    0.738785 = queryWeight(RUNTOTAL:герман), product of:
-      8.65702 = idf(docFreq=28, maxDocs=61348)
-      0.0853394 = queryNorm
-    8.65702 = (MATCH) fieldWeight(RUNTOTAL:герман in 22194), product of:
-      1 = tf(termFreq(RUNTOTAL:герман)=1)
-      8.65702 = idf(docFreq=28, maxDocs=61348)
-      1 = fieldNorm(field=RUNTOTAL, doc=22194)
-
+13.7448 = (MATCH) sum of:
+  4.67643 = (MATCH) sum of:
+    4.67643 = (MATCH) weight(PRODUCT_NAME:transformers in 166), product of:
+      0.455576 = queryWeight(PRODUCT_NAME:transformers), product of:
+        6.84324 = idf(docFreq=28, maxDocs=10002)
+        0.0665732 = queryNorm
+      10.2649 = (MATCH) fieldWeight(PRODUCT_NAME:transformers in 166), product of:
+        1 = tf(termFreq(PRODUCT_NAME:transformers)=1)
+        6.84324 = idf(docFreq=28, maxDocs=10002)
+        1.5 = fieldNorm(field=PRODUCT_NAME, doc=166)
+  9.06839 = (MATCH) sum of:
+    9.06839 = (MATCH) weight(PRODUCT_NAME:bumblebee in 166), product of:
+      0.533472 = queryWeight(PRODUCT_NAME:bumblebee), product of:
+        8.01332 = idf(docFreq=8, maxDocs=10002)
+        0.0665732 = queryNorm
+      16.9988 = (MATCH) fieldWeight(PRODUCT_NAME:bumblebee in 166), product of:
+        1.41421 = tf(termFreq(PRODUCT_NAME:bumblebee)=2)
+        8.01332 = idf(docFreq=8, maxDocs=10002)
+        1.5 = fieldNorm(field=PRODUCT_NAME, doc=166)
 ----
 
 == Синтаксис поисковых запросов
@@ -444,53 +484,66 @@ JOIN HORSE ON HORSE.CODE_HORSE = FTS.FTS$ID
 
 Поисковые запросы (фразы поиска) состоят из термов и операторов. Lucene поддерживает простые и сложные термы.
 Простые термы состоят из одного слова, сложные из нескольких. Первые из них, это обычные слова,
-например, "привет", "тест". Второй же тип термов это группа слов, например, "Привет как дела".
+например, "Hello", "world". Второй же тип термов это группа слов, например, "Hello world".
 Несколько термов можно связывать вместе при помощи логических операторов.
 
 === Поля
 
 Lucene поддерживает поиск по нескольким полям. По умолчанию поиск осуществляется во всех полях полнотекстового индекса,
 выражение по каждому полю повторяется и соединяется оператором `OR`. Например, если у вас индекс содержащий
-поля `REMARK` и `RUNTOTAL`, то запрос
+поля `PRODUCT_NAME` и `ABOUT_PRODUCT`, то запрос
 
 ----
-Привет мир
+Transformers Bumblebee
 ----
 
 будет эквивалентен запросу
 
 ----
-(REMARK: "Привет мир") OR (RUNTOTAL: "Привет мир")
+(PRODUCT_NAME: Transformers Bumblebee) OR (ABOUT_PRODUCT: Transformers Bumblebee)
 ----
 
 Вы можете указать по какому полю вы хотите произвести поиск, для этого в запросе необходимо указать имя поля, символ двоеточия ":",
 после чего поисковую фразу для этого поля.
 
-Пример поиска слова "Россия" в поле RUNTOTAL таблицы HORSE и слов "паспорт выдан" в поле REMARK таблицы HORSE:
+Пример поиска слова "Polyester" в поле `ABOUT_PRODUCT` и слов "Transformers Bumblebee" в поле `PRODUCT_NAME`:
 
 [source,sql]
 ----
 SELECT
-    FTS.FTS$SCORE
-  , HORSE.CODE_HORSE
-  , HORSE.REMARK
-  , HORSE.RUNTOTAL
-  , FTS.FTS$EXPLANATION
-FROM FTS$SEARCH('IDX_HORSE_REMARK_2_RU', 'RUNTOTAL: (Россия) AND REMARK: (паспорт выдан)', 10, TRUE) FTS
-JOIN HORSE
-     ON HORSE.CODE_HORSE = FTS.FTS$ID 
+  FTS.FTS$SCORE,
+  P.PRODUCT_ID,
+  P.PRODUCT_NAME,
+  P.ABOUT_PRODUCT,
+  FTS.FTS$EXPLANATION
+FROM FTS$SEARCH('IDX_PRODUCT_ID_2_EN', '(PRODUCT_NAME: Transformers Bumblebee) AND (ABOUT_PRODUCT: Polyester)', 5, TRUE) FTS
+JOIN PRODUCTS P ON P.PRODUCT_ID = FTS.FTS$ID;
 ----
+
+[NOTE]
+.Замечание
+====
+Lucene, как и Firebird, поддерживает поля с разделителями. Настоятельно не рекомендуется использовать пробелы и другие специальные символы в именах полей,
+поскольку это значительно затруднит написание поисковых запросов. Если же ваше поле содержит пробел или другой специальный символ, его необходимо экранировать с помощью
+символа "\".
+
+Например, если у вас индекс по двум полям "Product Name" и "Product Specification" и вы хотите найти в спецификации слово "Weight", то запрос должен выглядеть следующим образом:
+
+----
+Product\ Specification: Weight
+----
+====
 
 === Маска
 
-Lucene позволяет производить поиск документов по маске, используя в термах символы "?" и "*". В этом случае символ "?"
-заменяет один любой символ, а "*" - любое количество символов, например
+Lucene позволяет производить поиск документов по маске, используя в термах символы "?" и "{asterisk}". В этом случае символ "?"
+заменяет один любой символ, а "{asterisk}" - любое количество символов, например
 
 ----
 "te?t" "test*" "tes*t"
 ----
 
-Поисковый запрос нельзя начинать с символов "?" или "*".
+Поисковый запрос нельзя начинать с символов "?" или "{asterisk}".
 
 === Нечёткий поиск
 
@@ -500,9 +553,9 @@ Lucene позволяет производить поиск документов
 === Усиление термов
 
 Lucene позволяет изменять значимость термов во фразе поиска. Например, вы ищете фразу "Hello world" и хотите,
-чтобы слово «world» было более значимым. Значимость терма во фразе поиска можно увеличить, используя символ «ˆ»,
-после которого указывается коэффициент усиления. В следующем примере значимость слова «world» в четыре раза больше
-значимости слова «Hello», которая по умолчанию равна единице.
+чтобы слово "world" было более значимым. Значимость терма во фразе поиска можно увеличить, используя символ "ˆ",
+после которого указывается коэффициент усиления. В следующем примере значимость слова "world" в четыре раза больше
+значимости слова "Hello", которая по умолчанию равна единице.
 
 ----
 "Hello worldˆ4"
@@ -589,7 +642,7 @@ NOT "world"
 
 === Экранирование специальных символов
 
-Для включения специальных символов во фразу поиска выполняется их экранирование с помощью &quot;&quot;.
+Для включения специальных символов во фразу поиска выполняется их экранирование с помощью символа "\".
 Ниже приведен список специальных символов, используемых в Lucene на данный момент:
 
 ----
@@ -602,6 +655,13 @@ NOT "world"
 \( 1 \+ 1 \) \: 2
 ----
 
+Для экранирования специальных символов вы можете воспользоваться функцией `FTS$ESCAPE_QUERY`.
+
+[source,sql]
+----
+  FTS$ESCAPE_QUERY('(1 + 1) : 2')
+----
+
 Более подробное англоязычное описание синтаксиса расположено на официальном сайте
 Lucene: https://lucene.apache.org.
 
@@ -612,75 +672,70 @@ Lucene: https://lucene.apache.org.
 Для того чтобы индексировать представление должно быть соблюдено одно требование:
 в представлении должно быть поле, по которому вы можете однозначно идентифицировать запись.
 
-Допустим у вас есть представление `V_FARM`, где `CODE_FARM` первичный ключ хозяйства:
+Допустим у вас есть представление `V_PRODUCT_CATEGORIES`, где `PRODUCT_UUID` - уникальный идентификатор таблицы `PRODUCTS`:
 
 [source,sql]
 ----
-CREATE OR ALTER VIEW V_FARM(
-    CODE_FARM,
-    CODE_COUNTRY,
-    CODE_REGION,
-    FARMNAME,
-    COUNTRYNAME,
-    REGIONNAME,
-    ADDRESS,
-    PHONE,
-    FAX,
-    EMAIL)
+CREATE TABLE CATEGORIES (
+    ID             BIGINT GENERATED BY DEFAULT AS IDENTITY,
+    CATEGORY_NAME  VARCHAR(80) NOT NULL,
+    CONSTRAINT PK_CATEGORY PRIMARY KEY (ID),
+    CONSTRAINT UNQ_CATEGORY_NAME UNIQUE (CATEGORY_NAME)
+);
+
+CREATE TABLE PRODUCT_CATEGORIES (
+    ID            BIGINT GENERATED BY DEFAULT AS IDENTITY,
+    PRODUCT_UUID  CHAR(16) CHARACTER SET OCTETS NOT NULL,
+    CATEGORY_ID   BIGINT NOT NULL,
+    CONSTRAINT PK_PRODUCT_CATEGORIES PRIMARY KEY (ID),
+    CONSTRAINT UNQ_PRODUCT_CATEGORIES UNIQUE (PRODUCT_UUID, CATEGORY_ID),
+    CONSTRAINT FK_PRODUCT_CAT_REF_CATEGORY FOREIGN KEY (CATEGORY_ID) REFERENCES CATEGORIES (ID),
+    CONSTRAINT FK_PRODUCT_CAT_REF_PRODUCT FOREIGN KEY (PRODUCT_UUID) REFERENCES PRODUCTS (PRODUCT_UUID)
+);
+
+CREATE OR ALTER VIEW V_PRODUCT_CATEGORIES(
+    PRODUCT_UUID,
+    CATEGORIES)
 AS
 SELECT
-    FARM.CODE_FARM,
-    FARM.CODE_COUNTRY,
-    FARM.CODE_REGION,
-    FARM.NAME AS FARMNAME,
-    COUNTRY.NAME AS COUNTRYNAME,
-    REGION.NAME AS REGIONNAME,
-    FARM.ADDRESS,
-    FARM.PHONE,
-    FARM.FAX,
-    FARM.EMAIL
-FROM FARM
-JOIN COUNTRY ON COUNTRY.CODE_COUNTRY = FARM.CODE_COUNTRY
-JOIN REGION ON REGION.CODE_REGION = FARM.CODE_REGION
+    PC.PRODUCT_UUID
+  , LIST(C.CATEGORY_NAME, ' | ') AS CATEGORIES
+FROM PRODUCT_CATEGORIES PC
+JOIN CATEGORIES C
+     ON C.ID = PC.CATEGORY_ID
+GROUP BY 1
 ;
 ----
 
-Вы хотите производить поиск по адресу хозяйства, но страна и регион находятся в справочных таблицах.
+Вы хотите производить поиск товаров категории, но наименование категории находится в справочной таблицы и у одного товара может быть несколько категорий.
 В этом случае можно создать следующий полнотекстовый индекс:
 
 [source,sql]
 ----
-EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$CREATE_INDEX('IDX_V_FARM_ADDRESS_RU', 'V_FARM', 'RUSSIAN', 'CODE_FARM');
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$CREATE_INDEX('IDX_PRODUCT_CATEGORIES', 'V_PRODUCT_CATEGORIES', 'ENGLISH', 'PRODUCT_UUID');
+
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD('IDX_PRODUCT_CATEGORIES', 'CATEGORIES');
 
 COMMIT;
 
-EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD('IDX_V_FARM_ADDRESS_RU', 'COUNTRYNAME');
-
-EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD('IDX_V_FARM_ADDRESS_RU', 'REGIONNAME');
-
-EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD('IDX_V_FARM_ADDRESS_RU', 'ADDRESS');
-
-COMMIT;
-
-EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$REBUILD_INDEX('IDX_V_FARM_ADDRESS_RU');
+EXECUTE PROCEDURE FTS$MANAGEMENT.FTS$REBUILD_INDEX('IDX_PRODUCT_CATEGORIES');
 
 COMMIT;
 ----
 
-Поиск хозяйства по адресу такого представления выглядит так:
+Поиск товара по его категории выглядит так:
 
 [source,sql]
 ----
 SELECT
-    FTS.FTS$SCORE
-  , V_FARM.CODE_FARM
-  , V_FARM.FARMNAME
-  , V_FARM.COUNTRYNAME
-  , V_FARM.REGIONNAME
-  , V_FARM.ADDRESS
-FROM FTS$SEARCH('IDX_V_FARM_ADDRESS_RU', 'Воронеж') FTS
-JOIN V_FARM
-     ON V_FARM.CODE_FARM = FTS.FTS$ID
+  FTS.FTS$SCORE,
+  P.PRODUCT_UUID,
+  P.PRODUCT_NAME,
+  PC.CATEGORIES,
+  FTS.FTS$EXPLANATION
+FROM FTS$SEARCH('IDX_PRODUCT_CATEGORIES', '"Toys & Games"') FTS
+JOIN V_PRODUCT_CATEGORIES PC ON PC.PRODUCT_UUID = FTS.FTS$UUID
+JOIN PRODUCTS P ON P.PRODUCT_UUID = PC.PRODUCT_UUID;
 ----
 
 == Выделение найденных термов во фрагменте текста
@@ -721,12 +776,8 @@ JOIN V_FARM
 в противном случае параметр можно не указывать или установить в качестве значения NULL.
 
 В параметре `FTS$FRAGMENT_SIZE` указывается ограничение на длину возвращаемого фрагмента.
-
-[IMPORTANT]
-====
 Обратите внимание, реальная длина возвращаемого текста может быть больше. Возвращаемый фрагмент, обычно не разрывает слова,
 кроме того в нём не учитывается длина самих тегов для выделения.
-====
 
 В параметре `FTS$LEFT_TAG` указывается тег, который добавляется к найденному терму слева.
 
@@ -738,12 +789,13 @@ JOIN V_FARM
 ----
 SELECT
   FTS$HIGHLIGHTER.FTS$BEST_FRAGMENT(
-    'Однажды в студёную зимнюю пору
-    Я из лесу вышел был сильный мороз
-    Гляжу поднимается медленно в гору
-    Лошадка везущая хворосту воз',
-    'сильный мороз',
-    'RUSSIAN',
+    q'!!Go to your orders and start the return Select the ship method Ship it! |
+    Go to your orders and start the return Select the ship method Ship it! |
+    show up to 2 reviews by default A shiny Pewter key ring with a 3D element
+    of a rotating golf ball made of a PVC material. This makes a great accessory
+    for your sports bag. | 1.12 ounces (View shipping rates and policies)!!',
+    'A shiny Pewter',
+    'English',
     NULL
   ) AS TEXT_FRAGMENT
 FROM RDB$DATABASE
@@ -758,31 +810,31 @@ EXECUTE BLOCK (
 )
 RETURNS (
   FTS$SCORE DOUBLE PRECISION,
-  CODE_HORSE TYPE OF COLUMN HORSE.CODE_HORSE,
-  REMARK TYPE OF COLUMN HORSE.REMARK,
-  RUNTOTAL TYPE OF COLUMN HORSE.RUNTOTAL,
-  HIGHTLIGHT_REMARK VARCHAR(8191) CHARACTER SET UTF8,
-  HIGHTLIGHT_RUNTOTAL VARCHAR(8191) CHARACTER SET UTF8
+  PRODUCT_ID TYPE OF COLUMN PRODUCTS.PRODUCT_ID,
+  PRODUCT_NAME TYPE OF COLUMN PRODUCTS.PRODUCT_NAME,
+  ABOUT_PRODUCT TYPE OF COLUMN PRODUCTS.ABOUT_PRODUCT,
+  HIGHTLIGHT_PRODUCT_NAME VARCHAR(8191) CHARACTER SET UTF8,
+  HIGHTLIGHT_ABOUT_PRODUCT VARCHAR(8191) CHARACTER SET UTF8
 )
 AS
 BEGIN
   FOR
     SELECT
       FTS.FTS$SCORE,
-      HORSE.CODE_HORSE,
-      HORSE.REMARK,
-      HORSE.RUNTOTAL,
-      FTS$HIGHLIGHTER.FTS$BEST_FRAGMENT(HORSE.REMARK, :FTS$QUERY, 'RUSSIAN', 'REMARK') AS HIGHTLIGHT_REMARK,
-      FTS$HIGHLIGHTER.FTS$BEST_FRAGMENT(HORSE.RUNTOTAL, :FTS$QUERY, 'RUSSIAN', 'RUNTOTAL') AS HIGHTLIGHT_RUNTOTAL
-    FROM FTS$SEARCH('IDX_HORSE_REMARK_2_RU', :FTS$QUERY, 25) FTS
-    JOIN HORSE ON HORSE.CODE_HORSE = FTS.FTS$ID
+      PRODUCTS.PRODUCT_ID,
+      PRODUCTS.PRODUCT_NAME,
+      PRODUCTS.ABOUT_PRODUCT,
+      FTS$HIGHLIGHTER.FTS$BEST_FRAGMENT(PRODUCTS.PRODUCT_NAME, :FTS$QUERY, 'ENGLISH', 'PRODUCT_NAME') AS HIGHTLIGHT_PRODUCT_NAME,
+      FTS$HIGHLIGHTER.FTS$BEST_FRAGMENT(PRODUCTS.ABOUT_PRODUCT, :FTS$QUERY, 'ENGLISH', 'ABOUT_PRODUCT') AS HIGHTLIGHT_ABOUT_PRODUCT
+    FROM FTS$SEARCH('IDX_PRODUCT_ID_2_EN', :FTS$QUERY, 25) FTS
+    JOIN PRODUCTS ON PRODUCTS.PRODUCT_ID = FTS.FTS$ID
   INTO
     FTS$SCORE,
-    CODE_HORSE,
-    REMARK,
-    RUNTOTAL,
-    HIGHTLIGHT_REMARK,
-    HIGHTLIGHT_RUNTOTAL
+    PRODUCT_ID,
+    PRODUCT_NAME,
+    ABOUT_PRODUCT,
+    HIGHTLIGHT_PRODUCT_NAME,
+    HIGHTLIGHT_ABOUT_PRODUCT
   DO
     SUSPEND;
 END
@@ -826,8 +878,8 @@ SELECT
 FROM BOOKS
 LEFT JOIN FTS$HIGHLIGHTER.FTS$BEST_FRAGMENTS(
   BOOKS.CONTENT,
-  'толстый',
-  'RUSSIAN'
+  'friendly',
+  'ENGLISH'
 ) F ON TRUE
 WHERE BOOKS.ID = 8
 ----
@@ -878,47 +930,48 @@ WHERE BOOKS.ID = 8
 
 Для облегчения задачи написания таких триггеров существует специальный пакет `FTS$TRIGGER_HELPER`, в котором
 расположены процедуры генерирования исходных текстов триггеров. Так например, для того чтобы сгенерировать триггеры
-для поддержки полнотекстовых индексов созданных для таблицы `HORSE`, необходимо выполнить следующий запрос:
+для поддержки полнотекстовых индексов созданных для таблицы `PRODUCTS`, необходимо выполнить следующий запрос:
 
 [source,sql]
 ----
 SELECT
     FTS$TRIGGER_SCRIPT
-FROM FTS$TRIGGER_HELPER.FTS$MAKE_TRIGGERS('HORSE', TRUE)
+FROM FTS$TRIGGER_HELPER.FTS$MAKE_TRIGGERS('PRODUCTS', TRUE)
 ----
 
-Этот запрос вернёт следующий текст триггера для всех созданных FTS индексов на таблице `HORSE`:
+Этот запрос вернёт следующий текст триггера для всех созданных FTS индексов на таблице `PRODUCTS`:
 
 [source,sql]
 ----
-CREATE OR ALTER TRIGGER FTS$HORSE_AIUD FOR HORSE
-ACTIVE AFTER INSERT OR UPDATE OR DELETE POSITION 100
+CREATE OR ALTER TRIGGER "FTS$PRODUCTS_AIUD" FOR "PRODUCTS"
+ACTIVE AFTER INSERT OR UPDATE OR DELETE
+POSITION 100
 AS
 BEGIN
-  /* Block for key CODE_HORSE */
-  IF (INSERTING AND (NEW.REMARK IS NOT NULL
-      OR NEW.RUNTOTAL IS NOT NULL)) THEN
-    EXECUTE PROCEDURE FTS$LOG_BY_ID('HORSE', NEW.CODE_HORSE, 'I');
-  IF (UPDATING AND (NEW.REMARK IS DISTINCT FROM OLD.REMARK
-      OR NEW.RUNTOTAL IS DISTINCT FROM OLD.RUNTOTAL)) THEN
-    EXECUTE PROCEDURE FTS$LOG_BY_ID('HORSE', OLD.CODE_HORSE, 'U');
-  IF (DELETING AND (OLD.REMARK IS NOT NULL
-      OR OLD.RUNTOTAL IS NOT NULL)) THEN
-    EXECUTE PROCEDURE FTS$LOG_BY_ID('HORSE', OLD.CODE_HORSE, 'D');
+  /* Block for key PRODUCT_ID */
+  IF (INSERTING AND (NEW."ABOUT_PRODUCT" IS NOT NULL
+      OR NEW."PRODUCT_NAME" IS NOT NULL)) THEN
+    EXECUTE PROCEDURE FTS$LOG_BY_ID('PRODUCTS', NEW."PRODUCT_ID", 'I');
+  IF (UPDATING AND (NEW."ABOUT_PRODUCT" IS DISTINCT FROM OLD."ABOUT_PRODUCT"
+      OR NEW."PRODUCT_NAME" IS DISTINCT FROM OLD."PRODUCT_NAME")) THEN
+    EXECUTE PROCEDURE FTS$LOG_BY_ID('PRODUCTS', OLD."PRODUCT_ID", 'U');
+  IF (DELETING AND (OLD."ABOUT_PRODUCT" IS NOT NULL
+      OR OLD."PRODUCT_NAME" IS NOT NULL)) THEN
+    EXECUTE PROCEDURE FTS$LOG_BY_ID('PRODUCTS', OLD."PRODUCT_ID", 'D');
+  /* Block for key PRODUCT_UUID */
+  IF (INSERTING AND (NEW."PRODUCT_NAME" IS NOT NULL)) THEN
+    EXECUTE PROCEDURE FTS$LOG_BY_UUID('PRODUCTS', NEW."PRODUCT_UUID", 'I');
+  IF (UPDATING AND (NEW."PRODUCT_NAME" IS DISTINCT FROM OLD."PRODUCT_NAME")) THEN
+    EXECUTE PROCEDURE FTS$LOG_BY_UUID('PRODUCTS', OLD."PRODUCT_UUID", 'U');
+  IF (DELETING AND (OLD."PRODUCT_NAME" IS NOT NULL)) THEN
+    EXECUTE PROCEDURE FTS$LOG_BY_UUID('PRODUCTS', OLD."PRODUCT_UUID", 'D');
   /* Block for key RDB$DB_KEY */
-  IF (INSERTING AND (NEW.REMARK IS NOT NULL)) THEN
-    EXECUTE PROCEDURE FTS$LOG_BY_DBKEY('HORSE', NEW.RDB$DB_KEY, 'I');
-  IF (UPDATING AND (NEW.REMARK IS DISTINCT FROM OLD.REMARK)) THEN
-    EXECUTE PROCEDURE FTS$LOG_BY_DBKEY('HORSE', OLD.RDB$DB_KEY, 'U');
-  IF (DELETING AND (OLD.REMARK IS NOT NULL)) THEN
-    EXECUTE PROCEDURE FTS$LOG_BY_DBKEY('HORSE', OLD.RDB$DB_KEY, 'D');
-  /* Block for key UUID */
-  IF (INSERTING AND (NEW.REMARK IS NOT NULL)) THEN
-    EXECUTE PROCEDURE FTS$LOG_BY_UUID('HORSE', NEW.UUID, 'I');
-  IF (UPDATING AND (NEW.REMARK IS DISTINCT FROM OLD.REMARK)) THEN
-    EXECUTE PROCEDURE FTS$LOG_BY_UUID('HORSE', OLD.UUID, 'U');
-  IF (DELETING AND (OLD.REMARK IS NOT NULL)) THEN
-    EXECUTE PROCEDURE FTS$LOG_BY_UUID('HORSE', OLD.UUID, 'D');
+  IF (INSERTING AND (NEW."PRODUCT_NAME" IS NOT NULL)) THEN
+    EXECUTE PROCEDURE FTS$LOG_BY_DBKEY('PRODUCTS', NEW.RDB$DB_KEY, 'I');
+  IF (UPDATING AND (NEW."PRODUCT_NAME" IS DISTINCT FROM OLD."PRODUCT_NAME")) THEN
+    EXECUTE PROCEDURE FTS$LOG_BY_DBKEY('PRODUCTS', OLD.RDB$DB_KEY, 'U');
+  IF (DELETING AND (OLD."PRODUCT_NAME" IS NOT NULL)) THEN
+    EXECUTE PROCEDURE FTS$LOG_BY_DBKEY('PRODUCTS', OLD.RDB$DB_KEY, 'D');
 END
 ----
 
@@ -944,67 +997,51 @@ isql -user SYSDBA -pas masterkey -i fts$update.sql inet://localhost/mydatabase
 ====
 
 Ниже приведён пример, поддерживающих полнотекстовый индекс триггеров для представления
-`V_FARM`.
+`V_PRODUCT_CATEGORIES`.
 
 [source,sql]
 ----
 SET TERM ^;
 
--- Field ADDRESS from table FARM
-CREATE OR ALTER TRIGGER FTS$V_FARM_AIUD_1 FOR FARM
-ACTIVE AFTER INSERT OR UPDATE OR DELETE POSITION 100
+-- Field PRODUCT_UUID and CATEGORY_ID from table PRODUCT_CATEGORIES
+CREATE OR ALTER TRIGGER FTS$PRODUCT_CATEGORIES_AIUD FOR PRODUCT_CATEGORIES
+ACTIVE AFTER INSERT OR UPDATE OR DELETE
+POSITION 100
 AS
 BEGIN
-  IF (INSERTING AND (NEW.ADDRESS IS NOT NULL
-                  OR NEW.CODE_COUNTRY IS NOT NULL
-                  OR NEW.CODE_REGION IS NOT NULL)) THEN
-    EXECUTE PROCEDURE FTS$LOG_BY_ID('V_FARM', NEW.CODE_FARM, 'I');
-  IF (UPDATING AND (NEW.ADDRESS IS DISTINCT FROM OLD.ADDRESS
-                 OR NEW.CODE_COUNTRY IS DISTINCT FROM OLD.CODE_COUNTRY
-                 OR NEW.CODE_REGION IS DISTINCT FROM OLD.CODE_REGION)) THEN
-    EXECUTE PROCEDURE FTS$LOG_BY_ID('V_FARM', OLD.CODE_FARM, 'U');
-  IF (DELETING AND (OLD.ADDRESS IS NOT NULL
-                 OR OLD.CODE_COUNTRY IS NOT NULL
-                 OR OLD.CODE_REGION IS NOT NULL)) THEN
-    EXECUTE PROCEDURE FTS$LOG_BY_ID('V_FARM', OLD.CODE_FARM, 'D');
+  IF (INSERTING) THEN
+    EXECUTE PROCEDURE FTS$LOG_BY_UUID('V_PRODUCT_CATEGORIES', NEW.PRODUCT_UUID, 'I');
+
+  IF (UPDATING AND (NEW.PRODUCT_UUID <> OLD.PRODUCT_UUID
+      OR NEW.CATEGORY_ID <> OLD.CATEGORY_ID)) THEN
+  BEGIN
+    EXECUTE PROCEDURE FTS$LOG_BY_UUID('V_PRODUCT_CATEGORIES', OLD.PRODUCT_UUID, 'D');
+    EXECUTE PROCEDURE FTS$LOG_BY_UUID('V_PRODUCT_CATEGORIES', NEW.PRODUCT_UUID, 'I');
+  END
+
+  IF (DELETING) THEN
+    EXECUTE PROCEDURE FTS$LOG_BY_UUID('V_PRODUCT_CATEGORIES', OLD.PRODUCT_UUID, 'D');
 END
 ^
 
--- Field COUNTRYNAME from table COUNTRY (COUNTRY.NAME)
-CREATE OR ALTER TRIGGER FTS$V_FARM_AU_2 FOR COUNTRY
-ACTIVE AFTER UPDATE POSITION 100
+-- Change from table CATEGORIES
+CREATE OR ALTER TRIGGER FTS$CATEGORIES_AU FOR CATEGORIES
+ACTIVE AFTER UPDATE
+POSITION 100
 AS
-DECLARE CODE_FARM INTEGER;
+DECLARE PRODUCT_UUID TYPE OF COLUMN PRODUCT_CATEGORIES.PRODUCT_UUID;
 BEGIN
-  IF (NEW.NAME IS DISTINCT FROM OLD.NAME) THEN
+  IF (NEW.CATEGORY_NAME <> OLD.CATEGORY_NAME) THEN
   BEGIN
-    FOR
-      SELECT CODE_FARM
-      FROM FARM
-      WHERE CODE_COUNTRY = OLD.CODE_COUNTRY
-      INTO :CODE_FARM
-    DO
-      EXECUTE PROCEDURE FTS$LOG_BY_ID('V_FARM', :CODE_FARM, 'U');
+    SELECT MAX(PRODUCT_CATEGORIES.PRODUCT_UUID)
+    FROM PRODUCT_CATEGORIES
+    JOIN CATEGORIES ON CATEGORIES.ID = PRODUCT_CATEGORIES.CATEGORY_ID
+    WHERE CATEGORIES.CATEGORY_NAME = OLD.CATEGORY_NAME
+    INTO PRODUCT_UUID;
+
+    EXECUTE PROCEDURE FTS$LOG_BY_UUID('V_PRODUCT_CATEGORIES', :PRODUCT_UUID, 'U');
   END
 END
-^
-
--- Field REGIONNAME from table REGION (REGION.NAME)
-CREATE OR ALTER TRIGGER FTS$V_FARM_AU_3 FOR REGION
-ACTIVE AFTER UPDATE POSITION 100
-AS
-DECLARE CODE_FARM INTEGER;
-BEGIN
-  IF (NEW.NAME IS DISTINCT FROM OLD.NAME) THEN
-  BEGIN
-    FOR
-      SELECT CODE_FARM
-      FROM FARM
-      WHERE CODE_REGION = OLD.CODE_REGION
-      INTO :CODE_FARM
-    DO
-      EXECUTE PROCEDURE FTS$LOG_BY_ID('V_FARM', :CODE_FARM, 'U');
-  END
 END
 ^
 
@@ -1020,7 +1057,7 @@ SET TERM ;^
 
 ==== Функция FTS$MANAGEMENT.FTS$GET_DIRECTORY
 
-Функция `FTS$MANAGEMENT.FTS$GET_DIRECTORY` возвращает директорию в которой расположены файлы и папки полнотекстового индекса для текущей базы данных.
+Функция `FTS$MANAGEMENT.FTS$GET_DIRECTORY` возвращает директорию в которой расположены файлы и папки полнотекстовых индексов для текущей базы данных.
 
 [source,sql]
 ----
@@ -1063,7 +1100,7 @@ SET TERM ;^
 * FTS$INDEX_NAME - имя индекса. Должно быть уникальным среди имён полнотекстовых индексов;
 * FTS$RELATION_NAME - имя таблицы, которая должна быть проиндексирована;
 * FTS$ANALYZER - имя анализатора. Если не задано используется анализатор STANDARD (StandardAnalyzer);
-* FTS$KEY_FIELD_NAME - имя поля значение которого будет возращено процедурой поиска `FTS$SEARCH()`, обычно это ключевое поле таблицы;
+* FTS$KEY_FIELD_NAME - имя поля значение которого будет возращено процедурой поиска `FTS$SEARCH`, обычно это ключевое поле таблицы;
 * FTS$DESCRIPTION - описание индекса.
 
 ==== Процедура FTS$MANAGEMENT.FTS$DROP_INDEX
@@ -1166,11 +1203,7 @@ SET TERM ;^
 
 Если при добавлении поля в индекс не указать коэффициент значимости, то по умолчанию он равен 1.0.
 С помощью процедуры `FTS$MANAGEMENT.FTS$SET_INDEX_FIELD_BOOST` его можно изменить.
-
-[IMPORTANT]
-====
 Обратите внимание, что после запуска этой процедуры индекс необходимо перестроить.
-====
 
 ==== Процедура FTS$MANAGEMENT.FTS$REBUILD_INDEX
 
@@ -1257,11 +1290,27 @@ RETURNS (
 
 * FTS$RELATION_NAME - имя таблицы в которой найден документ;
 * FTS$KEY_FIELD_NAME - имя ключевого поля в таблице;
-* FTS$DB_KEY - значение ключевого поля в формате RDB$DB_KEY;
-* FTS$ID - значение ключевого поля типа BIGINT или INTEGER;
-* FTS$UUID - значение ключевого поля типа BINARY(16). Такой тип используется для хранения GUID;
+* FTS$DB_KEY - значение ключевого поля в формате `RDB$DB_KEY`;
+* FTS$ID - значение ключевого поля типа `BIGINT` или `INTEGER`;
+* FTS$UUID - значение ключевого поля типа `BINARY(16)`. Такой тип используется для хранения GUID;
 * FTS$SCORE - степень соответствия поисковому запросу;
 * FTS$EXPLANATION - объяснение результатов поиска.
+
+=== Функция FTS$ESCAPE_QUERY
+
+Функция `FTS$ESCAPE_QUERY` экранирует специальные символы в поисковом запросе.
+
+[source,sql]
+----
+FUNCTION FTS$ESCAPE_QUERY (
+    FTS$QUERY VARCHAR(8191) CHARACTER SET UTF8
+)
+RETURNS VARCHAR(8191) CHARACTER SET UTF8;
+----
+
+Входные параметры:
+
+* FTS$QUERY - поисковый запрос или его часть, в котором необходимо экранировать специальные символы.
 
 === Процедура FTS$LOG_BY_ID
 
@@ -1340,12 +1389,12 @@ PROCEDURE FTS$LOG_BY_DBKEY (
 === Пакет FTS$HIGHLIGHTER
 
 Пакет `FTS$HIGHLIGHTER` содержит процедуры и функции возвращающие фрагменты текста, в котором найдена исходная фраза,
-и выделяет найденные слова.
+и выделяет найденные термы.
 
 ==== Функция FTS$HIGHLIGHTER.FTS$BEST_FRAGMENT
 
 Функция `FTS$HIGHLIGHTER.FTS$BEST_FRAGMENT` возвращает лучший фрагмент текста, который соответствует выражению полнотекстового поиска,
-и выделяет в нем найденные слова.
+и выделяет в нем найденные термы.
 
 [source,sql]
 ----
@@ -1362,18 +1411,18 @@ PROCEDURE FTS$LOG_BY_DBKEY (
 
 Входные параметры:
 
-* FTS$TEXT - текст, в котором ищется фраза;
+* FTS$TEXT - текст, в котором делается поиск;
 * FTS$QUERY - выражение полнотекстового поиска;
 * FTS$ANALYZER - анализатор;
 * FTS$FIELD_NAME — имя поля, в котором выполняется поиск;
 * FTS$FRAGMENT_SIZE - длина возвращаемого фрагмента. Не меньше, чем требуется для возврата целых слов;
 * FTS$LEFT_TAG - левый тег для выделения;
-* FTS$RIGHT_TAG - правильный тег для выделения.
+* FTS$RIGHT_TAG - правый тег для выделения.
 
 ==== Процедура FTS$HIGHLIGHTER.FTS$BEST_FRAGMENTS
 
 Процедура `FTS$HIGHLIGHTER.FTS$BEST_FRAGMENTS` возвращает лучшие фрагменты текста, которые соответствуют выражению полнотекстового поиска,
-и выделяет в них найденные слова.
+и выделяет в них найденные термы.
 
 [source,sql]
 ----
@@ -1392,18 +1441,18 @@ PROCEDURE FTS$LOG_BY_DBKEY (
 
 Входные параметры:
 
-* FTS$TEXT - текст, в котором ищется фраза;
+* FTS$TEXT - текст, в котором делается поиск;
 * FTS$QUERY - выражение полнотекстового поиска;
 * FTS$ANALYZER - анализатор;
 * FTS$FIELD_NAME — имя поля, в котором выполняется поиск;
 * FTS$FRAGMENT_SIZE - длина возвращаемого фрагмента. Не меньше, чем требуется для возврата целых слов;
 * FTS$MAX_NUM_FRAGMENTS - максимальное количество фрагментов;
 * FTS$LEFT_TAG - левый тег для выделения;
-* FTS$RIGHT_TAG - правильный тег для выделения.
+* FTS$RIGHT_TAG - правый тег для выделения.
 
 Выходные параметры:
 
-* FTS$FRAGMENT - фрагмент текста, соответствующий поисковой фразе.
+* FTS$FRAGMENT - фрагмент текста, соответствующий поисковому запросу.
 
 === Пакет FTS$TRIGGER_HELPER
 
@@ -1446,7 +1495,7 @@ PROCEDURE FTS$LOG_BY_DBKEY (
 * FTS$TRIGGER_EVENTS - события триггера;
 * FTS$TRIGGER_POSITION - позиция триггера;
 * FTS$TRIGGER_SOURCE - исходный кода тела триггера;
-* FTS$TRIGGER_SCRIPT - скрипт создания.
+* FTS$TRIGGER_SCRIPT - скрипт создания триггера.
 
 ==== Процедура FTS$TRIGGER_HELPER.FTS$MAKE_TRIGGERS_BY_INDEX
 
@@ -1539,7 +1588,7 @@ PROCEDURE FTS$LOG_BY_DBKEY (
 
 ==== Функция FTS$STATISTICS.FTS$GET_DIRECTORY
 
-Функция `FTS$STATISTICS.FTS$GET_DIRECTORY` возвращает директорию в которой расположены файлы и папки полнотекстового индекса для
+Функция `FTS$STATISTICS.FTS$GET_DIRECTORY` возвращает директорию в которой расположены файлы и папки полнотекстовых индексов для
 текущей базы данных.
 
 [source,sql]
