@@ -499,7 +499,7 @@ Product\ Specification: Weight
 ### Mask
 
 Lucene allows you to search for documents by mask, using the symbols "?" and "\*" in terms. In this case, the character "?" 
-replaces any one character, and "\*" replaces any number of characters, for example
+replaces anyone character, and "\*" replaces any number of characters, for example
 
 ```
 "te?t" "test*" "tes*t"
@@ -817,7 +817,7 @@ The input parameters of the procedure `FTS$HIGHLIGHTER.FTS$BEST_FRAGMENTS` are i
 the function `FTS$HIGHLIGHTER.FTS$BEST_FRAGMENT`, but there is one additional parameter `FTS$MAX_NUM_FRAGMENTS`, 
 which limits the number of fragments returned.
 
-The text of the found fragments with selected occurrences of terms is returned in the output parameter `FTS$FRAGMENT`. 
+The text of the found fragments with selected occurrences of terms is returned to the output parameter `FTS$FRAGMENT`. 
 This procedure should be applied in one document already found.
 
 Usage example:
@@ -1213,7 +1213,7 @@ Input parameters:
 
 - FTS$INDEX_NAME - the name of the full-text index in which the search is performed;
 - FTS$QUERY - expression for full-text search;
-- FTS$LIMIT - limit on the number of records (search result). By default 1000;
+- FTS$LIMIT - limit on the number of records (search result). By default, 1000;
 - FTS$EXPLAIN - whether to explain the search result. By default, FALSE.
 
 Output parameters:
