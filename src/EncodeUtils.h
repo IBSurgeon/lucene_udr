@@ -25,7 +25,6 @@
 #endif
 
 using namespace std;
-using namespace Lucene;
 
 struct FBCharsetInfo {
 	unsigned charsetID;
@@ -127,7 +126,7 @@ public:
 
 	string toUtf8(const string& source_str);
 
-	String toUnicode(const string& source_str);
+	wstring toUnicode(const string& source_str);
 };
 
 

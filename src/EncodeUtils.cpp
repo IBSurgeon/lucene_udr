@@ -44,7 +44,7 @@ string FBStringEncoder::toUtf8(const string& source_str)
 		return source_str;
     }
 #ifdef WIN32_LEAN_AND_MEAN
-	return StringUtils::toUTF8(toUnicode(source_str));
+	return Lucene::StringUtils::toUTF8(toUnicode(source_str));
 #else	
 	vector<UChar> target(src_len);
 
@@ -68,29 +68,33 @@ string FBStringEncoder::toUtf8(const string& source_str)
 #endif
 }
 
-String FBStringEncoder::toUnicode(const string& source_str) 
+wstring FBStringEncoder::toUnicode(const string& source_str)
 {
 	// if the string is already in utf-8, then it makes no sense to re-encode it
 	if (sourceCharsetInfo.codePage == 65001) {
-		return StringUtils::toUnicode(source_str);
+		return Lucene::StringUtils::toUnicode(source_str);
 	}
 #ifdef WIN32_LEAN_AND_MEAN
 	int src_len = static_cast<int>(source_str.size());
     int dest_len = MultiByteToWideChar(sourceCharsetInfo.codePage, 0, source_str.c_str(), src_len, nullptr, 0);
 
+	
 	if (!dest_len)
-		return String();
-
+		return L"";
+	
+	wstring result{ L"" };
 	unique_ptr<wchar_t[]> pRes = make_unique<wchar_t[]>(dest_len);
-	wchar_t* buffer = pRes.get();
-
-	if (!MultiByteToWideChar(sourceCharsetInfo.codePage, 0, source_str.c_str(), src_len, buffer, dest_len))
 	{
-		throw runtime_error("Cannot convert string to Unicode");
+		wchar_t* buffer = pRes.get();
+		if (!MultiByteToWideChar(sourceCharsetInfo.codePage, 0, source_str.c_str(), src_len, buffer, dest_len))
+		{
+			throw runtime_error("Cannot convert string to Unicode");
+		}
+		result.assign(buffer, dest_len);
 	}
-	return String(buffer, dest_len);
+	return result;
 #else
-	return StringUtils::toUnicode(toUtf8(source_str));
+	return Lucene::StringUtils::toUnicode(toUtf8(source_str));
 #endif
 }
 

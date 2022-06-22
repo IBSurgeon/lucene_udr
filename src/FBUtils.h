@@ -32,21 +32,23 @@ namespace LuceneUDR
 		template <class StatusType>
 		static string getString(StatusType* status, IBlob* blob)
 		{
-			std::stringstream ss("");
-			bool eof = false;
+			std::stringstream ss("");			
 			auto b = make_unique<char[]>(MAX_SEGMENT_SIZE + 1);
-			char* buffer = b.get();
-			unsigned int l;
-			while (!eof) {
-				switch (blob->getSegment(status, MAX_SEGMENT_SIZE, buffer, &l))
-				{
-				case IStatus::RESULT_OK:
-				case IStatus::RESULT_SEGMENT:
-					ss.write(buffer, l);
-					continue;
-				default:
-					eof = true;
-					break;
+			{
+				char* buffer = b.get();
+				bool eof = false;
+				unsigned int l;
+				while (!eof) {
+					switch (blob->getSegment(status, MAX_SEGMENT_SIZE, buffer, &l))
+					{
+					case IStatus::RESULT_OK:
+					case IStatus::RESULT_SEGMENT:
+						ss.write(buffer, l);
+						continue;
+					default:
+						eof = true;
+						break;
+					}
 				}
 			}
 			return ss.str();
@@ -58,14 +60,16 @@ namespace LuceneUDR
 			size_t str_len = str.length();
 			size_t offset = 0;
 			auto b = make_unique<char[]>(MAX_SEGMENT_SIZE + 1);
-			char* buffer = b.get();
-			while (str_len > 0) {
-				const auto len = static_cast<unsigned int>(min(str_len, MAX_SEGMENT_SIZE));
-				memset(buffer, 0, MAX_SEGMENT_SIZE + 1);
-				memcpy(buffer, str.data() + offset, len);
-				blob->putSegment(status, len, buffer);
-				offset += len;
-				str_len -= len;
+			{
+				char* buffer = b.get();
+				while (str_len > 0) {
+					const auto len = static_cast<unsigned int>(min(str_len, MAX_SEGMENT_SIZE));
+					memset(buffer, 0, MAX_SEGMENT_SIZE + 1);
+					memcpy(buffer, str.data() + offset, len);
+					blob->putSegment(status, len, buffer);
+					offset += len;
+					str_len -= len;
+				}
 			}
 		}
 	};
