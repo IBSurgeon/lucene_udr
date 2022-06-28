@@ -16,13 +16,13 @@ BEGIN
   BEGIN
     BLOCK "000004b0"
     BEGIN
-      VALUE "CompanyName", "IBase\0"
-      VALUE "FileDescription", "Full-text search UDR\0"
+      VALUE "CompanyName", "IBSurgeon\0"
+      VALUE "FileDescription", "IBSurgeon Full Text Search UDR\0"
       VALUE "FileVersion", FILE_VER_STRING
       VALUE "InternalName", "luceneudr.dll\0"
 	  VALUE "OriginalFilename", "luceneudr.dll\0"
-      VALUE "LegalCopyright", "Copyright (c) 2001-2022 Simonov Denis\0"
-      VALUE "ProductName", "LUCENE-UDR\0"
+      VALUE "LegalCopyright", "Copyright (c) 2001-2022 IBSurgeon\0"
+      VALUE "ProductName", "LUCENE-FTS-UDR\0"
       VALUE "ProductVersion", PRODUCT_VER_STRING
     END
   END

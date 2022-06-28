@@ -1,5 +1,5 @@
 # ---------------------------------------------------------------------------
-# Lucene UDR full text search library.
+# IBSurgeon Full Text Search UDR Library.
 #
 # The original code was created by Simonov Denis
 # for UDR open source full-text search library for Firebird DBMS.

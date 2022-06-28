@@ -1,8 +1,8 @@
 /**
- *  Lucene UDR library uninstallation script.
+ *  IBSurgeon Full Text Search UDR library uninstallation script.
  *
  *  The original code was created by Simonov Denis
- *  for the open source Lucene UDR full-text search library for Firebird DBMS.
+ *  for the open source full-text search UDR library for Firebird DBMS.
  *
  *  Copyright (c) 2022 Simonov Denis <sim-mail@list.ru>
  *  and all contributors signed below.
