@@ -14,23 +14,23 @@ The library is developed by the grant from IBSurgeon [www.ib-aid.com](https://ww
 To install Lucene UDR, you need:
 
 1. Unpack the zip archive with dynamic libraries into the `plugins/udr` directory
-2. Execute the script [fts$install.sql](https://github.com/sim1984/lucene_udr/blob/main/sql/fts%24install.sql)  
+2. Execute the script [fts$install.sql](https://github.com/IBSurgeon/lucene_udr/blob/main/sql/fts%24install.sql)  
 to register procedures and functions in an indexed database.
-For databases of the 1st SQL dialect, use the script [fts$install_1.sql](https://github.com/sim1984/lucene_udr/blob/main/sql/fts%24install_1.sql)
+For databases of the 1st SQL dialect, use the script [fts$install_1.sql](https://github.com/IBSurgeon/lucene_udr/blob/main/sql/fts%24install_1.sql)
 
 You can download ready-made builds for Windows OS using the links:
-* [LuceneUdr_Win_x64.zip](https://github.com/sim1984/lucene_udr/releases/download/1.0/LuceneUdr_Win_x64.zip)
-* [LuceneUdr_Win_x86.zip](https://github.com/sim1984/lucene_udr/releases/download/1.0/LuceneUdr_Win_x86.zip)
+* [LuceneUdr_Win_x64.zip](https://github.com/IBSurgeon/lucene_udr/releases/download/1.0/LuceneUdr_Win_x64.zip)
+* [LuceneUdr_Win_x86.zip](https://github.com/IBSurgeon/lucene_udr/releases/download/1.0/LuceneUdr_Win_x86.zip)
 
 Under Linux, you can compile the library yourself.
 
 Download the demo database, for which the examples are prepared, using the following links:
-* [fts_demo_3.0.zip](https://github.com/sim1984/lucene_udr/releases/download/1.0/fts_demo_3.0.zip) - database for Firebird 3.0;
-* [fts_demo_4.0.zip](https://github.com/sim1984/lucene_udr/releases/download/1.0/fts_demo_4.0.zip) - database for Firebird 4.0.
+* [fts_demo_3.0.zip](https://github.com/IBSurgeon/lucene_udr/releases/download/1.0/fts_demo_3.0.zip) - database for Firebird 3.0;
+* [fts_demo_4.0.zip](https://github.com/IBSurgeon/lucene_udr/releases/download/1.0/fts_demo_4.0.zip) - database for Firebird 4.0.
 
 Documentation in English and Russian is available at the links:
-* [lucene-udr.pdf](https://github.com/sim1984/lucene_udr/releases/download/1.0/lucene-udr.pdf);
-* [lucene-udr-rus.pdf](https://github.com/sim1984/lucene_udr/releases/download/1.0/lucene-udr-rus.pdf).
+* [lucene-udr.pdf](https://github.com/IBSurgeon/lucene_udr/releases/download/1.0/lucene-udr.pdf);
+* [lucene-udr-rus.pdf](https://github.com/IBSurgeon/lucene_udr/releases/download/1.0/lucene-udr-rus.pdf).
 
 ## Building and installing the library under Linux
 
