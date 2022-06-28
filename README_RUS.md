@@ -1,4 +1,4 @@
-# UDR full-text search based on Lucene++
+# IBSurgeon Full Text Search UDR
 
 В Firebird отсутствует встроенная подсистема полнотекстового поиска. Библиотека Lucene UDR реализует
 процедуры и функции полнотекстового поиска с помощью основан на свободно распространяемой библиотеки Lucene. 
@@ -6,6 +6,8 @@
 хранимых процедур и функций пока ещё в стадии Beta версии. Поэтому Lucene UDR использует порт Lucene на язык C++
 [Lucene++](https://github.com/luceneplusplus/LucenePlusPlus). Lucene++ чуть более быстрый, чем оригинальный движок 
 Lucene, но обладает немного меньшими возможностями.
+
+Библиотека разработана за счет гранта IBSurgeon [www.ib-aid.com](https://www.ib-aid.com).
 
 ## Установка Lucene UDR
 
