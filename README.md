@@ -54,7 +54,7 @@ The building of the lucene++ library is described in more detail in [BUILDING.md
 Now you can start building UDR Lucene.
 
 ```
-$ git clone https://github.com/sim1984/lucene_udr.git
+$ git clone https://github.com/IBSurgeon/lucene_udr.git
 $ cd lucene_udr
 $ mkdir build; cd build
 $ cmake ..
