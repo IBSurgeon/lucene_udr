@@ -1,4 +1,4 @@
-= UDR полнотекстового поиска на основе Lucene++
+= IBSurgeon Full Text Search UDR
 :doctype: book
 :sectnums:
 :sectanchors:
