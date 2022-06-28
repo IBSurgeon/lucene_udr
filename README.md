@@ -1,11 +1,13 @@
 ﻿# IBSurgeon Full Text Search UDR
 
-There is no built-in full-text search subsystem in Firebird. The Lucene UDR library implements 
-full-text search procedures and functions using the freely distributed Lucene library. The original 
-Lucene search engine is written in Java. Unfortunately the FB Java plugin for writing external
-stored procedures and functions are still in Beta stage. Therefore, Lucene UDP uses the Lucene port to 
-the C++ language [Lucene++](https://github.com/luceneplusplus/LucenePlusPlus). Lucene++ is slightly 
-faster than the original Lucene engine, but has slightly less features.
+IBSurgeon FTS UDR library implements full text search procedures and functions for Firebird SQL, to run them in SQL queries,
+using the powerful capabilities of Lucene search engine. 
+In this UDR we use [Lucene++](https://github.com/luceneplusplus/LucenePlusPlus), it is the C++ implementation of Lucene search engine, 
+to achieve the fastest search with true full text search capabilities.
+This UDR is 100% free and open source, with LGPL license. 
+
+Windows and Linux versions are available: for Windows we have ready-to-use binaries and for Linux it is necessary to build UDR to work 
+on the specific distribution (we have easy building instruction).
 
 The library is developed by the grant from IBSurgeon [www.ib-aid.com](https://www.ib-aid.com).
 
