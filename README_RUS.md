@@ -14,23 +14,23 @@ Lucene, но обладает немного меньшими возможнос
 Для установки Lucene UDR необходимо:
 
 1. Распаковать zip архив с динамическими библиотеками в каталог `plugins\udr`
-2. Выполнить скрипт [fts$install.sql](https://github.com/sim1984/lucene_udr/blob/main/sql/fts%24install.sql) 
+2. Выполнить скрипт [fts$install.sql](https://github.com/IBSurgeon/lucene_udr/blob/main/sql/fts%24install.sql) 
 для регистрации процедур и функций в индексируемой БД. 
 Для баз данных 1-ого SQL диалекта используйте скрипт [fts$install_1.sql](https://github.com/sim1984/lucene_udr/blob/main/sql/fts%24install_1.sql) 
 
 Скачать готовые сборки под ОС Windows можно по ссылкам:
-* [LuceneUdr_Win_x64.zip](https://github.com/sim1984/lucene_udr/releases/download/1.0/LuceneUdr_Win_x64.zip)
-* [LuceneUdr_Win_x86.zip](https://github.com/sim1984/lucene_udr/releases/download/1.0/LuceneUdr_Win_x86.zip)
+* [LuceneUdr_Win_x64.zip](https://github.com/IBSurgeon/lucene_udr/releases/download/1.0/LuceneUdr_Win_x64.zip)
+* [LuceneUdr_Win_x86.zip](https://github.com/IBSurgeon/lucene_udr/releases/download/1.0/LuceneUdr_Win_x86.zip)
 
 Под ОС Linux вы можете скомпилировать библиотеку самостоятельно.
 
 Скачать демонстрационную базу данных, для которой подготовлены примеры можно по следующим ссылкам:
-* [fts_demo_3.0.zip](https://github.com/sim1984/lucene_udr/releases/download/1.0/fts_demo_3.0.zip) - база данных для Firebird 3.0;
-* [fts_demo_4.0.zip](https://github.com/sim1984/lucene_udr/releases/download/1.0/fts_demo_4.0.zip) - база данных для Firebird 4.0.
+* [fts_demo_3.0.zip](https://github.com/IBSurgeon/lucene_udr/releases/download/1.0/fts_demo_3.0.zip) - база данных для Firebird 3.0;
+* [fts_demo_4.0.zip](https://github.com/IBSurgeon/lucene_udr/releases/download/1.0/fts_demo_4.0.zip) - база данных для Firebird 4.0.
 
 Документация на английском и русском языках доступна по ссылкам:
-* [lucene-udr.pdf](https://github.com/sim1984/lucene_udr/releases/download/1.0/lucene-udr.pdf);
-* [lucene-udr-rus.pdf](https://github.com/sim1984/lucene_udr/releases/download/1.0/lucene-udr-rus.pdf).
+* [lucene-udr.pdf](https://github.com/IBSurgeon/lucene_udr/releases/download/1.0/lucene-udr.pdf);
+* [lucene-udr-rus.pdf](https://github.com/IBSurgeon/lucene_udr/releases/download/1.0/lucene-udr-rus.pdf).
 
 ## Сборка и установка библиотеки под Linux
 
@@ -54,7 +54,7 @@ $ sudo make install
 Теперь можно приступать к сборке UDR Lucene.
 
 ```
-$ git clone https://github.com/sim1984/lucene_udr.git
+$ git clone https://github.com/IBSurgeon/lucene_udr.git
 $ cd lucene_udr
 $ mkdir build; cd build
 $ cmake ..
