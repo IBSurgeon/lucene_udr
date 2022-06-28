@@ -17,6 +17,8 @@ stored procedures and functions are still in Beta stage. Therefore, Lucene UDP u
 the {cpp} language https://github.com/luceneplusplus/LucenePlusPlus[https://github.com/luceneplusplus/LucenePlusPlus]. Lucene{pp} is slightly
 faster than the original Lucene engine, but has slightly less features.
 
+The library is developed by the grant from IBSurgeon https://www.ib-aid.com[www.ib-aid.com].
+
 == Installing Lucene UDR
 
 To install Lucene UDR, you need:

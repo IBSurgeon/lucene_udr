@@ -19,6 +19,8 @@ toc::[]
 https://github.com/luceneplusplus/LucenePlusPlus[https://github.com/luceneplusplus/LucenePlusPlus]. Lucene{pp} чуть более быстрый, чем оригинальный движок
 Lucene, но обладает немного меньшими возможностями.
 
+Библиотека разработана за счет гранта IBSurgeon https://www.ib-aid.com[www.ib-aid.com].
+
 == Установка Lucene UDR
 
 Для установки Lucene UDR необходимо:
