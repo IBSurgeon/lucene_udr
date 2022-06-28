@@ -22,21 +22,21 @@ faster than the original Lucene engine, but has slightly less features.
 To install Lucene UDR, you need:
 
 . Unpack the zip archive with dynamic libraries into the `plugins/udr` directory
-. Execute the script https://github.com/sim1984/lucene_udr/blob/main/sql/fts%24install.sql[fts$install.sql] +
+. Execute the script https://github.com/IBSurgeon/lucene_udr/blob/main/sql/fts%24install.sql[fts$install.sql] +
 to register procedures and functions in an indexed database.
-For databases of the 1st SQL dialect, use the script https://github.com/sim1984/lucene_udr/blob/main/sql/fts%24install_1.sql[fts$install_1.sql]
+For databases of the 1st SQL dialect, use the script https://github.com/IBSurgeon/lucene_udr/blob/main/sql/fts%24install_1.sql[fts$install_1.sql]
 
 You can download ready-made builds for Windows OS using the links:
 
-* https://github.com/sim1984/lucene_udr/releases/download/1.0/LuceneUdr_Win_x64.zip[LuceneUdr_Win_x64.zip]
-* https://github.com/sim1984/lucene_udr/releases/download/1.0/LuceneUdr_Win_x86.zip[LuceneUdr_Win_x86.zip]
+* https://github.com/IBSurgeon/lucene_udr/releases/download/1.0/LuceneUdr_Win_x64.zip[LuceneUdr_Win_x64.zip]
+* https://github.com/IBSurgeon/lucene_udr/releases/download/1.0/LuceneUdr_Win_x86.zip[LuceneUdr_Win_x86.zip]
 
 Under Linux, you can compile the library yourself.
 
 Download the demo database, for which the examples are prepared, using the following links:
 
-* https://github.com/sim1984/lucene_udr/releases/download/1.0/fts_demo_3.0.zip[fts_demo_3.0.zip] - database for Firebird 3.0;
-* https://github.com/sim1984/lucene_udr/releases/download/1.0/fts_demo_4.0.zip[fts_demo_4.0.zip] - database for Firebird 4.0.
+* https://github.com/IBSurgeon/lucene_udr/releases/download/1.0/fts_demo_3.0.zip[fts_demo_3.0.zip] - database for Firebird 3.0;
+* https://github.com/IBSurgeon/lucene_udr/releases/download/1.0/fts_demo_4.0.zip[fts_demo_4.0.zip] - database for Firebird 4.0.
 
 == Building and installing the library under Linux
 
@@ -60,7 +60,7 @@ The building of the lucene++ library is described in more detail in https://gith
 Now you can start building UDR Lucene.
 
 ----
-$ git clone https://github.com/sim1984/lucene_udr.git
+$ git clone https://github.com/IBSurgeon/lucene_udr.git
 $ cd lucene_udr
 $ mkdir build; cd build
 $ cmake ..

@@ -16,7 +16,7 @@ Lucene, но обладает немного меньшими возможнос
 1. Распаковать zip архив с динамическими библиотеками в каталог `plugins\udr`
 2. Выполнить скрипт [fts$install.sql](https://github.com/IBSurgeon/lucene_udr/blob/main/sql/fts%24install.sql) 
 для регистрации процедур и функций в индексируемой БД. 
-Для баз данных 1-ого SQL диалекта используйте скрипт [fts$install_1.sql](https://github.com/sim1984/lucene_udr/blob/main/sql/fts%24install_1.sql) 
+Для баз данных 1-ого SQL диалекта используйте скрипт [fts$install_1.sql](https://github.com/IBSurgeon/lucene_udr/blob/main/sql/fts%24install_1.sql) 
 
 Скачать готовые сборки под ОС Windows можно по ссылкам:
 * [LuceneUdr_Win_x64.zip](https://github.com/IBSurgeon/lucene_udr/releases/download/1.0/LuceneUdr_Win_x64.zip)
