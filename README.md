@@ -91,7 +91,8 @@ get_filename_component(PACKAGE_PREFIX_DIR "${CMAKE_CURRENT_LIST_DIR}/../../.." A
 ## Configuring Lucene UDR
 
 Before using full-text search in your database, you need to make a preliminary configuration.
-The Lucene UDR settings are in the file `$(root)\ftp.ini`. If this file does not exist, then create it yourself.
+The Lucene UDR settings are in the file `$(root)\fts.ini`. If this file does not exist, then create it yourself.
+Where `$(root)` is the root directory of the Firebird installation.
 
 This file specifies the path to the directory where full-text indexes for the specified database will be created.
 
@@ -102,8 +103,30 @@ The path to the full-text index directory is specified in the `ftsDirectory` key
 ```ini
 [fts_demo]
 ftsDirectory=f:\fbdata\3.0\fts\fts_demo
+```
 
+or
+
+```ini
 [f:\fbdata\3.0\fts_demo.fdb]
+ftsDirectory=f:\fbdata\3.0\fts\fts_demo
+```
+
+The section name is case sensitive. It must exactly match the value of the query result:
+
+```sql
+select mon$attachment_name
+from mon$attachments
+where mon$attachment_id = current_connection;
+```
+
+If your connection can occur both through an alias and with the path to the database, you can write both sections to the ini file at once.
+
+```ini
+[f:\fbdata\3.0\fts_demo.fdb]
+ftsDirectory=f:\fbdata\3.0\fts\fts_demo
+
+[fts_demo]
 ftsDirectory=f:\fbdata\3.0\fts\fts_demo
 ```
 
@@ -856,7 +879,7 @@ for which the index was created.
 `FTS$LOG_BY_UUID` or `FTS$LOG_BY_DBKEY`. Which of the procedures to call
 depends on which type of field is selected as the key (integer, UUID (GIUD) or `RDB$DB_KEY`).
 When calling these procedures, the change record is added to a special table `FTS$LOG` (change log).
-Changes from the log are transferred to full-text indexes by calling the procedure `FTS$UPDATE_INDEXES'.
+Changes from the log are transferred to full-text indexes by calling the procedure `FTS$UPDATE_INDEXES`.
 The call to this procedure must be done in a separate script, which can be placed in the task scheduler (Windows)
 or cron (Linux) with some frequency, for example 5 minutes.
 

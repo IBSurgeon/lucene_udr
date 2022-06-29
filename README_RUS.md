@@ -93,6 +93,7 @@ get_filename_component(PACKAGE_PREFIX_DIR "${CMAKE_CURRENT_LIST_DIR}/../../.." A
 
 Перед использованием полнотекстового поиска в вашей базе данных необходимо произвести предварительную настройку.
 Настройки Lucene UDR находятся в файле `$(root)\fts.ini`. Если этого файла нет, то создайте его самостоятельно.
+Здесь `$(root)` - корневая директория установки Firebird.
 
 В этом файле задаётся путь к директории, в которой будут создаваться полнотекстовые индексы для указанной базы данных.
 
@@ -102,8 +103,30 @@ get_filename_component(PACKAGE_PREFIX_DIR "${CMAKE_CURRENT_LIST_DIR}/../../.." A
 ```ini
 [fts_demo]
 ftsDirectory=f:\fbdata\3.0\fts\fts_demo
+```
 
+или
+
+```ini
 [f:\fbdata\3.0\fts_demo.fdb]
+ftsDirectory=f:\fbdata\3.0\fts\fts_demo
+```
+
+Имя секции зависит от регистра символов. Оно должно полностью совпадать со значением результата запроса:
+
+```sql
+select mon$attachment_name
+from mon$attachments
+where mon$attachment_id = current_connection;
+```
+
+Если ваше подключение может происходить как через алиас, так и с указанием пути к базе данных вы можете прописать в ini файл сразу обе секции.
+
+```ini
+[f:\fbdata\3.0\fts_demo.fdb]
+ftsDirectory=f:\fbdata\3.0\fts\fts_demo
+
+[fts_demo]
 ftsDirectory=f:\fbdata\3.0\fts\fts_demo
 ```
 
