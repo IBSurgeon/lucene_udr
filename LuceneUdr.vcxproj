@@ -45,6 +45,8 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="defs\udr_plugin.def" />
+    <None Include="doc\lucene-udr-rus.adoc" />
+    <None Include="doc\lucene-udr.adoc" />
     <None Include="README.md" />
     <None Include="sql\fts$install_1.sql" />
     <None Include="sql\fts$uninstall.sql" />

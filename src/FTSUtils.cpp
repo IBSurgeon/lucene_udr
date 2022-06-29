@@ -30,7 +30,11 @@ namespace LuceneUDR
 		const string rootDir(configManager->getRootDirectory());
 		const fs::path rootDirPath = rootDir;
 		const fs::path iniFilePath = rootDirPath / "fts.ini";
+#ifdef WIN32_LEAN_AND_MEAN
+		ini::IniFileCaseInsensitive iniFile;
+#else
 		ini::IniFile iniFile;
+#endif
 		iniFile.load(iniFilePath.u8string());
 		auto section = iniFile[databaseName];
 		const auto ftsDirectory = section["ftsDirectory"].as<string>();

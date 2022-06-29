@@ -116,6 +116,12 @@
     <None Include="README.md">
       <Filter>Documentation</Filter>
     </None>
+    <None Include="doc\lucene-udr.adoc">
+      <Filter>Documentation</Filter>
+    </None>
+    <None Include="doc\lucene-udr-rus.adoc">
+      <Filter>Documentation</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="src\lucene_udr.rc">

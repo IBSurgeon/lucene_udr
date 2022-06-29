@@ -112,7 +112,7 @@ or
 ftsDirectory=f:\fbdata\3.0\fts\fts_demo
 ```
 
-The section name is case sensitive. It must exactly match the value of the query result:
+On Linux, the section name is case-sensitive. It must exactly match the value of the query result:
 
 ```sql
 select mon$attachment_name
