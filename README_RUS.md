@@ -161,7 +161,6 @@ FROM RDB$DATABASE
 
 Список доступных анализаторов:
 
-* STANDARD - StandardAnalyzer (Английский язык);
 * ARABIC - ArabicAnalyzer (Арабский язык);
 * BRAZILIAN - BrazilianAnalyzer (Бразильский язык);
 * CHINESE - ChineseAnalyzer (Китайский язык);
@@ -172,8 +171,13 @@ FROM RDB$DATABASE
 * FRENCH - FrenchAnalyzer (Французский язык);
 * GERMAN - GermanAnalyzer (Немецкий язык);
 * GREEK - GreekAnalyzer (Греческий язык);
+* KEYWORD - KeywordAnalyzer;
 * PERSIAN - PersianAnalyzer (Персидский язык);
-* RUSSIAN - RussianAnalyzer (Русский язык).
+* RUSSIAN - RussianAnalyzer (Русский язык);
+* STANDARD - StandardAnalyzer (Английский язык);
+* SIMPLE - SimpleAnalyzer;
+* STOP - StopAnalyzer;
+* WHITESPACE - WhitespaceAnalyzer.
 
 Четвёртым параметром задаётся имя поля таблицы, которое будет возвращено в качестве результата поиска. Обычно это
 поле первичного или уникального ключа. Также поддерживается задание специального псевдо поля `RDB$DB_KEY`.

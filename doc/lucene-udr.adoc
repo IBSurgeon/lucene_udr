@@ -176,7 +176,6 @@ using the procedure `FTS$MANAGEMENT.FTS$ANALYZERS`.
 
 List of available analyzers:
 
-* STANDARD - StandardAnalyzer (English);
 * ARABIC - Arabic Analyzer;
 * BRAZILIAN - BrazilianAnalyzer;
 * CHINESE - ChineseAnalyzer;
@@ -187,8 +186,13 @@ List of available analyzers:
 * FRENCH - FrenchAnalyzer;
 * GERMAN - GermanAnalyzer;
 * GREEK - GreekAnalyzer;
+* KEYWORD - KeywordAnalyzer;
 * PERSIAN - PersianAnalyzer;
-* RUSSIAN - RussianAnalyzer.
+* RUSSIAN - RussianAnalyzer;
+* SIMPLE - SimpleAnalyzer;
+* STANDARD - StandardAnalyzer (English);
+* STOP - StopAnalyzer;
+* WHITESPACE - WhitespaceAnalyzer.
 
 The fourth parameter specifies the name of the table field that will be returned as a search result.
 This is usually a primary or unique key field. Setting a special pseudo field `RDB$DB_KEY` is also supported.
