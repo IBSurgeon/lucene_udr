@@ -99,7 +99,7 @@ get_filename_component(PACKAGE_PREFIX_DIR "${CMAKE_CURRENT_LIST_DIR}/../../.." A
 == Configuring Lucene UDR
 
 Before using full-text search in your database, you need to make a preliminary configuration.
-The Lucene UDR settings are in the file `$(root)\ftp.ini`. If this file does not exist, then create it yourself.
+The Lucene UDR settings are in the file `$(root)\fts.ini`. If this file does not exist, then create it yourself.
 Where `$(root)` is the root directory of the Firebird installation.
 
 This file specifies the path to the directory where full-text indexes for the specified database will be created.

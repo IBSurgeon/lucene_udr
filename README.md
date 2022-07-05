@@ -555,7 +555,7 @@ after which the gain is indicated. In the following example, the significance of
 than the significance of the word "Hello", which is equal to one by default.
 
 ```
-"Hello worldˆ4"
+"Hello world^4"
 ```
 
 ### Logical operators

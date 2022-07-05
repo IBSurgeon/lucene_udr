@@ -32,6 +32,14 @@ using namespace Firebird;
 using namespace Lucene;
 using namespace LuceneUDR;
 
+const std::string WHITESPACE = " \n\r\t\f\v";
+
+std::string rtrim(const std::string& s)
+{
+	size_t end = s.find_last_not_of(WHITESPACE);
+	return (end == std::string::npos) ? "" : s.substr(0, end + 1);
+}
+
 const string queryEscape(const string_view& query)
 {
 	stringstream ss;
@@ -333,14 +341,19 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogByDdKey)
 		if (in->relationNameNull) {
 			throwException(status, "FTS$RELATION_NAME can not be NULL");
 		}
+	    string relationName(in->relationName.str, in->relationName.length);
+	    relationName = rtrim(relationName);
 
 		if (in->dbKeyNull) {
 			throwException(status, "FTS$DBKEY can not be NULL");
 		}
+		const string dbKey(in->dbKey.str, in->dbKey.length);
 
 		if (in->changeTypeNull) {
 			throwException(status, "FTS$CHANGE_TYPE can not be NULL");
 		}
+		string changeType(in->changeType.str, in->changeType.length);
+		changeType = rtrim(changeType);
 
 		AutoRelease<IAttachment> att(context->getAttachment(status));
 		AutoRelease<ITransaction> tra(context->getTransaction(status));
@@ -359,11 +372,28 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogByDdKey)
 			));
 		}
 
+		FB_MESSAGE(Input, ThrowStatusWrapper,
+			(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
+			(FB_INTL_VARCHAR(8, CS_BINARY), dbKey)
+			(FB_INTL_VARCHAR(4, CS_UTF8), changeType)
+		) input(status, context->getMaster());
+
+		input.clear();
+
+		input->relationName.length = static_cast<ISC_USHORT>(relationName.length());
+		relationName.copy(input->relationName.str, input->relationName.length);
+
+		input->dbKey.length = static_cast<ISC_USHORT>(dbKey.length());
+		dbKey.copy(input->dbKey.str, input->dbKey.length);
+
+		input->changeType.length = static_cast<ISC_USHORT>(changeType.length());
+		changeType.copy(input->changeType.str, input->changeType.length);
+
 		procedure->appendLogStmt->execute(
 			status,
 			tra,
-			procedure->inputMetadata,
-			in,
+			input.getMetadata(),
+			input.getData(),
 			nullptr,
 			nullptr
 		);
@@ -400,9 +430,9 @@ ENGINE UDR;
 ***/
 FB_UDR_BEGIN_PROCEDURE(ftsLogById)
 	FB_UDR_MESSAGE(InMessage,
-		(FB_INTL_VARCHAR(252, CS_UTF8), relation_name)
+		(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
 		(FB_BIGINT, id)
-		(FB_INTL_VARCHAR(4, CS_UTF8), change_type)
+		(FB_INTL_VARCHAR(4, CS_UTF8), changeType)
 	);
 
 	FB_UDR_CONSTRUCTOR
@@ -416,17 +446,21 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogById)
 
 	FB_UDR_EXECUTE_PROCEDURE
 	{
-		if (in->relation_nameNull) {
+		if (in->relationNameNull) {
 			throwException(status, "FTS$RELATION_NAME can not be NULL");
 		}
+	    string relationName(in->relationName.str, in->relationName.length);
+		relationName = rtrim(relationName);
 
 		if (in->idNull) {
 			throwException(status, "FTS$ID can not be NULL");
 		}
 
-		if (in->change_typeNull) {
+		if (in->changeTypeNull) {
 			throwException(status, "FTS$CHANGE_TYPE can not be NULL");
 		}
+		string changeType(in->changeType.str, in->changeType.length);
+		changeType = rtrim(changeType);
 
 		AutoRelease<IAttachment> att(context->getAttachment(status));
 		AutoRelease<ITransaction> tra(context->getTransaction(status));
@@ -445,11 +479,28 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogById)
 			));
 		}
 
+		FB_MESSAGE(Input, ThrowStatusWrapper,
+			(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
+			(FB_BIGINT, id)
+			(FB_INTL_VARCHAR(4, CS_UTF8), changeType)
+		) input(status, context->getMaster());
+
+		input.clear();
+
+		input->relationName.length = static_cast<ISC_USHORT>(relationName.length());
+		relationName.copy(input->relationName.str, input->relationName.length);
+
+		input->idNull = in->idNull;
+		input->id = in->id;
+
+		input->changeType.length = static_cast<ISC_USHORT>(changeType.length());
+		changeType.copy(input->changeType.str, input->changeType.length);
+
 		procedure->appendLogStmt->execute(
 			status,
 			tra,
-			procedure->inputMetadata,
-			in,
+			input.getMetadata(),
+			input.getData(),
 			nullptr,
 			nullptr
 		);
@@ -506,14 +557,19 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogByUuid)
 		if (in->relationNameNull) {
 			throwException(status, "FTS$RELATION_NAME can not be NULL");
 		}
+	    string relationName(in->relationName.str, in->relationName.length);
+	    relationName = rtrim(relationName);
 
 		if (in->uuidNull) {
 			throwException(status, "FTS$UUID can not be NULL");
 		}
+		const string uuid(in->uuid.str, in->uuid.length);
 
 		if (in->changeTypeNull) {
 			throwException(status, "FTS$CHANGE_TYPE can not be NULL");
 		}
+		string changeType(in->changeType.str, in->changeType.length);
+		changeType = rtrim(changeType);
 
 		AutoRelease<IAttachment> att(context->getAttachment(status));
 		AutoRelease<ITransaction> tra(context->getTransaction(status));
@@ -532,11 +588,28 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogByUuid)
 			));
 		}
 
+		FB_MESSAGE(Input, ThrowStatusWrapper,
+			(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
+			(FB_INTL_VARCHAR(16, CS_BINARY), uuid)
+			(FB_INTL_VARCHAR(4, CS_UTF8), changeType)
+		) input(status, context->getMaster());
+
+		input.clear();
+
+		input->relationName.length = static_cast<ISC_USHORT>(relationName.length());
+		relationName.copy(input->relationName.str, input->relationName.length);
+
+		input->uuid.length = static_cast<ISC_USHORT>(uuid.length());
+		uuid.copy(input->uuid.str, input->uuid.length);
+
+		input->changeType.length = static_cast<ISC_USHORT>(changeType.length());
+		changeType.copy(input->changeType.str, input->changeType.length);
+
 		procedure->appendLogStmt->execute(
 			status,
 			tra,
-			procedure->inputMetadata,
-			in,
+			input.getMetadata(),
+			input.getData(),
 			nullptr,
 			nullptr
 		);
