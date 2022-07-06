@@ -531,40 +531,124 @@ then the query should look like this:
 Product\ Specification: Weight
 ```
 
-### Mask
+### Wildcard Searches
 
-Lucene allows you to search for documents by mask, using the symbols "?" and "\*" in terms. In this case, the character "?" 
-replaces anyone character, and "\*" replaces any number of characters, for example
+Lucene supports single and multiple character wildcard searches within single terms (not within phrase queries).
 
-```
-"te?t" "test*" "tes*t"
-```
+To perform a single character wildcard search use the "?" symbol.
 
-You cannot start a search query with the characters "?" or "\*".
+To perform a multiple character wildcard search use the "\*" symbol.
 
-### Fuzzy search
-
-To perform a fuzzy search, add the tilde "~" to the end of the term. In this case, all
-similar words will be searched, for example, when searching for "roam\~", the words "foam" and "roams" will also be found.
-
-### Amplification of terms
-
-Lucene allows you to change the meaning of terms in a search phrase. For example, you are looking for the phrase "Hello world" and
-want the word "world" to be more meaningful. The significance of the term in the search phrase can be increased by using the symbol "ˆ",
-after which the gain is indicated. In the following example, the significance of the word "world" is four times greater
-than the significance of the word "Hello", which is equal to one by default.
+The single character wildcard search looks for terms that match that with the single character replaced. 
+For example, to search for "text" or "test" you can use the search:
 
 ```
-"Hello world^4"
+te?t
 ```
 
-### Logical operators
+Multiple character wildcard searches looks for 0 or more characters. For example, to search for "test", "tests" or "tester", you can use the search:
 
-Logical operators allow you to use logical constructions when setting
+```
+test*
+```
+
+You can also use the wildcard searches in the middle of a term.
+
+```
+te*t
+```
+
+Note: You cannot start a search query with the characters "?" or "\*".
+
+### Fuzzy Searches
+
+Lucene supports fuzzy searches based on the Levenshtein Distance, or Edit Distance algorithm. 
+To do a fuzzy search use the tilde, "~", symbol at the end of a Single word Term. For example to search for a term 
+similar in spelling to "roam" use the fuzzy search:
+
+```
+roam~
+```
+
+This search will find terms like "foam" and "roams".
+
+An additional (optional) parameter can specify the required similarity.
+The value is between 0 and 1, with a value closer to 1 only terms with a higher similarity will be matched. 
+For example:
+
+```
+roam~0.8
+```
+
+The default that is used if the parameter is not given is 0.5.
+
+### Proximity Searches
+
+Lucene supports finding words are a within a specific distance away. To do a proximity search use the tilde, "~", 
+symbol at the end of a Phrase. For example to search for a "apache" and "jakarta" within 10 words of each other 
+in a document use the search:
+
+```
+"jakarta apache"~10
+```
+
+### Range Searches
+
+Range Queries allow one to match documents whose field(s) values are between the lower and upper bound specified 
+by the Range Query. Range Queries can be inclusive or exclusive of the upper and lower bounds. 
+Sorting is done lexicographically.
+
+```
+BYDATE:[20020101 TO 20030101]
+```
+
+This will find documents whose BYDATE fields have values between 20020101 and 20030101, inclusive. 
+Note that Range Queries are not reserved for date fields. 
+
+You could also use range queries with non-date fields:
+
+```
+TITLE:{Aida TO Carmen}
+```
+
+This will find all documents whose titles are between "Aida" and "Carmen", but not including "Aida" and "Carmen".
+
+Inclusive range queries are denoted by square brackets. Exclusive range queries are denoted by curly brackets.
+
+### Boosting a Term
+
+Lucene provides the relevance level of matching documents based on the terms found. To boost a term use the caret, "^", 
+symbol with a boost factor (a number) at the end of the term you are searching. 
+The higher the boost factor, the more relevant the term will be.
+
+Boosting allows you to control the relevance of a document by boosting its term. For example, if you are searching for
+
+```
+jakarta apache
+```
+
+and you want the term "jakarta" to be more relevant boost it using the ^ symbol along with the boost factor next to the term. 
+You would type:
+
+```
+jakarta^4 apache
+```
+
+This will make documents with the term jakarta appear more relevant. You can also boost Phrase Terms as in the example:
+
+```
+"jakarta apache"^4 "Apache Lucene"
+```
+
+By default, the boost factor is 1. Although the boost factor must be positive, it can be less than 1 (e.g. 0.2)
+
+### Boolean Operators
+
+Boolean operators allow you to use logical constructions when setting
 search conditions, and allow you to combine several terms.
 Lucene supports the following logical operators: `AND`, `+`, `OR`, `NOT`, `-`.
 
-Logical operators must be specified in capital letters.
+Boolean operators must be specified in capital letters.
 
 #### OR operator
 
@@ -626,25 +710,40 @@ This operator is analogous to the `NOT` operator. Usage example:
 "Hello" -"world"
 ```
 
-#### Grouping of logical operators
+#### Grouping
 
-The Lucene query analyzer supports grouping of logical operators. Let's say you need to find either the word "word"
-or the word "dolly" and necessarily the word "hello", this query is used for this:
+Lucene supports using parentheses to group clauses to form sub queries. This can be very useful if you want to control the boolean logic for a query.
 
-```
-"Hello" && ("world" || "dolly")
-```
-
-### Escaping special characters
-
-To include special characters in the search phrase, they are escaped using the "\\" character.
-Below is a list of special characters used in Lucene at the moment:
+To search for either "jakarta" or "apache" and "website" use the query:
 
 ```
-+ - && || ! ( ) { } [ ] ˆ " ˜ * ? : \
+(jakarta OR apache) AND website
 ```
 
-The search phrase for the expression "(1 + 1) : 2" will have the form:
+This eliminates any confusion and makes sure you that "website" must exist and either term "jakarta" or "apache" may exist.
+
+### Field Grouping
+
+Lucene supports using parentheses to group multiple clauses to a single field.
+
+To search for a title that contains both the word "return" and the phrase "pink panther" use the query:
+
+```
+TITLE:(+return +"pink panther")
+```
+
+### Escaping Special Characters
+
+Lucene supports escaping special characters that are part of the query syntax. 
+The current list special characters are
+
+```
++ - && || ! ( ) { } [ ] ^ " ~ * ? : \
+```
+
+To escape these character use the "\\"  before the character. 
+For example to search for "(1 + 1) : 2" use the query:
+
 
 ```
 \( 1 \+ 1 \) \: 2
@@ -657,7 +756,7 @@ FTS$ESCAPE_QUERY('(1 + 1) : 2')
 ```
 
 A more detailed English-language description of the syntax is available on the official website
-Lucene: [https://lucene.apache.org](https://lucene.apache.org).
+Lucene: [https://lucene.apache.org/core/3_0_3/queryparsersyntax.html](https://lucene.apache.org/core/3_0_3/queryparsersyntax.html).
 
 ## Indexing views
 
