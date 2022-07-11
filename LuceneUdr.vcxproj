@@ -141,6 +141,7 @@
       </PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(BOOST_ROOT);C:\Firebird\4.0\include;c:\lucene++\include;include</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -161,6 +162,7 @@
       </PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(BOOST_ROOT);C:\Firebird\4.0\include;c:\lucene++\include;include</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -184,6 +186,7 @@
       </PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(BOOST_ROOT);C:\Firebird\4.0\include;c:\lucene++\include;include</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -209,6 +212,7 @@
       </PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(BOOST_ROOT);C:\Firebird\4.0\include;c:\lucene++\include;include</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
