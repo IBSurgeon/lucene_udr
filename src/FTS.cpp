@@ -692,6 +692,16 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 	AutoRelease<IStatement> logDeleteStmt{nullptr};
 	AutoRelease<IStatement> logStmt{nullptr};
 
+	void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
+		char* name, unsigned nameSize) 
+	{
+		// Forced internal request encoding to UTF8
+		memset(name, 0, nameSize);
+		
+		const char charset[5] = "UTF8";
+		strncpy(name, charset, sizeof(charset));
+	}
+
 	FB_UDR_EXECUTE_PROCEDURE
 	{
 		AutoRelease<IAttachment> att(context->getAttachment(status));
@@ -700,8 +710,6 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 		const unsigned int sqlDialect = getSqlDialect(status, att);
 
 		const auto& ftsDirectoryPath = getFtsDirectory(context);
-
-		const char* fbCharset = context->getClientCharSet();
 		
 		// get all indexes with segments
 		FTSIndexMap indexes;
@@ -801,7 +809,7 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 			UUIDInput uuidInput(status, context->getMaster());
 			IDInput idInput(status, context->getMaster());
 
-			FBStringEncoder fbStringEncoder(fbCharset);
+			//FBStringEncoder fbStringEncoder(fbCharset);
 
 			// prepare statement for delete record from FTS log
 			if (!procedure->logDeleteStmt.hasData()) {
@@ -968,7 +976,7 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 									if (!value.empty()) {
 										// re-encode content to Unicode only if the string is non-binary
 										if (!field->isBinary()) {
-											unicodeValue = fbStringEncoder.toUnicode(value);
+											unicodeValue = StringUtils::toUnicode(value); 
 										}
 										else {
 											// convert the binary string to a hexadecimal representation

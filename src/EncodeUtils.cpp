@@ -13,10 +13,6 @@
 
 #include "EncodeUtils.h"
 
-#ifndef WIN32_LEAN_AND_MEAN
-#include "unicode/uchar.h"
-#include "unicode/unistr.h"
-#endif
 
 #include <vector>
 #include <algorithm>
@@ -25,78 +21,9 @@
 #include <sstream>
 #include <iomanip>
 
-#ifndef WIN32_LEAN_AND_MEAN
-using namespace icu;
-#endif
 
 using namespace std;
 
-
-
-string FBStringEncoder::toUtf8(const string& source_str)
-{
-	// if the string is already in utf-8, then it makes no sense to re-encode it
-	if (sourceCharsetInfo.codePage == 65001) {
-		return source_str;
-	}
-	const auto src_len = static_cast<int32_t>(source_str.size());
-	if (src_len == 0) {
-		return source_str;
-    }
-#ifdef WIN32_LEAN_AND_MEAN
-	return Lucene::StringUtils::toUTF8(toUnicode(source_str));
-#else	
-	vector<UChar> target(src_len);
-
-	UErrorCode status = U_ZERO_ERROR;
-	if (!uConverter) {
-		uConverter = ucnv_open(sourceCharsetInfo.charsetName.c_str(), &status);
-		if (!U_SUCCESS(status))
-			throw runtime_error("Cannot convert string to UTF8");
-	}
-
-	int32_t dest_len = ucnv_toUChars(uConverter, target.data(), src_len * 4, source_str.c_str(), src_len, &status);
-	if (!U_SUCCESS(status))
-		throw runtime_error("Cannot convert string to UTF8");
-
-	UnicodeString ustr(target.data(), dest_len);
-
-	string retval;
-	ustr.toUTF8String(retval);
-
-	return retval;
-#endif
-}
-
-wstring FBStringEncoder::toUnicode(const string& source_str)
-{
-	// if the string is already in utf-8, then it makes no sense to re-encode it
-	if (sourceCharsetInfo.codePage == 65001) {
-		return Lucene::StringUtils::toUnicode(source_str);
-	}
-#ifdef WIN32_LEAN_AND_MEAN
-	int src_len = static_cast<int>(source_str.size());
-    int dest_len = MultiByteToWideChar(sourceCharsetInfo.codePage, 0, source_str.c_str(), src_len, nullptr, 0);
-
-	
-	if (!dest_len)
-		return L"";
-	
-	wstring result{ L"" };
-	unique_ptr<wchar_t[]> pRes = make_unique<wchar_t[]>(dest_len);
-	{
-		wchar_t* buffer = pRes.get();
-		if (!MultiByteToWideChar(sourceCharsetInfo.codePage, 0, source_str.c_str(), src_len, buffer, dest_len))
-		{
-			throw runtime_error("Cannot convert string to Unicode");
-		}
-		result.assign(buffer, dest_len);
-	}
-	return result;
-#else
-	return Lucene::StringUtils::toUnicode(toUtf8(source_str));
-#endif
-}
 
 string string_to_hex(const string& input)
 {

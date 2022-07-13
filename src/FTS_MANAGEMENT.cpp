@@ -515,6 +515,16 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 	FTSIndexRepositoryPtr indexRepository{nullptr};
 	LuceneAnalyzerFactory analyzerFactory;
 
+	void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
+		char* name, unsigned nameSize)
+	{
+		// Forced internal request encoding to UTF8
+		memset(name, 0, nameSize);
+
+		const char charset[5] = "UTF8";
+		strncpy(name, charset, sizeof(charset));
+	}
+
 	FB_UDR_EXECUTE_PROCEDURE
 	{
 		AutoRelease<IAttachment> att(context->getAttachment(status));
@@ -565,8 +575,8 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 			writer->deleteAll();
 			writer->commit();
 
-			const char* fbCharset = context->getClientCharSet();
-			FBStringEncoder fbStringEncoder(fbCharset);
+			//const char* fbCharset = context->getClientCharSet();
+			//FBStringEncoder fbStringEncoder(fbCharset);
 
 			for (const auto& segment : ftsIndex->segments) {
 				if (segment->fieldName != "RDB$DB_KEY") {
@@ -636,7 +646,7 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 							if (!value.empty()) {
 								// re-encode content to Unicode only if the string is non-binary
 								if (!field->isBinary()) {
-									unicodeValue = fbStringEncoder.toUnicode(value);
+									unicodeValue = StringUtils::toUnicode(value);
 								}
 								else {
 									// convert the binary string to a hexadecimal representation
