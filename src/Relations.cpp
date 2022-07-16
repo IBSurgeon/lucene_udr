@@ -318,7 +318,7 @@ namespace LuceneUDR
 		IAttachment* att,
 		ITransaction* tra,
 		const unsigned int sqlDialect,
-		RelationFieldInfoPtr& fieldInfo,
+		const RelationFieldInfoPtr& fieldInfo,
 		const string& relationName,
 		const string& fieldName)
 	{

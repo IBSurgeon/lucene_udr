@@ -422,17 +422,16 @@ WHERE FTS$INDEX_NAME = ? AND FTS$FIELD_NAME = ?
 		/// <param name="att">Firebird attachment</param>
 		/// <param name="tra">Firebird transaction</param>
 		/// <param name="sqlDialect">SQL dialect</param>
-		/// <param name="ftsIndex">Index</param>
+		/// <param name="ftsIndex">Index metadata</param>
 		/// <param name="indexName">Index name</param>
 		/// <param name="withSegments">Fill segments list</param>
 		/// 
-		/// <returns>Index metadata</returns>
 		void getIndex (
 			ThrowStatusWrapper* const status, 
 			IAttachment* const att, 
 			ITransaction* const tra, 
 			const unsigned int sqlDialect, 
-			FTSIndexPtr& ftsIndex,
+			const FTSIndexPtr& ftsIndex,
 			const string& indexName,
 			const bool withSegments = false);
 
@@ -527,7 +526,7 @@ WHERE FTS$INDEX_NAME = ? AND FTS$FIELD_NAME = ?
 			IAttachment* const att,
 			ITransaction* const tra,
 			const unsigned int sqlDialect,
-			FTSIndexSegmentPtr& keyIndexSegment,
+			const FTSIndexSegmentPtr& keyIndexSegment,
 			const string& indexName
 		);
 

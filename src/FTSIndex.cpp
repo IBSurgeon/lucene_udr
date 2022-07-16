@@ -357,17 +357,16 @@ namespace LuceneUDR
 	/// <param name="att">Firebird attachment</param>
 	/// <param name="tra">Firebird transaction</param>
 	/// <param name="sqlDialect">SQL dialect</param>
-	/// <param name="ftsIndex">Index</param>	
+	/// <param name="ftsIndex">Index metadata</param>	
 	/// <param name="indexName">Index name</param>
 	/// <param name="withSegments">Fill segments list</param>
 	/// 
-	/// <returns>Index metadata</returns>
 	void FTSIndexRepository::getIndex (
 		ThrowStatusWrapper* const status,
 		IAttachment* const att,
 		ITransaction* const tra,
 		const unsigned int sqlDialect,
-		FTSIndexPtr& ftsIndex,
+		const FTSIndexPtr& ftsIndex,
 		const string& indexName,
 		const bool withSegments)
 	{	
@@ -722,7 +721,7 @@ namespace LuceneUDR
 		IAttachment* const att,
 		ITransaction* const tra,
 		const unsigned int sqlDialect,
-		FTSIndexSegmentPtr& keyIndexSegment,
+		const FTSIndexSegmentPtr& keyIndexSegment,
 		const string& indexName)
 	{
 		FB_MESSAGE(Input, ThrowStatusWrapper,

@@ -302,7 +302,7 @@ WHERE RDB$RELATION_NAME = ? AND RDB$FIELD_NAME = ?
 			IAttachment* const att,
 			ITransaction* const tra,
 			const unsigned int sqlDialect,
-			RelationFieldInfoPtr& fieldInfo,
+			const RelationFieldInfoPtr& fieldInfo,
 			const string& relationName,
 			const string& fieldName
 		);

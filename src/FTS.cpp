@@ -159,7 +159,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 			throwException(status, "Index name can not be NULL");
 		}
 		const string indexName(in->indexName.str, in->indexName.length);
-
+		
 		string queryStr;
 		if (!in->queryNull) {
 			queryStr.assign(in->query.str, in->query.length);
@@ -179,7 +179,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 
 		const unsigned int sqlDialect = getSqlDialect(status, att);
 
-		auto ftsIndex = make_unique<FTSIndex>();
+		const auto& ftsIndex = make_unique<FTSIndex>();
 		procedure->indexRepository->getIndex(status, att, tra, sqlDialect, ftsIndex, indexName, true);
 
 		// check if directory exists for index
@@ -212,7 +212,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 				}
 			}
 
-			auto keyFieldInfo = make_unique<RelationFieldInfo>();
+			keyFieldInfo = make_unique<RelationFieldInfo>();
 			if (keyFieldName != "RDB$DB_KEY") {
 				procedure->indexRepository->getRelationHelper()->getField(status, att, tra, sqlDialect, keyFieldInfo, ftsIndex->relationName, keyFieldName);
 			}
@@ -237,7 +237,6 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 			out->keyFieldName.length = static_cast<ISC_USHORT>(keyFieldName.length());
 			keyFieldName.copy(out->keyFieldName.str, out->keyFieldName.length);
 
-
 			out->dbKeyNull = true;
 			out->uuidNull = true;
 			out->idNull = true;
@@ -261,54 +260,61 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 
 	FB_UDR_FETCH_PROCEDURE
 	{
-		if (it == scoreDocs.end()) {
-			return false;
-		}
-		ScoreDocPtr scoreDoc = *it;
-		DocumentPtr doc = searcher->doc(scoreDoc->doc);
-
 		try {
-			const string keyValue = StringUtils::toUTF8(doc->get(unicodeKeyFieldName));
-			if (unicodeKeyFieldName == L"RDB$DB_KEY") {
-				// In the Lucene index, the string is stored in hexadecimal form, so let's convert it back to binary format.
-				const string dbKey = hex_to_string(keyValue);
-				out->dbKeyNull = false;
-				out->dbKey.length = static_cast<ISC_USHORT>(dbKey.length());
-				dbKey.copy(out->dbKey.str, out->dbKey.length);
+			if (it == scoreDocs.end()) {
+				return false;
 			}
-			else if (keyFieldInfo->isBinary()) {
-				// In the Lucene index, the string is stored in hexadecimal form, so let's convert it back to binary format.
-				const string uuid = hex_to_string(keyValue);
-				out->uuidNull = false;
-				out->uuid.length = static_cast<ISC_USHORT>(uuid.length());
-				uuid.copy(out->uuid.str, out->uuid.length);
+			ScoreDocPtr scoreDoc = *it;
+			DocumentPtr doc = searcher->doc(scoreDoc->doc);
+
+			try {
+				const string keyValue = StringUtils::toUTF8(doc->get(unicodeKeyFieldName));
+				if (unicodeKeyFieldName == L"RDB$DB_KEY") {
+					// In the Lucene index, the string is stored in hexadecimal form, so let's convert it back to binary format.
+					const string dbKey = hex_to_string(keyValue);
+					out->dbKeyNull = false;
+					out->dbKey.length = static_cast<ISC_USHORT>(dbKey.length());
+					dbKey.copy(out->dbKey.str, out->dbKey.length);
+				}
+				else if (keyFieldInfo->isBinary()) {
+					// In the Lucene index, the string is stored in hexadecimal form, so let's convert it back to binary format.
+					const string uuid = hex_to_string(keyValue);
+					out->uuidNull = false;
+					out->uuid.length = static_cast<ISC_USHORT>(uuid.length());
+					uuid.copy(out->uuid.str, out->uuid.length);
+				}
+				else if (keyFieldInfo->isInt()) {
+					out->idNull = false;
+					out->id = std::stoll(keyValue);
+				}
 			}
-			else if (keyFieldInfo->isInt()) {
-				out->idNull = false;
-				out->id = std::stoll(keyValue);
+			catch (invalid_argument& e) {
+				throwException(status, e.what());
 			}
-		}
-		catch (invalid_argument& e) {
-			throwException(status, e.what());
-		}
 
-		out->scoreNull = false;
-		out->score = scoreDoc->score;
+			out->scoreNull = false;
+			out->score = scoreDoc->score;
 
-		if (explainFlag) {
-			out->explanationNull = false;
-			const auto explanation = searcher->explain(query, scoreDoc->doc);
-			const string explanationStr = StringUtils::toUTF8(explanation->toString());
-			AutoRelease<IBlob> blob(att->createBlob(status, tra, &out->explanation, 0, nullptr));
-			BlobUtils::setString(status, blob, explanationStr);
-			blob->close(status);
-		}
-		else {
-			out->explanationNull = true;
-		}
+			if (explainFlag) {
+				out->explanationNull = false;
+				const auto explanation = searcher->explain(query, scoreDoc->doc);
+				const string explanationStr = StringUtils::toUTF8(explanation->toString());
+				AutoRelease<IBlob> blob(att->createBlob(status, tra, &out->explanation, 0, nullptr));
+				BlobUtils::setString(status, blob, explanationStr);
+				blob->close(status);
+			}
+			else {
+				out->explanationNull = true;
+			}
 
-		++it;
-		return true;
+			++it;
+
+			return true;
+		}
+		catch (LuceneException& e) {
+			const string error_message = StringUtils::toUTF8(e.getError());
+			throwException(status, error_message.c_str());
+		}
 	}
 FB_UDR_END_PROCEDURE
 
