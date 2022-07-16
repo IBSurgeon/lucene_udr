@@ -308,13 +308,12 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 			}
 
 			++it;
-
-			return true;
 		}
 		catch (LuceneException& e) {
 			const string error_message = StringUtils::toUTF8(e.getError());
 			throwException(status, error_message.c_str());
 		}
+		return true;
 	}
 FB_UDR_END_PROCEDURE
 
