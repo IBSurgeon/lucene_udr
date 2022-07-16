@@ -714,14 +714,15 @@ namespace LuceneUDR
 	/// <param name="att">Firebird attachment</param>
 	/// <param name="tra">Firebird transaction</param>
 	/// <param name="sqlDialect">SQL dialect</param>
+	/// <param name="keyIndexSegment">Key index field</param>
 	/// <param name="indexName">Index name</param>
 	/// 
-	/// <returns>Returns segment with key field.</returns>
-	FTSIndexSegmentPtr FTSIndexRepository::getKeyIndexField(
+	void FTSIndexRepository::getKeyIndexField(
 		ThrowStatusWrapper* const status,
 		IAttachment* const att,
 		ITransaction* const tra,
 		const unsigned int sqlDialect,
+		FTSIndexSegmentPtr& keyIndexSegment,
 		const string& indexName)
 	{
 		FB_MESSAGE(Input, ThrowStatusWrapper,
@@ -757,7 +758,6 @@ namespace LuceneUDR
 			0
 		));
 		bool foundFlag = false;
-		auto keyIndexSegment = make_unique<FTSIndexSegment>();
 		if (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
 			keyIndexSegment->indexName.assign(output->indexName.str, output->indexName.length);
 			keyIndexSegment->fieldName.assign(output->fieldName.str, output->fieldName.length);
@@ -773,8 +773,6 @@ namespace LuceneUDR
 			const string error_message = string_format(R"(Key field not exists in index "%s".)"s, indexName);
 			throwException(status, error_message.c_str());
 		}
-
-		return std::move(keyIndexSegment);
 	}
 
 	/// <summary>

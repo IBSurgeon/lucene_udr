@@ -519,14 +519,15 @@ WHERE FTS$INDEX_NAME = ? AND FTS$FIELD_NAME = ?
 		/// <param name="att">Firebird attachment</param>
 		/// <param name="tra">Firebird transaction</param>
 		/// <param name="sqlDialect">SQL dialect</param>
+		/// <param name="ftsIndexSegment">Key index field</param>
 		/// <param name="indexName">Index name</param>
 		/// 
-		/// <returns>Returns segment with key field.</returns>
-		FTSIndexSegmentPtr getKeyIndexField (
+		void getKeyIndexField (
 			ThrowStatusWrapper* const status,
 			IAttachment* const att,
 			ITransaction* const tra,
 			const unsigned int sqlDialect,
+			FTSIndexSegmentPtr& keyIndexSegment,
 			const string& indexName
 		);
 
