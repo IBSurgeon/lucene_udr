@@ -1,6 +1,6 @@
 = IBSurgeon Full Text Search UDR
 :doctype: book
-:sectnum
+:sectnum:
 :sectanchors:
 :toc: left
 :toclevels: 3
