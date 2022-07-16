@@ -172,7 +172,8 @@ FB_UDR_BEGIN_PROCEDURE(createIndex)
 		}
 
 		const auto& relationHelper = procedure->indexRepository->getRelationHelper();
-		const auto relationInfo = relationHelper->getRelationInfo(status, att, tra, sqlDialect, relationName);
+		auto relationInfo = make_unique<RelationInfo>();
+		relationHelper->getRelationInfo(status, att, tra, sqlDialect, relationInfo, relationName);
 
 
 		procedure->indexRepository->createIndex(status, att, tra, sqlDialect, indexName, relationName, analyzerName, description);

@@ -27,15 +27,16 @@ namespace LuceneUDR
 	/// <param name="att">Firebird attachment</param>
 	/// <param name="tra">Firebird transaction</param>
 	/// <param name="sqlDialect">SQL dialect</param>
+	/// <param name="relationInfo">Information about the relation</param>
 	/// <param name="relationName">Relation name</param>
 	/// 
-	/// <returns>Returns information about the relation.</returns>
-	RelationInfoPtr RelationHelper::getRelationInfo(
-		ThrowStatusWrapper* status,
-		IAttachment* att,
-		ITransaction* tra,
+	void RelationHelper::getRelationInfo(
+		ThrowStatusWrapper* const status,
+		IAttachment* const att,
+		ITransaction* const tra,
 		const unsigned int sqlDialect,
-		const string& relationName) 
+		RelationInfoPtr& relationInfo,
+		const string& relationName)
 	{
 		FB_MESSAGE(Input, ThrowStatusWrapper,
 			(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
@@ -70,8 +71,6 @@ namespace LuceneUDR
 			0
 		));
 
-		auto relationInfo = make_unique<RelationInfo>();
-
 		bool foundFlag = false;
 		if (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
 			foundFlag = true;
@@ -85,8 +84,6 @@ namespace LuceneUDR
 			const string error_message = string_format(R"(Relation "%s" not exists)"s, relationName);
 			throwException(status, error_message.c_str());
 		}
-
-		return std::move(relationInfo);
 	}
 
 	/// <summary>
