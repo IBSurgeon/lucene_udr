@@ -133,7 +133,8 @@ FB_UDR_BEGIN_PROCEDURE(getIndexStatistics)
 
 		try {
 			// check for index existence
-			auto ftsIndex = procedure->indexRepository->getIndex(status, att, tra, sqlDialect, indexName);
+			auto ftsIndex = make_unique<FTSIndex>();
+			procedure->indexRepository->getIndex(status, att, tra, sqlDialect, ftsIndex, indexName);
 
 			out->analyzerNameNull = false;
 			out->analyzerName.length = static_cast<ISC_USHORT>(ftsIndex->analyzer.length());

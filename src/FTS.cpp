@@ -179,7 +179,8 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 
 		const unsigned int sqlDialect = getSqlDialect(status, att);
 
-		const auto& ftsIndex = procedure->indexRepository->getIndex(status, att, tra, sqlDialect, indexName, true);
+		auto ftsIndex = make_unique<FTSIndex>();
+		procedure->indexRepository->getIndex(status, att, tra, sqlDialect, ftsIndex, indexName, true);
 
 		// check if directory exists for index
 		const auto& indexDirectoryPath = ftsDirectoryPath / indexName;

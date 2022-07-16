@@ -357,15 +357,17 @@ namespace LuceneUDR
 	/// <param name="att">Firebird attachment</param>
 	/// <param name="tra">Firebird transaction</param>
 	/// <param name="sqlDialect">SQL dialect</param>
+	/// <param name="ftsIndex">Index</param>	
 	/// <param name="indexName">Index name</param>
 	/// <param name="withSegments">Fill segments list</param>
 	/// 
 	/// <returns>Index metadata</returns>
-	FTSIndexPtr FTSIndexRepository::getIndex (
-		ThrowStatusWrapper* const status, 
-		IAttachment* const att, 
-		ITransaction* const tra, 
-		const unsigned int sqlDialect, 
+	void FTSIndexRepository::getIndex (
+		ThrowStatusWrapper* const status,
+		IAttachment* const att,
+		ITransaction* const tra,
+		const unsigned int sqlDialect,
+		FTSIndexPtr& ftsIndex,
 		const string& indexName,
 		const bool withSegments)
 	{	
@@ -405,7 +407,6 @@ namespace LuceneUDR
 			0
 		));
 
-		auto ftsIndex = make_unique<FTSIndex>();
 		bool foundFlag = false;
 		if (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
 			foundFlag = true;
@@ -428,7 +429,6 @@ namespace LuceneUDR
 			fillIndexFields(status, att, tra, sqlDialect, indexName, ftsIndex->segments);
 		}
 
-		return std::move(ftsIndex);
 	}
 
 	/// <summary>
@@ -820,8 +820,8 @@ namespace LuceneUDR
 		input->boostNull = boostNull;
         input->boost = boost;
 
-
-		auto index = getIndex(status, att, tra, sqlDialect, indexName);
+		auto ftsIndex = make_unique<FTSIndex>();
+		getIndex(status, att, tra, sqlDialect, ftsIndex, indexName);
 
 		// Checking whether the key field exists in the index.
 		if (key && hasKeyIndexField(status, att, tra, sqlDialect, indexName)) {
@@ -837,8 +837,8 @@ namespace LuceneUDR
 
 		if (fieldName != "RDB$DB_KEY") {
 			// Checking whether the field exists in relation.
-			if (!m_relationHelper->fieldExists(status, att, tra, sqlDialect, index->relationName, fieldName)) {
-				const string error_message = string_format(R"(Field "%s" not exists in relation "%s".)"s, fieldName, index->relationName);
+			if (!m_relationHelper->fieldExists(status, att, tra, sqlDialect, ftsIndex->relationName, fieldName)) {
+				const string error_message = string_format(R"(Field "%s" not exists in relation "%s".)"s, fieldName, ftsIndex->relationName);
 				throwException(status, error_message.c_str());
 			}
 		}
@@ -854,7 +854,7 @@ namespace LuceneUDR
 			nullptr,
 			nullptr
 		);
-		if (index->status != "N") {
+		if (ftsIndex->status != "N") {
 			// set the status that the index metadata has been updated
 			setIndexStatus(status, att, tra, sqlDialect, indexName, "U");
 		}
