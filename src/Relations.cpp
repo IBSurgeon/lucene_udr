@@ -309,15 +309,16 @@ namespace LuceneUDR
 	/// <param name="att">Firebird attachment</param>
 	/// <param name="tra">Firebird transaction</param>
 	/// <param name="sqlDialect">SQL dialect</param>
+	/// <param name="fieldInfo">Information about the field</param>
 	/// <param name="relationName">Relation name</param>
 	/// <param name="fieldName">Field name</param>
 	/// 
-	/// <returns>Returns information about the field.</returns>
-	RelationFieldInfoPtr RelationHelper::getField(
+	void RelationHelper::getField(
 		ThrowStatusWrapper* status,
 		IAttachment* att,
 		ITransaction* tra,
 		const unsigned int sqlDialect,
+		RelationFieldInfoPtr& fieldInfo,
 		const string& relationName,
 		const string& fieldName)
 	{
@@ -366,7 +367,6 @@ namespace LuceneUDR
 			0
 		));
 
-		auto fieldInfo = make_unique<RelationFieldInfo>();
 		bool foundFlag = false;
 		if (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
 			foundFlag = true;
@@ -388,7 +388,6 @@ namespace LuceneUDR
 			throwException(status, error_message.c_str());
 		}
 
-		return std::move(fieldInfo);
 	}
 
 	/// <summary>

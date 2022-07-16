@@ -217,7 +217,8 @@ FB_UDR_BEGIN_PROCEDURE(createIndex)
 			}
 		}
 		else {
-			const auto keyFieldInfo = relationHelper->getField(status, att, tra, sqlDialect, relationName, keyFieldName);
+			auto keyFieldInfo = make_unique<RelationFieldInfo>();
+			relationHelper->getField(status, att, tra, sqlDialect, keyFieldInfo, relationName, keyFieldName);
 		    // check field type
 			// Supported types SMALLINT, INTEGER, BIGINT, CHAR(16) CHARACTER SET OCTETS, BINARY(16) 
 			if (!(keyFieldInfo->isInt() || (keyFieldInfo->isFixedChar() && keyFieldInfo->isBinary() && keyFieldInfo->fieldLength == 16))) {

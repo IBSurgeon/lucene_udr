@@ -212,11 +212,11 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 				}
 			}
 
+			auto keyFieldInfo = make_unique<RelationFieldInfo>();
 			if (keyFieldName != "RDB$DB_KEY") {
-				keyFieldInfo = procedure->indexRepository->getRelationHelper()->getField(status, att, tra, sqlDialect, ftsIndex->relationName, keyFieldName);
+				procedure->indexRepository->getRelationHelper()->getField(status, att, tra, sqlDialect, keyFieldInfo, ftsIndex->relationName, keyFieldName);
 			}
 			else {
-				keyFieldInfo = make_unique<RelationFieldInfo>();
 				keyFieldInfo->initDB_KEYField(ftsIndex->relationName);
 			}
 

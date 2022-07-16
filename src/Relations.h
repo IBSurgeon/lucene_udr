@@ -293,15 +293,16 @@ WHERE RDB$RELATION_NAME = ? AND RDB$FIELD_NAME = ?
 		/// <param name="att">Firebird attachment</param>
 		/// <param name="tra">Firebird transaction</param>
 		/// <param name="sqlDialect">SQL dialect</param>
+		/// <param name="fieldInfo">Information about the field</param>
 		/// <param name="relationName">Relation name</param>
 		/// <param name="fieldName">Field name</param>
 		/// 
-		/// <returns>Returns information about the field.</returns>
-		RelationFieldInfoPtr getField(
+		void getField(
 			ThrowStatusWrapper* const status,
 			IAttachment* const att,
 			ITransaction* const tra,
 			const unsigned int sqlDialect,
+			RelationFieldInfoPtr& fieldInfo,
 			const string& relationName,
 			const string& fieldName
 		);
