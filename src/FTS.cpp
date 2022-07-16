@@ -698,8 +698,8 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 		// Forced internal request encoding to UTF8
 		memset(name, 0, nameSize);
 		
-		const char charset[5] = "UTF8";
-		strncpy(name, charset, sizeof(charset));
+		const string charset = "UTF8";
+		charset.copy(name, charset.length());
 	}
 
 	FB_UDR_EXECUTE_PROCEDURE
