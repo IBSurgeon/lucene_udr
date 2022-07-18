@@ -153,6 +153,16 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 	FTSIndexRepositoryPtr indexRepository;
 	LuceneAnalyzerFactory analyzerFactory;
 
+	void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
+		char* name, unsigned nameSize)
+	{
+		// Forced internal request encoding to UTF8
+		memset(name, 0, nameSize);
+
+		const string charset = "UTF8";
+		charset.copy(name, charset.length());
+	}
+
 	FB_UDR_EXECUTE_PROCEDURE
 	{
 		if (in->indexNameNull) {
@@ -342,6 +352,16 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogByDdKey)
 	AutoRelease<IMessageMetadata> inputMetadata;
 	AutoRelease<IStatement> appendLogStmt;
 
+	void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
+		char* name, unsigned nameSize)
+	{
+		// Forced internal request encoding to UTF8
+		memset(name, 0, nameSize);
+
+		const string charset = "UTF8";
+		charset.copy(name, charset.length());
+	}
+
     FB_UDR_EXECUTE_PROCEDURE
 	{
 		if (in->relationNameNull) {
@@ -449,6 +469,16 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogById)
 
 	AutoRelease<IMessageMetadata> inputMetadata;
 	AutoRelease<IStatement> appendLogStmt;
+
+	void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
+		char* name, unsigned nameSize)
+	{
+		// Forced internal request encoding to UTF8
+		memset(name, 0, nameSize);
+
+		const string charset = "UTF8";
+		charset.copy(name, charset.length());
+	}
 
 	FB_UDR_EXECUTE_PROCEDURE
 	{
@@ -558,6 +588,16 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogByUuid)
 	AutoRelease<IMessageMetadata> inputMetadata;
 	AutoRelease<IStatement> appendLogStmt;
 
+	void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
+		char* name, unsigned nameSize)
+	{
+		// Forced internal request encoding to UTF8
+		memset(name, 0, nameSize);
+
+		const string charset = "UTF8";
+		charset.copy(name, charset.length());
+	}
+
 	FB_UDR_EXECUTE_PROCEDURE
 	{
 		if (in->relationNameNull) {
@@ -649,9 +689,18 @@ ENGINE UDR;
 ***/
 FB_UDR_BEGIN_PROCEDURE(ftsClearLog)
 
+    void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
+		char* name, unsigned nameSize)
+	{
+		// Forced internal request encoding to UTF8
+		memset(name, 0, nameSize);
+
+		const string charset = "UTF8";
+		charset.copy(name, charset.length());
+	}
+
 	FB_UDR_EXECUTE_PROCEDURE
 	{
-
 		AutoRelease<IAttachment> att(context->getAttachment(status));
 		AutoRelease<ITransaction> tra(context->getTransaction(status));
 

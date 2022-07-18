@@ -68,6 +68,16 @@ FB_UDR_BEGIN_FUNCTION(bestFragementHighligh)
 
 	LuceneAnalyzerFactory analyzerFactory;
 
+	void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
+		char* name, unsigned nameSize)
+	{
+		// Forced internal request encoding to UTF8
+		memset(name, 0, nameSize);
+
+		const string charset = "UTF8";
+		charset.copy(name, charset.length());
+	}
+
 	FB_UDR_EXECUTE_FUNCTION
 	{
 		AutoRelease<IAttachment> att(context->getAttachment(status));
@@ -184,6 +194,16 @@ FB_UDR_BEGIN_PROCEDURE(bestFragementsHighligh)
 	}
 
 	LuceneAnalyzerFactory analyzerFactory;
+
+	void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
+		char* name, unsigned nameSize)
+	{
+		// Forced internal request encoding to UTF8
+		memset(name, 0, nameSize);
+
+		const string charset = "UTF8";
+		charset.copy(name, charset.length());
+	}
 
 	FB_UDR_EXECUTE_PROCEDURE
 	{

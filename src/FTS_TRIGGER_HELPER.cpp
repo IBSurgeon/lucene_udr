@@ -68,6 +68,16 @@ FB_UDR_BEGIN_PROCEDURE(ftsMakeTrigger)
 
 	FTSIndexRepositoryPtr indexRepository{nullptr};
 
+	void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
+		char* name, unsigned nameSize)
+	{
+		// Forced internal request encoding to UTF8
+		memset(name, 0, nameSize);
+
+		const string charset = "UTF8";
+		charset.copy(name, charset.length());
+	}
+
 	FB_UDR_EXECUTE_PROCEDURE
 	{
 		if (in->relationNameNull) {

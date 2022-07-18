@@ -135,6 +135,16 @@ FB_UDR_BEGIN_PROCEDURE(createIndex)
 	FTSIndexRepositoryPtr indexRepository{nullptr};
 	LuceneAnalyzerFactory analyzerFactory;
 
+	void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
+		char* name, unsigned nameSize)
+	{
+		// Forced internal request encoding to UTF8
+		memset(name, 0, nameSize);
+
+		const string charset = "UTF8";
+		charset.copy(name, charset.length());
+	}
+
 	FB_UDR_EXECUTE_PROCEDURE
 	{
 		if (in->indexNameNull) {
@@ -256,6 +266,16 @@ FB_UDR_BEGIN_PROCEDURE(dropIndex)
 
 	FTSIndexRepositoryPtr indexRepository{nullptr};
 
+	void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
+		char* name, unsigned nameSize)
+	{
+		// Forced internal request encoding to UTF8
+		memset(name, 0, nameSize);
+
+		const string charset = "UTF8";
+		charset.copy(name, charset.length());
+	}
+
 	FB_UDR_EXECUTE_PROCEDURE
 	{
 		if (in->index_nameNull) {
@@ -306,6 +326,16 @@ FB_UDR_BEGIN_PROCEDURE(setIndexActive)
 	}
 
 	FTSIndexRepositoryPtr indexRepository{nullptr};
+
+	void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
+		char* name, unsigned nameSize)
+	{
+		// Forced internal request encoding to UTF8
+		memset(name, 0, nameSize);
+
+		const string charset = "UTF8";
+		charset.copy(name, charset.length());
+	}
 
 	FB_UDR_EXECUTE_PROCEDURE
 	{
@@ -368,6 +398,16 @@ FB_UDR_BEGIN_PROCEDURE(addIndexField)
 
 	FTSIndexRepositoryPtr indexRepository{nullptr};
 
+	void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
+		char* name, unsigned nameSize)
+	{
+		// Forced internal request encoding to UTF8
+		memset(name, 0, nameSize);
+
+		const string charset = "UTF8";
+		charset.copy(name, charset.length());
+	}
+
 	FB_UDR_EXECUTE_PROCEDURE
 	{
 		if (in->index_nameNull) {
@@ -417,6 +457,16 @@ FB_UDR_BEGIN_PROCEDURE(dropIndexField)
 	}
 
 	FTSIndexRepositoryPtr indexRepository{nullptr};
+
+	void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
+		char* name, unsigned nameSize)
+	{
+		// Forced internal request encoding to UTF8
+		memset(name, 0, nameSize);
+
+		const string charset = "UTF8";
+		charset.copy(name, charset.length());
+	}
 
 	FB_UDR_EXECUTE_PROCEDURE
 	{
@@ -468,6 +518,16 @@ FB_UDR_BEGIN_PROCEDURE(setIndexFieldBoost)
 	}
 
 	FTSIndexRepositoryPtr indexRepository{nullptr};
+
+	void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
+		char* name, unsigned nameSize)
+	{
+		// Forced internal request encoding to UTF8
+		memset(name, 0, nameSize);
+
+		const string charset = "UTF8";
+		charset.copy(name, charset.length());
+	}
 
 	FB_UDR_EXECUTE_PROCEDURE
 	{
@@ -722,6 +782,16 @@ FB_UDR_BEGIN_PROCEDURE(optimizeIndex)
 
 	FTSIndexRepositoryPtr indexRepository{nullptr};
 	LuceneAnalyzerFactory analyzerFactory;
+
+	void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
+		char* name, unsigned nameSize)
+	{
+		// Forced internal request encoding to UTF8
+		memset(name, 0, nameSize);
+
+		const string charset = "UTF8";
+		charset.copy(name, charset.length());
+	}
 
 	FB_UDR_EXECUTE_PROCEDURE
 	{
