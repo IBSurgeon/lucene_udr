@@ -20,11 +20,8 @@
 #include "EncodeUtils.h"
 #include "LuceneHeaders.h"
 #include "FileUtils.h"
-#include "QueryScorer.h"
 #include "LuceneAnalyzerFactory.h"
-#include <string_view>
 #include <sstream>
-#include <vector>
 #include <memory>
 #include <algorithm>
 
@@ -40,7 +37,7 @@ std::string rtrim(const std::string& s)
 	return (end == std::string::npos) ? "" : s.substr(0, end + 1);
 }
 
-const string queryEscape(const string_view& query)
+const string queryEscape(const string& query)
 {
 	stringstream ss;
 	for (const auto ch : query) {

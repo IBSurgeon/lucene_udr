@@ -18,24 +18,11 @@
 #include <map>
 #include <list>
 #include <string>
-#include <functional>
-#include <stdexcept>
 #include "LuceneHeaders.h"
-#include "WhitespaceAnalyzer.h"
-#include "ArabicAnalyzer.h"
-#include "BrazilianAnalyzer.h"
-#include "CJKAnalyzer.h"
-#include "ChineseAnalyzer.h"
-#include "CzechAnalyzer.h"
-#include "DutchAnalyzer.h"
-#include "FrenchAnalyzer.h"
-#include "GermanAnalyzer.h"
-#include "GreekAnalyzer.h"
-#include "PersianAnalyzer.h"
-#include "RussianAnalyzer.h"
 
 using namespace std;
 using namespace Lucene;
+using namespace Firebird;
 
 namespace LuceneUDR {
 
@@ -60,61 +47,18 @@ namespace LuceneUDR {
 
 	static const string DEFAULT_ANALYZER_NAME = "STANDARD";
 
-	class LuceneAnalyzerFactory {
+	class LuceneAnalyzerFactory final {
 	private:
-		map<string, function<AnalyzerPtr()>, ci_more> factories;
+		map<string, function<AnalyzerPtr()>, ci_more> m_factories;
 	public:
 
-		LuceneAnalyzerFactory()
-			: factories()
-		{
-			factories.insert(
-				{
-					{ "STANDARD", []() -> AnalyzerPtr { return newLucene<StandardAnalyzer>(LuceneVersion::LUCENE_CURRENT); } },
-					{ "SIMPLE", []() -> AnalyzerPtr { return newLucene<SimpleAnalyzer>(); } },
-					{ "WHITESPACE", []() -> AnalyzerPtr { return newLucene<WhitespaceAnalyzer>(); } },
-					{ "KEYWORD", []() -> AnalyzerPtr { return newLucene<KeywordAnalyzer>(); } },
-					{ "STOP", []() -> AnalyzerPtr { return newLucene<StopAnalyzer>(LuceneVersion::LUCENE_CURRENT); } },
-					{ "ARABIC", []() -> AnalyzerPtr { return newLucene<ArabicAnalyzer>(LuceneVersion::LUCENE_CURRENT); } },
-					{ "BRAZILIAN", []() -> AnalyzerPtr { return newLucene<BrazilianAnalyzer>(LuceneVersion::LUCENE_CURRENT); } },
-					{ "CHINESE", []() -> AnalyzerPtr { return newLucene<ChineseAnalyzer>(); } },
-					{ "CJK", []() -> AnalyzerPtr { return newLucene<CJKAnalyzer>(LuceneVersion::LUCENE_CURRENT); } },
-					{ "CZECH", []() -> AnalyzerPtr { return newLucene<CzechAnalyzer>(LuceneVersion::LUCENE_CURRENT); } },
-					{ "DUTCH", []() -> AnalyzerPtr { return newLucene<DutchAnalyzer>(LuceneVersion::LUCENE_CURRENT); } },
-					{ "ENGLISH", []() -> AnalyzerPtr { return newLucene<StandardAnalyzer>(LuceneVersion::LUCENE_CURRENT); } },
-					{ "FRENCH", []() -> AnalyzerPtr { return newLucene<FrenchAnalyzer>(LuceneVersion::LUCENE_CURRENT); } },
-					{ "GERMAN", []() -> AnalyzerPtr { return newLucene<GermanAnalyzer>(LuceneVersion::LUCENE_CURRENT); } },
-					{ "GREEK", []() -> AnalyzerPtr { return newLucene<GreekAnalyzer>(LuceneVersion::LUCENE_CURRENT); } },
-					{ "PERSIAN", []() -> AnalyzerPtr { return newLucene<PersianAnalyzer>(LuceneVersion::LUCENE_CURRENT); } },
-					{ "RUSSIAN", []() -> AnalyzerPtr { return newLucene<RussianAnalyzer>(LuceneVersion::LUCENE_CURRENT); } }
-				}
-			);
-		}
+		LuceneAnalyzerFactory();
 
-		bool hasAnalyzer(const string &analyzerName)
-		{
-			return (factories.find(analyzerName) != factories.end());
-		}
+		bool hasAnalyzer(const string& analyzerName);
 
-		AnalyzerPtr createAnalyzer(ThrowStatusWrapper* status, const string &analyzerName)
-		{
-			auto pFactory = factories.find(analyzerName);
-			if (pFactory == factories.end()) {
-				string error_message = string_format(R"(Analyzer "%s" not found.)"s, analyzerName);
-				throwException(status, error_message.c_str());
-			}
-			auto factory = pFactory->second;
-			return factory();
-		}
+		AnalyzerPtr createAnalyzer(ThrowStatusWrapper* status, const string& analyzerName);
 
-		list<string> getAnalyzerNames()
-		{
-			list<string> names;
-			for (const auto& pFactory : factories) {
-				names.push_back(pFactory.first);
-			}
-			return names;
-		}
+		list<string> getAnalyzerNames();
 
 	};
 

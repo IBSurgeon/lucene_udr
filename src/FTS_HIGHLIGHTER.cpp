@@ -14,19 +14,12 @@
 #include "LuceneUdr.h"
 #include "FTSIndex.h"
 #include "FBUtils.h"
-#include "EncodeUtils.h"
 #include "LuceneHeaders.h"
-#include "FileUtils.h"
 #include "LuceneAnalyzerFactory.h"
 #include "SimpleHTMLFormatter.h"
 #include "QueryScorer.h"
 #include "Highlighter.h"
 #include "SimpleSpanFragmenter.h"
-#include "LuceneAnalyzerFactory.h"
-#include <sstream>
-#include <vector>
-#include <memory>
-#include <algorithm>
 
 using namespace Firebird;
 using namespace Lucene;

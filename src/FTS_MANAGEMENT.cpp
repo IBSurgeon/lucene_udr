@@ -20,10 +20,8 @@
 #include "FBFieldInfo.h"
 #include "LuceneHeaders.h"
 #include "FileUtils.h"
-#include "QueryScorer.h"
 #include "LuceneAnalyzerFactory.h"
 #include <sstream>
-#include <vector>
 #include <memory>
 #include <algorithm>
 #include <filesystem> 

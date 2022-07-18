@@ -118,6 +118,20 @@ namespace LuceneUDR
 		return ss.str();
 	}
 
+	const string FTSTrigger::getHeader(unsigned int sqlDialect)
+	{
+		string triggerHeader =
+			"CREATE OR ALTER TRIGGER " + escapeMetaName(sqlDialect, triggerName) + " FOR " + escapeMetaName(sqlDialect, relationName) + "\n"
+			"ACTIVE AFTER " + triggerEvents + "\n"
+			"POSITION " + std::to_string(position) + "\n";
+		return triggerHeader;
+	}
+
+	const string FTSTrigger::getScript(unsigned int sqlDialect)
+	{
+		return getHeader(sqlDialect) + triggerSource;
+	}
+
 	/// <summary>
 	/// Create a new full-text index. 
 	/// </summary>
@@ -397,15 +411,20 @@ namespace LuceneUDR
 				IStatement::PREPARE_PREFETCH_METADATA
 			));
 		}
+
+		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
+		AutoRelease<IMessageMetadata> outputMetadata(output.getMetadata());
+
 		AutoRelease<IResultSet> rs(m_stmt_get_index->openCursor(
 			status,
 			tra,
-			input.getMetadata(),
+			inputMetadata,
 			input.getData(),
-			output.getMetadata(),
+			outputMetadata,
 			0
 		));
 
+		throwException(status, "Stop");
 		bool foundFlag = false;
 		if (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
 			foundFlag = true;

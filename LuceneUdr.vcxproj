@@ -27,6 +27,7 @@
     <ClCompile Include="src\FTS_HIGHLIGHTER.cpp" />
     <ClCompile Include="src\FTS_MANAGEMENT.cpp" />
     <ClCompile Include="src\FTS_STATISTICS.cpp" />
+    <ClCompile Include="src\LuceneAnalyzerFactory.cpp" />
     <ClCompile Include="src\Relations.cpp" />
   </ItemGroup>
   <ItemGroup>

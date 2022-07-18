@@ -80,16 +80,16 @@ namespace LuceneUDR
 	{
 		unsigned int sql_dialect = 1;
 		const unsigned char info_options[] = { isc_info_db_sql_dialect, isc_info_end };
-		unsigned char buffer[256];
+		ISC_UCHAR buffer[256];
 		att->getInfo(status, sizeof(info_options), info_options, sizeof(buffer), buffer);
 		/* Extract the values returned in the result buffer. */
-		for (unsigned char* p = buffer; *p != isc_info_end; ) {
+		for (ISC_UCHAR* p = buffer; *p != isc_info_end; ) {
 			const unsigned char item = *p++;
-			const int length = isc_vax_integer(reinterpret_cast<ISC_SCHAR*>(p), 2);
+			const ISC_SHORT length = static_cast<ISC_SHORT>(isc_portable_integer(p, 2));
 			p += 2;
 			switch (item) {
 			case isc_info_db_sql_dialect:
-				sql_dialect = isc_vax_integer(reinterpret_cast<ISC_SCHAR*>(p), length);
+				sql_dialect = static_cast<unsigned int>(isc_portable_integer(p, length));
 				break;
 			default:
 				break;

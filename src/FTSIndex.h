@@ -175,19 +175,9 @@ namespace LuceneUDR
 			, triggerSource(aTriggerSource)
 		{}
 
-		const string getHeader(unsigned int sqlDialect)
-		{
-			string triggerHeader =
-				"CREATE OR ALTER TRIGGER " + escapeMetaName(sqlDialect, triggerName) + " FOR " + escapeMetaName(sqlDialect, relationName) + "\n"
-				"ACTIVE AFTER " + triggerEvents + "\n"
-				"POSITION " + std::to_string(position) + "\n";
-			return triggerHeader;
-		}
+		const string getHeader(unsigned int sqlDialect);
 
-		const string getScript(unsigned int sqlDialect)
-		{
-			return getHeader(sqlDialect) + triggerSource;
-		}
+		const string getScript(unsigned int sqlDialect);
 	};
 
 	using FTSTriggerPtr = unique_ptr<FTSTrigger>;

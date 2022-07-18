@@ -15,9 +15,7 @@
 **/
 
 #include "LuceneUdr.h"
-#include "FBUtils.h"
 #include <string>
-#include <sstream>
 #include <list>
 #include <memory>
 

@@ -14,12 +14,7 @@
 #include "LuceneUdr.h"
 #include "FTSIndex.h"
 #include "FBUtils.h"
-#include "EncodeUtils.h"
 #include "LuceneHeaders.h"
-#include "FileUtils.h"
-#include "QueryScorer.h"
-#include <sstream>
-#include <vector>
 #include <memory>
 #include <algorithm>
 

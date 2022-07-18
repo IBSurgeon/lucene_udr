@@ -24,8 +24,6 @@
 #include "FieldInfos.h"
 #include "FieldInfo.h"
 #include "CompoundFileReader.h"
-#include <sstream>
-#include <vector>
 #include <memory>
 #include <algorithm>
 
