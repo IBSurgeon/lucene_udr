@@ -63,12 +63,16 @@ namespace LuceneUDR
 				IStatement::PREPARE_PREFETCH_METADATA
 			));
 		}
+
+		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
+		AutoRelease<IMessageMetadata> outputMetadata(output.getMetadata());
+
 		AutoRelease<IResultSet> rs(m_stmt_get_relation->openCursor(
 			status,
 			tra,
-			input.getMetadata(),
+			inputMetadata,
 			input.getData(),
-			output.getMetadata(),
+			outputMetadata,
 			0
 		));
 
@@ -127,12 +131,16 @@ namespace LuceneUDR
 				IStatement::PREPARE_PREFETCH_METADATA
 			));
 		}
+
+		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
+		AutoRelease<IMessageMetadata> outputMetadata(output.getMetadata());
+
 		AutoRelease<IResultSet> rs(m_stmt_exists_relation->openCursor(
 			status,
 			tra,
-			input.getMetadata(),
+			inputMetadata,
 			input.getData(),
-			output.getMetadata(),
+			outputMetadata,
 			0
 		));
 		bool foundFlag = false;
@@ -195,12 +203,15 @@ namespace LuceneUDR
 			));
 		}
 		
+		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
+		AutoRelease<IMessageMetadata> outputMetadata(output.getMetadata());
+
 		AutoRelease<IResultSet> rs(m_stmt_relation_fields->openCursor(
 			status,
 			tra,
-			input.getMetadata(),
+			inputMetadata,
 			input.getData(),
-			output.getMetadata(),
+			outputMetadata,
 			0
 		));
 
@@ -274,12 +285,15 @@ namespace LuceneUDR
 			));
 		}
 
+		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
+		AutoRelease<IMessageMetadata> outputMetadata(output.getMetadata());
+
 		AutoRelease<IResultSet> rs(m_stmt_pk_fields->openCursor(
 			status,
 			tra,
-			input.getMetadata(),
+			inputMetadata,
 			input.getData(),
-			output.getMetadata(),
+			outputMetadata,
 			0
 		));
 
@@ -359,12 +373,15 @@ namespace LuceneUDR
 			));
 		}
 
+		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
+		AutoRelease<IMessageMetadata> outputMetadata(output.getMetadata());
+
 		AutoRelease<IResultSet> rs(m_stmt_get_field->openCursor(
 			status,
 			tra,
-			input.getMetadata(),
+			inputMetadata,
 			input.getData(),
-			output.getMetadata(),
+			outputMetadata,
 			0
 		));
 
@@ -438,12 +455,16 @@ namespace LuceneUDR
 				IStatement::PREPARE_PREFETCH_METADATA
 			));
 		}
+
+		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
+		AutoRelease<IMessageMetadata> outputMetadata(output.getMetadata());
+
 		AutoRelease<IResultSet> rs(m_stmt_exists_field->openCursor(
 			status,
 			tra,
-			input.getMetadata(),
+			inputMetadata,
 			input.getData(),
-			output.getMetadata(),
+			outputMetadata,
 			0
 		));
 		bool foundFlag = false;

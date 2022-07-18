@@ -18,6 +18,7 @@
 #include "LuceneFiles.h"
 #include "LuceneHeaders.h"
 #include "FileUtils.h"
+#include "IndexFileNames.h"
 #include "SegmentInfos.h"
 #include "SegmentInfo.h"
 #include "IndexFileNameFilter.h"

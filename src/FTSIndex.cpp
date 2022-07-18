@@ -199,13 +199,15 @@ namespace LuceneUDR
 			throwException(status, error_message.c_str());
 		}
 
+		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
+
 		att->execute(
 			status,
 			tra,
 			0,
 			SQL_CREATE_FTS_INDEX,
 			sqlDialect,
-			input.getMetadata(),
+			inputMetadata,
 			input.getData(),
 			nullptr,
 			nullptr
@@ -244,13 +246,15 @@ namespace LuceneUDR
 			throwException(status, error_message.c_str());
 		}
 
+		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
+
 		att->execute(
 			status,
 			tra,
 			0,
 			SQL_DROP_FTS_INDEX,
 			sqlDialect,
-			input.getMetadata(),
+			inputMetadata,
 			input.getData(),
 			nullptr,
 			nullptr
@@ -288,13 +292,15 @@ namespace LuceneUDR
 		input->indexStatus.length = static_cast<ISC_USHORT>(indexStatus.length());
 		indexStatus.copy(input->indexStatus.str, input->indexStatus.length);
 
+		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
+
 		att->execute(
 			status,
 			tra,
 			0,
 			SQL_SET_FTS_INDEX_STATUS,
 			sqlDialect,
-			input.getMetadata(),
+			inputMetadata,
 			input.getData(),
 			nullptr,
 			nullptr
@@ -342,12 +348,16 @@ namespace LuceneUDR
 				IStatement::PREPARE_PREFETCH_METADATA
 			));
 		}
+
+		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
+		AutoRelease<IMessageMetadata> outputMetadata(output.getMetadata());
+
 		AutoRelease<IResultSet> rs(m_stmt_exists_index->openCursor(
 			status,
 			tra,
-			input.getMetadata(),
+			inputMetadata,
 			input.getData(),
-			output.getMetadata(),
+			outputMetadata,
 			0
 		));
 		bool foundFlag = false;
@@ -484,13 +494,15 @@ namespace LuceneUDR
 				sqlDialect,
 				IStatement::PREPARE_PREFETCH_METADATA
 			));
+
+		AutoRelease<IMessageMetadata> outputMetadata(output.getMetadata());
 	
 		AutoRelease<IResultSet> rs(stmt->openCursor(
 			status,
 			tra,
 			nullptr,
 			nullptr,
-			output.getMetadata(),
+			outputMetadata,
 			0
 		));
 
@@ -552,12 +564,14 @@ namespace LuceneUDR
 			IStatement::PREPARE_PREFETCH_METADATA
 		));
 
+		AutoRelease<IMessageMetadata> outputMetadata(output.getMetadata());
+
 		AutoRelease<IResultSet> rs(stmt->openCursor(
 			status,
 			tra,
 			nullptr,
 			nullptr,
-			output.getMetadata(),
+			outputMetadata,
 			0
 		));
 
@@ -638,12 +652,15 @@ namespace LuceneUDR
 				IStatement::PREPARE_PREFETCH_METADATA
 			));
 		}
+		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
+		AutoRelease<IMessageMetadata> outputMetadata(output.getMetadata());
+
 		AutoRelease<IResultSet> rs(m_stmt_index_fields->openCursor(
 			status,
 			tra,
-			input.getMetadata(),
+			inputMetadata,
 			input.getData(),
-			output.getMetadata(),
+			outputMetadata,
 			0
 		));
 		while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
@@ -707,12 +724,15 @@ namespace LuceneUDR
 			IStatement::PREPARE_PREFETCH_METADATA
 		));
 
+		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
+		AutoRelease<IMessageMetadata> outputMetadata(output.getMetadata());
+
 		AutoRelease<IResultSet> rs(stmt->openCursor(
 			status,
 			tra,
-			input.getMetadata(),
+			inputMetadata,
 			input.getData(),
-			output.getMetadata(),
+			outputMetadata,
 			0
 		));
 		bool foundFlag = false;
@@ -767,12 +787,16 @@ namespace LuceneUDR
 				IStatement::PREPARE_PREFETCH_METADATA
 			));
 		}
+
+		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
+		AutoRelease<IMessageMetadata> outputMetadata(output.getMetadata());
+
 		AutoRelease<IResultSet> rs(m_stmt_index_key_field->openCursor(
 			status,
 			tra,
-			input.getMetadata(),
+			inputMetadata,
 			input.getData(),
-			output.getMetadata(),
+			outputMetadata,
 			0
 		));
 		bool foundFlag = false;
@@ -859,13 +883,15 @@ namespace LuceneUDR
 			}
 		}
 
+		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
+
 		att->execute(
 			status,
 			tra,
 			0,
 			SQL_FTS_ADD_INDEX_FIELD,
 			sqlDialect,
-			input.getMetadata(),
+			inputMetadata,
 			input.getData(),
 			nullptr,
 			nullptr
@@ -919,13 +945,15 @@ namespace LuceneUDR
 			throwException(status, error_message.c_str());
 		}
 
+		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
+
 		att->execute(
 			status,
 			tra,
 			0,
 			SQL_FTS_DROP_INDEX_FIELD,
 			sqlDialect,
-			input.getMetadata(),
+			inputMetadata,
 			input.getData(),
 			nullptr,
 			nullptr
@@ -985,13 +1013,15 @@ namespace LuceneUDR
 			throwException(status, error_message.c_str());
 		}
 
+		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
+
 		att->execute(
 			status,
 			tra,
 			0,
 			SQL_FTS_SET_INDEX_FIELD_BOOST,
 			sqlDialect,
-			input.getMetadata(),
+			inputMetadata,
 			input.getData(),
 			nullptr,
 			nullptr
@@ -1047,12 +1077,15 @@ namespace LuceneUDR
 			IStatement::PREPARE_PREFETCH_METADATA
 		));
 
+		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
+		AutoRelease<IMessageMetadata> outputMetadata(output.getMetadata());
+
 		AutoRelease<IResultSet> rs(stmt->openCursor(
 			status,
 			tra,
-			input.getMetadata(),
+			inputMetadata,
 			input.getData(),
-			output.getMetadata(),
+			outputMetadata,
 			0
 		));
 		bool foundFlag = false;
@@ -1103,45 +1136,51 @@ namespace LuceneUDR
 			status,
 			tra,
 			0,
-			"WITH T AS (\n"
-			"  SELECT\n"
-			"  I.FTS$INDEX_NAME,\n"
-			"  MAX(IIF(SEG.FTS$KEY IS TRUE, SEG.FTS$FIELD_NAME, NULL)) OVER(PARTITION BY SEG.FTS$INDEX_NAME) AS FTS$KEY_FIELD_NAME,\n"
-			"  MAX(CASE\n"
-			"	     WHEN SEG.FTS$KEY IS TRUE AND F.RDB$FIELD_TYPE = 14 AND F.RDB$CHARACTER_SET_ID = 1 AND F.RDB$FIELD_LENGTH = 16\n"
-			"	     THEN 'UUID'\n"
-			"	     WHEN SEG.FTS$KEY IS TRUE AND SEG.FTS$FIELD_NAME = 'RDB$DB_KEY'\n"
-			"	     THEN 'DBKEY'\n"
-			"	     WHEN SEG.FTS$KEY IS TRUE AND F.RDB$FIELD_TYPE IN(7, 8, 16) AND F.RDB$FIELD_SCALE = 0\n"
-			"	     THEN 'INT_ID'\n"
-			"	   END) OVER(PARTITION BY SEG.FTS$INDEX_NAME) AS FTS$KEY_FIELD_TYPE,\n"
-			"  SEG.FTS$FIELD_NAME\n"
-			"FROM FTS$INDICES I\n"
-			"JOIN FTS$INDEX_SEGMENTS SEG ON SEG.FTS$INDEX_NAME = I.FTS$INDEX_NAME\n"
-			"LEFT JOIN RDB$RELATION_FIELDS RF ON RF.RDB$RELATION_NAME = I.FTS$RELATION_NAME\n"
-			"                                AND RF.RDB$FIELD_NAME = SEG.FTS$FIELD_NAME\n"
-			"LEFT JOIN RDB$FIELDS F ON F.RDB$FIELD_NAME = RF.RDB$FIELD_SOURCE\n"
-			"WHERE I.FTS$RELATION_NAME = ?\n"
-			"  AND I.FTS$INDEX_STATUS = 'C'\n"
-			"  AND(RF.RDB$FIELD_NAME IS NOT NULL OR SEG.FTS$FIELD_NAME = 'RDB$DB_KEY')\n"
-			")\n"
-			"SELECT DISTINCT\n"
-			"  FTS$KEY_FIELD_NAME,\n"
-			"  TRIM(FTS$KEY_FIELD_TYPE) AS FTS$KEY_FIELD_TYPE,\n"
-			"  FTS$FIELD_NAME\n"
-			"FROM T\n"
-			"WHERE FTS$KEY_FIELD_NAME <> FTS$FIELD_NAME\n"
-			"ORDER BY FTS$KEY_FIELD_NAME",
+			R"SQL(
+WITH T AS (
+SELECT
+    I.FTS$INDEX_NAME,
+    MAX(IIF(SEG.FTS$KEY IS TRUE, SEG.FTS$FIELD_NAME, NULL)) OVER(PARTITION BY SEG.FTS$INDEX_NAME) AS FTS$KEY_FIELD_NAME,
+    MAX(
+    CASE
+      WHEN SEG.FTS$KEY IS TRUE AND F.RDB$FIELD_TYPE = 14 AND F.RDB$CHARACTER_SET_ID = 1 AND F.RDB$FIELD_LENGTH = 16 THEN 'UUID'
+      WHEN SEG.FTS$KEY IS TRUE AND SEG.FTS$FIELD_NAME = 'RDB$DB_KEY' THEN 'DBKEY'
+      WHEN SEG.FTS$KEY IS TRUE AND F.RDB$FIELD_TYPE IN (7, 8, 16) AND F.RDB$FIELD_SCALE = 0 THEN 'INT_ID'
+    END) OVER(PARTITION BY SEG.FTS$INDEX_NAME) AS FTS$KEY_FIELD_TYPE,
+    SEG.FTS$FIELD_NAME
+FROM FTS$INDICES I
+    JOIN FTS$INDEX_SEGMENTS SEG ON
+          SEG.FTS$INDEX_NAME = I.FTS$INDEX_NAME
+    LEFT JOIN RDB$RELATION_FIELDS RF ON
+          RF.RDB$RELATION_NAME = I.FTS$RELATION_NAME AND
+          RF.RDB$FIELD_NAME = SEG.FTS$FIELD_NAME
+    LEFT JOIN RDB$FIELDS F ON
+          F.RDB$FIELD_NAME = RF.RDB$FIELD_SOURCE
+WHERE I.FTS$RELATION_NAME = ? AND
+      I.FTS$INDEX_STATUS = 'C' AND
+      (RF.RDB$FIELD_NAME IS NOT NULL OR SEG.FTS$FIELD_NAME = 'RDB$DB_KEY')
+)
+SELECT DISTINCT
+    FTS$KEY_FIELD_NAME,
+    TRIM(FTS$KEY_FIELD_TYPE) AS FTS$KEY_FIELD_TYPE,
+    FTS$FIELD_NAME
+FROM T
+WHERE FTS$KEY_FIELD_NAME <> FTS$FIELD_NAME
+ORDER BY FTS$KEY_FIELD_NAME
+)SQL",
 			sqlDialect,
 			IStatement::PREPARE_PREFETCH_METADATA
 		));
 
+		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
+		AutoRelease<IMessageMetadata> outputMetadata(output.getMetadata());
+
 		AutoRelease<IResultSet> rs(stmt->openCursor(
 			status,
 			tra,
-			input.getMetadata(),
+			inputMetadata,
 			input.getData(),
-			output.getMetadata(),
+			outputMetadata,
 			0
 		));
 

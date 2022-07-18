@@ -58,6 +58,15 @@
     <ClCompile Include="src\LuceneAnalyzerFactory.cpp">
       <Filter>Source files</Filter>
     </ClCompile>
+    <ClCompile Include="src\FBFieldInfo.cpp">
+      <Filter>Source files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\FBUtils.cpp">
+      <Filter>Source files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\LuceneFiles.cpp">
+      <Filter>Source files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\LuceneUdr.h">

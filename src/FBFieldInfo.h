@@ -16,9 +16,9 @@
 
 #include <string>
 #include <vector>
-#include "FBUtils.h"
-#include "FBAutoPtr.h"
-#include "firebird/UdrCppEngine.h"
+#include <map>
+#include <memory>
+#include "LuceneUdr.h"
 
 using namespace std;
 using namespace Firebird;
@@ -30,14 +30,6 @@ namespace LuceneUDR
 	inline T as(unsigned char* ptr)
 	{
 		return *((T*)ptr);
-	}
-
-	template <typename T>
-	inline string ToString(T tX)
-	{
-		std::ostringstream oStream;
-		oStream << tX;
-		return oStream.str();
 	}
 
 	class FbFieldInfo {
@@ -191,51 +183,10 @@ namespace LuceneUDR
 			}
 		}
 
-		template <class StatusType>
-		string getStringValue(StatusType* status, IAttachment* att, ITransaction* tra, unsigned char* buffer);
+		string getStringValue(ThrowStatusWrapper* status, IAttachment* att, ITransaction* tra, unsigned char* buffer);
 	};
 
-	template <class StatusType>
-	string FbFieldInfo::getStringValue(StatusType* status, IAttachment* att, ITransaction* tra, unsigned char* buffer)
-	{
-		switch (dataType) {
-		case SQL_TEXT:
-		case SQL_VARYING:
-		{
-			string s(getCharValue(buffer), getOctetsLength(buffer));
-			return s;
-		}
-		case SQL_BLOB:
-		{
-			ISC_QUAD blobId = getQuadValue(buffer);
-			AutoRelease<IBlob> blob(att->openBlob(status, tra, &blobId, 0, nullptr));
-			string s = BlobUtils::getString(status, blob);
-			blob->close(status);
-			return s;
-		}
-		case SQL_SHORT:
-		{
-			if (!scale) {
-				return std::to_string(getShortValue(buffer));
-			}
-		}
-		case SQL_LONG:
-		{
-			if (!scale) {
-				return std::to_string(getLongValue(buffer));
-			}
-		}
-		case SQL_INT64:
-		{
-			if (!scale) {
-				return std::to_string(getInt64Value(buffer));
-			}
-		}
-		default:
-			// Other types are not considered yet.
-			return "";
-		}
-	}
+
 
 	using FbFieldInfoPtr = unique_ptr<FbFieldInfo>;
 	using FbFieldInfoVector = vector<FbFieldInfoPtr>;
@@ -243,47 +194,13 @@ namespace LuceneUDR
 	class FbFieldsInfo : public FbFieldInfoVector
 	{
 	private:
-		map<string, unsigned> fieldByNameMap;
+		map<string, unsigned> m_fieldByNameMap;
 	public:
 		FbFieldsInfo() = delete;
 
-		template <class StatusType>
-		FbFieldsInfo(StatusType* status, IMessageMetadata* const meta)
-			: FbFieldInfoVector()
-			, fieldByNameMap()
-		{
-			const auto fieldCount = meta->getCount(status);
-			for (unsigned i = 0; i < fieldCount; i++) {
-				auto field = make_unique<FbFieldInfo>();
-				field->fieldIndex = i;
-				field->nullable = meta->isNullable(status, i);
-				field->fieldName.assign(meta->getField(status, i));
-				field->relationName.assign(meta->getRelation(status, i));
-				field->owner.assign(meta->getOwner(status, i));
-				field->alias.assign(meta->getAlias(status, i));
-				field->dataType = meta->getType(status, i);
-				field->subType = meta->getSubType(status, i);
-				field->length = meta->getLength(status, i);
-				field->scale = meta->getScale(status, i);
-				field->charSet = meta->getCharSet(status, i);
-				field->offset = meta->getOffset(status, i);
-				field->nullOffset = meta->getNullOffset(status, i);
-				this->push_back(std::move(field));
-			}
-			for (unsigned i = 0; i < fieldCount; i++) {
-				const auto& field = this->at(i);
-				fieldByNameMap[field->fieldName] = i;
-			}
-		}
+		FbFieldsInfo(ThrowStatusWrapper* status, IMessageMetadata* const meta);
 
-		int findFieldByName(const string& fieldName)
-		{
-			auto it = fieldByNameMap.find(fieldName);
-			if (it != fieldByNameMap.end()) {
-				return it->second;
-			}
-			return -1;
-		}
+		int findFieldByName(const string& fieldName);
 	};
 
 	using FbFieldsInfoPtr = unique_ptr<FbFieldsInfo>;

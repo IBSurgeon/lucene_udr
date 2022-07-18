@@ -19,6 +19,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\FBFieldInfo.cpp" />
+    <ClCompile Include="src\FBUtils.cpp" />
     <ClCompile Include="src\FTSUtils.cpp" />
     <ClCompile Include="src\EncodeUtils.cpp" />
     <ClCompile Include="src\FTS_TRIGGER_HELPER.cpp" />
@@ -28,6 +30,7 @@
     <ClCompile Include="src\FTS_MANAGEMENT.cpp" />
     <ClCompile Include="src\FTS_STATISTICS.cpp" />
     <ClCompile Include="src\LuceneAnalyzerFactory.cpp" />
+    <ClCompile Include="src\LuceneFiles.cpp" />
     <ClCompile Include="src\Relations.cpp" />
   </ItemGroup>
   <ItemGroup>

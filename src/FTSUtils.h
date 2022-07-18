@@ -15,13 +15,10 @@
 **/
 
 #include "LuceneUdr.h"
-#include "LuceneHeaders.h"
-#include "FileUtils.h"
 #include <filesystem> 
 
 using namespace Firebird;
 using namespace std;
-using namespace Lucene;
 
 namespace fs = std::filesystem;
 

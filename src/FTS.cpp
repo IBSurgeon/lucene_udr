@@ -403,6 +403,8 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogByDdKey)
 
 		input.clear();
 
+		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
+
 		input->relationName.length = static_cast<ISC_USHORT>(relationName.length());
 		relationName.copy(input->relationName.str, input->relationName.length);
 
@@ -415,7 +417,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogByDdKey)
 		procedure->appendLogStmt->execute(
 			status,
 			tra,
-			input.getMetadata(),
+			inputMetadata,
 			input.getData(),
 			nullptr,
 			nullptr
@@ -520,6 +522,8 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogById)
 
 		input.clear();
 
+		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
+
 		input->relationName.length = static_cast<ISC_USHORT>(relationName.length());
 		relationName.copy(input->relationName.str, input->relationName.length);
 
@@ -532,7 +536,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogById)
 		procedure->appendLogStmt->execute(
 			status,
 			tra,
-			input.getMetadata(),
+			inputMetadata,
 			input.getData(),
 			nullptr,
 			nullptr
@@ -639,6 +643,8 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogByUuid)
 
 		input.clear();
 
+		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
+
 		input->relationName.length = static_cast<ISC_USHORT>(relationName.length());
 		relationName.copy(input->relationName.str, input->relationName.length);
 
@@ -651,7 +657,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogByUuid)
 		procedure->appendLogStmt->execute(
 			status,
 			tra,
-			input.getMetadata(),
+			inputMetadata,
 			input.getData(),
 			nullptr,
 			nullptr
@@ -861,6 +867,10 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 			UUIDInput uuidInput(status, context->getMaster());
 			IDInput idInput(status, context->getMaster());
 
+			AutoRelease<IMessageMetadata> dbKeyInputMetadata(dbKeyInput.getMetadata());
+			AutoRelease<IMessageMetadata> uuidInputMetadata(uuidInput.getMetadata());
+			AutoRelease<IMessageMetadata> idInputMetadata(idInput.getMetadata());
+
 			//FBStringEncoder fbStringEncoder(fbCharset);
 
 			// prepare statement for delete record from FTS log
@@ -876,6 +886,7 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 			}
 
 			LogDelInput logDelInput(status, context->getMaster());
+			AutoRelease<IMessageMetadata> logDelInputMetadata(logDelInput.getMetadata());
 
 			// prepare statement for retrieval record from FTS log 
 			if (!procedure->logStmt.hasData()) {
@@ -891,12 +902,14 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 
 			LogOutput logOutput(status, context->getMaster());
 
+			AutoRelease<IMessageMetadata> logOutputMetadata(logOutput.getMetadata());
+
 			AutoRelease<IResultSet> logRs(procedure->logStmt->openCursor(
 				status,
 				tra,
 				nullptr,
 				nullptr,
-				logOutput.getMetadata(),
+				logOutputMetadata,
 				0
 			));
 
@@ -967,7 +980,7 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 						rs.reset(stmt->openCursor(
 							status,
 							tra,
-							dbKeyInput.getMetadata(),
+							dbKeyInputMetadata,
 							dbKeyInput.getData(),
 							outMetadata,
 							0
@@ -981,7 +994,7 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 						rs.reset(stmt->openCursor(
 							status,
 							tra,
-							uuidInput.getMetadata(),
+							uuidInputMetadata,
 							uuidInput.getData(),
 							outMetadata,
 							0
@@ -994,7 +1007,7 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 						rs.reset(stmt->openCursor(
 							status,
 							tra,
-							idInput.getMetadata(),
+							idInputMetadata,
 							idInput.getData(),
 							outMetadata,
 							0
@@ -1076,7 +1089,7 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 				procedure->logDeleteStmt->execute(
 					status,
 					tra,
-					logDelInput.getMetadata(),
+					logDelInputMetadata,
 					logDelInput.getData(),
 					nullptr,
 					nullptr
