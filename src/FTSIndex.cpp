@@ -424,7 +424,7 @@ namespace LuceneUDR
 			0
 		));
 
-		throwException(status, "Stop");
+		//throwException(status, "Stop");
 		bool foundFlag = false;
 		if (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
 			foundFlag = true;
