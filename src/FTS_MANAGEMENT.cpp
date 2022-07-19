@@ -637,9 +637,6 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 			writer->deleteAll();
 			writer->commit();
 
-			//const char* fbCharset = context->getClientCharSet();
-			//FBStringEncoder fbStringEncoder(fbCharset);
-
 			for (const auto& segment : ftsIndex->segments) {
 				if (segment->fieldName != "RDB$DB_KEY") {
 					if (!segment->fieldExists) {

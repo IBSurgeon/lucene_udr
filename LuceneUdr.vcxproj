@@ -176,6 +176,10 @@
       <AdditionalDependencies>fbclient_ms.lib;lucene++.lib;lucene++-contrib.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>defs\udr_plugin.def</ModuleDefinitionFile>
     </Link>
+    <PreBuildEvent>
+      <Command>
+      </Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -202,6 +206,9 @@
       <ModuleDefinitionFile>defs\udr_plugin.def</ModuleDefinitionFile>
       <AdditionalDependencies>fbclient_ms.lib;lucene++.lib;lucene++-contrib.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PreBuildEvent>
+      <Command>write_build_no.bat &gt; src/udr_build_no.h</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -228,6 +235,9 @@
       <AdditionalDependencies>fbclient_ms.lib;lucene++.lib;lucene++-contrib.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>defs\udr_plugin.def</ModuleDefinitionFile>
     </Link>
+    <PreBuildEvent>
+      <Command>write_build_no.bat &gt; src/udr_build_no.h</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -132,6 +132,7 @@ namespace LuceneUDR
 		return getHeader(sqlDialect) + triggerSource;
 	}
 
+
 	/// <summary>
 	/// Create a new full-text index. 
 	/// </summary>
@@ -434,10 +435,15 @@ namespace LuceneUDR
 			0
 		));
 
-		//throwException(status, "Stop");
-		bool foundFlag = false;
-		if (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
-			foundFlag = true;
+		int result = rs->fetchNext(status, output.getData());
+		if (result == IStatus::RESULT_NO_DATA) {
+			const string error_message = string_format(R"(Index "%s" not exists)", indexName);
+			throwException(status, error_message.c_str());
+		}
+		rs->close(status);
+
+		// index found
+		if (result == IStatus::RESULT_OK) {
 			ftsIndex->indexName.assign(output->indexName.str, output->indexName.length);
 			ftsIndex->relationName.assign(output->relationName.str, output->relationName.length);
 			ftsIndex->analyzer.assign(output->analyzer.str, output->analyzer.length);
@@ -446,17 +452,12 @@ namespace LuceneUDR
 				ftsIndex->description = BlobUtils::getString(status, blob);
 				blob->close(status);
 			}
-			ftsIndex->status.assign(output->indexStatus.str, output->indexStatus.length);
-		}
-		rs->close(status);
-		if (!foundFlag) {
-			const string error_message = string_format(R"(Index "%s" not exists)", indexName);
-			throwException(status, error_message.c_str());
-		}
-		if (withSegments) {
-			fillIndexFields(status, att, tra, sqlDialect, indexName, ftsIndex->segments);
-		}
+			ftsIndex->status.assign(output->indexStatus.str, output->indexStatus.length);	
 
+			if (withSegments) {
+				fillIndexFields(status, att, tra, sqlDialect, indexName, ftsIndex->segments);
+			}
+		}				
 	}
 
 	/// <summary>
@@ -799,22 +800,20 @@ namespace LuceneUDR
 			outputMetadata,
 			0
 		));
-		bool foundFlag = false;
-		if (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
+		int result = rs->fetchNext(status, output.getData());
+		if (result == IStatus::RESULT_NO_DATA) {
+			const string error_message = string_format(R"(Key field not exists in index "%s".)"s, indexName);
+			throwException(status, error_message.c_str());
+		}
+		rs->close(status);
+
+		if (result == IStatus::RESULT_OK) {
 			keyIndexSegment->indexName.assign(output->indexName.str, output->indexName.length);
 			keyIndexSegment->fieldName.assign(output->fieldName.str, output->fieldName.length);
 			keyIndexSegment->key = true;
 			keyIndexSegment->boost = 0;
 			keyIndexSegment->boostNull = true;
-
-			foundFlag = true;
-		}
-		rs->close(status);
-
-		if (!foundFlag) {
-			const string error_message = string_format(R"(Key field not exists in index "%s".)"s, indexName);
-			throwException(status, error_message.c_str());
-		}
+		}	
 	}
 
 	/// <summary>
@@ -1088,6 +1087,7 @@ namespace LuceneUDR
 			outputMetadata,
 			0
 		));
+
 		bool foundFlag = false;
 		if (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
 			foundFlag = (output->cnt > 0);

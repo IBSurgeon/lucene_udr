@@ -76,18 +76,17 @@ namespace LuceneUDR
 			0
 		));
 
-		bool foundFlag = false;
-		if (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
-			foundFlag = true;
+		int result = rs->fetchNext(status, output.getData());
+		if (result == IStatus::RESULT_NO_DATA) {
+			const string error_message = string_format(R"(Relation "%s" not exists)"s, relationName);
+			throwException(status, error_message.c_str());
+		}
+		rs->close(status);
 
+		if (result == IStatus::RESULT_OK) {
 			relationInfo->relationName.assign(output->relationName.str, output->relationName.length);
 			relationInfo->relationType = static_cast<RelationType>(output->relationType);
 			relationInfo->systemFlag = static_cast<bool>(output->systemFlag);
-		}
-		rs->close(status);
-		if (!foundFlag) {
-			const string error_message = string_format(R"(Relation "%s" not exists)"s, relationName);
-			throwException(status, error_message.c_str());
 		}
 	}
 
@@ -385,10 +384,14 @@ namespace LuceneUDR
 			0
 		));
 
-		bool foundFlag = false;
-		if (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
-			foundFlag = true;
+		int result = rs->fetchNext(status, output.getData());
+		if (result == IStatus::RESULT_NO_DATA) {
+			const string error_message = string_format(R"(Field "%s" not found in relation "%s".)"s, fieldName, relationName);
+			throwException(status, error_message.c_str());
+		}
+		rs->close(status);
 
+		if (result == IStatus::RESULT_OK) {
 			fieldInfo->relationName.assign(output->relationName.str, output->relationName.length);
 			fieldInfo->fieldName.assign(output->fieldName.str, output->fieldName.length);
 			fieldInfo->fieldType = output->fieldType;
@@ -399,13 +402,6 @@ namespace LuceneUDR
 			fieldInfo->fieldPrecision = output->fieldPrecision;
 			fieldInfo->fieldScale = output->fieldScale;
 		}
-		rs->close(status);
-
-		if (!foundFlag) {
-			const string error_message = string_format(R"(Field "%s" not found in relation "%s".)"s, fieldName, relationName);
-			throwException(status, error_message.c_str());
-		}
-
 	}
 
 	/// <summary>

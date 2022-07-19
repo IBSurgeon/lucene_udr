@@ -194,7 +194,7 @@ namespace LuceneUDR
 
 	private:
 		IMaster* m_master = nullptr;	
-		RelationHelperPtr m_relationHelper{ nullptr };
+		RelationHelperPtr m_relationHelper{nullptr};
 		// prepared statements
 		AutoRelease<IStatement> m_stmt_exists_index{ nullptr };
 		AutoRelease<IStatement> m_stmt_get_index{ nullptr };
@@ -316,6 +316,7 @@ WHERE FTS$INDEX_NAME = ? AND FTS$FIELD_NAME = ?
 	public:
 
 		FTSIndexRepository() = delete;
+
 
 		explicit FTSIndexRepository(IMaster* master)
 			: m_master(master)

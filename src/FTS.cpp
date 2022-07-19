@@ -871,7 +871,6 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 			AutoRelease<IMessageMetadata> uuidInputMetadata(uuidInput.getMetadata());
 			AutoRelease<IMessageMetadata> idInputMetadata(idInput.getMetadata());
 
-			//FBStringEncoder fbStringEncoder(fbCharset);
 
 			// prepare statement for delete record from FTS log
 			if (!procedure->logDeleteStmt.hasData()) {
