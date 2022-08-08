@@ -14,6 +14,7 @@
 #include "FTSIndex.h"
 #include "FBUtils.h"
 #include "LazyFactory.h"
+#include "Relations.h"
 #include "LuceneAnalyzerFactory.h"
 
 using namespace Firebird;
@@ -131,6 +132,18 @@ namespace LuceneUDR
 	{
 		return getHeader(sqlDialect) + triggerSource;
 	}
+
+	//
+	// FTSIndexRepository implementation
+	//
+
+	FTSIndexRepository::FTSIndexRepository(IMaster* master)
+		: m_master(master)
+		, m_relationHelper(make_unique<RelationHelper>(master))
+	{
+	}
+
+	FTSIndexRepository::~FTSIndexRepository() = default;
 
 
 	/// <summary>

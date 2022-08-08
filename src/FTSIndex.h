@@ -15,7 +15,6 @@
 **/
 
 #include "LuceneUdr.h"
-#include "Relations.h"
 #include <string>
 #include <list>
 #include <map>
@@ -183,6 +182,8 @@ namespace LuceneUDR
 	using FTSTriggerPtr = unique_ptr<FTSTrigger>;
 	using FTSTriggerList = list<FTSTriggerPtr>;
 
+	class RelationHelper;
+
 
 	/// <summary>
 	/// Repository of full-text indexes. 
@@ -194,7 +195,7 @@ namespace LuceneUDR
 
 	private:
 		IMaster* m_master = nullptr;	
-		RelationHelperPtr m_relationHelper{nullptr};
+		unique_ptr<RelationHelper> m_relationHelper{nullptr};
 		// prepared statements
 		AutoRelease<IStatement> m_stmt_exists_index{ nullptr };
 		AutoRelease<IStatement> m_stmt_get_index{ nullptr };
@@ -318,13 +319,11 @@ WHERE FTS$INDEX_NAME = ? AND FTS$FIELD_NAME = ?
 		FTSIndexRepository() = delete;
 
 
-		explicit FTSIndexRepository(IMaster* master)
-			: m_master(master)
-			, m_relationHelper(make_unique<RelationHelper>(master))
-		{
-		}
+		explicit FTSIndexRepository(IMaster* master);
 
-		const RelationHelperPtr& getRelationHelper()
+		~FTSIndexRepository();
+
+		const unique_ptr<RelationHelper>& getRelationHelper()
 		{
 			return m_relationHelper;
 		}
