@@ -20,6 +20,7 @@
 #include "EncodeUtils.h"
 #include "LuceneHeaders.h"
 #include "FileUtils.h"
+#include "TermAttribute.h"
 #include "LuceneAnalyzerFactory.h"
 #include <sstream>
 #include <memory>
@@ -320,6 +321,100 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 		}
 		return true;
 	}
+FB_UDR_END_PROCEDURE
+
+/***
+PROCEDURE FTS$ANALYZE (
+    FTS$TEXT BLOB SUB_TYPE TEXT CHARACTER SET UTF8,
+	FTS$ANALYZER VARCHAR(63) CHARACTER SET UTF8 NOT NULL DEFAULT 'STANDARD'
+)
+RETURNS (
+	FTS$TERM VARCHAR(8191) CHARACTER SET UTF8
+)
+EXTERNAL NAME 'luceneudr!ftsAnalyze'
+ENGINE UDR;
+***/
+FB_UDR_BEGIN_PROCEDURE(ftsAnalyze)
+	FB_UDR_MESSAGE(InMessage,
+		(FB_BLOB, text)
+		(FB_INTL_VARCHAR(252, CS_UTF8), analyzerName)
+	);
+
+	FB_UDR_MESSAGE(OutMessage,
+		(FB_INTL_VARCHAR(32765, CS_UTF8), term)
+	);
+
+	FB_UDR_CONSTRUCTOR
+		, analyzerFactory()
+	{
+	}
+
+	LuceneAnalyzerFactory analyzerFactory;
+
+	void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
+		char* name, unsigned nameSize)
+	{
+		// Forced internal request encoding to UTF8
+		memset(name, 0, nameSize);
+
+		const string charset = "UTF8";
+		charset.copy(name, charset.length());
+	}
+
+	FB_UDR_EXECUTE_PROCEDURE
+	{
+		AutoRelease<IAttachment> att(context->getAttachment(status));
+		AutoRelease<ITransaction> tra(context->getTransaction(status));
+
+		string text;
+		if (!in->textNull) {
+			AutoRelease<IBlob> blob(att->openBlob(status, tra, &in->text, 0, nullptr));
+			text = BlobUtils::getString(status, blob);
+			blob->close(status);
+		}
+
+		string analyzerName = DEFAULT_ANALYZER_NAME;
+		if (!in->analyzerNameNull) {
+			analyzerName.assign(in->analyzerName.str, in->analyzerName.length);
+		}
+
+		try {
+			const auto& analyzer = procedure->analyzerFactory.createAnalyzer(status, analyzerName);
+			const auto& stringReader = newLucene<StringReader>(StringUtils::toUnicode(text));
+
+			tokenStream = analyzer->tokenStream(L"", stringReader);
+			termAttribute = tokenStream->addAttribute<TermAttribute>();
+			tokenStream->reset();
+		}
+		catch (LuceneException& e) {
+			const string error_message = StringUtils::toUTF8(e.getError());
+			throwException(status, error_message.c_str());
+		}
+	}
+
+	TokenStreamPtr tokenStream = nullptr;
+	TermAttributePtr termAttribute = nullptr;
+
+	FB_UDR_FETCH_PROCEDURE
+	{
+		if (!tokenStream->incrementToken()) {
+			return false;
+		}
+		const auto uTerm = termAttribute->term();
+
+		if (uTerm.length() > 8191) {
+			throwException(status, "Term size exceeds 8191 characters");
+		}
+
+		const string term = StringUtils::toUTF8(uTerm);
+
+		out->termNull = false;
+		out->term.length = static_cast<ISC_USHORT>(term.length());
+		term.copy(out->term.str, out->term.length);
+
+		return true;
+	}
+
 FB_UDR_END_PROCEDURE
 
 /***

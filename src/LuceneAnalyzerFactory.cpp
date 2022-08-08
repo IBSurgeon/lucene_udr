@@ -11,6 +11,8 @@
 #include "GreekAnalyzer.h"
 #include "PersianAnalyzer.h"
 #include "RussianAnalyzer.h"
+#include "EnglishAnalyzer.h"
+#include "SnowballAnalyzer.h"
 #include "FBUtils.h"
 #include <functional>
 #include <stdexcept>
@@ -33,12 +35,13 @@ namespace LuceneUDR {
 				{ "CJK", []() -> AnalyzerPtr { return newLucene<CJKAnalyzer>(LuceneVersion::LUCENE_CURRENT); } },
 				{ "CZECH", []() -> AnalyzerPtr { return newLucene<CzechAnalyzer>(LuceneVersion::LUCENE_CURRENT); } },
 				{ "DUTCH", []() -> AnalyzerPtr { return newLucene<DutchAnalyzer>(LuceneVersion::LUCENE_CURRENT); } },
-				{ "ENGLISH", []() -> AnalyzerPtr { return newLucene<StandardAnalyzer>(LuceneVersion::LUCENE_CURRENT); } },
+				{ "ENGLISH", []() -> AnalyzerPtr { return newLucene<EnglishAnalyzer>(LuceneVersion::LUCENE_CURRENT); } },
 				{ "FRENCH", []() -> AnalyzerPtr { return newLucene<FrenchAnalyzer>(LuceneVersion::LUCENE_CURRENT); } },
 				{ "GERMAN", []() -> AnalyzerPtr { return newLucene<GermanAnalyzer>(LuceneVersion::LUCENE_CURRENT); } },
 				{ "GREEK", []() -> AnalyzerPtr { return newLucene<GreekAnalyzer>(LuceneVersion::LUCENE_CURRENT); } },
 				{ "PERSIAN", []() -> AnalyzerPtr { return newLucene<PersianAnalyzer>(LuceneVersion::LUCENE_CURRENT); } },
-				{ "RUSSIAN", []() -> AnalyzerPtr { return newLucene<RussianAnalyzer>(LuceneVersion::LUCENE_CURRENT); } }
+				{ "RUSSIAN", []() -> AnalyzerPtr { return newLucene<RussianAnalyzer>(LuceneVersion::LUCENE_CURRENT); } } //,
+				//{ "ENGLISH_SNOWBALL", []() -> AnalyzerPtr { return newLucene<SnowballAnalyzer>(LuceneVersion::LUCENE_CURRENT, L"English", StopAnalyzer::ENGLISH_STOP_WORDS_SET()); }}
 			}
 		);
 	}

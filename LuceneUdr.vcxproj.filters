@@ -67,6 +67,9 @@
     <ClCompile Include="src\LuceneFiles.cpp">
       <Filter>Source files</Filter>
     </ClCompile>
+    <ClCompile Include="src\EnglishAnalyzer.cpp">
+      <Filter>Source files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\LuceneUdr.h">
@@ -103,6 +106,9 @@
       <Filter>Header files</Filter>
     </ClInclude>
     <ClInclude Include="src\LazyFactory.h">
+      <Filter>Header files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\EnglishAnalyzer.h">
       <Filter>Header files</Filter>
     </ClInclude>
   </ItemGroup>

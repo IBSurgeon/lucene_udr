@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\EnglishAnalyzer.cpp" />
     <ClCompile Include="src\FBFieldInfo.cpp" />
     <ClCompile Include="src\FBUtils.cpp" />
     <ClCompile Include="src\FTSUtils.cpp" />
@@ -34,6 +35,7 @@
     <ClCompile Include="src\Relations.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\EnglishAnalyzer.h" />
     <ClInclude Include="src\FTSUtils.h" />
     <ClInclude Include="src\EncodeUtils.h" />
     <ClInclude Include="src\FBAutoPtr.h" />
