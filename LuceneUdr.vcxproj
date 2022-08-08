@@ -45,7 +45,6 @@
     <ClInclude Include="src\LuceneFiles.h" />
     <ClInclude Include="src\LuceneUdr.h" />
     <ClInclude Include="src\Relations.h" />
-    <ClInclude Include="src\StringFormatter.h" />
     <ClInclude Include="src\udr_build_no.h" />
   </ItemGroup>
   <ItemGroup>

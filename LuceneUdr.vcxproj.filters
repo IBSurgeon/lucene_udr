@@ -93,9 +93,6 @@
     <ClInclude Include="src\LuceneAnalyzerFactory.h">
       <Filter>Header files</Filter>
     </ClInclude>
-    <ClInclude Include="src\StringFormatter.h">
-      <Filter>Header files</Filter>
-    </ClInclude>
     <ClInclude Include="src\LuceneFiles.h">
       <Filter>Header files</Filter>
     </ClInclude>

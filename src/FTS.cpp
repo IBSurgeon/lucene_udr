@@ -192,15 +192,13 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 		// check if directory exists for index
 		const auto& indexDirectoryPath = ftsDirectoryPath / indexName;
 		if (ftsIndex->status == "N" || !fs::is_directory(indexDirectoryPath)) {
-			string error_message = string_format(R"(Index "%s" exists, but is not build. Please rebuild index.)"s, indexName);
-			throwException(status, error_message.c_str());
+			throwException(status, R"(Index "%s" exists, but is not build. Please rebuild index.)", indexName.c_str());
 		}
 
 		try {
 			const auto& ftsIndexDir = FSDirectory::open(indexDirectoryPath.wstring());
 			if (!IndexReader::indexExists(ftsIndexDir)) {
-				const string error_message = string_format(R"(Index "%s" exists, but is not build. Please rebuild index.)", indexName);
-				throwException(status, error_message.c_str());
+				throwException(status, R"(Index "%s" exists, but is not build. Please rebuild index.)", indexName.c_str());
 			}
 
 			IndexReaderPtr reader = IndexReader::open(ftsIndexDir, true);

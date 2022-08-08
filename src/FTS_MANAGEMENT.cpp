@@ -292,8 +292,7 @@ FB_UDR_BEGIN_PROCEDURE(dropIndex)
 		const auto& indexDirectoryPath = ftsDirectoryPath / indexName;
 		// If the directory exists, then delete it.
 		if (!removeIndexDirectory(indexDirectoryPath)) {
-			const string error_message = string_format(R"(Cannot delete index directory "%s".)"s, indexDirectoryPath.u8string());
-			throwException(status, error_message.c_str());
+			throwException(status, R"(Cannot delete index directory "%s".)", indexDirectoryPath.u8string().c_str());
 		}
 	}
 
@@ -599,8 +598,7 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 		const auto& ftsDirectoryPath = getFtsDirectory(context);
 		// check if there is a directory for full-text indexes
 		if (!fs::is_directory(ftsDirectoryPath)) {
-			const string error_message = string_format(R"(Fts directory "%s" not exists)"s, ftsDirectoryPath.u8string());
-			throwException(status, error_message.c_str());
+			throwException(status, R"(Fts directory "%s" not exists)", ftsDirectoryPath.u8string().c_str());
 		}
 
 		const unsigned int sqlDialect = getSqlDialect(status, att);
@@ -612,21 +610,18 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 			// Check if the index directory exists, and if it doesn't exist, create it. 
 			const auto& indexDirectoryPath = ftsDirectoryPath / indexName;
 			if (!createIndexDirectory(indexDirectoryPath)) {
-				const string error_message = string_format(R"(Cannot create index directory "%s".)"s, indexDirectoryPath.u8string());
-				throwException(status, error_message.c_str());
+				throwException(status, R"(Cannot create index directory "%s".)", indexDirectoryPath.u8string().c_str());
 			}
 
 			// check relation exists
 			const auto& relationHelper = procedure->indexRepository->getRelationHelper();
 			if (!relationHelper->relationExists(status, att, tra, sqlDialect, ftsIndex->relationName)) {
-				const string error_message = string_format(R"(Cannot rebuild index "%s". Table "%s" not exists.)"s, indexName, ftsIndex->relationName);
-				throwException(status, error_message.c_str());
+				throwException(status, R"(Cannot rebuild index "%s". Table "%s" not exists.)", indexName.c_str(), ftsIndex->relationName.c_str());
 			}
 
 			// check segments exists
 			if (ftsIndex->segments.size() == 0) {
-				const string error_message = string_format(R"(Cannot rebuild index "%s". The index does not contain fields.)"s, indexName);
-				throwException(status, error_message.c_str());
+				throwException(status, R"(Cannot rebuild index "%s". The index does not contain fields.)", indexName.c_str());
 			}
 
 			const auto& fsIndexDir = FSDirectory::open(indexDirectoryPath.wstring());
@@ -640,8 +635,7 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 			for (const auto& segment : ftsIndex->segments) {
 				if (segment->fieldName != "RDB$DB_KEY") {
 					if (!segment->fieldExists) {
-						const string error_message = string_format(R"(Cannot rebuild index "%s". Field "%s" not exists in relation "%s".)"s, indexName, segment->fieldName, ftsIndex->relationName);
-						throwException(status, error_message.c_str());
+						throwException(status, R"(Cannot rebuild index "%s". Field "%s" not exists in relation "%s".)", indexName.c_str(), segment->fieldName.c_str(), ftsIndex->relationName.c_str());
 					}
 				}
 			}
@@ -666,8 +660,7 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 				const auto& field = fields[i];
 				auto iSegment = ftsIndex->findSegment(field->fieldName);
 				if (iSegment == ftsIndex->segments.end()) {
-					const string error_message = string_format(R"(Cannot rebuild index "%s". Field "%s" not found.)"s, indexName, field->fieldName);
-					throwException(status, error_message.c_str());
+					throwException(status, R"(Cannot rebuild index "%s". Field "%s" not found.)", indexName.c_str(), field->fieldName.c_str());
 				}
 				auto const& segment = *iSegment;
 				field->ftsFieldName = StringUtils::toUnicode(segment->fieldName);
@@ -801,8 +794,7 @@ FB_UDR_BEGIN_PROCEDURE(optimizeIndex)
 		const auto& ftsDirectoryPath = getFtsDirectory(context);	
 		// check if there is a directory for full-text indexes
 		if (!fs::is_directory(ftsDirectoryPath)) {
-			const string error_message = string_format(R"(Fts directory "%s" not exists)"s, ftsDirectoryPath.u8string());
-			throwException(status, error_message.c_str());
+			throwException(status, R"(Fts directory "%s" not exists)", ftsDirectoryPath.u8string().c_str());
 		}
 
 		const unsigned int sqlDialect = getSqlDialect(status, att);
@@ -814,8 +806,7 @@ FB_UDR_BEGIN_PROCEDURE(optimizeIndex)
 			// Check if the index directory exists. 
 			const auto& indexDirectoryPath = ftsDirectoryPath / indexName;
 			if (!fs::is_directory(indexDirectoryPath)) {
-				const string error_message = string_format(R"(Index directory "%s" not exists.)"s, indexDirectoryPath.u8string());
-				throwException(status, error_message.c_str());
+				throwException(status, R"(Index directory "%s" not exists.)", indexDirectoryPath.u8string().c_str());
 			}
 
 			const auto& fsIndexDir = FSDirectory::open(indexDirectoryPath.wstring());

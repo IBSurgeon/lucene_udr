@@ -81,8 +81,7 @@ namespace LuceneUDR
 		}
 		auto iKeySegment = findKey();
 		if (iKeySegment == segments.end()) {
-			const string error_message = string_format(R"(Key field not exists in index "%s".)"s, indexName);
-			throwException(status, error_message.c_str());
+			throwException(status, R"(Key field not exists in index "%s".)", indexName.c_str());
 		}
 		const string keyFieldName = (*iKeySegment)->fieldName;
 
@@ -190,15 +189,13 @@ namespace LuceneUDR
 
 		// check for index existence
 		if (hasIndex(status, att, tra, sqlDialect, indexName)) {
-			const string error_message = string_format(R"(Index "%s" already exists)"s, indexName);
-			throwException(status, error_message.c_str());
+			throwException(status, R"(Index "%s" already exists)", indexName.c_str());
 		}
 
 		// checking the existence of the analyzer
 		LuceneAnalyzerFactory analyzerFactory;
 		if (!analyzerFactory.hasAnalyzer(analyzerName)) {
-			const string error_message = string_format(R"(Analyzer "%s" not exists)"s, analyzerName);
-			throwException(status, error_message.c_str());
+			throwException(status, R"(Analyzer "%s" not exists)", analyzerName.c_str());
 		}
 
 		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
@@ -244,8 +241,7 @@ namespace LuceneUDR
 
 		// check for index existence
 		if (!hasIndex(status, att, tra, sqlDialect, indexName)) {
-			const string error_message = string_format(R"(Index "%s" not exists)"s, indexName);
-			throwException(status, error_message.c_str());
+			throwException(status, R"(Index "%s" not exists)", indexName.c_str());
 		}
 
 		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
@@ -438,8 +434,7 @@ namespace LuceneUDR
 
 		int result = rs->fetchNext(status, output.getData());
 		if (result == IStatus::RESULT_NO_DATA) {
-			const string error_message = string_format(R"(Index "%s" not exists)", indexName);
-			throwException(status, error_message.c_str());
+			throwException(status, R"(Index "%s" not exists)", indexName.c_str());
 		}
 		rs->close(status);
 
@@ -803,8 +798,7 @@ namespace LuceneUDR
 		));
 		int result = rs->fetchNext(status, output.getData());
 		if (result == IStatus::RESULT_NO_DATA) {
-			const string error_message = string_format(R"(Key field not exists in index "%s".)"s, indexName);
-			throwException(status, error_message.c_str());
+			throwException(status, R"(Key field not exists in index "%s".)", indexName.c_str());
 		}
 		rs->close(status);
 
@@ -865,21 +859,18 @@ namespace LuceneUDR
 
 		// Checking whether the key field exists in the index.
 		if (key && hasKeyIndexField(status, att, tra, sqlDialect, indexName)) {
-			const string error_message = string_format(R"(The key field already exists in the "%s" index.)"s, indexName);
-			throwException(status, error_message.c_str());
+			throwException(status, R"(The key field already exists in the "%s" index.)", indexName.c_str());
 		}
 
 		// Checking whether the field exists in the index.
 		if (hasIndexField(status, att, tra, sqlDialect, indexName, fieldName)) {			
-			const string error_message = string_format(R"(Field "%s" already exists in index "%s")"s, fieldName, indexName);
-			throwException(status, error_message.c_str());
+			throwException(status, R"(Field "%s" already exists in index "%s")", fieldName.c_str(), indexName.c_str());
 		}
 
 		if (fieldName != "RDB$DB_KEY") {
 			// Checking whether the field exists in relation.
 			if (!m_relationHelper->fieldExists(status, att, tra, sqlDialect, ftsIndex->relationName, fieldName)) {
-				const string error_message = string_format(R"(Field "%s" not exists in relation "%s".)"s, fieldName, ftsIndex->relationName);
-				throwException(status, error_message.c_str());
+				throwException(status, R"(Field "%s" not exists in relation "%s".)", fieldName.c_str(), ftsIndex->relationName.c_str());
 			}
 		}
 
@@ -935,14 +926,12 @@ namespace LuceneUDR
 
 		// Checking whether the index exists.
 		if (!hasIndex(status, att, tra, sqlDialect, indexName)) {
-			const string error_message = string_format(R"(Index "%s" not exists)"s, indexName);
-			throwException(status, error_message.c_str());
+			throwException(status, R"(Index "%s" not exists)", indexName.c_str());
 		}
 
 		// Checking whether the field exists in the index.
 		if (!hasIndexField(status, att, tra, sqlDialect, indexName, fieldName)) {
-			const string error_message = string_format(R"(Field "%s" not exists in index "%s")"s, fieldName, indexName);
-			throwException(status, error_message.c_str());
+			throwException(status, R"(Field "%s" not exists in index "%s")", fieldName.c_str(), indexName.c_str());
 		}
 
 		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
@@ -1003,14 +992,12 @@ namespace LuceneUDR
 
 		// Checking whether the index exists.
 		if (!hasIndex(status, att, tra, sqlDialect, indexName)) {
-			const string error_message = string_format(R"(Index "%s" not exists)"s, indexName);
-			throwException(status, error_message.c_str());
+			throwException(status, R"(Index "%s" not exists)", indexName.c_str());
 		}
 
 		// Checking whether the field exists in the index.
 		if (!hasIndexField(status, att, tra, sqlDialect, indexName, fieldName)) {
-			const string error_message = string_format(R"(Field "%s" not exists in index "%s")"s, fieldName, indexName);
-			throwException(status, error_message.c_str());
+			throwException(status, R"(Field "%s" not exists in index "%s")", fieldName.c_str(), indexName.c_str());
 		}
 
 		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());

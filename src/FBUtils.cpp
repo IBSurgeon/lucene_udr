@@ -2,12 +2,15 @@
 #include "FBAutoPtr.h"
 #include <sstream>
 #include <algorithm>
+#include <stdarg.h>
 
 using namespace std;
 using namespace Firebird;
 
 namespace LuceneUDR
 {
+	const unsigned int BUFFER_LARGE = 2048;
+
 	string BlobUtils::getString(ThrowStatusWrapper* status, IBlob* blob)
 	{
 		std::stringstream ss("");
@@ -71,6 +74,23 @@ namespace LuceneUDR
 			p += length;
 		};
 		return sql_dialect;
+	}
+
+	void throwException(Firebird::ThrowStatusWrapper* const status, const char* message, ...)
+	{
+		char buffer[BUFFER_LARGE];
+
+		va_list ptr;
+		va_start(ptr, message);
+		vsnprintf(buffer, BUFFER_LARGE, message, ptr);
+		va_end(ptr);
+
+		ISC_STATUS statusVector[] = {
+			isc_arg_gds, isc_random,
+			isc_arg_string, (ISC_STATUS)buffer,
+			isc_arg_end
+		};
+		throw Firebird::FbException(status, statusVector);
 	}
 
 	IMessageMetadata* prepareTextMetaData(ThrowStatusWrapper* status, IMessageMetadata* meta)

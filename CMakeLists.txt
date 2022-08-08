@@ -86,12 +86,9 @@ set(FIREBIRD_UDR_DIR ${FIREBIRD_DIR}/plugins/udr)
 ####################################
 add_library(luceneudr SHARED ${luceneudr_sources})
 
-find_package(Boost REQUIRED)
 find_package(liblucene++ REQUIRED)
 find_package(liblucene++-contrib REQUIRED)
 
-include_directories(${Boost_INCLUDE_DIR})
-link_directories(${Boost_LIBRARY_DIR})
 include_directories(${liblucene++_INCLUDE_DIRS})
 link_directories(${liblucene++_LIBRARY_DIRS})
 include_directories(${liblucene++-contrib_INCLUDE_DIRS})

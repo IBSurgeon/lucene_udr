@@ -17,7 +17,6 @@
 #define FB_UDR_STATUS_TYPE ::Firebird::ThrowStatusWrapper
 
 #include "FBAutoPtr.h"
-#include "StringFormatter.h"
 #include "firebird/UdrCppEngine.h"
 #include "charsets.h"
 

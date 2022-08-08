@@ -78,8 +78,7 @@ namespace LuceneUDR
 
 		int result = rs->fetchNext(status, output.getData());
 		if (result == IStatus::RESULT_NO_DATA) {
-			const string error_message = string_format(R"(Relation "%s" not exists)"s, relationName);
-			throwException(status, error_message.c_str());
+			throwException(status, R"(Relation "%s" not exists)", relationName.c_str());
 		}
 		rs->close(status);
 
@@ -386,8 +385,7 @@ namespace LuceneUDR
 
 		int result = rs->fetchNext(status, output.getData());
 		if (result == IStatus::RESULT_NO_DATA) {
-			const string error_message = string_format(R"(Field "%s" not found in relation "%s".)"s, fieldName, relationName);
-			throwException(status, error_message.c_str());
+			throwException(status, R"(Field "%s" not found in relation "%s".)", fieldName.c_str(), relationName.c_str());
 		}
 		rs->close(status);
 

@@ -120,8 +120,7 @@ FB_UDR_BEGIN_PROCEDURE(getIndexStatistics)
 		const auto& ftsDirectoryPath = getFtsDirectory(context);
 		// check if there is a directory for full-text indexes
 		if (!fs::is_directory(ftsDirectoryPath)) {
-			const string error_message = string_format(R"(Fts directory "%s" not exists)"s, ftsDirectoryPath.u8string());
-			throwException(status, error_message.c_str());
+			throwException(status, R"(Fts directory "%s" not exists)", ftsDirectoryPath.u8string().c_str());
 		}
 
 		att.reset(context->getAttachment(status));
@@ -273,8 +272,7 @@ FB_UDR_BEGIN_PROCEDURE(getIndexFields)
 		const auto& ftsDirectoryPath = getFtsDirectory(context);
 		// check if there is a directory for full-text indexes
 		if (!fs::is_directory(ftsDirectoryPath)) {
-			const string error_message = string_format(R"(Fts directory "%s" not exists)"s, ftsDirectoryPath.u8string());
-			throwException(status, error_message.c_str());
+			throwException(status, R"(Fts directory "%s" not exists)", ftsDirectoryPath.u8string().c_str());
 		}
 
 		att.reset(context->getAttachment(status));
@@ -287,8 +285,7 @@ FB_UDR_BEGIN_PROCEDURE(getIndexFields)
 		try {
 			// check for index existence
 			if (!procedure->indexRepository->hasIndex(status, att, tra, sqlDialect, indexName)) {
-				const string error_message = string_format(R"(Index "%s" not exists)"s, indexName);
-				throwException(status, error_message.c_str());
+				throwException(status, R"(Index "%s" not exists)", indexName.c_str());
 			}
 
 
@@ -296,14 +293,12 @@ FB_UDR_BEGIN_PROCEDURE(getIndexFields)
 
 			// Check if the index directory exists
 			if (!fs::is_directory(indexDirectoryPath)) {
-				const string error_message = string_format(R"(Index directory "%s" not exists.)"s, indexDirectoryPath.u8string());
-				throwException(status, error_message.c_str());
+				throwException(status, R"(Index directory "%s" not exists.)", indexDirectoryPath.u8string().c_str());
 			}
 
 			const auto& ftsIndexDir = FSDirectory::open(indexDirectoryPath.wstring());
 			if (!IndexReader::indexExists(ftsIndexDir)) {
-				const string error_message = string_format(R"(Index "%s" not build.)"s, indexName);
-				throwException(status, error_message.c_str());
+				throwException(status, R"(Index "%s" not build.)", indexName.c_str());
 			}
 				
 			const auto& reader = IndexReader::open(ftsIndexDir, true);
@@ -393,8 +388,7 @@ FB_UDR_BEGIN_PROCEDURE(getIndexFiles)
 		const auto& ftsDirectoryPath = getFtsDirectory(context);
 		// check if there is a directory for full-text indexes
 		if (!fs::is_directory(ftsDirectoryPath)) {
-			const string error_message = string_format(R"(Fts directory "%s" not exists)"s, ftsDirectoryPath.u8string());
-			throwException(status, error_message.c_str());
+			throwException(status, R"(Fts directory "%s" not exists)", ftsDirectoryPath.u8string().c_str());
 		}
 
 		att.reset(context->getAttachment(status));
@@ -409,8 +403,7 @@ FB_UDR_BEGIN_PROCEDURE(getIndexFiles)
 		try {
 			// check for index existence
 			if (!procedure->indexRepository->hasIndex(status, att, tra, sqlDialect, indexName)) {
-				const string error_message = string_format(R"(Index "%s" not exists)"s, indexName);
-				throwException(status, error_message.c_str());
+				throwException(status, R"(Index "%s" not exists)", indexName.c_str());
 			}
 
 
@@ -418,8 +411,7 @@ FB_UDR_BEGIN_PROCEDURE(getIndexFiles)
 
 			// Check if the index directory exists
 			if (!fs::is_directory(indexDirectoryPath)) {
-				const string error_message = string_format(R"(Index directory "%s" not exists.)"s, indexDirectoryPath.u8string());
-				throwException(status, error_message.c_str());
+				throwException(status, R"(Index directory "%s" not exists.)", indexDirectoryPath.u8string().c_str());
 			}
 
 			const auto& unicodeIndexDir = indexDirectoryPath.wstring();
@@ -530,8 +522,7 @@ FB_UDR_BEGIN_PROCEDURE(getIndexSegments)
 		const auto& ftsDirectoryPath = getFtsDirectory(context);
 		// check if there is a directory for full-text indexes
 		if (!fs::is_directory(ftsDirectoryPath)) {
-			const string error_message = string_format(R"(Fts directory "%s" not exists)"s, ftsDirectoryPath.u8string());
-			throwException(status, error_message.c_str());
+			throwException(status, R"(Fts directory "%s" not exists)", ftsDirectoryPath.u8string().c_str());
 		}
 
 		att.reset(context->getAttachment(status));
@@ -550,16 +541,14 @@ FB_UDR_BEGIN_PROCEDURE(getIndexSegments)
 		try {
 			// check for index existence
 			if (!procedure->indexRepository->hasIndex(status, att, tra, sqlDialect, indexName)) {
-				const string error_message = string_format(R"(Index "%s" not exists)"s, indexName);
-				throwException(status, error_message.c_str());
+				throwException(status, R"(Index "%s" not exists)", indexName.c_str());
 			}
 
 			const auto& indexDirectoryPath = ftsDirectoryPath / indexName;
 
 			// Check if the index directory exists
 			if (!fs::is_directory(indexDirectoryPath)) {
-				const string error_message = string_format(R"(Index directory "%s" not exists.)"s, indexDirectoryPath.u8string());
-				throwException(status, error_message.c_str());
+				throwException(status, R"(Index directory "%s" not exists.)", indexDirectoryPath.u8string().c_str());
 			}
 			
 			const auto& ftsIndexDir = FSDirectory::open(indexDirectoryPath.wstring());
@@ -694,8 +683,7 @@ FB_UDR_BEGIN_PROCEDURE(getFieldInfos)
 		const auto& ftsDirectoryPath = getFtsDirectory(context);
 		// check if there is a directory for full-text indexes
 		if (!fs::is_directory(ftsDirectoryPath)) {
-			const string error_message = string_format(R"(Fts directory "%s" not exists)"s, ftsDirectoryPath.u8string());
-			throwException(status, error_message.c_str());
+			throwException(status, R"(Fts directory "%s" not exists)", ftsDirectoryPath.u8string().c_str());
 		}
 
 		att.reset(context->getAttachment(status));
@@ -708,16 +696,14 @@ FB_UDR_BEGIN_PROCEDURE(getFieldInfos)
 		try {
 			// check for index existence
 			if (!procedure->indexRepository->hasIndex(status, att, tra, sqlDialect, indexName)) {
-				const string error_message = string_format(R"(Index "%s" not exists)"s, indexName);
-				throwException(status, error_message.c_str());
+				throwException(status, R"(Index "%s" not exists)", indexName.c_str());
 			}
 
 			const auto& indexDirectoryPath = ftsDirectoryPath / indexName;
 
 			// Check if the index directory exists
 			if (!fs::is_directory(indexDirectoryPath)) {
-				const string error_message = string_format(R"(Index directory "%s" not exists.)"s, indexDirectoryPath.u8string());
-				throwException(status, error_message.c_str());
+				throwException(status, R"(Index directory "%s" not exists.)", indexDirectoryPath.u8string().c_str());
 			}
 
 			const auto& ftsIndexDir = FSDirectory::open(indexDirectoryPath.wstring());
@@ -740,8 +726,7 @@ FB_UDR_BEGIN_PROCEDURE(getFieldInfos)
 			}
 			
 			if (segmentInfo == nullptr) {
-				const string error_message = string_format(R"(Segment "%s" not found)"s, segmentName);
-				throwException(status, error_message.c_str());
+				throwException(status, R"(Segment "%s" not found)", segmentName.c_str());
 			}
 			
 			DirectoryPtr ftsFieldDir(ftsIndexDir);

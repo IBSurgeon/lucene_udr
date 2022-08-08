@@ -56,15 +56,7 @@ namespace LuceneUDR
 		}
 	}
 
-	inline void throwException(ThrowStatusWrapper* const status, const char* message)
-	{
-		ISC_STATUS statusVector[] = {
-			isc_arg_gds, isc_random,
-			isc_arg_string, (ISC_STATUS)message,
-			isc_arg_end
-		};
-		throw FbException(status, statusVector);
-	}
+	void throwException(Firebird::ThrowStatusWrapper* const status, const char* message, ...);
 
 	IMessageMetadata* prepareTextMetaData(ThrowStatusWrapper* status, IMessageMetadata* meta);
 }
