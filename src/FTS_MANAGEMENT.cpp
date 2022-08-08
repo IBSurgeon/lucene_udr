@@ -47,7 +47,7 @@ FB_UDR_BEGIN_FUNCTION(getFTSDirectory)
 
     FB_UDR_EXECUTE_FUNCTION
     {
-	    const auto& ftsDirectoryPath = getFtsDirectory(context);
+	    const auto& ftsDirectoryPath = getFtsDirectory(status, context);
 	    const string ftsDirectory = ftsDirectoryPath.u8string();
 
 	    out->directoryNull = false;
@@ -288,7 +288,7 @@ FB_UDR_BEGIN_PROCEDURE(dropIndex)
 
 		procedure->indexRepository->dropIndex(status, att, tra, sqlDialect, indexName);
 
-		const auto& ftsDirectoryPath = getFtsDirectory(context);
+		const auto& ftsDirectoryPath = getFtsDirectory(status, context);
 		const auto& indexDirectoryPath = ftsDirectoryPath / indexName;
 		// If the directory exists, then delete it.
 		if (!removeIndexDirectory(indexDirectoryPath)) {
@@ -595,7 +595,7 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 		}
 		const string indexName(in->index_name.str, in->index_name.length);
 
-		const auto& ftsDirectoryPath = getFtsDirectory(context);
+		const auto& ftsDirectoryPath = getFtsDirectory(status, context);
 		// check if there is a directory for full-text indexes
 		if (!fs::is_directory(ftsDirectoryPath)) {
 			throwException(status, R"(Fts directory "%s" not exists)", ftsDirectoryPath.u8string().c_str());
@@ -791,7 +791,7 @@ FB_UDR_BEGIN_PROCEDURE(optimizeIndex)
 		}
 		const string indexName(in->index_name.str, in->index_name.length);
 
-		const auto& ftsDirectoryPath = getFtsDirectory(context);	
+		const auto& ftsDirectoryPath = getFtsDirectory(status, context);	
 		// check if there is a directory for full-text indexes
 		if (!fs::is_directory(ftsDirectoryPath)) {
 			throwException(status, R"(Fts directory "%s" not exists)", ftsDirectoryPath.u8string().c_str());

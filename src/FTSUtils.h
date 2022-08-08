@@ -32,7 +32,7 @@ namespace LuceneUDR
 	/// <param name="context">The context of the external routine.</param>
 	/// 
 	/// <returns>Full path to full-text index directory</returns>
-	const fs::path getFtsDirectory(IExternalContext* const context);
+	const fs::path getFtsDirectory(ThrowStatusWrapper* const status, IExternalContext* const context);
 
 	inline bool createIndexDirectory(const fs::path& indexDir)
 	{

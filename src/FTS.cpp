@@ -179,7 +179,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 			explainFlag = in->explain;
 		}
 
-		const auto& ftsDirectoryPath = getFtsDirectory(context);
+		const auto& ftsDirectoryPath = getFtsDirectory(status, context);
 
 
 		att.reset(context->getAttachment(status));
@@ -860,7 +860,7 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 
 		const unsigned int sqlDialect = getSqlDialect(status, att);
 
-		const auto& ftsDirectoryPath = getFtsDirectory(context);
+		const auto& ftsDirectoryPath = getFtsDirectory(status, context);
 		
 		// get all indexes with segments
 		FTSIndexMap indexes;

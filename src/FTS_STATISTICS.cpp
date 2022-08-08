@@ -117,7 +117,7 @@ FB_UDR_BEGIN_PROCEDURE(getIndexStatistics)
 		}
 		const string indexName(in->index_name.str, in->index_name.length);
 
-		const auto& ftsDirectoryPath = getFtsDirectory(context);
+		const auto& ftsDirectoryPath = getFtsDirectory(status, context);
 		// check if there is a directory for full-text indexes
 		if (!fs::is_directory(ftsDirectoryPath)) {
 			throwException(status, R"(Fts directory "%s" not exists)", ftsDirectoryPath.u8string().c_str());
@@ -269,7 +269,7 @@ FB_UDR_BEGIN_PROCEDURE(getIndexFields)
 		}
 		const string indexName(in->index_name.str, in->index_name.length);
 
-		const auto& ftsDirectoryPath = getFtsDirectory(context);
+		const auto& ftsDirectoryPath = getFtsDirectory(status, context);
 		// check if there is a directory for full-text indexes
 		if (!fs::is_directory(ftsDirectoryPath)) {
 			throwException(status, R"(Fts directory "%s" not exists)", ftsDirectoryPath.u8string().c_str());
@@ -385,7 +385,7 @@ FB_UDR_BEGIN_PROCEDURE(getIndexFiles)
 		}
 		const string indexName(in->index_name.str, in->index_name.length);
 
-		const auto& ftsDirectoryPath = getFtsDirectory(context);
+		const auto& ftsDirectoryPath = getFtsDirectory(status, context);
 		// check if there is a directory for full-text indexes
 		if (!fs::is_directory(ftsDirectoryPath)) {
 			throwException(status, R"(Fts directory "%s" not exists)", ftsDirectoryPath.u8string().c_str());
@@ -519,7 +519,7 @@ FB_UDR_BEGIN_PROCEDURE(getIndexSegments)
 		}
 		const string indexName(in->index_name.str, in->index_name.length);
 
-		const auto& ftsDirectoryPath = getFtsDirectory(context);
+		const auto& ftsDirectoryPath = getFtsDirectory(status, context);
 		// check if there is a directory for full-text indexes
 		if (!fs::is_directory(ftsDirectoryPath)) {
 			throwException(status, R"(Fts directory "%s" not exists)", ftsDirectoryPath.u8string().c_str());
@@ -680,7 +680,7 @@ FB_UDR_BEGIN_PROCEDURE(getFieldInfos)
 			unicodeSegmentName = StringUtils::toUnicode(segmentName);
 		}
 
-		const auto& ftsDirectoryPath = getFtsDirectory(context);
+		const auto& ftsDirectoryPath = getFtsDirectory(status, context);
 		// check if there is a directory for full-text indexes
 		if (!fs::is_directory(ftsDirectoryPath)) {
 			throwException(status, R"(Fts directory "%s" not exists)", ftsDirectoryPath.u8string().c_str());
