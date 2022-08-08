@@ -1375,6 +1375,28 @@ Input parameters:
 
 - FTS$QUERY - a search query or part of it in which special characters need to be escaped.
 
+### Procedure FTS$ANALYZE
+
+The `FTS$ANALYZE` procedure analyzes the text according to the given analyzer and returns a list of terms.
+
+```sql
+PROCEDURE FTS$ANALYZE (
+    FTS$TEXT     BLOB SUB_TYPE TEXT CHARACTER SET UTF8,
+    FTS$ANALYZER VARCHAR(63) CHARACTER SET UTF8 NOT NULL DEFAULT 'STANDARD')
+RETURNS (
+    FTS$TERM VARCHAR(8191) CHARACTER SET UTF8
+)
+```
+
+Input parameters:
+
+- FTS$TEXT - text for analysis;
+- FTS$ANALYZER - analyzer.
+
+Output parameters:
+
+- FTS$TERM - term.
+
 ### Procedure FTS$LOG_BY_ID
 
 The procedure `FTS$LOG_BY_ID` adds a record of a change in one of the fields included in the full-text indexes

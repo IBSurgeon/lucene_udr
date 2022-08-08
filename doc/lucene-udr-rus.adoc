@@ -1460,6 +1460,29 @@ RETURNS VARCHAR(8191) CHARACTER SET UTF8;
 
 * FTS$QUERY - поисковый запрос или его часть, в котором необходимо экранировать специальные символы.
 
+=== Процедура FTS$ANALYZE
+
+Процедура `FTS$ANALYZE` производит анализ текста, согласно заданному анализатору, и возвращает список термов.
+
+[source,sql]
+----
+PROCEDURE FTS$ANALYZE (
+    FTS$TEXT     BLOB SUB_TYPE TEXT CHARACTER SET UTF8,
+    FTS$ANALYZER VARCHAR(63) CHARACTER SET UTF8 NOT NULL DEFAULT 'STANDARD')
+RETURNS (
+    FTS$TERM VARCHAR(8191) CHARACTER SET UTF8
+)
+----
+
+Входные параметры:
+
+- FTS$TEXT - текст для анализа;
+- FTS$ANALYZER - анализатор.
+
+Выходные параметры:
+
+- FTS$TERM - терм.
+
 === Процедура FTS$LOG_BY_ID
 
 Процедура `FTS$LOG_BY_ID` добавляет запись об изменении одного из полей входящих в полнотекстовые индексы,

@@ -167,7 +167,7 @@ FROM RDB$DATABASE
 * CJK - CJKAnalyzer (Китайское письмо);
 * CZECH - CzechAnalyzer (Чешский язык);
 * DUTCH - DutchAnalyzer (Голландский язык);
-* ENGLISH - StandardAnalyzer (Английский язык);
+* ENGLISH - EnglishAnalyzer (Английский язык);
 * FRENCH - FrenchAnalyzer (Французский язык);
 * GERMAN - GermanAnalyzer (Немецкий язык);
 * GREEK - GreekAnalyzer (Греческий язык);
@@ -1388,6 +1388,28 @@ RETURNS VARCHAR(8191) CHARACTER SET UTF8;
 Входные параметры:
 
 - FTS$QUERY - поисковый запрос или его часть, в котором необходимо экранировать специальные символы.
+
+### Процедура FTS$ANALYZE
+
+Процедура `FTS$ANALYZE` производит анализ текста, согласно заданному анализатору, и возвращает список термов.
+
+```sql
+PROCEDURE FTS$ANALYZE (
+    FTS$TEXT     BLOB SUB_TYPE TEXT CHARACTER SET UTF8,
+    FTS$ANALYZER VARCHAR(63) CHARACTER SET UTF8 NOT NULL DEFAULT 'STANDARD')
+RETURNS (
+    FTS$TERM VARCHAR(8191) CHARACTER SET UTF8
+)
+```
+
+Входные параметры:
+
+- FTS$TEXT - текст для анализа;
+- FTS$ANALYZER - анализатор.
+
+Выходные параметры:
+
+- FTS$TERM - терм.
 
 ### Процедура FTS$LOG_BY_ID
 
