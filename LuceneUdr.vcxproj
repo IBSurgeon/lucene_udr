@@ -40,6 +40,7 @@
     <ClInclude Include="src\FBUtils.h" />
     <ClInclude Include="src\FBFieldInfo.h" />
     <ClInclude Include="src\FTSIndex.h" />
+    <ClInclude Include="src\LazyFactory.h" />
     <ClInclude Include="src\LuceneAnalyzerFactory.h" />
     <ClInclude Include="src\LuceneFiles.h" />
     <ClInclude Include="src\LuceneUdr.h" />

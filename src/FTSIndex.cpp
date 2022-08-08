@@ -13,6 +13,7 @@
 
 #include "FTSIndex.h"
 #include "FBUtils.h"
+#include "LazyFactory.h"
 #include "LuceneAnalyzerFactory.h"
 
 using namespace Firebird;
@@ -579,7 +580,7 @@ namespace LuceneUDR
 		while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
 			const string indexName(output->indexName.str, output->indexName.length);
 
-			const auto& [it, result] = indexes.try_emplace(indexName, make_unique<FTSIndex>());
+			const auto& [it, result] = indexes.try_emplace(indexName, lazy_convert_construct([] { return std::make_unique<FTSIndex>(); }));
 			auto& index = it->second;
 			if (result) {
 				index->indexName.assign(output->indexName.str, output->indexName.length);
@@ -1189,7 +1190,7 @@ ORDER BY FTS$KEY_FIELD_NAME
 			const string keyFieldType(output->keyFieldType.str, output->keyFieldType.length);
 			const string fieldName(output->fieldName.str, output->fieldName.length);
 
-			auto [it, result] = keyFieldBlocks.try_emplace(keyFieldName, make_unique<FTSKeyFieldBlock>());
+			auto [it, result] = keyFieldBlocks.try_emplace(keyFieldName, lazy_convert_construct([] { return std::make_unique<FTSKeyFieldBlock>(); }));
 			const auto& block = it->second;
 			if (result) {
 				block->keyFieldName = keyFieldName;

@@ -105,6 +105,9 @@
     <ClInclude Include="src\FTSUtils.h">
       <Filter>Header files</Filter>
     </ClInclude>
+    <ClInclude Include="src\LazyFactory.h">
+      <Filter>Header files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="defs\udr_plugin.def">
