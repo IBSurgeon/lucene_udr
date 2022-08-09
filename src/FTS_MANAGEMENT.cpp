@@ -59,10 +59,10 @@ FB_UDR_END_FUNCTION
 
 /***
 PROCEDURE FTS$ANALYZERS
-EXTERNAL NAME 'luceneudr!getAnalyzers'
 RETURNS (
   FTS$ANALYZER VARCHAR(63) CHARACTER SET UTF8
 )
+EXTERNAL NAME 'luceneudr!getAnalyzers' 
 ENGINE UDR;
 ***/
 FB_UDR_BEGIN_PROCEDURE(getAnalyzers)
@@ -97,6 +97,74 @@ FB_UDR_BEGIN_PROCEDURE(getAnalyzers)
 		out->analyzerNull = false;
 		out->analyzer.length = static_cast<ISC_USHORT>(analyzerName.length());
 		analyzerName.copy(out->analyzer.str, out->analyzer.length);
+
+		++it;
+		return true;
+	}
+FB_UDR_END_PROCEDURE
+
+/***
+PROCEDURE FTS$ANALYZER_STOP_WORDS (
+	FTS$ANALYZER VARCHAR(63) CHARACTER SET UTF8 NOT NULL
+)
+RETURNS (
+	FTS$WORD VARCHAR(63) CHARACTER SET UTF8
+)
+EXTERNAL NAME 'luceneudr!getAnalyzerStopWords' 
+ENGINE UDR;
+***/
+FB_UDR_BEGIN_PROCEDURE(getAnalyzerStopWords)
+
+	FB_UDR_MESSAGE(InMessage,
+		(FB_INTL_VARCHAR(252, CS_UTF8), analyzer)
+	);
+
+	FB_UDR_MESSAGE(OutMessage,
+		(FB_INTL_VARCHAR(252, CS_UTF8), word)
+	);
+
+	FB_UDR_CONSTRUCTOR
+		, analyzerFactory()
+	{
+	}
+
+	LuceneAnalyzerFactory analyzerFactory;
+
+	void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
+		char* name, unsigned nameSize)
+	{
+		// Forced internal request encoding to UTF8
+		memset(name, 0, nameSize);
+
+		const string charset = "UTF8";
+		charset.copy(name, charset.length());
+	}
+
+	FB_UDR_EXECUTE_PROCEDURE
+	{
+		if (in->analyzerNull) {
+			throwException(status, "Analyzer can not be NULL");
+		}
+		const string analyzerName(in->analyzer.str, in->analyzer.length);
+
+		stopWords = procedure->analyzerFactory.getAnalyzerStopWords(status, analyzerName);
+		it = stopWords.begin();
+	}
+
+	HashSet<String> stopWords;
+	HashSet<String>::const_iterator it;
+
+	FB_UDR_FETCH_PROCEDURE
+	{
+		if (it == stopWords.end()) {
+			return false;
+		}
+		const String uStopWord = *it;
+		const string stopWord = StringUtils::toUTF8(uStopWord);
+
+		out->wordNull = false;
+		out->word.length = static_cast<ISC_USHORT>(stopWord.length());
+		stopWord.copy(out->word.str, out->word.length);
 
 		++it;
 		return true;

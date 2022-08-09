@@ -50,6 +50,7 @@ namespace LuceneUDR {
 	class LuceneAnalyzerFactory final {
 	private:
 		map<string, function<AnalyzerPtr()>, ci_more> m_factories;
+		map<string, function<const HashSet<String>()>, ci_more> m_stopwords_map;
 	public:
 
 		LuceneAnalyzerFactory();
@@ -59,6 +60,8 @@ namespace LuceneUDR {
 		AnalyzerPtr createAnalyzer(ThrowStatusWrapper* status, const string& analyzerName);
 
 		list<string> getAnalyzerNames();
+
+		const HashSet<String> getAnalyzerStopWords(ThrowStatusWrapper* status, const string& analyzerName);
 
 	};
 

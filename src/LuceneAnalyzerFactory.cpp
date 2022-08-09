@@ -59,6 +59,44 @@ namespace LuceneUDR {
 				{ "SNOWBALL(TURKISH)", []() -> AnalyzerPtr { return newLucene<SnowballAnalyzer>(LuceneVersion::LUCENE_CURRENT, L"turkish"); } }
 			}
 		);
+
+		m_stopwords_map.insert(
+			{
+				{ "STANDARD", []() -> const HashSet<String> { return StopAnalyzer::ENGLISH_STOP_WORDS_SET(); } },
+				{ "SIMPLE", []() -> const HashSet<String> { return HashSet<String>(); } },
+				{ "WHITESPACE", []() -> const HashSet<String> { return HashSet<String>(); } },
+				{ "KEYWORD", []() -> const HashSet<String> { return HashSet<String>(); } },
+				{ "STOP", []() -> const HashSet<String> { return StopAnalyzer::ENGLISH_STOP_WORDS_SET(); } },
+				{ "ARABIC", []() -> const HashSet<String> { return ArabicAnalyzer::getDefaultStopSet(); } },
+				{ "BRAZILIAN", []() -> const HashSet<String> { return BrazilianAnalyzer::getDefaultStopSet(); } },
+				{ "CHINESE", []() -> const HashSet<String> { return HashSet<String>(); } },
+				{ "CJK", []() -> const HashSet<String> { return CJKAnalyzer::getDefaultStopSet(); } },
+				{ "CZECH", []() -> const HashSet<String> { return CzechAnalyzer::getDefaultStopSet(); } },
+				{ "DUTCH", []() -> const HashSet<String> { return DutchAnalyzer::getDefaultStopSet(); } },
+				{ "ENGLISH", []() -> const HashSet<String> { return StopAnalyzer::ENGLISH_STOP_WORDS_SET(); } },
+				{ "FRENCH", []() -> const HashSet<String> { return FrenchAnalyzer::getDefaultStopSet(); } },
+				{ "GERMAN", []() -> const HashSet<String> { return GermanAnalyzer::getDefaultStopSet(); } },
+				{ "GREEK", []() -> const HashSet<String> { return GreekAnalyzer::getDefaultStopSet(); } },
+				{ "PERSIAN", []() -> const HashSet<String> { return PersianAnalyzer::getDefaultStopSet(); } },
+				{ "RUSSIAN", []() -> const HashSet<String> { return RussianAnalyzer::getDefaultStopSet(); } },
+				{ "SNOWBALL(DANISH)", []() -> const HashSet<String> { return HashSet<String>();; } },
+				{ "SNOWBALL(DUTCH)", []() -> const HashSet<String> { return DutchAnalyzer::getDefaultStopSet(); } },
+				{ "SNOWBALL(ENGLISH)", []() -> const HashSet<String> { return StopAnalyzer::ENGLISH_STOP_WORDS_SET(); } },
+				{ "SNOWBALL(FINNISH)", []() -> const HashSet<String> { return HashSet<String>(); } },
+				{ "SNOWBALL(FRENCH)", []() -> const HashSet<String> { return FrenchAnalyzer::getDefaultStopSet(); } },
+				{ "SNOWBALL(GERMAN)", []() -> const HashSet<String> { return GermanAnalyzer::getDefaultStopSet(); } },
+				{ "SNOWBALL(HUNGARIAN)", []() -> const HashSet<String> { return HashSet<String>(); } },
+				{ "SNOWBALL(ITALIAN)", []() -> const HashSet<String> { return HashSet<String>(); } },
+				{ "SNOWBALL(NORWEGIAN)", []() -> const HashSet<String> { return HashSet<String>(); } },
+				{ "SNOWBALL(PORTER)", []() -> const HashSet<String> { return StopAnalyzer::ENGLISH_STOP_WORDS_SET(); } },
+				{ "SNOWBALL(PORTUGUESE)", []() -> const HashSet<String> { return HashSet<String>(); } },
+				{ "SNOWBALL(ROMANIAN)", []() -> const HashSet<String> { return HashSet<String>(); } },
+				{ "SNOWBALL(RUSSIAN)", []() -> const HashSet<String> { return RussianAnalyzer::getDefaultStopSet(); } },
+				{ "SNOWBALL(SPANISH)", []() -> const HashSet<String> { return HashSet<String>(); } },
+				{ "SNOWBALL(SWEDISH)", []() -> const HashSet<String> { return HashSet<String>(); } },
+				{ "SNOWBALL(TURKISH)", []() -> const HashSet<String> { return HashSet<String>(); } }
+			}
+		);
 	}
 
 	bool LuceneAnalyzerFactory::hasAnalyzer(const string& analyzerName)
@@ -85,4 +123,13 @@ namespace LuceneUDR {
 		return names;
 	}
 
+	const HashSet<String> LuceneAnalyzerFactory::getAnalyzerStopWords(ThrowStatusWrapper* status, const string& analyzerName)
+	{
+		auto pStopWords = m_stopwords_map.find(analyzerName);
+		if (pStopWords == m_stopwords_map.end()) {
+			throwException(status, R"(Analyzer "%s" not found.)", analyzerName.c_str());
+		}
+		auto fnStopWords = pStopWords->second;
+		return fnStopWords();
+	}
 }
