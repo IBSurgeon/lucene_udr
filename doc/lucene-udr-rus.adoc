@@ -34,15 +34,15 @@ toc::[]
 
 Скачать готовые сборки под ОС Windows можно по ссылкам:
 
-* https://github.com/IBSurgeon/lucene_udr/releases/download/1.0/LuceneUdr_Win_x64.zip[LuceneUdr_Win_x64.zip]
-* https://github.com/IBSurgeon/lucene_udr/releases/download/1.0/LuceneUdr_Win_x86.zip[LuceneUdr_Win_x86.zip]
+* https://github.com/IBSurgeon/lucene_udr/releases/download/1.1/LuceneUdr_Win_x64.zip[LuceneUdr_Win_x64.zip]
+* https://github.com/IBSurgeon/lucene_udr/releases/download/1.1/LuceneUdr_Win_x86.zip[LuceneUdr_Win_x86.zip]
 
 Под ОС Linux вы можете скомпилировать библиотеку самостоятельно.
 
 Скачать демонстрационную базу данных, для которой подготовлены примеры можно по следующим ссылкам:
 
-* https://github.com/IBSurgeon/lucene_udr/releases/download/1.0/fts_demo_3.0.zip[fts_demo_3.0.zip] - база данных для Firebird 3.0;
-* https://github.com/IBSurgeon/lucene_udr/releases/download/1.0/fts_demo_4.0.zip[fts_demo_4.0.zip] - база данных для Firebird 4.0.
+* https://github.com/IBSurgeon/lucene_udr/releases/download/1.1/fts_demo_3.0.zip[fts_demo_3.0.zip] - база данных для Firebird 3.0;
+* https://github.com/IBSurgeon/lucene_udr/releases/download/1.1/fts_demo_4.0.zip[fts_demo_4.0.zip] - база данных для Firebird 4.0.
 
 == Сборка и установка библиотеки под Linux
 
@@ -195,7 +195,23 @@ FROM RDB$DATABASE
 * STANDARD - StandardAnalyzer (Английский язык);
 * SIMPLE - SimpleAnalyzer;
 * STOP - StopAnalyzer;
-* WHITESPACE - WhitespaceAnalyzer.
+* WHITESPACE - WhitespaceAnalyzer;
+* SNOWBALL(DANISH) - SnowballAnalyzer('danish');
+* SNOWBALL(DUTCH) - SnowballAnalyzer('dutch', DutchStopWords);
+* SNOWBALL(ENGLISH) - SnowballAnalyzer('english', EnglishStopWords);
+* SNOWBALL(FINNISH) - SnowballAnalyzer('finnish');
+* SNOWBALL(FRENCH) - SnowballAnalyzer('french', FrenchStopWords);
+* SNOWBALL(GERMAN) - SnowballAnalyzer('german', GermanStopWords);
+* SNOWBALL(HUNGARIAN) - SnowballAnalyzer('hungarian');
+* SNOWBALL(ITALIAN) - SnowballAnalyzer('italian');
+* SNOWBALL(NORWEGIAN) - SnowballAnalyzer('norwegian');
+* SNOWBALL(PORTER) - SnowballAnalyzer('porter', EnglishStopWords);
+* SNOWBALL(PORTUGUESE) - SnowballAnalyzer('portuguese');
+* SNOWBALL(ROMANIAN) - SnowballAnalyzer('romanian');
+* SNOWBALL(RUSSIAN) - SnowballAnalyzer('russian', RussianStopWords);
+* SNOWBALL(SPANISH) - SnowballAnalyzer('spanish');
+* SNOWBALL(SWEDISH) - SnowballAnalyzer('swedish');
+* SNOWBALL(TURKISH) - SnowballAnalyzer('turkish').
 
 Четвёртым параметром задаётся имя поля таблицы, которое будет возвращено в качестве результата поиска. Обычно это
 поле первичного или уникального ключа. Также поддерживается задание специального псевдо поля `RDB$DB_KEY`.
@@ -884,6 +900,34 @@ SELECT
 FROM FTS$SEARCH('IDX_PRODUCT_CATEGORIES', '"Toys & Games"') FTS
 JOIN V_PRODUCT_CATEGORIES PC ON PC.PRODUCT_UUID = FTS.FTS$UUID
 JOIN PRODUCTS P ON P.PRODUCT_UUID = PC.PRODUCT_UUID;
+----
+
+== Анализ текста
+
+Результат поиска зависит от того какой анализатор был использован при создании индекса.
+Анализатор выполняет следующие функции: разбивает текст на отдельные слова, приводит слова к нижнему регистру, 
+удаление стоп слов, другие фильтры, стемминг. В результате анализа текста для индексации из текста будут выделены термы, которые и попадают в индекс.
+
+Для того чтобы узнать какие именно термы попадают в индекс вы можете воспользоваться хранимой процедурой `FTS$ANALYZE`.
+
+[source,sql]
+----
+PROCEDURE FTS$ANALYZE (
+    FTS$TEXT     BLOB SUB_TYPE TEXT CHARACTER SET UTF8,
+    FTS$ANALYZER VARCHAR(63) CHARACTER SET UTF8 NOT NULL DEFAULT 'STANDARD')
+RETURNS (
+    FTS$TERM VARCHAR(8191) CHARACTER SET UTF8
+)
+----
+
+Первым параметром задаётся текст для анализа, а вторым имя анализатора.
+
+Пример использования:
+
+[source,sql]
+----
+SELECT FTS$TERM
+FROM FTS$ANALYZE('IBSurgeon FTS UDR library implements full text search procedures and functions for Firebird SQL', 'STANDARD')
 ----
 
 == Выделение найденных термов во фрагменте текста

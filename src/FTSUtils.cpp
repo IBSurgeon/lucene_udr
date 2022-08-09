@@ -36,7 +36,7 @@ namespace LuceneUDR
 		const fs::path confFilePath = rootDirPath / "fts.conf";
 		AutoRelease<IConfig> conf = pluginManager->getConfig(status, confFilePath.string().c_str());
 		if (conf) {
-			AutoRelease<IConfigEntry> ftsEntry(conf->findValue(status, "FTS", context->getDatabaseName()));
+			AutoRelease<IConfigEntry> ftsEntry(conf->findValue(status, "database", context->getDatabaseName()));
 			if (ftsEntry) {
 				AutoRelease<IConfig> subConf(ftsEntry->getSubConfig(status));
 				if (subConf) {

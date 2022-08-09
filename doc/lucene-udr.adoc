@@ -32,15 +32,15 @@ For databases of the 1st SQL dialect, use the script https://github.com/IBSurgeo
 
 You can download ready-made builds for Windows OS using the links:
 
-* https://github.com/IBSurgeon/lucene_udr/releases/download/1.0/LuceneUdr_Win_x64.zip[LuceneUdr_Win_x64.zip]
-* https://github.com/IBSurgeon/lucene_udr/releases/download/1.0/LuceneUdr_Win_x86.zip[LuceneUdr_Win_x86.zip]
+* https://github.com/IBSurgeon/lucene_udr/releases/download/1.1/LuceneUdr_Win_x64.zip[LuceneUdr_Win_x64.zip]
+* https://github.com/IBSurgeon/lucene_udr/releases/download/1.1/LuceneUdr_Win_x86.zip[LuceneUdr_Win_x86.zip]
 
 Under Linux, you can compile the library yourself.
 
 Download the demo database, for which the examples are prepared, using the following links:
 
-* https://github.com/IBSurgeon/lucene_udr/releases/download/1.0/fts_demo_3.0.zip[fts_demo_3.0.zip] - database for Firebird 3.0;
-* https://github.com/IBSurgeon/lucene_udr/releases/download/1.0/fts_demo_4.0.zip[fts_demo_4.0.zip] - database for Firebird 4.0.
+* https://github.com/IBSurgeon/lucene_udr/releases/download/1.1/fts_demo_3.0.zip[fts_demo_3.0.zip] - database for Firebird 3.0;
+* https://github.com/IBSurgeon/lucene_udr/releases/download/1.1/fts_demo_4.0.zip[fts_demo_4.0.zip] - database for Firebird 4.0.
 
 == Building and installing the library under Linux
 
@@ -182,7 +182,7 @@ List of available analyzers:
 * CJK - CJKAnalyzer (Chinese Letter);
 * CZECH - CzechAnalyzer;
 * DUTCH - DutchAnalyzer;
-* ENGLISH - StandardAnalyzer (English);
+* ENGLISH - EnglishAnalyzer;
 * FRENCH - FrenchAnalyzer;
 * GERMAN - GermanAnalyzer;
 * GREEK - GreekAnalyzer;
@@ -192,7 +192,23 @@ List of available analyzers:
 * SIMPLE - SimpleAnalyzer;
 * STANDARD - StandardAnalyzer (English);
 * STOP - StopAnalyzer;
-* WHITESPACE - WhitespaceAnalyzer.
+* WHITESPACE - WhitespaceAnalyzer;
+* SNOWBALL(DANISH) - SnowballAnalyzer('danish');
+* SNOWBALL(DUTCH) - SnowballAnalyzer('dutch', DutchStopWords);
+* SNOWBALL(ENGLISH) - SnowballAnalyzer('english', EnglishStopWords);
+* SNOWBALL(FINNISH) - SnowballAnalyzer('finnish');
+* SNOWBALL(FRENCH) - SnowballAnalyzer('french', FrenchStopWords);
+* SNOWBALL(GERMAN) - SnowballAnalyzer('german', GermanStopWords);
+* SNOWBALL(HUNGARIAN) - SnowballAnalyzer('hungarian');
+* SNOWBALL(ITALIAN) - SnowballAnalyzer('italian');
+* SNOWBALL(NORWEGIAN) - SnowballAnalyzer('norwegian');
+* SNOWBALL(PORTER) - SnowballAnalyzer('porter', EnglishStopWords);
+* SNOWBALL(PORTUGUESE) - SnowballAnalyzer('portuguese');
+* SNOWBALL(ROMANIAN) - SnowballAnalyzer('romanian');
+* SNOWBALL(RUSSIAN) - SnowballAnalyzer('russian', RussianStopWords);
+* SNOWBALL(SPANISH) - SnowballAnalyzer('spanish');
+* SNOWBALL(SWEDISH) - SnowballAnalyzer('swedish');
+* SNOWBALL(TURKISH) - SnowballAnalyzer('turkish').
 
 The fourth parameter specifies the name of the table field that will be returned as a search result.
 This is usually a primary or unique key field. Setting a special pseudo field `RDB$DB_KEY` is also supported.
@@ -868,6 +884,34 @@ SELECT
 FROM FTS$SEARCH('IDX_PRODUCT_CATEGORIES', '"Toys & Games"') FTS
 JOIN V_PRODUCT_CATEGORIES PC ON PC.PRODUCT_UUID = FTS.FTS$UUID
 JOIN PRODUCTS P ON P.PRODUCT_UUID = PC.PRODUCT_UUID;
+----
+
+== Text analysis
+
+The result of the search depends on which analyzer was used to create the index.
+The analyzer performs the following functions: splits the text into separate words, converts words to lowercase,
+removal of stop words, other filters, stemming. As a result of text analysis for indexing, terms will be selected from the text, which fall into the index.
+
+In order to find out which terms are included in the index, you can use the stored procedure `FTS$ANALYZE`.
+
+[source,sql]
+----
+PROCEDURE FTS$ANALYZE (
+    FTS$TEXT     BLOB SUB_TYPE TEXT CHARACTER SET UTF8,
+    FTS$ANALYZER VARCHAR(63) CHARACTER SET UTF8 NOT NULL DEFAULT 'STANDARD')
+RETURNS (
+    FTS$TERM VARCHAR(8191) CHARACTER SET UTF8
+)
+----
+
+The first parameter specifies the text to be analyzed, and the second parameter is the name of the analyzer.
+
+Usage example:
+
+[source,sql]
+----
+SELECT FTS$TERM
+FROM FTS$ANALYZE('IBSurgeon FTS UDR library implements full text search procedures and functions for Firebird SQL', 'STANDARD')
 ----
 
 == Highlighting found terms in a text fragment
