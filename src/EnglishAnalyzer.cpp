@@ -36,6 +36,12 @@ namespace Lucene {
         this->maxTokenLength = DEFAULT_MAX_TOKEN_LENGTH;
     }
 
+    /// Returns an unmodifiable instance of the default stop-words set.
+    const HashSet<String> EnglishAnalyzer::getDefaultStopSet()
+    {
+        return StopAnalyzer::ENGLISH_STOP_WORDS_SET();
+    }
+
     /// Constructs a {@link StandardTokenizer} filtered by a {@link StandardFilter}, a {@link LowerCaseFilter}
     /// a {@link StopFilter} and a {@link PorterStemFilter}.
     TokenStreamPtr EnglishAnalyzer::tokenStream(const String& fieldName, const ReaderPtr& reader)

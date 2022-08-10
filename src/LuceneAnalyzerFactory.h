@@ -37,11 +37,11 @@ namespace LuceneUDR {
 		};
 
 		bool operator() (const string& s1, const string& s2) const {
-			return lexicographical_compare (
+			return lexicographical_compare(
 				s1.begin(), s1.end(),   // source range
 				s2.begin(), s2.end(),   // dest range
 				nocase_compare()        // comparison
-			);     
+			);
 		}
 	};
 
@@ -49,15 +49,27 @@ namespace LuceneUDR {
 
 	class LuceneAnalyzerFactory final {
 	private:
-		map<string, function<AnalyzerPtr()>, ci_more> m_factories;
-		map<string, function<const HashSet<String>()>, ci_more> m_stopwords_map;
+		struct AnalyzerFactory
+		{
+			function<AnalyzerPtr()> simpleFactory;
+			function<AnalyzerPtr(const HashSet<String>)> extFactory;
+			function<const HashSet<String>()> getStopWords;
+			bool stopWordsSupported;
+		};
+
+		map<string, AnalyzerFactory, ci_more> m_factories;
+
 	public:
 
 		LuceneAnalyzerFactory();
 
 		bool hasAnalyzer(const string& analyzerName);
 
+		bool isStopWordsSupported(const string& analyzerName);
+
 		AnalyzerPtr createAnalyzer(ThrowStatusWrapper* status, const string& analyzerName);
+
+		AnalyzerPtr createAnalyzer(ThrowStatusWrapper* status, const string& analyzerName, const HashSet<String> stopWords);
 
 		list<string> getAnalyzerNames();
 

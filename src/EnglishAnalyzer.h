@@ -51,6 +51,9 @@ namespace Lucene {
         void ConstructAnalyser(LuceneVersion::Version matchVersion, HashSet<String> stopWords);
 
 	public:
+        /// Returns an unmodifiable instance of the default stop-words set.
+        static const HashSet<String> getDefaultStopSet();
+
 		/// Constructs a {@link StandardTokenizer} filtered by a {@link StandardFilter}, a {@link LowerCaseFilter}
 		/// a {@link StopFilter} and a {@link PorterStemFilter}.
 		TokenStreamPtr tokenStream(const String& fieldName, const ReaderPtr& reader);
