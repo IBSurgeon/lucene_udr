@@ -22,6 +22,7 @@
 #include "FileUtils.h"
 #include "TermAttribute.h"
 #include "LuceneAnalyzerFactory.h"
+#include "Utils.h"
 #include <sstream>
 #include <memory>
 #include <algorithm>
@@ -29,14 +30,6 @@
 using namespace Firebird;
 using namespace Lucene;
 using namespace LuceneUDR;
-
-const std::string WHITESPACE = " \n\r\t\f\v";
-
-std::string rtrim(const std::string& s)
-{
-	size_t end = s.find_last_not_of(WHITESPACE);
-	return (end == std::string::npos) ? "" : s.substr(0, end + 1);
-}
 
 const string queryEscape(const string& query)
 {

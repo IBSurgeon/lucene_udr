@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Analyzers.cpp" />
     <ClCompile Include="src\EnglishAnalyzer.cpp" />
     <ClCompile Include="src\FBFieldInfo.cpp" />
     <ClCompile Include="src\FBUtils.cpp" />
@@ -33,8 +34,10 @@
     <ClCompile Include="src\LuceneAnalyzerFactory.cpp" />
     <ClCompile Include="src\LuceneFiles.cpp" />
     <ClCompile Include="src\Relations.cpp" />
+    <ClCompile Include="src\Utils.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\Analyzers.h" />
     <ClInclude Include="src\EnglishAnalyzer.h" />
     <ClInclude Include="src\FTSUtils.h" />
     <ClInclude Include="src\EncodeUtils.h" />
@@ -48,6 +51,7 @@
     <ClInclude Include="src\LuceneUdr.h" />
     <ClInclude Include="src\Relations.h" />
     <ClInclude Include="src\udr_build_no.h" />
+    <ClInclude Include="src\Utils.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="defs\udr_plugin.def" />

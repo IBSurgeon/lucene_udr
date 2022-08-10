@@ -369,6 +369,31 @@ namespace LuceneUDR {
 		return names;
 	}
 
+	const AnalyzerInfo LuceneAnalyzerFactory::getAnalyzerInfo(ThrowStatusWrapper* status, const string& analyzerName)
+	{
+		auto pFactory = m_factories.find(analyzerName);
+		if (pFactory == m_factories.end()) {
+			throwException(status, R"(Analyzer "%s" not found.)", analyzerName.c_str());
+		}
+		auto factory = pFactory->second;
+		AnalyzerInfo info { analyzerName, "", factory.stopWordsSupported, true };
+		return info;
+	}
+
+	list<AnalyzerInfo> LuceneAnalyzerFactory::getAnalyzerInfos()
+	{
+		list<AnalyzerInfo> infos;
+		for (const auto& pFactory : m_factories) {
+			AnalyzerInfo info;
+			info.analyzerName = pFactory.first;
+			info.baseAnalyzer = "";
+			info.stopWordsSupported = pFactory.second.stopWordsSupported;
+			info.systemFlag = true;
+			infos.push_back(info);
+		}
+		return infos;
+	}
+
 	const HashSet<String> LuceneAnalyzerFactory::getAnalyzerStopWords(ThrowStatusWrapper* status, const string& analyzerName)
 	{
 		auto pFactory = m_factories.find(analyzerName);

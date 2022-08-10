@@ -47,6 +47,14 @@ namespace LuceneUDR {
 
 	static const string DEFAULT_ANALYZER_NAME = "STANDARD";
 
+	struct AnalyzerInfo
+	{
+		string analyzerName;
+		string baseAnalyzer;
+		bool stopWordsSupported;
+		bool systemFlag;
+	};
+
 	class LuceneAnalyzerFactory final {
 	private:
 		struct AnalyzerFactory
@@ -72,6 +80,10 @@ namespace LuceneUDR {
 		AnalyzerPtr createAnalyzer(ThrowStatusWrapper* status, const string& analyzerName, const HashSet<String> stopWords);
 
 		list<string> getAnalyzerNames();
+
+		const AnalyzerInfo getAnalyzerInfo(ThrowStatusWrapper* status, const string& analyzerName);
+
+		list<AnalyzerInfo> getAnalyzerInfos();
 
 		const HashSet<String> getAnalyzerStopWords(ThrowStatusWrapper* status, const string& analyzerName);
 

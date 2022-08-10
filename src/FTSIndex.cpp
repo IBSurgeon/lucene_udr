@@ -168,6 +168,17 @@ namespace LuceneUDR
 		const string& analyzerName,
 		const string& description)
 	{
+		// check for index existence
+		if (hasIndex(status, att, tra, sqlDialect, indexName)) {
+			throwException(status, R"(Index "%s" already exists)", indexName.c_str());
+		}
+
+		// checking the existence of the analyzer
+		LuceneAnalyzerFactory analyzerFactory;
+		if (!analyzerFactory.hasAnalyzer(analyzerName)) {
+			throwException(status, R"(Analyzer "%s" not exists)", analyzerName.c_str());
+		}
+
 		FB_MESSAGE(Input, ThrowStatusWrapper,
 			(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
 			(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
@@ -199,17 +210,6 @@ namespace LuceneUDR
 		const string indexStatus = "N";
 		input->indexStatus.length = static_cast<ISC_USHORT>(indexStatus.length());
 		indexStatus.copy(input->indexStatus.str, input->indexStatus.length);
-
-		// check for index existence
-		if (hasIndex(status, att, tra, sqlDialect, indexName)) {
-			throwException(status, R"(Index "%s" already exists)", indexName.c_str());
-		}
-
-		// checking the existence of the analyzer
-		LuceneAnalyzerFactory analyzerFactory;
-		if (!analyzerFactory.hasAnalyzer(analyzerName)) {
-			throwException(status, R"(Analyzer "%s" not exists)", analyzerName.c_str());
-		}
 
 		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
 

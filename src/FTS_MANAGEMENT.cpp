@@ -21,6 +21,8 @@
 #include "LuceneHeaders.h"
 #include "FileUtils.h"
 #include "LuceneAnalyzerFactory.h"
+#include "Analyzers.h"
+#include "Utils.h"
 #include <sstream>
 #include <memory>
 #include <algorithm>
@@ -44,6 +46,15 @@ FB_UDR_BEGIN_FUNCTION(getFTSDirectory)
 	   (FB_INTL_VARCHAR(1020, CS_UTF8), directory)
     );
 
+	void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
+		char* name, unsigned nameSize)
+	{
+		// Forced internal request encoding to UTF8
+		memset(name, 0, nameSize);
+
+		const string charset = "UTF8";
+		charset.copy(name, charset.length());
+	}
 
     FB_UDR_EXECUTE_FUNCTION
     {
@@ -60,7 +71,10 @@ FB_UDR_END_FUNCTION
 /***
 PROCEDURE FTS$ANALYZERS
 RETURNS (
-  FTS$ANALYZER VARCHAR(63) CHARACTER SET UTF8
+  FTS$ANALYZER VARCHAR(63) CHARACTER SET UTF8,
+  FTS$BASE_ANALYZER VARCHAR(63) CHARACTER SET UTF8,
+  FTS$STOP_WORDS_SUPPORTED BOOLEAN,
+  FTS$SYSTEM_FLAG BOOLEAN
 )
 EXTERNAL NAME 'luceneudr!getAnalyzers' 
 ENGINE UDR;
@@ -69,37 +83,177 @@ FB_UDR_BEGIN_PROCEDURE(getAnalyzers)
 
     FB_UDR_MESSAGE(OutMessage,
 	    (FB_INTL_VARCHAR(252, CS_UTF8), analyzer)
+		(FB_INTL_VARCHAR(252, CS_UTF8), baseAnalyzer)
+		(FB_BOOLEAN, stopWordsSupported)
+		(FB_BOOLEAN, systemFlag)
     );
 
     FB_UDR_CONSTRUCTOR
-       , analyzerFactory()
+		, analyzers(make_unique<AnalyzerRepository>(context->getMaster()))
     {
     }
 
-    LuceneAnalyzerFactory analyzerFactory;
+	unique_ptr<AnalyzerRepository> analyzers;
+
+	void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
+		char* name, unsigned nameSize)
+	{
+		// Forced internal request encoding to UTF8
+		memset(name, 0, nameSize);
+
+		const string charset = "UTF8";
+		charset.copy(name, charset.length());
+	}
 
 	FB_UDR_EXECUTE_PROCEDURE
 	{
-		analyzerNames = procedure->analyzerFactory.getAnalyzerNames();
-		it = analyzerNames.begin();
+		AutoRelease<IAttachment> att(context->getAttachment(status));
+		AutoRelease<ITransaction> tra(context->getTransaction(status));
+
+		const unsigned int sqlDialect = getSqlDialect(status, att);
+
+		analyzerInfos = procedure->analyzers->getAnalyzerInfos(status, att, tra, sqlDialect);
+		it = analyzerInfos.begin();
 	}
 
-	list<string> analyzerNames;
-	list<string>::const_iterator it;
+	list<AnalyzerInfo> analyzerInfos;
+	list<AnalyzerInfo>::const_iterator it;
 
 	FB_UDR_FETCH_PROCEDURE
 	{
-		if (it == analyzerNames.end()) {
+		if (it == analyzerInfos.end()) {
 			return false;
 		}
-		const string analyzerName = *it;
+		const AnalyzerInfo info = *it;
 
 		out->analyzerNull = false;
-		out->analyzer.length = static_cast<ISC_USHORT>(analyzerName.length());
-		analyzerName.copy(out->analyzer.str, out->analyzer.length);
+		out->analyzer.length = static_cast<ISC_USHORT>(info.analyzerName.length());
+		info.analyzerName.copy(out->analyzer.str, out->analyzer.length);
+
+		out->baseAnalyzerNull = (info.baseAnalyzer.length() == 0);
+		out->baseAnalyzer.length = static_cast<ISC_USHORT>(info.baseAnalyzer.length());
+		info.baseAnalyzer.copy(out->baseAnalyzer.str, out->baseAnalyzer.length);
+
+		out->stopWordsSupportedNull = false;
+		out->stopWordsSupported = static_cast<FB_BOOLEAN>(info.stopWordsSupported);
+
+		out->systemFlagNull = false;
+		out->systemFlag = static_cast<FB_BOOLEAN>(info.systemFlag);
 
 		++it;
 		return true;
+	}
+FB_UDR_END_PROCEDURE
+
+/***
+PROCEDURE FTS$CREATE_ANALYZER (
+	FTS$ANALYZER VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+	FTS$BASE_ANALYZER VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+	FTS$DESCRIPTION BLOB SUB_TYPE TEXT CHARACTER SET UTF8
+)
+EXTERNAL NAME 'luceneudr!createAnalyzer'
+ENGINE UDR;
+***/
+FB_UDR_BEGIN_PROCEDURE(createAnalyzer)
+
+	FB_UDR_MESSAGE(InMessage,
+		(FB_INTL_VARCHAR(252, CS_UTF8), analyzerName)
+		(FB_INTL_VARCHAR(252, CS_UTF8), baseAnalyzer)
+		(FB_BLOB, description)
+	);
+
+	void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
+		char* name, unsigned nameSize)
+	{
+		// Forced internal request encoding to UTF8
+		memset(name, 0, nameSize);
+
+		const string charset = "UTF8";
+		charset.copy(name, charset.length());
+	}
+
+	FB_UDR_EXECUTE_PROCEDURE
+	{
+
+		if (in->analyzerNameNull) {
+			throwException(status, "Analyzer name can not be NULL");
+		}
+		const string analyzerName(in->analyzerName.str, in->analyzerName.length);
+
+		if (in->baseAnalyzerNull) {
+			throwException(status, "Base analyzer name can not be NULL");
+		}
+		const string baseAnalyzer(in->baseAnalyzer.str, in->baseAnalyzer.length);
+
+		AutoRelease<IAttachment> att(context->getAttachment(status));
+		AutoRelease<ITransaction> tra(context->getTransaction(status));
+
+		const unsigned int sqlDialect = getSqlDialect(status, att);
+
+		const auto& analyzers = make_unique<AnalyzerRepository>(context->getMaster());
+
+		string description;
+		if (!in->descriptionNull) {
+			AutoRelease<IBlob> blob(att->openBlob(status, tra, &in->description, 0, nullptr));
+			description = BlobUtils::getString(status, blob);
+			blob->close(status);
+		}
+
+		analyzers->addAnalyzer(status, att, tra, sqlDialect, analyzerName, baseAnalyzer, description);
+	}
+
+	FB_UDR_FETCH_PROCEDURE
+	{
+		return false;
+	}
+FB_UDR_END_PROCEDURE
+
+/***
+PROCEDURE FTS$DROP_ANALYZER (
+	FTS$ANALYZER VARCHAR(63) CHARACTER SET UTF8 NOT NULL
+)
+EXTERNAL NAME 'luceneudr!dropAnalyzer'
+ENGINE UDR;
+***/
+FB_UDR_BEGIN_PROCEDURE(dropAnalyzer)
+
+	FB_UDR_MESSAGE(InMessage,
+		(FB_INTL_VARCHAR(252, CS_UTF8), analyzerName)
+	);
+
+	void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
+		char* name, unsigned nameSize)
+	{
+		// Forced internal request encoding to UTF8
+		memset(name, 0, nameSize);
+
+		const string charset = "UTF8";
+		charset.copy(name, charset.length());
+	}
+
+	FB_UDR_EXECUTE_PROCEDURE
+	{
+
+		if (in->analyzerNameNull) {
+			throwException(status, "Analyzer name can not be NULL");
+		}
+		const string analyzerName(in->analyzerName.str, in->analyzerName.length);
+
+		AutoRelease<IAttachment> att(context->getAttachment(status));
+		AutoRelease<ITransaction> tra(context->getTransaction(status));
+
+		const unsigned int sqlDialect = getSqlDialect(status, att);
+
+		const auto& analyzers = make_unique<AnalyzerRepository>(context->getMaster());
+
+		// TODO: add check index exists
+
+		analyzers->deleteAnalyzer(status, att, tra, sqlDialect, analyzerName);
+	}
+
+	FB_UDR_FETCH_PROCEDURE
+	{
+		return false;
 	}
 FB_UDR_END_PROCEDURE
 
@@ -124,11 +278,11 @@ FB_UDR_BEGIN_PROCEDURE(getAnalyzerStopWords)
 	);
 
 	FB_UDR_CONSTRUCTOR
-		, analyzerFactory()
+		, analyzers(make_unique<AnalyzerRepository>(context->getMaster()))
 	{
 	}
 
-	LuceneAnalyzerFactory analyzerFactory;
+	unique_ptr<AnalyzerRepository> analyzers;
 
 	void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
 		char* name, unsigned nameSize)
@@ -147,7 +301,12 @@ FB_UDR_BEGIN_PROCEDURE(getAnalyzerStopWords)
 		}
 		const string analyzerName(in->analyzer.str, in->analyzer.length);
 
-		stopWords = procedure->analyzerFactory.getAnalyzerStopWords(status, analyzerName);
+		AutoRelease<IAttachment> att(context->getAttachment(status));
+		AutoRelease<ITransaction> tra(context->getTransaction(status));
+
+		const unsigned int sqlDialect = getSqlDialect(status, att);
+
+		stopWords = procedure->analyzers->getStopWords(status, att, tra, sqlDialect, analyzerName);
 		it = stopWords.begin();
 	}
 
@@ -171,6 +330,121 @@ FB_UDR_BEGIN_PROCEDURE(getAnalyzerStopWords)
 	}
 FB_UDR_END_PROCEDURE
 
+/***
+PROCEDURE FTS$ADD_STOP_WORD (
+	FTS$ANALYZER VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+	FTS$WORD VARCHAR(63) CHARACTER SET UTF8 NOT NULL
+)
+EXTERNAL NAME 'luceneudr!addStopWord'
+ENGINE UDR;
+***/
+FB_UDR_BEGIN_PROCEDURE(addStopWord)
+
+	FB_UDR_MESSAGE(InMessage,
+		(FB_INTL_VARCHAR(252, CS_UTF8), analyzerName)
+		(FB_INTL_VARCHAR(252, CS_UTF8), stopWord)
+	);
+
+	void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
+		char* name, unsigned nameSize)
+	{
+		// Forced internal request encoding to UTF8
+		memset(name, 0, nameSize);
+
+		const string charset = "UTF8";
+		charset.copy(name, charset.length());
+	}
+
+	FB_UDR_EXECUTE_PROCEDURE
+	{
+
+		if (in->analyzerNameNull) {
+			throwException(status, "Analyzer name can not be NULL");
+		}
+		const string analyzerName(in->analyzerName.str, in->analyzerName.length);
+
+		if (in->stopWord.length == 0) {
+			in->stopWordNull = true;
+		}
+
+		if (in->stopWordNull) {
+			throwException(status, "Stop word can not be NULL");
+		}
+		const string stopWord(in->stopWord.str, in->stopWord.length);
+
+		AutoRelease<IAttachment> att(context->getAttachment(status));
+		AutoRelease<ITransaction> tra(context->getTransaction(status));
+
+		const unsigned int sqlDialect = getSqlDialect(status, att);
+
+		const auto& analyzers = make_unique<AnalyzerRepository>(context->getMaster());
+
+		analyzers->addStopWord(status, att, tra, sqlDialect, analyzerName, trim(stopWord));
+	}
+
+	FB_UDR_FETCH_PROCEDURE
+	{
+		return false;
+	}
+FB_UDR_END_PROCEDURE
+
+/***
+PROCEDURE FTS$DROP_STOP_WORD (
+	FTS$ANALYZER VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+	FTS$WORD VARCHAR(63) CHARACTER SET UTF8 NOT NULL
+)
+EXTERNAL NAME 'luceneudr!dropStopWord'
+ENGINE UDR;
+***/
+FB_UDR_BEGIN_PROCEDURE(dropStopWord)
+
+	FB_UDR_MESSAGE(InMessage,
+		(FB_INTL_VARCHAR(252, CS_UTF8), analyzerName)
+		(FB_INTL_VARCHAR(252, CS_UTF8), stopWord)
+	);
+
+	void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
+		char* name, unsigned nameSize)
+	{
+		// Forced internal request encoding to UTF8
+		memset(name, 0, nameSize);
+
+		const string charset = "UTF8";
+		charset.copy(name, charset.length());
+	}
+
+	FB_UDR_EXECUTE_PROCEDURE
+	{
+
+		if (in->analyzerNameNull) {
+			throwException(status, "Analyzer name can not be NULL");
+		}
+		const string analyzerName(in->analyzerName.str, in->analyzerName.length);
+
+		if (in->stopWord.length == 0) {
+			in->stopWordNull = true;
+		}
+
+		if (in->stopWordNull) {
+			throwException(status, "Stop word can not be NULL");
+		}
+		const string stopWord(in->stopWord.str, in->stopWord.length);
+
+		AutoRelease<IAttachment> att(context->getAttachment(status));
+		AutoRelease<ITransaction> tra(context->getTransaction(status));
+
+		const unsigned int sqlDialect = getSqlDialect(status, att);
+
+		const auto& analyzers = make_unique<AnalyzerRepository>(context->getMaster());
+
+		analyzers->deleteStopWord(status, att, tra, sqlDialect, analyzerName, trim(stopWord));
+	}
+
+	FB_UDR_FETCH_PROCEDURE
+	{
+		return false;
+	}
+FB_UDR_END_PROCEDURE
 
 /***
 PROCEDURE FTS$CREATE_INDEX (
