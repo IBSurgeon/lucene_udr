@@ -139,24 +139,15 @@ SELECT FTS$MANAGEMENT.FTS$GET_DIRECTORY() AS DIR_NAME
 FROM RDB$DATABASE
 ```
 
-## Creating full-text indexes
+## Analyzers
 
-To create a full-text index, you need to perform three steps sequentially:
-1. Creating a full-text index for a table using the procedure `FTS$MANAGEMENT.FTS$CREATE_INDEX`;
-2. Adding indexed fields using the procedure `FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD`;
-3. Building an index using the procedure `FTS$MANAGEMENT.FTS$REBUILD_INDEX`.
+Analysis is the transformation of known text into smaller, more precise units for easier retrieval.
 
-### Creating a full-text index for a table
+The text goes through various operations to extract keywords, remove common words and punctuation marks, convert words to lower case, and so on.
 
-To create a full-text index for a table, call the procedure `FTS$MANAGEMENT.FTS$CREATE_INDEX`.
+The list of available analyzers can be obtained using the `FTS$MANAGEMENT.FTS$ANALYZERS` procedure.
 
-The first parameter specifies the name of the full-text index, the second - the name of the indexed table. The remaining parameters are optional.
-
-The third parameter specifies the name of the analyzer. The analyzer specifies for which language the indexed fields will be analyzed. 
-If the parameter is omitted, the STANDARD analyzer (for English) will be used. The list of available analyzers can be found 
-using the procedure `FTS$MANAGEMENT.FTS$ANALYZERS`.
-
-List of available analyzers:
+The following analyzers are available by default:
 
 * ARABIC - Arabic Analyzer;
 * BRAZILIAN - BrazilianAnalyzer;
@@ -191,6 +182,98 @@ List of available analyzers:
 * SNOWBALL(SPANISH) - SnowballAnalyzer('spanish');
 * SNOWBALL(SWEDISH) - SnowballAnalyzer('swedish');
 * SNOWBALL(TURKISH) - SnowballAnalyzer('turkish').
+
+### Analyzer types
+
+Let's consider the most commonly used analyzers.
+
+#### STANDARD - StandardAnalyzer
+
+The standard analyzer splits text into words, numbers, URLs and emails. It converts the text to lowercase, 
+after which the stopword filter for English is applied to the resulting terms.
+
+#### STOP - StopAnalyzer
+
+StopAnalyzer splits text into non-letter characters. It converts the text to lowercase, after which the stopword filter for English is applied to the resulting terms.
+
+Unlike StandardAnalyzer, StopAnalyzer is not capable of recognizing URLs and e-mails.
+
+#### SIMPLE - SimpleAnalyzer
+
+SimpleAnalyzer separates text into non-letter characters. It converts text to lowercase.
+SimpleAnalyzer does not apply a stopword filter, and it is not capable of recognizing URLs and e-mails.
+
+#### WHITESPACE - WhitespaceAnalyzer
+
+WhitespaceAnalyzer - splits text by whitespace characters.
+
+#### KEYWORD - KeywordAnalyzer
+
+KeywordAnalyzer - Represents text as one single term.
+KeywordAnalyzer is useful for fields like id and zip codes.
+
+#### Language analyzers
+
+There are also special analyzers for different languages, such as EnglishAnalyzer, FrenchAnalyzer, RussianAnalyzer and others.
+
+Such analyzers split text into words, numbers, URLs and EMAILs. It converts the text to lower case, after which the stop word filter 
+for the specified language is applied to the resulting terms.
+
+After filtering, the stemming algorithm is applied. Stemming is the process of reducing inflected (or sometimes derived) words to their word stem, 
+base or root form—generally a written word form. The stem need not be identical to the morphological root of the word; it is usually sufficient 
+that related words map to the same stem, even if this stem is not in itself a valid root.  Stemming is necessary so that the search 
+can be carried out not only by the word itself, but also by its forms.
+
+#### Snowball analyzers
+
+Analyzers that use stemming algorithms from the "Snowball" project.
+
+### Creating custom analyzers
+
+The IBSurgeon FTS UDR library allows you to create custom analyzers. Through the SQL language it is not possible to change the algorithms 
+for splitting text into terms and stemming algorithms, however, you can specify a list of your own stop words.
+
+You can create custom analyzer based on one of the built-in analyzers. In order to be able to create custom analyzer based on the base analyzer, 
+the base analyzer must support the stopword filter. A new analyzer is created with an empty list of stop words.
+
+To create custom analyzer, call the `FTS$MANAGEMENT.FTS$CREATE_ANALYZER` procedure. The first parameter specifies the name of the new analyzer, 
+the second - the name of the base analyzer, the third, optional parameter, you can specify the description of the analyzer.
+
+After creating the analyzer, you can add the necessary stop words using the `FTS$MANAGEMENT.FTS$ADD_STOP_WORD` procedure.
+
+An example of creating your own analyzer:
+
+```sql
+execute procedure FTS$MANAGEMENT.FTS$CREATE_ANALYZER('FARMNAME_EN', 'ENGLISH');
+
+commit;
+
+execute procedure FTS$MANAGEMENT.FTS$ADD_STOP_WORD('FARMNAME_EN', 'farm');
+execute procedure FTS$MANAGEMENT.FTS$ADD_STOP_WORD('FARMNAME_EN', 'owner');
+
+commit;
+```
+
+Note:
+
+If you add or remove stop words from the analyzer, on the basis of which there are already built indexes, 
+then these indexes change their status to 'U' - Updated metadata, that is, they require rebuilding.
+
+## Creating full-text indexes
+
+To create a full-text index, you need to perform three steps sequentially:
+1. Creating a full-text index for a table using the procedure `FTS$MANAGEMENT.FTS$CREATE_INDEX`;
+2. Adding indexed fields using the procedure `FTS$MANAGEMENT.FTS$ADD_INDEX_FIELD`;
+3. Building an index using the procedure `FTS$MANAGEMENT.FTS$REBUILD_INDEX`.
+
+### Creating a full-text index for a table
+
+To create a full-text index for a table, call the procedure `FTS$MANAGEMENT.FTS$CREATE_INDEX`.
+
+The first parameter specifies the name of the full-text index, the second - the name of the indexed table. The remaining parameters are optional.
+
+The third parameter specifies the name of the analyzer. The analyzer specifies for which language the indexed fields will be analyzed. 
+If the parameter is omitted, the STANDARD analyzer (for English) will be used. 
 
 The fourth parameter specifies the name of the table field that will be returned as a search result. 
 This is usually a primary or unique key field. Setting a special pseudo field `RDB$DB_KEY` is also supported. 
@@ -1196,7 +1279,86 @@ The procedure `FTS$MANAGEMENT.FTS$ANALYZERS` returns a list of available analyze
 
 Output parameters:
 
-- FTS$ANALYZER - the name of the analyzer.
+- FTS$ANALYZER - analyzer name.
+
+#### Procedure FTS$MANAGEMENT.FTS$CREATE_ANALYZER
+
+The `FTS$MANAGEMENT.FTS$CREATE_ANALYZER` procedure creates a new analyzer based on the base one. One of the built-in analyzers can be used as a base one.
+
+```sql
+  PROCEDURE FTS$CREATE_ANALYZER (
+      FTS$ANALYZER VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+      FTS$BASE_ANALYZER VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+      FTS$DESCRIPTION BLOB SUB_TYPE TEXT CHARACTER SET UTF8 DEFAULT NULL);
+```
+
+Input parameters:
+
+- FTS$ANALYZER - analyzer name;
+- FTS$BASE_ANALYZER - base analyzer name;
+- FTS$DESCRIPTION - analyzer description.
+
+#### Procedure FTS$MANAGEMENT.FTS$DROP_ANALYZER
+
+The procedure `FTS$MANAGEMENT.FTS$DROP_ANALYZER` drops a custom analyzer.
+
+```sql
+  PROCEDURE FTS$DROP_ANALYZER (
+      FTS$ANALYZER VARCHAR(63) CHARACTER SET UTF8 NOT NULL);
+```
+
+Input parameters:
+
+- FTS$ANALYZER - analyzer name.
+
+#### Procedure FTS$MANAGEMENT.FTS$ANALYZER_STOP_WORDS
+
+The procedure `FTS$MANAGEMENT.FTS$ANALYZER_STOP_WORDS` returns a list of stop words for the given analyzer.
+
+```sql
+  PROCEDURE FTS$ANALYZER_STOP_WORDS (
+      FTS$ANALYZER VARCHAR(63) CHARACTER SET UTF8 NOT NULL)
+  RETURNS (
+      FTS$WORD VARCHAR(63) CHARACTER SET UTF8);
+```
+
+Input parameters:
+
+- FTS$ANALYZER - analyzer name.
+
+Output parameters:
+
+- FTS$WORD - stop word.
+
+#### Procedure FTS$MANAGEMENT.FTS$ADD_STOP_WORD
+
+The procedure `FTS$MANAGEMENT.FTS$ADD_STOP_WORD` adds a stop word to the custom analyzer.
+
+```sql
+  PROCEDURE FTS$ADD_STOP_WORD (
+      FTS$ANALYZER VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+      FTS$WORD VARCHAR(63) CHARACTER SET UTF8 NOT NULL);
+```
+
+Input parameters:
+
+- FTS$ANALYZER - analyzer name;
+- FTS$WORD - stop word.
+
+#### Procedure FTS$MANAGEMENT.FTS$DROP_STOP_WORD
+
+The procedure `FTS$MANAGEMENT.FTS$DROP_STOP_WORD` removes a stop word from the custom analyzer.
+
+```sql
+  PROCEDURE FTS$DROP_STOP_WORD (
+      FTS$ANALYZER VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+      FTS$WORD VARCHAR(63) CHARACTER SET UTF8 NOT NULL);
+```
+
+Входные параметры:
+
+- FTS$ANALYZER - analyzer name;
+- FTS$WORD - stop word.
 
 #### Procedure FTS$MANAGEMENT.FTS$CREATE_INDEX
 
