@@ -17,6 +17,7 @@
 #include "LuceneUdr.h"
 #include <string>
 #include <list>
+#include <unordered_set>
 #include <map>
 #include <memory>
 #include <algorithm>
@@ -130,7 +131,7 @@ namespace FTSMetadata
 	public:
 		string keyFieldName{""};
 		FTSKeyType keyFieldType{ FTSKeyType::NONE };
-		list<string> fieldNames;
+		unordered_set<string> fieldNames;
 
 		string insertingCondition{""};
 		string updatingCondition{""};
@@ -184,6 +185,7 @@ namespace FTSMetadata
 	using FTSTriggerList = list<FTSTriggerPtr>;
 
 	class RelationHelper;
+	class AnalyzerRepository;
 
 
 	/// <summary>
@@ -196,12 +198,14 @@ namespace FTSMetadata
 
 	private:
 		IMaster* m_master = nullptr;	
+		unique_ptr<AnalyzerRepository> m_analyzerRepository{ nullptr };
 		unique_ptr<RelationHelper> m_relationHelper{nullptr};
 		// prepared statements
 		AutoRelease<IStatement> m_stmt_exists_index{ nullptr };
 		AutoRelease<IStatement> m_stmt_get_index{ nullptr };
 		AutoRelease<IStatement> m_stmt_index_fields{ nullptr };
 		AutoRelease<IStatement> m_stmt_index_key_field{ nullptr };
+		AutoRelease<IStatement> m_stmt_active_indexes_by_analyzer{ nullptr };
 
 		const char* SQL_CREATE_FTS_INDEX = R"SQL(
 INSERT INTO FTS$INDICES (
@@ -315,6 +319,18 @@ UPDATE FTS$INDEX_SEGMENTS
 SET FTS$BOOST = ?
 WHERE FTS$INDEX_NAME = ? AND FTS$FIELD_NAME = ?
 )SQL";
+
+		const char* SQL_HAS_INDEX_BY_ANALYZER = R"SQL(
+SELECT COUNT(*) AS CNT
+FROM FTS$INDICES
+WHERE FTS$ANALYZER = ?
+)SQL";
+
+		const char* SQL_ACTIVE_INDEXES_BY_ANALYZER = R"SQL(
+SELECT FTS$INDEX_NAME
+FROM FTS$INDICES
+WHERE FTS$ANALYZER = ? AND FTS$INDEX_STATUS = 'C'
+)SQL";
 	public:
 
 		FTSIndexRepository() = delete;
@@ -327,6 +343,11 @@ WHERE FTS$INDEX_NAME = ? AND FTS$FIELD_NAME = ?
 		const unique_ptr<RelationHelper>& getRelationHelper()
 		{
 			return m_relationHelper;
+		}
+
+		const unique_ptr<AnalyzerRepository>& getAnalyzerRepository()
+		{
+			return m_analyzerRepository;
 		}
 
 		/// <summary>
@@ -605,6 +626,21 @@ WHERE FTS$INDEX_NAME = ? AND FTS$FIELD_NAME = ?
 			const string& indexName,
 			const string& fieldName);
 
+		bool hasIndexByAnalyzer(
+			ThrowStatusWrapper* const status,
+			IAttachment* const att,
+			ITransaction* const tra,
+			const unsigned int sqlDialect,
+			const string& analyzerName
+		);
+
+		unordered_set<string> getActiveIndexByAnalyzer(
+			ThrowStatusWrapper* const status,
+			IAttachment* const att,
+			ITransaction* const tra,
+			const unsigned int sqlDialect,
+			const string& analyzerName
+		);
 
 		/// <summary>
 		/// Returns a list of trigger source codes to support full-text indexes by relation name. 

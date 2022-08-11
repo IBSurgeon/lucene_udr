@@ -15,6 +15,7 @@
 #include "FTSIndex.h"
 #include "FBUtils.h"
 #include "LuceneHeaders.h"
+#include "Analyzers.h"
 #include "LuceneAnalyzerFactory.h"
 #include "SimpleHTMLFormatter.h"
 #include "QueryScorer.h"
@@ -56,11 +57,11 @@ FB_UDR_BEGIN_FUNCTION(bestFragementHighligh)
 	);
 
 	FB_UDR_CONSTRUCTOR
-	, analyzerFactory()
+		, analyzers(make_unique<AnalyzerRepository>(context->getMaster()))
 	{
 	}
 
-	LuceneAnalyzerFactory analyzerFactory;
+	unique_ptr<AnalyzerRepository> analyzers;
 
 	void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
 		char* name, unsigned nameSize)
@@ -122,7 +123,9 @@ FB_UDR_BEGIN_FUNCTION(bestFragementHighligh)
 		}
 
 		try {
-			const auto& analyzer = analyzerFactory.createAnalyzer(status, analyzerName);
+			const unsigned int sqlDialect = getSqlDialect(status, att);
+
+			const auto& analyzer = analyzers->createAnalyzer(status, att, tra, sqlDialect, analyzerName);
 			const auto& parser = newLucene<QueryParser>(LuceneVersion::LUCENE_CURRENT, StringUtils::toUnicode(fieldName), analyzer);
 			const auto& query = parser->parse(StringUtils::toUnicode(queryStr));
 			const auto& formatter = newLucene<SimpleHTMLFormatter>(StringUtils::toUnicode(leftTag), StringUtils::toUnicode(rightTag));
@@ -183,11 +186,11 @@ FB_UDR_BEGIN_PROCEDURE(bestFragementsHighligh)
 	);
 
 	FB_UDR_CONSTRUCTOR
-	, analyzerFactory()
+		, analyzers(make_unique<AnalyzerRepository>(context->getMaster()))
 	{
 	}
 
-	LuceneAnalyzerFactory analyzerFactory;
+	unique_ptr<AnalyzerRepository> analyzers;
 
 	void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
 		char* name, unsigned nameSize)
@@ -251,7 +254,9 @@ FB_UDR_BEGIN_PROCEDURE(bestFragementsHighligh)
 		}
 
 		try {
-			const auto& analyzer = procedure->analyzerFactory.createAnalyzer(status, analyzerName);
+			const unsigned int sqlDialect = getSqlDialect(status, att);
+
+			const auto& analyzer = procedure->analyzers->createAnalyzer(status, att, tra, sqlDialect, analyzerName);
 			const auto& parser = newLucene<QueryParser>(LuceneVersion::LUCENE_CURRENT, StringUtils::toUnicode(fieldName), analyzer);
 			const auto& query = parser->parse(StringUtils::toUnicode(queryStr));
 			const auto& formatter = newLucene<SimpleHTMLFormatter>(StringUtils::toUnicode(leftTag), StringUtils::toUnicode(rightTag));

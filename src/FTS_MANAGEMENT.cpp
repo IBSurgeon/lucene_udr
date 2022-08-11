@@ -20,8 +20,8 @@
 #include "FBFieldInfo.h"
 #include "LuceneHeaders.h"
 #include "FileUtils.h"
-#include "LuceneAnalyzerFactory.h"
 #include "Analyzers.h"
+#include "LuceneAnalyzerFactory.h"
 #include "Utils.h"
 #include <sstream>
 #include <memory>
@@ -245,11 +245,16 @@ FB_UDR_BEGIN_PROCEDURE(dropAnalyzer)
 
 		const unsigned int sqlDialect = getSqlDialect(status, att);
 
-		const auto& analyzers = make_unique<AnalyzerRepository>(context->getMaster());
+		const auto indexRepository = make_unique<FTSIndexRepository>(context->getMaster());
 
-		// TODO: add check index exists
+		const auto& analyzers = indexRepository->getAnalyzerRepository();
 
-		analyzers->deleteAnalyzer(status, att, tra, sqlDialect, analyzerName);
+		if (!indexRepository->hasIndexByAnalyzer(status, att, tra, sqlDialect, analyzerName)) {
+			analyzers->deleteAnalyzer(status, att, tra, sqlDialect, analyzerName);
+		}
+		else {
+			throwException(status, R"(Unable to drop analyzer, there are dependent indexes.)");
+		}
 	}
 
 	FB_UDR_FETCH_PROCEDURE
@@ -378,9 +383,17 @@ FB_UDR_BEGIN_PROCEDURE(addStopWord)
 
 		const unsigned int sqlDialect = getSqlDialect(status, att);
 
-		const auto& analyzers = make_unique<AnalyzerRepository>(context->getMaster());
+	    const auto indexRepository = make_unique<FTSIndexRepository>(context->getMaster());
+
+		const auto& analyzers = indexRepository->getAnalyzerRepository();
 
 		analyzers->addStopWord(status, att, tra, sqlDialect, analyzerName, trim(stopWord));
+
+		//set dependent active index as rebuild
+		auto dependentActiveIndexes = indexRepository->getActiveIndexByAnalyzer(status, att, tra, sqlDialect, analyzerName);
+		for (const auto indexName : dependentActiveIndexes) {
+		
+		}
 	}
 
 	FB_UDR_FETCH_PROCEDURE
@@ -469,12 +482,10 @@ FB_UDR_BEGIN_PROCEDURE(createIndex)
 
 	FB_UDR_CONSTRUCTOR
 		, indexRepository(make_unique<FTSIndexRepository>(context->getMaster()))
-		, analyzerFactory()
 	{
 	}
 
 	FTSIndexRepositoryPtr indexRepository{nullptr};
-	LuceneAnalyzerFactory analyzerFactory;
 
 	void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
 		char* name, unsigned nameSize)
@@ -911,12 +922,10 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 
 	FB_UDR_CONSTRUCTOR
 		, indexRepository(make_unique<FTSIndexRepository>(context->getMaster()))
-		, analyzerFactory()
 	{
 	}
 
 	FTSIndexRepositoryPtr indexRepository{nullptr};
-	LuceneAnalyzerFactory analyzerFactory;
 
 	void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
 		char* name, unsigned nameSize)
@@ -967,8 +976,10 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 				throwException(status, R"(Cannot rebuild index "%s". The index does not contain fields.)", indexName.c_str());
 			}
 
+			const auto& analyzers = procedure->indexRepository->getAnalyzerRepository();
+
 			const auto& fsIndexDir = FSDirectory::open(indexDirectoryPath.wstring());
-			const auto& analyzer = procedure->analyzerFactory.createAnalyzer(status, ftsIndex->analyzer);
+			const auto& analyzer = analyzers->createAnalyzer(status, att, tra, sqlDialect, ftsIndex->analyzer);
 			const auto& writer = newLucene<IndexWriter>(fsIndexDir, analyzer, true, IndexWriter::MaxFieldLengthLIMITED);
 
 			// clean up index directory
@@ -1107,12 +1118,10 @@ FB_UDR_BEGIN_PROCEDURE(optimizeIndex)
 
 	FB_UDR_CONSTRUCTOR
 		, indexRepository(make_unique<FTSIndexRepository>(context->getMaster()))
-		, analyzerFactory()
 	{
 	}
 
 	FTSIndexRepositoryPtr indexRepository{nullptr};
-	LuceneAnalyzerFactory analyzerFactory;
 
 	void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
 		char* name, unsigned nameSize)
@@ -1152,8 +1161,10 @@ FB_UDR_BEGIN_PROCEDURE(optimizeIndex)
 				throwException(status, R"(Index directory "%s" not exists.)", indexDirectoryPath.u8string().c_str());
 			}
 
+			const auto& analyzers = procedure->indexRepository->getAnalyzerRepository();
+
 			const auto& fsIndexDir = FSDirectory::open(indexDirectoryPath.wstring());
-			const auto& analyzer = procedure->analyzerFactory.createAnalyzer(status, ftsIndex->analyzer);
+			const auto& analyzer = analyzers->createAnalyzer(status, att, tra, sqlDialect, ftsIndex->analyzer);
 			const auto& writer = newLucene<IndexWriter>(fsIndexDir, analyzer, false, IndexWriter::MaxFieldLengthLIMITED);
 
 			// clean up index directory

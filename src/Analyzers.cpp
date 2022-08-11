@@ -325,21 +325,23 @@ namespace FTSMetadata
 		input->analyzerName.length = static_cast<ISC_USHORT>(analyzerName.length());
 		analyzerName.copy(input->analyzerName.str, input->analyzerName.length);
 
-		if (!m_stmt_get_analyzers.hasData()) {
-			m_stmt_get_analyzers.reset(att->prepare(
+		auto stopWords = HashSet<String>::newInstance();
+		
+		if (!m_stmt_get_stopwords.hasData()) {
+			m_stmt_get_stopwords.reset(att->prepare(
 				status,
 				tra,
 				0,
-				SQL_ANALYZER_INFOS,
+				SQL_STOP_WORDS,
 				sqlDialect,
 				IStatement::PREPARE_PREFETCH_METADATA
 			));
 		}
-
+		
 		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
 		AutoRelease<IMessageMetadata> outputMetadata(output.getMetadata());
 
-		AutoRelease<IResultSet> rs(m_stmt_get_analyzers->openCursor(
+		AutoRelease<IResultSet> rs(m_stmt_get_stopwords->openCursor(
 			status,
 			tra,
 			inputMetadata,
@@ -347,14 +349,15 @@ namespace FTSMetadata
 			outputMetadata,
 			0
 		));
-
-		HashSet<String> stopWords;
+		
 		while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
 			const string stopWord(output->stopWord.str, output->stopWord.length);
-			stopWords.add(StringUtils::toUnicode(stopWord));
+			const String uStopWord = StringUtils::toUnicode(stopWord);
+			stopWords.add(uStopWord);
 		}
-		rs->close(status);
 
+		rs->close(status);
+		
 		return stopWords;
 	}
 

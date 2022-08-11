@@ -21,6 +21,7 @@
 #include "LuceneHeaders.h"
 #include "FileUtils.h"
 #include "TermAttribute.h"
+#include "Analyzers.h"
 #include "LuceneAnalyzerFactory.h"
 #include "Utils.h"
 #include <sstream>
@@ -138,12 +139,10 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 
 	FB_UDR_CONSTRUCTOR
 		, indexRepository(make_unique<FTSIndexRepository>(context->getMaster()))
-		, analyzerFactory()
 	{
 	}
 
 	FTSIndexRepositoryPtr indexRepository;
-	LuceneAnalyzerFactory analyzerFactory;
 
 	void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
 		char* name, unsigned nameSize)
@@ -196,9 +195,11 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 				throwException(status, R"(Index "%s" exists, but is not build. Please rebuild index.)", indexName.c_str());
 			}
 
+			const auto& analyzers = procedure->indexRepository->getAnalyzerRepository();
+
 			IndexReaderPtr reader = IndexReader::open(ftsIndexDir, true);
 			searcher = newLucene<IndexSearcher>(reader);
-			AnalyzerPtr analyzer = procedure->analyzerFactory.createAnalyzer(status, ftsIndex->analyzer);
+			AnalyzerPtr analyzer = analyzers->createAnalyzer(status, att, tra, sqlDialect, ftsIndex->analyzer);
 
 			string keyFieldName;
 			auto fields = Collection<String>::newInstance();
@@ -339,11 +340,11 @@ FB_UDR_BEGIN_PROCEDURE(ftsAnalyze)
 	);
 
 	FB_UDR_CONSTRUCTOR
-		, analyzerFactory()
+		, analyzers(make_unique<AnalyzerRepository>(context->getMaster()))
 	{
 	}
 
-	LuceneAnalyzerFactory analyzerFactory;
+	unique_ptr<AnalyzerRepository> analyzers;
 
 	void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
 		char* name, unsigned nameSize)
@@ -360,6 +361,8 @@ FB_UDR_BEGIN_PROCEDURE(ftsAnalyze)
 		AutoRelease<IAttachment> att(context->getAttachment(status));
 		AutoRelease<ITransaction> tra(context->getTransaction(status));
 
+		const unsigned int sqlDialect = getSqlDialect(status, att);
+
 		string text;
 		if (!in->textNull) {
 			AutoRelease<IBlob> blob(att->openBlob(status, tra, &in->text, 0, nullptr));
@@ -373,7 +376,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsAnalyze)
 		}
 
 		try {
-			const auto& analyzer = procedure->analyzerFactory.createAnalyzer(status, analyzerName);
+			const auto& analyzer = procedure->analyzers->createAnalyzer(status, att, tra, sqlDialect, analyzerName);
 			const auto& stringReader = newLucene<StringReader>(StringUtils::toUnicode(text));
 
 			tokenStream = analyzer->tokenStream(L"", stringReader);
@@ -825,7 +828,6 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 
 	FB_UDR_CONSTRUCTOR
 		, indexRepository(make_unique<FTSIndexRepository>(context->getMaster()))
-		, analyzerFactory()
 		, logDeleteStmt(nullptr)
 		, logStmt(nullptr)
 	{
@@ -833,7 +835,6 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 
 
 	FTSIndexRepositoryPtr indexRepository{nullptr};
-	LuceneAnalyzerFactory analyzerFactory;
 	AutoRelease<IStatement> logDeleteStmt{nullptr};
 	AutoRelease<IStatement> logStmt{nullptr};
 
@@ -1015,7 +1016,7 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 				// for all indexes for relationName
 				for (const auto& indexName : indexNames) {
 					const auto& ftsIndex = indexes[indexName];
-					const auto& indexWriter = getIndexWriter(status, ftsIndex);
+					const auto& indexWriter = getIndexWriter(status, att, tra, sqlDialect, ftsIndex);
 
 					Lucene::String unicodeKeyValue;
 					switch (ftsIndex->keyFieldType) {
@@ -1258,12 +1259,13 @@ ORDER BY FTS$LOG_ID
 		tra->commit(status);
 	}
 
-	IndexWriterPtr const getIndexWriter(ThrowStatusWrapper* const status, const FTSIndexPtr& ftsIndex)
+	IndexWriterPtr const getIndexWriter(ThrowStatusWrapper* const status, IAttachment* const att, ITransaction* const tra, const unsigned int sqlDialect, const FTSIndexPtr& ftsIndex)
 	{
 		const auto it = indexWriters.find(ftsIndex->indexName);
 		if (it == indexWriters.end()) {
 			const auto& fsIndexDir = FSDirectory::open(ftsIndex->unicodeIndexDir);
-			const auto& analyzer = procedure->analyzerFactory.createAnalyzer(status, ftsIndex->analyzer);
+			const auto& analyzers = procedure->indexRepository->getAnalyzerRepository();
+			const auto& analyzer = analyzers->createAnalyzer(status, att, tra, sqlDialect, ftsIndex->analyzer);
 			const auto& indexWriter = newLucene<IndexWriter>(fsIndexDir, analyzer, IndexWriter::MaxFieldLengthLIMITED);
 			indexWriters[ftsIndex->indexName] = indexWriter;
 			return indexWriter;

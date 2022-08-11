@@ -17,6 +17,7 @@
 #include "LuceneUdr.h"
 #include <map>
 #include <list>
+#include <unordered_set>
 #include <string>
 #include "LuceneHeaders.h"
 
@@ -79,7 +80,7 @@ namespace LuceneUDR {
 
 		AnalyzerPtr createAnalyzer(ThrowStatusWrapper* status, const string& analyzerName, const HashSet<String> stopWords);
 
-		list<string> getAnalyzerNames();
+		unordered_set<string> getAnalyzerNames();
 
 		const AnalyzerInfo getAnalyzerInfo(ThrowStatusWrapper* status, const string& analyzerName);
 

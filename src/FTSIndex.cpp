@@ -15,7 +15,7 @@
 #include "FBUtils.h"
 #include "LazyFactory.h"
 #include "Relations.h"
-#include "LuceneAnalyzerFactory.h"
+#include "Analyzers.h"
 
 using namespace Firebird;
 using namespace std;
@@ -139,6 +139,7 @@ namespace FTSMetadata
 
 	FTSIndexRepository::FTSIndexRepository(IMaster* master)
 		: m_master(master)
+		, m_analyzerRepository(make_unique<AnalyzerRepository>(master))
 		, m_relationHelper(make_unique<RelationHelper>(master))
 	{
 	}
@@ -174,8 +175,7 @@ namespace FTSMetadata
 		}
 
 		// checking the existence of the analyzer
-		LuceneAnalyzerFactory analyzerFactory;
-		if (!analyzerFactory.hasAnalyzer(analyzerName)) {
+		if (!m_analyzerRepository->hasAnalyzer(status, att, tra, sqlDialect, analyzerName)) {
 			throwException(status, R"(Analyzer "%s" not exists)", analyzerName.c_str());
 		}
 
@@ -1098,6 +1098,111 @@ namespace FTSMetadata
 		return foundFlag;
 	}
 
+	bool FTSIndexRepository::hasIndexByAnalyzer(
+		ThrowStatusWrapper* const status,
+		IAttachment* const att,
+		ITransaction* const tra,
+		const unsigned int sqlDialect,
+		const string& analyzerName)
+	{
+		FB_MESSAGE(Input, ThrowStatusWrapper,
+			(FB_INTL_VARCHAR(252, CS_UTF8), analyzerName)
+		) input(status, m_master);
+
+		FB_MESSAGE(Output, ThrowStatusWrapper,
+			(FB_BIGINE, cnt)
+		) output(status, m_master);
+
+		input.clear();
+
+		input->analyzerName.length = static_cast<ISC_USHORT>(analyzerName.length());
+		analyzerName.copy(input->analyzerName.str, input->analyzerName.length);
+
+
+		AutoRelease<IStatement> stmt(att->prepare(
+			status,
+			tra,
+			0,
+			SQL_HAS_INDEX_BY_ANALYZER,
+			sqlDialect,
+			IStatement::PREPARE_PREFETCH_METADATA
+		));
+
+		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
+		AutoRelease<IMessageMetadata> outputMetadata(output.getMetadata());
+
+		AutoRelease<IResultSet> rs(stmt->openCursor(
+			status,
+			tra,
+			inputMetadata,
+			input.getData(),
+			outputMetadata,
+			0
+		));
+
+		bool foundFlag = false;
+		if (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
+			foundFlag = (output->cnt > 0);
+		}
+		rs->close(status);
+
+		return foundFlag;
+	}
+
+	unordered_set<string> FTSIndexRepository::getActiveIndexByAnalyzer(
+		ThrowStatusWrapper* const status,
+		IAttachment* const att,
+		ITransaction* const tra,
+		const unsigned int sqlDialect,
+		const string& analyzerName)
+	{
+		// m_stmt_active_indexes_by_analyzer
+		FB_MESSAGE(Input, ThrowStatusWrapper,
+			(FB_INTL_VARCHAR(252, CS_UTF8), analyzerName)
+		) input(status, m_master);
+
+		FB_MESSAGE(Output, ThrowStatusWrapper,
+			(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
+		) output(status, m_master);
+
+		input.clear();
+
+		input->analyzerName.length = static_cast<ISC_USHORT>(analyzerName.length());
+		analyzerName.copy(input->analyzerName.str, input->analyzerName.length);
+
+		unordered_set<string> indexNames;
+
+		if (!m_stmt_active_indexes_by_analyzer.hasData()) {
+			m_stmt_active_indexes_by_analyzer.reset(att->prepare(
+				status,
+				tra,
+				0,
+				SQL_ACTIVE_INDEXES_BY_ANALYZER,
+				sqlDialect,
+				IStatement::PREPARE_PREFETCH_METADATA
+			));
+		}
+		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
+		AutoRelease<IMessageMetadata> outputMetadata(output.getMetadata());
+
+		AutoRelease<IResultSet> rs(m_stmt_active_indexes_by_analyzer->openCursor(
+			status,
+			tra,
+			inputMetadata,
+			input.getData(),
+			outputMetadata,
+			0
+		));
+
+		while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
+			const string indexName(output->indexName.str, output->indexName.length);
+			indexNames.insert(indexName);
+		}
+		rs->close(status);
+
+		return indexNames;
+	}
+
 	/// <summary>
 	/// Returns a map of field blocks by table keys to create triggers that support full-text indexes.
 	/// </summary>
@@ -1204,7 +1309,7 @@ ORDER BY FTS$KEY_FIELD_NAME
 					block->keyFieldType = FTSKeyType::INT_ID;
 				}
 			}
-			block->fieldNames.push_back(fieldName);
+			block->fieldNames.insert(fieldName);
 
 		}
 		rs->close(status);
