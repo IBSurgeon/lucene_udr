@@ -12,7 +12,7 @@
 **/
 
 #include "LuceneUdr.h"
-#include "FTSIndex.h"
+#include "FTSTrigger.h"
 #include "FBUtils.h"
 #include "LuceneHeaders.h"
 #include <memory>
@@ -58,11 +58,11 @@ FB_UDR_BEGIN_PROCEDURE(ftsMakeTrigger)
 	);
 
 	FB_UDR_CONSTRUCTOR
-	, indexRepository(make_unique<FTSIndexRepository>(context->getMaster()))
+		, triggerHelper(make_unique<FTSTriggerHelper>(context->getMaster()))
 	{
 	}
 
-	FTSIndexRepositoryPtr indexRepository{nullptr};
+	unique_ptr<FTSTriggerHelper> triggerHelper{nullptr};
 
 	void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
 		char* name, unsigned nameSize)
@@ -92,7 +92,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsMakeTrigger)
 
 
 		try {
-			procedure->indexRepository->makeTriggerSourceByRelation(status, att, tra, sqlDialect, relationName, multiActionFlag, triggerPosition, triggers);
+			procedure->triggerHelper->makeTriggerSourceByRelation(status, att, tra, sqlDialect, relationName, multiActionFlag, triggerPosition, triggers);
 			it = triggers.cbegin();
 		}
 		catch (LuceneException& e) {

@@ -23,6 +23,7 @@
     <ClCompile Include="src\EnglishAnalyzer.cpp" />
     <ClCompile Include="src\FBFieldInfo.cpp" />
     <ClCompile Include="src\FBUtils.cpp" />
+    <ClCompile Include="src\FTSTrigger.cpp" />
     <ClCompile Include="src\FTSUtils.cpp" />
     <ClCompile Include="src\EncodeUtils.cpp" />
     <ClCompile Include="src\FTS_TRIGGER_HELPER.cpp" />
@@ -39,6 +40,7 @@
   <ItemGroup>
     <ClInclude Include="src\Analyzers.h" />
     <ClInclude Include="src\EnglishAnalyzer.h" />
+    <ClInclude Include="src\FTSTrigger.h" />
     <ClInclude Include="src\FTSUtils.h" />
     <ClInclude Include="src\EncodeUtils.h" />
     <ClInclude Include="src\FBAutoPtr.h" />
