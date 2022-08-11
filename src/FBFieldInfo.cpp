@@ -3,8 +3,9 @@
 
 using namespace std;
 using namespace Firebird;
+using namespace LuceneUDR;
 
-namespace LuceneUDR
+namespace FTSMetadata
 {
 	string FbFieldInfo::getStringValue(ThrowStatusWrapper* status, IAttachment* att, ITransaction* tra, unsigned char* buffer)
 	{

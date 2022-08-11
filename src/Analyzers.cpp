@@ -3,7 +3,7 @@
 #include "FBUtils.h"
 #include "Utils.h"
 
-namespace LuceneUDR
+namespace FTSMetadata
 {
 
 	AnalyzerRepository::AnalyzerRepository(IMaster* const master)
@@ -406,11 +406,11 @@ namespace LuceneUDR
 		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
 
 		m_stmt_insert_stopword->execute(
-			status, 
-			tra, 
-			inputMetadata, 
-			input.getData(), 
-			nullptr, 
+			status,
+			tra,
+			inputMetadata,
+			input.getData(),
+			nullptr,
 			nullptr);
 	}
 

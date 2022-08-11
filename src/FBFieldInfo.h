@@ -23,7 +23,7 @@
 using namespace std;
 using namespace Firebird;
 
-namespace LuceneUDR
+namespace FTSMetadata
 {
 
 	template <typename T>

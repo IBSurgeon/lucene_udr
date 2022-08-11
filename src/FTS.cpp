@@ -29,6 +29,7 @@
 
 using namespace Firebird;
 using namespace Lucene;
+using namespace FTSMetadata;
 using namespace LuceneUDR;
 
 const string queryEscape(const string& query)

@@ -33,6 +33,7 @@ namespace fs = std::filesystem;
 using namespace Firebird;
 using namespace Lucene;
 using namespace LuceneUDR;
+using namespace FTSMetadata;
 
 /***
 FUNCTION FTS$GET_DIRECTORY ()

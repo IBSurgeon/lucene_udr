@@ -8,13 +8,17 @@
 
 using namespace Firebird;
 using namespace Lucene;
+using namespace LuceneUDR;
 using namespace std;
 
-namespace LuceneUDR
+namespace LuceneUDR 
 {
 	class LuceneAnalyzerFactory;
 	struct AnalyzerInfo;
+}
 
+namespace FTSMetadata
+{
 	class AnalyzerRepository final
 	{
 	private:
@@ -85,12 +89,21 @@ WHERE W.FTS$ANALYZER_NAME = ?
 
 		const char* SQL_INSERT_STOP_WORD =
 			R"SQL(
-INSERT INTO FTS$STOP_WORDS (
-    FTS$ANALYZER_NAME,
-    FTS$WORD)
-VALUES (
-    ?,
-    LOWER(?))
+EXECUTE BLOCK (
+    FTS$ANALYZER_NAME VARCHAR(63) CHARACTER SET UTF8 = ?,
+    FTS$WORD          VARCHAR(63) CHARACTER SET UTF8 = ?)
+AS
+BEGIN
+  INSERT INTO FTS$STOP_WORDS (
+      FTS$ANALYZER_NAME,
+      FTS$WORD)
+  VALUES (
+      :FTS$ANALYZER_NAME,
+      LOWER(:FTS$WORD));
+
+  WHEN GDSCODE UNIQUE_KEY_VIOLATION DO
+    EXCEPTION FTS$EXCEPTION 'Stop word "' || FTS$WORD || '" already exists for analyzer "' || FTS$ANALYZER_NAME || '"';
+END
 )SQL";
 
 		const char* SQL_DELETE_STOP_WORD =

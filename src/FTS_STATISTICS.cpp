@@ -31,6 +31,7 @@
 using namespace Firebird;
 using namespace Lucene;
 using namespace LuceneUDR;
+using namespace FTSMetadata;
 
 /***
 FUNCTION FTS$LUCENE_VERSION ()

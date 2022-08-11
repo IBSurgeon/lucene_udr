@@ -21,6 +21,7 @@
 using namespace Firebird;
 using namespace Lucene;
 using namespace LuceneUDR;
+using namespace FTSMetadata;
 
 
 /***

@@ -23,8 +23,9 @@
 
 using namespace Firebird;
 using namespace std;
+using namespace LuceneUDR;
 
-namespace LuceneUDR
+namespace FTSMetadata
 {
 
 	enum class FTSKeyType {NONE, DB_KEY, INT_ID, UUID};

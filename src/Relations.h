@@ -21,8 +21,9 @@
 
 using namespace Firebird;
 using namespace std;
+using namespace LuceneUDR;
 
-namespace LuceneUDR
+namespace FTSMetadata
 {
 	enum class RelationType {
 	   RT_REGULAR,

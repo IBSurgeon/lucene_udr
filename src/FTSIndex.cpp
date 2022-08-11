@@ -20,7 +20,7 @@
 using namespace Firebird;
 using namespace std;
 
-namespace LuceneUDR
+namespace FTSMetadata
 {
 
 	FTSIndexSegmentList::const_iterator FTSIndex::findSegment(const string& fieldName) {
