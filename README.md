@@ -190,18 +190,18 @@ Let's consider the most commonly used analyzers.
 #### STANDARD - StandardAnalyzer
 
 The standard analyzer splits text into words, numbers, URLs and emails. It converts the text to lowercase, 
-after which the stopword filter for English is applied to the resulting terms.
+after which the stop-word filter for English is applied to the resulting terms.
 
 #### STOP - StopAnalyzer
 
-StopAnalyzer splits text into non-letter characters. It converts the text to lowercase, after which the stopword filter for English is applied to the resulting terms.
+StopAnalyzer splits text into non-letter characters. It converts the text to lowercase, after which the stop-word filter for English is applied to the resulting terms.
 
 Unlike StandardAnalyzer, StopAnalyzer is not capable of recognizing URLs and e-mails.
 
 #### SIMPLE - SimpleAnalyzer
 
 SimpleAnalyzer separates text into non-letter characters. It converts text to lowercase.
-SimpleAnalyzer does not apply a stopword filter, and it is not capable of recognizing URLs and e-mails.
+SimpleAnalyzer does not apply a stop-word filter, and it is not capable of recognizing URLs and e-mails.
 
 #### WHITESPACE - WhitespaceAnalyzer
 
@@ -234,7 +234,7 @@ The IBSurgeon FTS UDR library allows you to create custom analyzers. Through the
 for splitting text into terms and stemming algorithms, however, you can specify a list of your own stop words.
 
 You can create custom analyzer based on one of the built-in analyzers. In order to be able to create custom analyzer based on the base analyzer, 
-the base analyzer must support the stopword filter. A new analyzer is created with an empty list of stop words.
+the base analyzer must support the stop-word filter. A new analyzer is created with an empty list of stop words.
 
 To create custom analyzer, call the `FTS$MANAGEMENT.FTS$CREATE_ANALYZER` procedure. The first parameter specifies the name of the new analyzer, 
 the second - the name of the base analyzer, the third, optional parameter, you can specify the description of the analyzer.
@@ -684,7 +684,7 @@ The default that is used if the parameter is not given is 0.5.
 ### Proximity Searches
 
 Lucene supports finding words are a within a specific distance away. To do a proximity search use the tilde, "~", 
-symbol at the end of a Phrase. For example to search for a "apache" and "jakarta" within 10 words of each other 
+symbol at the end of a Phrase. For example to search for "apache" and "jakarta" within 10 words of each other 
 in a document use the search:
 
 ```
