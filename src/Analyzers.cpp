@@ -16,6 +16,8 @@
 #include "FBUtils.h"
 #include "Utils.h"
 
+using namespace LuceneUDR;
+
 namespace FTSMetadata
 {
 

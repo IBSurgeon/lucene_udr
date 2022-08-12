@@ -21,7 +21,6 @@
 
 using namespace Firebird;
 using namespace Lucene;
-using namespace LuceneUDR;
 using namespace std;
 
 namespace LuceneUDR 
@@ -36,7 +35,7 @@ namespace FTSMetadata
 	{
 	private:
 		IMaster* const m_master = nullptr;
-		unique_ptr<LuceneAnalyzerFactory> const m_analyzerFactory = nullptr;
+		unique_ptr<LuceneUDR::LuceneAnalyzerFactory> const m_analyzerFactory = nullptr;
 
 		// prepared statements
 		AutoRelease<IStatement> m_stmt_get_analyzer{ nullptr };
@@ -139,7 +138,7 @@ WHERE FTS$ANALYZER_NAME = ? AND FTS$WORD = ?
 			const string& analyzerName
 		);
 
-		const AnalyzerInfo getAnalyzerInfo (
+		const LuceneUDR::AnalyzerInfo getAnalyzerInfo (
 			ThrowStatusWrapper* const status,
 			IAttachment* const att,
 			ITransaction* const tra,
@@ -147,7 +146,7 @@ WHERE FTS$ANALYZER_NAME = ? AND FTS$WORD = ?
 			const string& analyzerName
 		);
 
-		list<AnalyzerInfo> getAnalyzerInfos (
+		list<LuceneUDR::AnalyzerInfo> getAnalyzerInfos (
 			ThrowStatusWrapper* const status,
 			IAttachment* const att,
 			ITransaction* const tra,

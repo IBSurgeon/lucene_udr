@@ -16,6 +16,8 @@
 #include "FBUtils.h"
 #include "LazyFactory.h"
 
+using namespace LuceneUDR;
+
 namespace FTSMetadata
 {
 

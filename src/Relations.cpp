@@ -16,6 +16,7 @@
 
 using namespace Firebird;
 using namespace std;
+using namespace LuceneUDR;
 
 namespace FTSMetadata
 {
