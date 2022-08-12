@@ -2,7 +2,7 @@
  *  IBSurgeon Full Text Search UDR library installation script for databases in 1 SQL dialect.
  *
  *  The original code was created by Simonov Denis
- *  for the open source full-text search UDR library for Firebird DBMS.
+ *  for the open source project "IBSurgeon Full Text Search UDR".
  *
  *  Copyright (c) 2022 Simonov Denis <sim-mail@list.ru>
  *  and all contributors signed below.

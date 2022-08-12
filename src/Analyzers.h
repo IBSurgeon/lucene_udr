@@ -1,6 +1,19 @@
 #ifndef LUCENE_ANALYZERS_H
 #define LUCENE_ANALYZERS_H
 
+/**
+ *  Utilities for getting and managing metadata for analyzers.
+ *
+ *  The original code was created by Simonov Denis
+ *  for the open source project "IBSurgeon Full Text Search UDR".
+ *
+ *  Copyright (c) 2022 Simonov Denis <sim-mail@list.ru>
+ *  and all contributors signed below.
+ *
+ *  All Rights Reserved.
+ *  Contributor(s): ______________________________________.
+**/
+
 #include "LuceneUdr.h"
 #include "LuceneHeaders.h"
 #include <list>

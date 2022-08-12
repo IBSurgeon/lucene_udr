@@ -2,7 +2,7 @@
 # IBSurgeon Full Text Search UDR Library.
 #
 # The original code was created by Simonov Denis
-# for UDR open source full-text search library for Firebird DBMS.
+# for open source project "IBSurgeon Full Text Search UDR".
 #
 # Copyright (c) 2022 Simonov Denis <sim-mail@list.ru>
 # and all contributors signed below.

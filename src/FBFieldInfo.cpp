@@ -1,3 +1,16 @@
+/**
+ *  Utilities for getting information about query fields and their values.
+ *
+ *  The original code was created by Simonov Denis
+ *  for the open source project "IBSurgeon Full Text Search UDR".
+ *
+ *  Copyright (c) 2022 Simonov Denis <sim-mail@list.ru>
+ *  and all contributors signed below.
+ *
+ *  All Rights Reserved.
+ *  Contributor(s): ______________________________________.
+**/
+
 #include "FBFieldInfo.h"
 #include "FBUtils.h"
 

@@ -23,7 +23,7 @@
  *  Contributor(s): ______________________________________.
  */
 
-namespace LuceneUDR
+namespace Firebird
 {
 	template <typename T>
 	class AutoReleaseClear
