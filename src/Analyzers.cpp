@@ -23,10 +23,13 @@ namespace FTSMetadata
 
 	AnalyzerRepository::AnalyzerRepository(IMaster* const master)
 		: m_master(master)
-		, m_analyzerFactory(make_unique<LuceneAnalyzerFactory>())
+		, m_analyzerFactory(new LuceneAnalyzerFactory())
 	{}
 
-	AnalyzerRepository::~AnalyzerRepository() = default;
+	AnalyzerRepository::~AnalyzerRepository()
+	{
+		delete m_analyzerFactory;
+	}
 
 	AnalyzerPtr AnalyzerRepository::createAnalyzer(
 		ThrowStatusWrapper* const status,

@@ -35,7 +35,7 @@ namespace FTSMetadata
 	{
 	private:
 		IMaster* const m_master = nullptr;
-		unique_ptr<LuceneUDR::LuceneAnalyzerFactory> const m_analyzerFactory = nullptr;
+		LuceneUDR::LuceneAnalyzerFactory* const m_analyzerFactory = nullptr;
 
 		// prepared statements
 		AutoRelease<IStatement> m_stmt_get_analyzer{ nullptr };
@@ -125,6 +125,7 @@ WHERE FTS$ANALYZER_NAME = ? AND FTS$WORD = ?
 )SQL";
 	public:
 		AnalyzerRepository() = delete;
+		AnalyzerRepository(AnalyzerRepository&&) = default;
 		explicit AnalyzerRepository(IMaster* const master);
 
 		~AnalyzerRepository();
