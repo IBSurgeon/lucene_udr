@@ -32,15 +32,15 @@ For databases of the 1st SQL dialect, use the script https://github.com/IBSurgeo
 
 You can download ready-made builds for Windows OS using the links:
 
-* https://github.com/IBSurgeon/lucene_udr/releases/download/1.1/LuceneUdr_Win_x64.zip[LuceneUdr_Win_x64.zip]
-* https://github.com/IBSurgeon/lucene_udr/releases/download/1.1/LuceneUdr_Win_x86.zip[LuceneUdr_Win_x86.zip]
+* https://github.com/IBSurgeon/lucene_udr/releases/download/1.2/LuceneUdr_Win_x64.zip[LuceneUdr_Win_x64.zip]
+* https://github.com/IBSurgeon/lucene_udr/releases/download/1.2/LuceneUdr_Win_x86.zip[LuceneUdr_Win_x86.zip]
 
 Under Linux, you can compile the library yourself.
 
 Download the demo database, for which the examples are prepared, using the following links:
 
-* https://github.com/IBSurgeon/lucene_udr/releases/download/1.1/fts_demo_3.0.zip[fts_demo_3.0.zip] - database for Firebird 3.0;
-* https://github.com/IBSurgeon/lucene_udr/releases/download/1.1/fts_demo_4.0.zip[fts_demo_4.0.zip] - database for Firebird 4.0.
+* https://github.com/IBSurgeon/lucene_udr/releases/download/1.2/fts_demo_3.0.zip[fts_demo_3.0.zip] - database for Firebird 3.0;
+* https://github.com/IBSurgeon/lucene_udr/releases/download/1.2/fts_demo_4.0.zip[fts_demo_4.0.zip] - database for Firebird 4.0.
 
 == Building and installing the library under Linux
 

@@ -34,15 +34,15 @@ toc::[]
 
 Скачать готовые сборки под ОС Windows можно по ссылкам:
 
-* https://github.com/IBSurgeon/lucene_udr/releases/download/1.1/LuceneUdr_Win_x64.zip[LuceneUdr_Win_x64.zip]
-* https://github.com/IBSurgeon/lucene_udr/releases/download/1.1/LuceneUdr_Win_x86.zip[LuceneUdr_Win_x86.zip]
+* https://github.com/IBSurgeon/lucene_udr/releases/download/1.2/LuceneUdr_Win_x64.zip[LuceneUdr_Win_x64.zip]
+* https://github.com/IBSurgeon/lucene_udr/releases/download/1.2/LuceneUdr_Win_x86.zip[LuceneUdr_Win_x86.zip]
 
 Под ОС Linux вы можете скомпилировать библиотеку самостоятельно.
 
 Скачать демонстрационную базу данных, для которой подготовлены примеры можно по следующим ссылкам:
 
-* https://github.com/IBSurgeon/lucene_udr/releases/download/1.1/fts_demo_3.0.zip[fts_demo_3.0.zip] - база данных для Firebird 3.0;
-* https://github.com/IBSurgeon/lucene_udr/releases/download/1.1/fts_demo_4.0.zip[fts_demo_4.0.zip] - база данных для Firebird 4.0.
+* https://github.com/IBSurgeon/lucene_udr/releases/download/1.2/fts_demo_3.0.zip[fts_demo_3.0.zip] - база данных для Firebird 3.0;
+* https://github.com/IBSurgeon/lucene_udr/releases/download/1.2/fts_demo_4.0.zip[fts_demo_4.0.zip] - база данных для Firebird 4.0.
 
 == Сборка и установка библиотеки под Linux
 
