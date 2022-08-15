@@ -90,6 +90,7 @@ namespace LuceneUDR
 		return sql_dialect;
 	}
 
+	[[noreturn]] 
 	void throwException(Firebird::ThrowStatusWrapper* const status, const char* message, ...)
 	{
 		char buffer[BUFFER_LARGE];
