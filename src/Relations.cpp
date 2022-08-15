@@ -21,6 +21,13 @@ using namespace LuceneUDR;
 namespace FTSMetadata
 {
 
+	RelationHelper::RelationHelper(IMaster* master)
+		: m_master(master)
+	{}
+
+	RelationHelper::~RelationHelper()
+	{}
+
 	/// <summary>
 	/// Returns information about the relation.
 	/// </summary>

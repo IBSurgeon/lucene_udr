@@ -201,9 +201,9 @@ WHERE RDB$RELATION_NAME = ? AND RDB$FIELD_NAME = ?
 	public:
 		RelationHelper() = delete;
 
-		explicit RelationHelper(IMaster* master)
-			: m_master(master)
-		{}
+		explicit RelationHelper(IMaster* master);
+
+		~RelationHelper();
 
 		/// <summary>
 		/// Returns information about the relation.
