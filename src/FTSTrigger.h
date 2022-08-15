@@ -96,7 +96,6 @@ namespace FTSMetadata
 	public:
 		FTSTriggerHelper() = delete;
 
-
 		explicit FTSTriggerHelper(IMaster* master);
 
 		~FTSTriggerHelper();
