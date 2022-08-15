@@ -126,12 +126,16 @@ namespace FTSMetadata
 
 	FTSIndexRepository::FTSIndexRepository(IMaster* master)
 		: m_master(master)
-		, m_analyzerRepository(make_unique<AnalyzerRepository>(master))
-		, m_relationHelper(make_unique<RelationHelper>(master))
+		, m_analyzerRepository(new AnalyzerRepository(master))
+		, m_relationHelper(new RelationHelper(master))
 	{
 	}
 
-	FTSIndexRepository::~FTSIndexRepository() = default;
+	FTSIndexRepository::~FTSIndexRepository()
+	{
+		delete m_relationHelper;
+		delete m_analyzerRepository;
+	}
 
 
 	/// <summary>

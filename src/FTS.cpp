@@ -195,7 +195,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 				throwException(status, R"(Index "%s" exists, but is not build. Please rebuild index.)", indexName.c_str());
 			}
 
-			const auto& analyzers = procedure->indexRepository->getAnalyzerRepository();
+			const auto analyzers = procedure->indexRepository->getAnalyzerRepository();
 
 			IndexReaderPtr reader = IndexReader::open(ftsIndexDir, true);
 			searcher = newLucene<IndexSearcher>(reader);

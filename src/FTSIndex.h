@@ -140,8 +140,8 @@ namespace FTSMetadata
 
 	private:
 		IMaster* m_master = nullptr;	
-		unique_ptr<AnalyzerRepository> m_analyzerRepository{ nullptr };
-		unique_ptr<RelationHelper> m_relationHelper{nullptr};
+		AnalyzerRepository* const m_analyzerRepository{ nullptr };
+		RelationHelper* const m_relationHelper{nullptr};
 		// prepared statements
 		AutoRelease<IStatement> m_stmt_exists_index{ nullptr };
 		AutoRelease<IStatement> m_stmt_get_index{ nullptr };
@@ -282,12 +282,12 @@ WHERE FTS$ANALYZER = ? AND FTS$INDEX_STATUS = 'C'
 
 		~FTSIndexRepository();
 
-		const unique_ptr<RelationHelper>& getRelationHelper()
+		RelationHelper* const getRelationHelper()
 		{
 			return m_relationHelper;
 		}
 
-		const unique_ptr<AnalyzerRepository>& getAnalyzerRepository()
+		AnalyzerRepository* const getAnalyzerRepository()
 		{
 			return m_analyzerRepository;
 		}

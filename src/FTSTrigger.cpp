@@ -35,7 +35,7 @@ namespace FTSMetadata
 		return getHeader(sqlDialect) + triggerSource;
 	}
 
-	FTSTriggerHelper::FTSTriggerHelper(IMaster* master)
+	FTSTriggerHelper::FTSTriggerHelper(IMaster* const master)
 		: m_master(master)
 	{
 	}
