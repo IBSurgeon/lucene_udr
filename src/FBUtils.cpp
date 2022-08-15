@@ -14,6 +14,7 @@
 #include "FBUtils.h"
 #include "FBAutoPtr.h"
 #include <sstream>
+#include <memory>
 #include <algorithm>
 #include <stdarg.h>
 
