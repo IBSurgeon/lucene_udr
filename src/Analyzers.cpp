@@ -26,8 +26,7 @@ namespace FTSMetadata
 		, m_analyzerFactory(make_unique<LuceneAnalyzerFactory>())
 	{}
 
-	AnalyzerRepository::~AnalyzerRepository()
-	{}
+	AnalyzerRepository::~AnalyzerRepository() = default;
 
 	AnalyzerPtr AnalyzerRepository::createAnalyzer(
 		ThrowStatusWrapper* const status,

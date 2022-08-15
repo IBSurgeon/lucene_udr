@@ -338,8 +338,7 @@ namespace LuceneUDR {
 		);
 	}
 
-	LuceneAnalyzerFactory::~LuceneAnalyzerFactory()
-	{}
+	LuceneAnalyzerFactory::~LuceneAnalyzerFactory() = default;
 
 	bool LuceneAnalyzerFactory::hasAnalyzer(const string& analyzerName)
 	{
