@@ -72,6 +72,8 @@ namespace LuceneUDR {
 
 		LuceneAnalyzerFactory();
 
+		~LuceneAnalyzerFactory();
+
 		bool hasAnalyzer(const string& analyzerName);
 
 		bool isStopWordsSupported(const string& analyzerName);

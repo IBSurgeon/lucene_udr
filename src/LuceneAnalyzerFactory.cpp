@@ -338,6 +338,9 @@ namespace LuceneUDR {
 		);
 	}
 
+	~LuceneAnalyzerFactory::LuceneAnalyzerFactory()
+	{}
+
 	bool LuceneAnalyzerFactory::hasAnalyzer(const string& analyzerName)
 	{
 		return (m_factories.find(analyzerName) != m_factories.end());

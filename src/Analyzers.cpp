@@ -40,14 +40,12 @@ namespace FTSMetadata
 		if (m_analyzerFactory->hasAnalyzer(analyzerName)) {
 			return m_analyzerFactory->createAnalyzer(status, analyzerName);
 		}
-		const auto info = getAnalyzerInfo(status, att, tra, sqlDialect, analyzerName);
-		if (m_analyzerFactory->hasAnalyzer(info.baseAnalyzer)) {
-			const auto stopWords = getStopWords(status, att, tra, sqlDialect, analyzerName);
-			return m_analyzerFactory->createAnalyzer(status, info.baseAnalyzer, stopWords);
-		}
-		else {
+		const auto& info = getAnalyzerInfo(status, att, tra, sqlDialect, analyzerName);
+		if (!m_analyzerFactory->hasAnalyzer(info.baseAnalyzer)) {
 			throwException(status, R"(Base analyzer "%s" not exists)", info.baseAnalyzer.c_str());
 		}
+		const auto stopWords = getStopWords(status, att, tra, sqlDialect, analyzerName);
+		return m_analyzerFactory->createAnalyzer(status, info.baseAnalyzer, stopWords);
 	}
 
 	const AnalyzerInfo AnalyzerRepository::getAnalyzerInfo(
@@ -61,6 +59,7 @@ namespace FTSMetadata
 		if (m_analyzerFactory->hasAnalyzer(analyzerName)) {
 			return m_analyzerFactory->getAnalyzerInfo(status, analyzerName);
 		}
+		AnalyzerInfo info;
 
 		FB_MESSAGE(Input, ThrowStatusWrapper,
 			(FB_INTL_VARCHAR(252, CS_UTF8), analyzerName)
@@ -105,7 +104,6 @@ namespace FTSMetadata
 		}
 		rs->close(status);
 
-		AnalyzerInfo info;
 		if (result == IStatus::RESULT_OK) {
 			info.analyzerName.assign(output->analyzerName.str, output->analyzerName.length);
 			info.baseAnalyzer.assign(output->baseAnalyzer.str, output->baseAnalyzer.length);
