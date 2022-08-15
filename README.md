@@ -1274,12 +1274,18 @@ The procedure `FTS$MANAGEMENT.FTS$ANALYZERS` returns a list of available analyze
 ```sql
   PROCEDURE FTS$ANALYZERS
   RETURNS (
-      FTS$ANALYZER VARCHAR(63) CHARACTER SET UTF8);
+      FTS$ANALYZER VARCHAR(63) CHARACTER SET UTF8,
+      FTS$BASE_ANALYZER VARCHAR(63) CHARACTER SET UTF8,
+      FTS$STOP_WORDS_SUPPORTED BOOLEAN,
+      FTS$SYSTEM_FLAG BOOLEAN);
 ```
 
 Output parameters:
 
-- FTS$ANALYZER - analyzer name.
+- FTS$ANALYZER - analyzer name;
+- FTS$BASE_ANALYZER - name of base analyzer;
+- FTS$STOP_WORDS_SUPPORTED - stop words supported;
+- FTS$SYSTEM_FLAG - is system analyzer.
 
 #### Procedure FTS$MANAGEMENT.FTS$CREATE_ANALYZER
 

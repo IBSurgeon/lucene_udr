@@ -1287,12 +1287,18 @@ SET TERM ;^
 ```sql
   PROCEDURE FTS$ANALYZERS
   RETURNS (
-      FTS$ANALYZER VARCHAR(63) CHARACTER SET UTF8);
+      FTS$ANALYZER VARCHAR(63) CHARACTER SET UTF8,
+      FTS$BASE_ANALYZER VARCHAR(63) CHARACTER SET UTF8,
+      FTS$STOP_WORDS_SUPPORTED BOOLEAN,
+      FTS$SYSTEM_FLAG BOOLEAN);
 ```
 
 Выходные параметры:
 
-- FTS$ANALYZER - имя анализатора.
+- FTS$ANALYZER - имя анализатора;
+- FTS$BASE_ANALYZER - имя базового анализатора;
+- FTS$STOP_WORDS_SUPPORTED - поддерживает ли стоп слова;
+- FTS$SYSTEM_FLAG - является ли системным.
 
 #### Процедура FTS$MANAGEMENT.FTS$CREATE_ANALYZER
 

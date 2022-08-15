@@ -985,8 +985,7 @@ PROCEDURE FTS$ANALYZE (
     FTS$TEXT     BLOB SUB_TYPE TEXT CHARACTER SET UTF8,
     FTS$ANALYZER VARCHAR(63) CHARACTER SET UTF8 NOT NULL DEFAULT 'STANDARD')
 RETURNS (
-    FTS$TERM VARCHAR(8191) CHARACTER SET UTF8
-)
+    FTS$TERM VARCHAR(8191) CHARACTER SET UTF8)
 ----
 
 The first parameter specifies the text to be analyzed, and the second parameter is the name of the analyzer.
@@ -1179,16 +1178,16 @@ The field validation conditions must be combined via `OR`.
 
 . For the `INSERT` operation, it is necessary to check all fields included in full-text indexes whose value is different
 from `NULL`. If this condition is met, then one of the procedures must be performed
-`FTS$LOG_BY_DBKEY(&#39;&lt;table name&gt;&#39;, NEW.RDB$DB_KEY, &#39;I&#39;);` or `FTS$LOG_BY_ID(&#39;&lt;table name&gt;&#39;, NEW.&lt;key field&gt;, &#39;I&#39;)`
-or `FTS$LOG_BY_UUID(&#39;&lt;table name&gt;&#39;, NEW.&lt;key field&gt;, &#39;I&#39;)`.
+`FTS$LOG_BY_DBKEY('<table name>', NEW.RDB$DB_KEY, 'I');` or `FTS$LOG_BY_ID('<table name>', NEW.<key field>, 'I')`
+or `FTS$LOG_BY_UUID('<table name>', NEW.<key field>, 'I')`.
 
 . For the `UPDATE` operation, it is necessary to check all fields included in full-text indexes whose value has changed.
-If this condition is met, then the procedure `FTS$LOG_BY_DBKEY(&#39;&lt;table name&gt;&#39;, OLD.RDB$DB_KEY, &#39;U&#39;);`
-or `FTS$LOG_BY_ID(&#39;&lt;table name&gt;&#39;, OLD.&lt;key field&gt;, &#39;U&#39;)`or `FTS$LOG_BY_UUID(&#39;&lt;table name&gt;&#39;, OLD.&lt;key field&gt;, &#39;U&#39;)`.
+If this condition is met, then the procedure `FTS$LOG_BY_DBKEY('<table name>', OLD.RDB$DB_KEY, 'U');`
+or `FTS$LOG_BY_ID('<table name>', OLD.<key field>, 'U')` or `FTS$LOG_BY_UUID('<table name>', OLD.<key field>, 'U')`.
 
 . For the `DELETE` operation, it is necessary to check all fields included in full-text indexes whose value is different
 from `NULL`. If this condition is met, then it is necessary to perform the procedure
-`FTS$LOG_CHANGE(&#39;&lt;table name&gt;&#39;, OLD.RDB$DB_KEY, &#39;D&#39;);`.
+`FTS$LOG_CHANGE('<table name>', OLD.RDB$DB_KEY, 'D');`.
 
 To facilitate the task of writing such triggers, there is a special package `FTS$TRIGGER_HELPER`, which
 contains procedures for generating trigger source texts. So for example, in order to generate triggers
@@ -1332,12 +1331,18 @@ The procedure `FTS$MANAGEMENT.FTS$ANALYZERS` returns a list of available analyze
 ----
   PROCEDURE FTS$ANALYZERS
   RETURNS (
-      FTS$ANALYZER VARCHAR(63) CHARACTER SET UTF8);
+      FTS$ANALYZER VARCHAR(63) CHARACTER SET UTF8,
+      FTS$BASE_ANALYZER VARCHAR(63) CHARACTER SET UTF8,
+      FTS$STOP_WORDS_SUPPORTED BOOLEAN,
+      FTS$SYSTEM_FLAG BOOLEAN);
 ----
 
 Output parameters:
 
-* FTS$ANALYZER - the name of the analyzer.
+* FTS$ANALYZER - analyzer name;
+* FTS$BASE_ANALYZER - name of base analyzer;
+* FTS$STOP_WORDS_SUPPORTED - stop words supported;
+* FTS$SYSTEM_FLAG - is system analyzer.
 
 
 ==== Procedure FTS$MANAGEMENT.FTS$CREATE_ANALYZER
