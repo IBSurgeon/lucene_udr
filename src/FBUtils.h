@@ -56,6 +56,7 @@ namespace LuceneUDR
 		}
 	}
 
+    [[noreturn]]
 	void throwException(Firebird::ThrowStatusWrapper* const status, const char* message, ...);
 
 	IMessageMetadata* prepareTextMetaData(ThrowStatusWrapper* status, IMessageMetadata* meta);
