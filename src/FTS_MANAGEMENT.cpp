@@ -391,7 +391,7 @@ FB_UDR_BEGIN_PROCEDURE(addStopWord)
 
 		//set dependent active index as rebuild
 		auto dependentActiveIndexes = indexRepository->getActiveIndexByAnalyzer(status, att, tra, sqlDialect, analyzerName);
-		for (const auto indexName : dependentActiveIndexes) {
+		for (const auto& indexName : dependentActiveIndexes) {
 			indexRepository->setIndexStatus(status, att, tra, sqlDialect, indexName, "U");
 		}
 	}
@@ -457,7 +457,7 @@ FB_UDR_BEGIN_PROCEDURE(dropStopWord)
 
 		//set dependent active index as rebuild
 		auto dependentActiveIndexes = indexRepository->getActiveIndexByAnalyzer(status, att, tra, sqlDialect, analyzerName);
-		for (const auto indexName : dependentActiveIndexes) {
+		for (const auto& indexName : dependentActiveIndexes) {
 			indexRepository->setIndexStatus(status, att, tra, sqlDialect, indexName, "U");
 		}
 	}
