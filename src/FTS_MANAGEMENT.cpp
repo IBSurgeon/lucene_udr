@@ -195,9 +195,17 @@ FB_UDR_BEGIN_PROCEDURE(createAnalyzer)
 
 		string description;
 		if (!in->descriptionNull) {
-			AutoRelease<IBlob> blob(att->openBlob(status, tra, &in->description, 0, nullptr));
-			description = BlobUtils::getString(status, blob);
-			blob->close(status);
+			IBlob* blob = att->openBlob(status, tra, &in->description, 0, nullptr);
+			try {
+				description = BlobUtils::getString(status, blob);
+				blob->close(status);
+				blob = nullptr;
+			}
+			catch (...) {
+				if (blob) blob->release();
+				blob = nullptr;
+				throw;
+			}
 		}
 
 		analyzers->addAnalyzer(status, att, tra, sqlDialect, analyzerName, baseAnalyzer, description);
@@ -536,9 +544,17 @@ FB_UDR_BEGIN_PROCEDURE(createIndex)
 
 		string description;
 		if (!in->descriptionNull) {
-			AutoRelease<IBlob> blob(att->openBlob(status, tra, &in->description, 0, nullptr));
-			description = BlobUtils::getString(status, blob);
-			blob->close(status);
+			IBlob* blob = att->openBlob(status, tra, &in->description, 0, nullptr);
+			try {
+				description = BlobUtils::getString(status, blob);
+				blob->close(status);
+				blob = nullptr;
+			}
+			catch (...) {
+				if (blob) blob->release();
+				blob = nullptr;
+				throw;
+			}
 		}
 
 		const auto& relationHelper = procedure->indexRepository->getRelationHelper();
@@ -1031,17 +1047,18 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 				field->ftsBoostNull = segment->boostNull;
 			}
 
-			AutoRelease<IResultSet> rs(stmt->openCursor(
+			IResultSet* rs = stmt->openCursor(
 				status,
 				tra,
 				nullptr,
 				nullptr,
 				newMeta,
 				0
-			));
+			);
 				
 			const unsigned colCount = newMeta->getCount(status);
 			const unsigned msgLength = newMeta->getMessageLength(status);
+			try
 			{
 				// allocate output buffer
 				auto b = make_unique<unsigned char[]>(msgLength);
@@ -1090,6 +1107,12 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 					memset(buffer, 0, msgLength);
 				}
 				rs->close(status);
+				rs = nullptr;
+			}
+			catch (...) {
+				if (rs) rs->release();
+				rs = nullptr;
+				throw;
 			}
 			writer->commit();
 

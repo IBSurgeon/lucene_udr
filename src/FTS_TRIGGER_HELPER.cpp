@@ -133,16 +133,32 @@ FB_UDR_BEGIN_PROCEDURE(ftsMakeTrigger)
 
 		out->triggerSourceNull = false;
 		{
-			AutoRelease<IBlob> blob(att->createBlob(status, tra, &out->triggerSource, 0, nullptr));
-			BlobUtils::setString(status, blob, trigger->triggerSource);
-			blob->close(status);
+			IBlob* blob = att->createBlob(status, tra, &out->triggerSource, 0, nullptr);
+			try {
+				BlobUtils::setString(status, blob, trigger->triggerSource);
+				blob->close(status);
+				blob = nullptr;
+			}
+			catch (...) {
+				if (blob) blob->release();
+				blob = nullptr;
+				throw;
+			}
 		}
 
 		out->triggerScriptNull = false;
 		{
-			AutoRelease<IBlob> blob(att->createBlob(status, tra, &out->triggerScript, 0, nullptr));
-			BlobUtils::setString(status, blob, trigger->getScript(sqlDialect));
-			blob->close(status);
+			IBlob* blob = att->createBlob(status, tra, &out->triggerScript, 0, nullptr);
+			try {
+				BlobUtils::setString(status, blob, trigger->getScript(sqlDialect));
+				blob->close(status);
+				blob = nullptr;
+			}
+			catch (...) {
+				if (blob) blob->release();
+				blob = nullptr;
+				throw;
+			}
 		}
 
 		++it;

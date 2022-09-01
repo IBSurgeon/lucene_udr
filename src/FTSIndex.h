@@ -28,6 +28,18 @@ using namespace std;
 namespace FTSMetadata
 {
 
+	FB_MESSAGE(FTSIndexNameInput, ThrowStatusWrapper,
+		(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
+	);
+
+	FB_MESSAGE(FTSIndexRecord, ThrowStatusWrapper,
+		(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
+		(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
+		(FB_INTL_VARCHAR(252, CS_UTF8), analyzer)
+		(FB_BLOB, description)
+		(FB_INTL_VARCHAR(4, CS_UTF8), indexStatus)
+	);
+
 	enum class FTSKeyType {NONE, DB_KEY, INT_ID, UUID};
 
 	class FTSIndexSegment;
@@ -46,7 +58,6 @@ namespace FTSMetadata
 		string indexName{ "" };
 		string relationName{ "" };
 		string analyzer{ "" };
-		string description{ "" };
 		string status{ "" }; // N - new index, I - inactive, U - need rebuild, C - complete
 
 		FTSIndexSegmentList segments;
@@ -61,6 +72,10 @@ namespace FTSMetadata
 	public: 
 
 		FTSIndex() = default;
+
+		explicit FTSIndex(const FTSIndexRecord& record);
+
+		void init(const FTSIndexRecord& record);
 
 		bool inline isActive() {
 			return (status == "C") || (status == "U");
@@ -149,6 +164,7 @@ namespace FTSMetadata
 		AutoRelease<IStatement> m_stmt_index_key_field{ nullptr };
 		AutoRelease<IStatement> m_stmt_active_indexes_by_analyzer{ nullptr };
 
+	public:
 		const char* SQL_CREATE_FTS_INDEX = R"SQL(
 INSERT INTO FTS$INDICES (
   FTS$INDEX_NAME, 
@@ -227,6 +243,12 @@ LEFT JOIN RDB$RELATION_FIELDS RF
     ON RF.RDB$RELATION_NAME = FTS$INDICES.FTS$RELATION_NAME
    AND RF.RDB$FIELD_NAME = FTS$INDEX_SEGMENTS.FTS$FIELD_NAME
 WHERE FTS$INDICES.FTS$INDEX_NAME = ?
+)SQL";
+
+		const char* SQL_FTS_INDEX_FIELD_EXISTS = R"SQL(
+SELECT COUNT(*) AS CNT
+FROM FTS$INDEX_SEGMENTS
+WHERE FTS$INDEX_NAME = ? AND FTS$FIELD_NAME = ?
 )SQL";
 
 		const char* SQL_FTS_KEY_INDEX_FIELD_EXISTS = R"SQL(
@@ -382,8 +404,8 @@ WHERE FTS$ANALYZER = ? AND FTS$INDEX_STATUS = 'C'
 		/// 
 		void getIndex (
 			ThrowStatusWrapper* const status, 
-			IAttachment* const att, 
-			ITransaction* const tra, 
+			IAttachment* att, 
+			ITransaction* tra, 
 			const unsigned int sqlDialect, 
 			const FTSIndexPtr& ftsIndex,
 			const string& indexName,
@@ -587,4 +609,5 @@ WHERE FTS$ANALYZER = ? AND FTS$INDEX_STATUS = 'C'
 	using FTSIndexRepositoryPtr = unique_ptr<FTSIndexRepository>;
 
 }
+
 #endif	// FTS_INDEX_H

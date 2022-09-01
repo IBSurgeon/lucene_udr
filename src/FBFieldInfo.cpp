@@ -32,9 +32,19 @@ namespace FTSMetadata
 		case SQL_BLOB:
 		{
 			ISC_QUAD blobId = getQuadValue(buffer);
-			AutoRelease<IBlob> blob(att->openBlob(status, tra, &blobId, 0, nullptr));
-			string s = BlobUtils::getString(status, blob);
-			blob->close(status);
+			string s = "";
+			IBlob* blob(att->openBlob(status, tra, &blobId, 0, nullptr));
+			try {
+				s = BlobUtils::getString(status, blob);
+				blob->close(status);
+				blob = nullptr;
+			}
+			catch (...) {
+				if (blob) blob->release();
+				blob = nullptr;
+				throw;
+			}
+			
 			return s;
 		}
 		case SQL_SHORT:

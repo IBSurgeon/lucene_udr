@@ -82,9 +82,17 @@ FB_UDR_BEGIN_FUNCTION(bestFragementHighligh)
 
 		string text;
 		if (!in->textNull) {
-			AutoRelease<IBlob> blob(att->openBlob(status, tra, &in->text, 0, nullptr));
-			text = BlobUtils::getString(status, blob);
-			blob->close(status);
+			IBlob* blob = att->openBlob(status, tra, &in->text, 0, nullptr);
+			try {
+				text = BlobUtils::getString(status, blob);
+				blob->close(status);
+				blob = nullptr;
+			}
+			catch (...) {
+				if (blob) blob->release();
+				blob = nullptr;
+				throw;
+			}
 		}
 
 		string queryStr;
@@ -211,9 +219,17 @@ FB_UDR_BEGIN_PROCEDURE(bestFragementsHighligh)
 
 		string text;
 		if (!in->textNull) {
-			AutoRelease<IBlob> blob(att->openBlob(status, tra, &in->text, 0, nullptr));
-			text = BlobUtils::getString(status, blob);
-			blob->close(status);
+			IBlob* blob = att->openBlob(status, tra, &in->text, 0, nullptr);
+			try {
+				text = BlobUtils::getString(status, blob);
+				blob->close(status);
+				blob = nullptr;
+			}
+			catch (...) {
+				if (blob) blob->release();
+				blob = nullptr;
+				throw;
+			}
 		}
 
 		string queryStr;

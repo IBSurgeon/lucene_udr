@@ -40,6 +40,22 @@ namespace FTSMetadata
 		);
 	}
 
+	FTSIndex::FTSIndex(const FTSIndexRecord& record)
+	{
+		indexName.assign(record->indexName.str, record->indexName.length);
+		relationName.assign(record->relationName.str, record->relationName.length);
+		analyzer.assign(record->analyzer.str, record->analyzer.length);
+		status.assign(record->indexStatus.str, record->indexStatus.length);
+	}
+
+	void FTSIndex::init(const FTSIndexRecord& record)
+	{
+		indexName.assign(record->indexName.str, record->indexName.length);
+		relationName.assign(record->relationName.str, record->relationName.length);
+		analyzer.assign(record->analyzer.str, record->analyzer.length);
+		status.assign(record->indexStatus.str, record->indexStatus.length);
+	}
+
 	bool FTSIndex::checkAllFieldsExists()
 	{
 		bool existsFlag = true;
@@ -190,9 +206,17 @@ namespace FTSMetadata
 		analyzerName.copy(input->analyzer.str, input->analyzer.length);
 
 		if (!description.empty()) {
-			AutoRelease<IBlob> blob(att->createBlob(status, tra, &input->description, 0, nullptr));
-			BlobUtils::setString(status, blob, description);
-			blob->close(status);
+			IBlob* blob = att->createBlob(status, tra, &input->description, 0, nullptr);
+			try {
+				BlobUtils::setString(status, blob, description);
+				blob->close(status);
+				blob = nullptr;
+			}
+			catch (...) {
+				if (blob) blob->release();
+				blob = nullptr;
+				throw;
+			}
 		}
 		else {
 			input->descriptionNull = true;
@@ -202,7 +226,6 @@ namespace FTSMetadata
 		input->indexStatus.length = static_cast<ISC_USHORT>(indexStatus.length());
 		indexStatus.copy(input->indexStatus.str, input->indexStatus.length);
 
-		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
 
 		att->execute(
 			status,
@@ -210,7 +233,7 @@ namespace FTSMetadata
 			0,
 			SQL_CREATE_FTS_INDEX,
 			sqlDialect,
-			inputMetadata,
+			input.getMetadata(),
 			input.getData(),
 			nullptr,
 			nullptr
@@ -248,15 +271,13 @@ namespace FTSMetadata
 			throwException(status, R"(Index "%s" not exists)", indexName.c_str());
 		}
 
-		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
-
 		att->execute(
 			status,
 			tra,
 			0,
 			SQL_DROP_FTS_INDEX,
 			sqlDialect,
-			inputMetadata,
+			input.getMetadata(),
 			input.getData(),
 			nullptr,
 			nullptr
@@ -294,15 +315,13 @@ namespace FTSMetadata
 		input->indexStatus.length = static_cast<ISC_USHORT>(indexStatus.length());
 		indexStatus.copy(input->indexStatus.str, input->indexStatus.length);
 
-		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
-
 		att->execute(
 			status,
 			tra,
 			0,
 			SQL_SET_FTS_INDEX_STATUS,
 			sqlDialect,
-			inputMetadata,
+			input.getMetadata(),
 			input.getData(),
 			nullptr,
 			nullptr
@@ -347,26 +366,31 @@ namespace FTSMetadata
 				0,
 				SQL_FTS_INDEX_EXISTS,
 				sqlDialect,
-				IStatement::PREPARE_PREFETCH_METADATA
+				IStatement::PREPARE_PREFETCH_NONE
 			));
 		}
 
-		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
-		AutoRelease<IMessageMetadata> outputMetadata(output.getMetadata());
-
-		AutoRelease<IResultSet> rs(m_stmt_exists_index->openCursor(
+		IResultSet* rs = m_stmt_exists_index->openCursor(
 			status,
 			tra,
-			inputMetadata,
+			input.getMetadata(),
 			input.getData(),
-			outputMetadata,
+			output.getMetadata(),
 			0
-		));
+		);
 		bool foundFlag = false;
-		if (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
-			foundFlag = (output->cnt > 0);
+		try {
+			if (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
+				foundFlag = (output->cnt > 0);
+			}
+			rs->close(status);
+			rs = nullptr;
+		} 
+		catch (...) {
+			if (rs) rs->release();
+			rs = nullptr;
+			throw;
 		}
-		rs->close(status);
 
 		return foundFlag;
 	}
@@ -389,29 +413,21 @@ namespace FTSMetadata
 	/// 
 	void FTSIndexRepository::getIndex (
 		ThrowStatusWrapper* const status,
-		IAttachment* const att,
-		ITransaction* const tra,
+		IAttachment* att,
+		ITransaction* tra,
 		const unsigned int sqlDialect,
 		const FTSIndexPtr& ftsIndex,
 		const string& indexName,
 		const bool withSegments)
 	{	
-		FB_MESSAGE(Input, ThrowStatusWrapper,
-			(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
-		) input(status, m_master);
+		FTSIndexNameInput input(status, m_master);		
+		FTSIndexRecord output(status, m_master);
 
-		FB_MESSAGE(Output, ThrowStatusWrapper,
-			(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
-			(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
-			(FB_INTL_VARCHAR(252, CS_UTF8), analyzer)
-			(FB_BLOB, description)
-			(FB_INTL_VARCHAR(4, CS_UTF8), indexStatus)
-		) output(status, m_master);
 
 		input.clear();
+		input->indexNameNull = false;
+		input->indexName.set(indexName.c_str());
 
-		input->indexName.length = static_cast<ISC_USHORT>(indexName.length());
-		indexName.copy(input->indexName.str, input->indexName.length);
 
 		if (!m_stmt_get_index.hasData()) {
 			m_stmt_get_index.reset(att->prepare(
@@ -420,44 +436,42 @@ namespace FTSMetadata
 				0,
 				SQL_GET_FTS_INDEX,
 				sqlDialect,
-				IStatement::PREPARE_PREFETCH_METADATA
+				IStatement::PREPARE_PREFETCH_NONE
 			));
 		}
-
-		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
-		AutoRelease<IMessageMetadata> outputMetadata(output.getMetadata());
-
-		AutoRelease<IResultSet> rs(m_stmt_get_index->openCursor(
+		int result = IStatus::RESULT_NO_DATA;
+		IResultSet* rs = m_stmt_get_index->openCursor(
 			status,
 			tra,
-			inputMetadata,
+			input.getMetadata(),
 			input.getData(),
-			outputMetadata,
+			output.getMetadata(),
 			0
-		));
-
-		int result = rs->fetchNext(status, output.getData());
+		);
+		try {
+			result = rs->fetchNext(status, output.getData());
+			rs->close(status);
+			rs = nullptr;
+		}
+		catch (...) {
+			if (rs) rs->release();
+			rs = nullptr;
+			throw;
+		}
 		if (result == IStatus::RESULT_NO_DATA) {
 			throwException(status, R"(Index "%s" not exists)", indexName.c_str());
 		}
-		rs->close(status);
-
 		// index found
 		if (result == IStatus::RESULT_OK) {
 			ftsIndex->indexName.assign(output->indexName.str, output->indexName.length);
 			ftsIndex->relationName.assign(output->relationName.str, output->relationName.length);
 			ftsIndex->analyzer.assign(output->analyzer.str, output->analyzer.length);
-			if (!output->descriptionNull) {
-				AutoRelease<IBlob> blob(att->openBlob(status, tra, &output->description, 0, nullptr));
-				ftsIndex->description = BlobUtils::getString(status, blob);
-				blob->close(status);
-			}
 			ftsIndex->status.assign(output->indexStatus.str, output->indexStatus.length);	
 
 			if (withSegments) {
 				fillIndexFields(status, att, tra, sqlDialect, indexName, ftsIndex->segments);
 			}
-		}				
+		}
 	}
 
 	/// <summary>
@@ -478,52 +492,34 @@ namespace FTSMetadata
 		FTSIndexList& indexes)
 	{
 
-		FB_MESSAGE(Output, ThrowStatusWrapper,
-			(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
-			(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
-			(FB_INTL_VARCHAR(252, CS_UTF8), analyzer)
-			(FB_BLOB, description)
-			(FB_INTL_VARCHAR(4, CS_UTF8), indexStatus)
-		) output(status, m_master);
-
-
-		AutoRelease<IStatement> stmt(att->prepare(
-				status,
-				tra,
-				0,
-			    SQL_ALL_FTS_INDECES,
-				sqlDialect,
-				IStatement::PREPARE_PREFETCH_METADATA
-			));
-
-		AutoRelease<IMessageMetadata> outputMetadata(output.getMetadata());
+		FTSIndexRecord output(status, m_master);
 	
-		AutoRelease<IResultSet> rs(stmt->openCursor(
+		IResultSet* rs = att->openCursor(
 			status,
 			tra,
+			0,
+			SQL_ALL_FTS_INDECES,
+			sqlDialect,
 			nullptr,
 			nullptr,
-			outputMetadata,
+			output.getMetadata(),
+			nullptr,
 			0
-		));
+		);
 
-		while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
-			auto ftsIndex = make_unique<FTSIndex>();
-			ftsIndex->indexName.assign(output->indexName.str, output->indexName.length);
-			ftsIndex->relationName.assign(output->relationName.str, output->relationName.length);
-			ftsIndex->analyzer.assign(output->analyzer.str, output->analyzer.length);
-
-			if (!output->descriptionNull) {
-				AutoRelease<IBlob> blob(att->openBlob(status, tra, &output->description, 0, nullptr));
-				ftsIndex->description = BlobUtils::getString(status, blob);
-				blob->close(status);
+		try {
+			while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
+				auto ftsIndex = make_unique<FTSIndex>(output);
+				indexes.push_back(std::move(ftsIndex));
 			}
-
-			ftsIndex->status.assign(output->indexStatus.str, output->indexStatus.length);
-
-			indexes.push_back(std::move(ftsIndex));
+			rs->close(status);
+			rs = nullptr;
 		}
-		rs->close(status);
+		catch (...) {
+			if (rs) rs->release();
+			rs = nullptr;
+			throw;
+		}
 
 	}
 
@@ -556,54 +552,54 @@ namespace FTSMetadata
 		) output(status, m_master);
 
 
-		AutoRelease<IStatement> stmt(att->prepare(
+		IResultSet* rs = att->openCursor(
 			status,
 			tra,
 			0,
 			SQL_ALL_FTS_INDECES_AND_SEGMENTS,
 			sqlDialect,
-			IStatement::PREPARE_PREFETCH_METADATA
-		));
-
-		AutoRelease<IMessageMetadata> outputMetadata(output.getMetadata());
-
-		AutoRelease<IResultSet> rs(stmt->openCursor(
-			status,
-			tra,
 			nullptr,
 			nullptr,
-			outputMetadata,
+			output.getMetadata(),
+			nullptr,
 			0
-		));
+		);
+		try {
+			while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
+				const string indexName(output->indexName.str, output->indexName.length);
 
-		while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
-			const string indexName(output->indexName.str, output->indexName.length);
+				const auto& [it, result] = indexes.try_emplace(indexName, lazy_convert_construct([] { return std::make_unique<FTSIndex>(); }));
+				auto& index = it->second;
+				if (result) {
+					index->indexName.assign(output->indexName.str, output->indexName.length);
+					index->relationName.assign(output->relationName.str, output->relationName.length);
+					index->analyzer.assign(output->analyzerName.str, output->analyzerName.length);
+					index->status.assign(output->indexStatus.str, output->indexStatus.length);
+				}
 
-			const auto& [it, result] = indexes.try_emplace(indexName, lazy_convert_construct([] { return std::make_unique<FTSIndex>(); }));
-			auto& index = it->second;
-			if (result) {
-				index->indexName.assign(output->indexName.str, output->indexName.length);
-				index->relationName.assign(output->relationName.str, output->relationName.length);
-				index->analyzer.assign(output->analyzerName.str, output->analyzerName.length);
-				index->status.assign(output->indexStatus.str, output->indexStatus.length);
+				auto indexSegment = make_unique<FTSIndexSegment>();
+				indexSegment->indexName.assign(output->indexName.str, output->indexName.length);
+				indexSegment->fieldName.assign(output->fieldName.str, output->fieldName.length);
+				indexSegment->key = output->key;
+				indexSegment->boost = output->boost;
+				indexSegment->boostNull = output->boostNull;
+				if (indexSegment->fieldName == "RDB$DB_KEY") {
+					indexSegment->fieldExists = true;
+				}
+				else {
+					indexSegment->fieldExists = output->fieldExists;
+				}
+
+				index->segments.push_back(std::move(indexSegment));
 			}
-
-			auto indexSegment = make_unique<FTSIndexSegment>();
-			indexSegment->indexName.assign(output->indexName.str, output->indexName.length);
-			indexSegment->fieldName.assign(output->fieldName.str, output->fieldName.length);
-			indexSegment->key = output->key;
-			indexSegment->boost = output->boost;
-			indexSegment->boostNull = output->boostNull;
-			if (indexSegment->fieldName == "RDB$DB_KEY") {
-				indexSegment->fieldExists = true;
-			}
-			else {
-				indexSegment->fieldExists = output->fieldExists;
-			}
-
-			index->segments.push_back(std::move(indexSegment));
+			rs->close(status);
+			rs = nullptr;
 		}
-		rs->close(status);
+		catch (...) {
+			if (rs) rs->release();
+			rs = nullptr;
+			throw;
+		}
 	}
 
 	/// <summary>
@@ -650,37 +646,43 @@ namespace FTSMetadata
 				0,
 				SQL_FTS_INDEX_SEGMENTS,
 				sqlDialect,
-				IStatement::PREPARE_PREFETCH_METADATA
+				IStatement::PREPARE_PREFETCH_NONE
 			));
 		}
-		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
-		AutoRelease<IMessageMetadata> outputMetadata(output.getMetadata());
 
-		AutoRelease<IResultSet> rs(m_stmt_index_fields->openCursor(
+		IResultSet* rs = m_stmt_index_fields->openCursor(
 			status,
 			tra,
-			inputMetadata,
+			input.getMetadata(),
 			input.getData(),
-			outputMetadata,
+			output.getMetadata(),
 			0
-		));
-		while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
-			auto indexSegment = make_unique<FTSIndexSegment>();
-			indexSegment->indexName.assign(output->indexName.str, output->indexName.length);
-			indexSegment->fieldName.assign(output->fieldName.str, output->fieldName.length);
-			indexSegment->key = output->key;
-			indexSegment->boost = output->boost;
-			indexSegment->boostNull = output->boostNull;
-			if (indexSegment->fieldName == "RDB$DB_KEY") {
-				indexSegment->fieldExists = true;
-			}
-			else {
-				indexSegment->fieldExists = output->fieldExists;
-			}
+		);
+		try {
+			while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
+				auto indexSegment = make_unique<FTSIndexSegment>();
+				indexSegment->indexName.assign(output->indexName.str, output->indexName.length);
+				indexSegment->fieldName.assign(output->fieldName.str, output->fieldName.length);
+				indexSegment->key = output->key;
+				indexSegment->boost = output->boost;
+				indexSegment->boostNull = output->boostNull;
+				if (indexSegment->fieldName == "RDB$DB_KEY") {
+					indexSegment->fieldExists = true;
+				}
+				else {
+					indexSegment->fieldExists = output->fieldExists;
+				}
 
-			segments.push_back(std::move(indexSegment));
+				segments.push_back(std::move(indexSegment));
+			}
+			rs->close(status);
+			rs = nullptr;
 		}
-		rs->close(status);
+		catch (...) {
+			if (rs) rs->release();
+			rs = nullptr;
+			throw;
+		}
 	}
 
 	/// <summary>
@@ -716,31 +718,31 @@ namespace FTSMetadata
 		indexName.copy(input->indexName.str, input->indexName.length);
 
 
-		AutoRelease<IStatement> stmt(att->prepare(
+		bool foundFlag = false;
+		IResultSet* rs = att->openCursor(
 			status,
 			tra,
 			0,
 			SQL_FTS_KEY_INDEX_FIELD_EXISTS,
 			sqlDialect,
-			IStatement::PREPARE_PREFETCH_METADATA
-		));
-
-		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
-		AutoRelease<IMessageMetadata> outputMetadata(output.getMetadata());
-
-		AutoRelease<IResultSet> rs(stmt->openCursor(
-			status,
-			tra,
-			inputMetadata,
+			input.getMetadata(),
 			input.getData(),
-			outputMetadata,
+			output.getMetadata(),
+			nullptr,
 			0
-		));
-		bool foundFlag = false;
-		if (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
-			foundFlag = (output->cnt > 0);
+		);
+		try {			
+			if (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
+				foundFlag = (output->cnt > 0);
+			}
+			rs->close(status);
+			rs = nullptr;
 		}
-		rs->close(status);
+		catch (...) {
+			if (rs) rs->release();
+			rs = nullptr;
+			throw;
+		}
 
 		return foundFlag;
 	}
@@ -785,27 +787,32 @@ namespace FTSMetadata
 				0,
 				SQL_GET_FTS_KEY_INDEX_FIELD,
 				sqlDialect,
-				IStatement::PREPARE_PREFETCH_METADATA
+				IStatement::PREPARE_PREFETCH_NONE
 			));
 		}
 
-		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
-		AutoRelease<IMessageMetadata> outputMetadata(output.getMetadata());
-
-		AutoRelease<IResultSet> rs(m_stmt_index_key_field->openCursor(
+		IResultSet* rs = m_stmt_index_key_field->openCursor(
 			status,
 			tra,
-			inputMetadata,
+			input.getMetadata(),
 			input.getData(),
-			outputMetadata,
+			output.getMetadata(),
 			0
-		));
-		int result = rs->fetchNext(status, output.getData());
+		);
+		int result = IStatus::RESULT_NO_DATA;
+		try {
+			result = rs->fetchNext(status, output.getData());
+			rs->close(status);
+			rs = nullptr;
+		}
+		catch (...) {
+			if (rs) rs->release();
+			rs = nullptr;
+			throw;
+		}
 		if (result == IStatus::RESULT_NO_DATA) {
 			throwException(status, R"(Key field not exists in index "%s".)", indexName.c_str());
 		}
-		rs->close(status);
-
 		if (result == IStatus::RESULT_OK) {
 			keyIndexSegment->indexName.assign(output->indexName.str, output->indexName.length);
 			keyIndexSegment->fieldName.assign(output->fieldName.str, output->fieldName.length);
@@ -878,15 +885,13 @@ namespace FTSMetadata
 			}
 		}
 
-		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
-
 		att->execute(
 			status,
 			tra,
 			0,
 			SQL_FTS_ADD_INDEX_FIELD,
 			sqlDialect,
-			inputMetadata,
+			input.getMetadata(),
 			input.getData(),
 			nullptr,
 			nullptr
@@ -938,15 +943,13 @@ namespace FTSMetadata
 			throwException(status, R"(Field "%s" not exists in index "%s")", fieldName.c_str(), indexName.c_str());
 		}
 
-		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
-
 		att->execute(
 			status,
 			tra,
 			0,
 			SQL_FTS_DROP_INDEX_FIELD,
 			sqlDialect,
-			inputMetadata,
+			input.getMetadata(),
 			input.getData(),
 			nullptr,
 			nullptr
@@ -1004,15 +1007,13 @@ namespace FTSMetadata
 			throwException(status, R"(Field "%s" not exists in index "%s")", fieldName.c_str(), indexName.c_str());
 		}
 
-		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
-
 		att->execute(
 			status,
 			tra,
 			0,
 			SQL_FTS_SET_INDEX_FIELD_BOOST,
 			sqlDialect,
-			inputMetadata,
+			input.getMetadata(),
 			input.getData(),
 			nullptr,
 			nullptr
@@ -1057,34 +1058,32 @@ namespace FTSMetadata
 		input->fieldName.length = static_cast<ISC_USHORT>(fieldName.length());
 		fieldName.copy(input->fieldName.str, input->fieldName.length);
 
-		AutoRelease<IStatement> stmt(att->prepare(
+		IResultSet* rs = att->openCursor(
 			status,
 			tra,
 			0,
-			"SELECT COUNT(*) AS CNT\n"
-			"FROM FTS$INDEX_SEGMENTS\n"
-			"WHERE FTS$INDEX_NAME = ? AND FTS$FIELD_NAME = ?",
+			SQL_FTS_INDEX_FIELD_EXISTS,
 			sqlDialect,
-			IStatement::PREPARE_PREFETCH_METADATA
-		));
-
-		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
-		AutoRelease<IMessageMetadata> outputMetadata(output.getMetadata());
-
-		AutoRelease<IResultSet> rs(stmt->openCursor(
-			status,
-			tra,
-			inputMetadata,
+			input.getMetadata(),
 			input.getData(),
-			outputMetadata,
+			output.getMetadata(),
+			nullptr,
 			0
-		));
+		);
 
 		bool foundFlag = false;
-		if (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
-			foundFlag = (output->cnt > 0);
+		try {
+			if (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
+				foundFlag = (output->cnt > 0);
+			}
+			rs->close(status);
+			rs = nullptr;
 		}
-		rs->close(status);
+		catch (...) {
+			if (rs) rs->release();
+			rs = nullptr;
+			throw;
+		}
 
 		return foundFlag;
 	}
@@ -1110,32 +1109,33 @@ namespace FTSMetadata
 		analyzerName.copy(input->analyzerName.str, input->analyzerName.length);
 
 
-		AutoRelease<IStatement> stmt(att->prepare(
+
+		IResultSet* rs = att->openCursor(
 			status,
 			tra,
 			0,
 			SQL_HAS_INDEX_BY_ANALYZER,
 			sqlDialect,
-			IStatement::PREPARE_PREFETCH_METADATA
-		));
-
-		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
-		AutoRelease<IMessageMetadata> outputMetadata(output.getMetadata());
-
-		AutoRelease<IResultSet> rs(stmt->openCursor(
-			status,
-			tra,
-			inputMetadata,
+			input.getMetadata(),
 			input.getData(),
-			outputMetadata,
+			output.getMetadata(),
+			nullptr,
 			0
-		));
+		);
 
 		bool foundFlag = false;
-		if (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
-			foundFlag = (output->cnt > 0);
+		try {
+			if (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
+				foundFlag = (output->cnt > 0);
+			}
+			rs->close(status);
+			rs = nullptr;
 		}
-		rs->close(status);
+		catch (...) {
+			if (rs) rs->release();
+			rs = nullptr;
+			throw;
+		}
 
 		return foundFlag;
 	}
@@ -1170,26 +1170,31 @@ namespace FTSMetadata
 				0,
 				SQL_ACTIVE_INDEXES_BY_ANALYZER,
 				sqlDialect,
-				IStatement::PREPARE_PREFETCH_METADATA
+				IStatement::PREPARE_PREFETCH_NONE
 			));
 		}
-		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
-		AutoRelease<IMessageMetadata> outputMetadata(output.getMetadata());
 
-		AutoRelease<IResultSet> rs(m_stmt_active_indexes_by_analyzer->openCursor(
+		IResultSet* rs = m_stmt_active_indexes_by_analyzer->openCursor(
 			status,
 			tra,
-			inputMetadata,
+			input.getMetadata(),
 			input.getData(),
-			outputMetadata,
+			output.getMetadata(),
 			0
-		));
-
-		while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
-			const string indexName(output->indexName.str, output->indexName.length);
-			indexNames.insert(indexName);
+		);
+		try {
+			while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
+				const string indexName(output->indexName.str, output->indexName.length);
+				indexNames.insert(indexName);
+			}
+			rs->close(status);
+			rs = nullptr;
 		}
-		rs->close(status);
+		catch (...) {
+			if (rs) rs->release();
+			rs = nullptr;
+			throw;
+		}
 
 		return indexNames;
 	}

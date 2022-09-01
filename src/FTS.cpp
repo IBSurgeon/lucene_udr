@@ -142,8 +142,9 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 	{
 	}
 
-	FTSIndexRepositoryPtr indexRepository;
+	FTSIndexRepositoryPtr indexRepository{nullptr};
 
+	
 	void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
 		char* name, unsigned nameSize)
 	{
@@ -153,9 +154,11 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 		const string charset = "UTF8";
 		charset.copy(name, charset.length());
 	}
-
+	
 	FB_UDR_EXECUTE_PROCEDURE
 	{
+		IMaster* const master = context->getMaster();
+
 		if (in->indexNameNull) {
 			throwException(status, "Index name can not be NULL");
 		}
@@ -174,14 +177,17 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 
 		const auto& ftsDirectoryPath = getFtsDirectory(status, context);
 
-
 		att.reset(context->getAttachment(status));
 		tra.reset(context->getTransaction(status));
 
 		const unsigned int sqlDialect = getSqlDialect(status, att);
 
+		//auto indexRepository = make_unique<FTSIndexRepository>(context->getMaster());
+
 		const auto& ftsIndex = make_unique<FTSIndex>();
 		procedure->indexRepository->getIndex(status, att, tra, sqlDialect, ftsIndex, indexName, true);
+		//indexRepository->getIndex(status, att, tra, sqlDialect, ftsIndex, indexName, true);
+
 
 		// check if directory exists for index
 		const auto& indexDirectoryPath = ftsDirectoryPath / indexName;
@@ -196,11 +202,10 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 			}
 
 			const auto analyzers = procedure->indexRepository->getAnalyzerRepository();
-
-			IndexReaderPtr reader = IndexReader::open(ftsIndexDir, true);
-			searcher = newLucene<IndexSearcher>(reader);
+			//const auto analyzers = indexRepository->getAnalyzerRepository();
 			AnalyzerPtr analyzer = analyzers->createAnalyzer(status, att, tra, sqlDialect, ftsIndex->analyzer);
-
+			searcher = newLucene<IndexSearcher>(ftsIndexDir, true);
+			
 			string keyFieldName;
 			auto fields = Collection<String>::newInstance();
 			for (const auto& segment : ftsIndex->segments) {
@@ -216,19 +221,18 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 			keyFieldInfo = make_unique<RelationFieldInfo>();
 			if (keyFieldName != "RDB$DB_KEY") {
 				procedure->indexRepository->getRelationHelper()->getField(status, att, tra, sqlDialect, keyFieldInfo, ftsIndex->relationName, keyFieldName);
+				//indexRepository->getRelationHelper()->getField(status, att, tra, sqlDialect, keyFieldInfo, ftsIndex->relationName, keyFieldName);
 			}
 			else {
 				keyFieldInfo->initDB_KEYField(ftsIndex->relationName);
 			}
-
-			MultiFieldQueryParserPtr parser = newLucene<MultiFieldQueryParser>(LuceneVersion::LUCENE_CURRENT, fields, analyzer);
+			
+			MultiFieldQueryParserPtr  parser = newLucene<MultiFieldQueryParser>(LuceneVersion::LUCENE_CURRENT, fields, analyzer);
 			parser->setDefaultOperator(QueryParser::OR_OPERATOR);
 			query = parser->parse(StringUtils::toUnicode(queryStr));
-			TopDocsPtr docs = searcher->search(query, limit);
+			docs = searcher->search(query, limit);
 
-			scoreDocs = docs->scoreDocs;
-
-			it = scoreDocs.begin();
+			it = docs->scoreDocs.begin();
 
 			out->relationNameNull = false;
 			out->relationName.length = static_cast<ISC_USHORT>(ftsIndex->relationName.length());
@@ -252,17 +256,17 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 	bool explainFlag = false;
 	AutoRelease<IAttachment> att{ nullptr };
 	AutoRelease<ITransaction> tra{ nullptr };
-	RelationFieldInfoPtr keyFieldInfo;
-	String unicodeKeyFieldName;
-	QueryPtr query;
-	SearcherPtr searcher;
-	Collection<ScoreDocPtr> scoreDocs;
+	RelationFieldInfoPtr keyFieldInfo{ nullptr };
+	String unicodeKeyFieldName = L"";
+	SearcherPtr searcher{ nullptr };
+	QueryPtr query{ nullptr };	
+	TopDocsPtr docs{ nullptr };
 	Collection<ScoreDocPtr>::iterator it;
 
 	FB_UDR_FETCH_PROCEDURE
 	{
 		try {
-			if (it == scoreDocs.end()) {
+			if (it == docs->scoreDocs.end()) {
 				return false;
 			}
 			ScoreDocPtr scoreDoc = *it;
@@ -300,9 +304,17 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 				out->explanationNull = false;
 				const auto explanation = searcher->explain(query, scoreDoc->doc);
 				const string explanationStr = StringUtils::toUTF8(explanation->toString());
-				AutoRelease<IBlob> blob(att->createBlob(status, tra, &out->explanation, 0, nullptr));
-				BlobUtils::setString(status, blob, explanationStr);
-				blob->close(status);
+				IBlob* blob = att->createBlob(status, tra, &out->explanation, 0, nullptr);
+				try {
+					BlobUtils::setString(status, blob, explanationStr);
+					blob->close(status);
+					blob = nullptr;
+				}
+				catch (...) {
+					if (blob) blob->release();
+					blob = nullptr;
+					throw;
+				}
 			}
 			else {
 				out->explanationNull = true;
@@ -365,9 +377,17 @@ FB_UDR_BEGIN_PROCEDURE(ftsAnalyze)
 
 		string text;
 		if (!in->textNull) {
-			AutoRelease<IBlob> blob(att->openBlob(status, tra, &in->text, 0, nullptr));
-			text = BlobUtils::getString(status, blob);
-			blob->close(status);
+			IBlob* blob = att->openBlob(status, tra, &in->text, 0, nullptr);
+			try {
+				text = BlobUtils::getString(status, blob);
+				blob->close(status);
+				blob = nullptr;
+			}
+			catch (...) {
+				if (blob) blob->release();
+				blob = nullptr;
+				throw;
+			}
 		}
 
 		string analyzerName = DEFAULT_ANALYZER_NAME;
@@ -431,12 +451,10 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogByDdKey)
     );
 
 	FB_UDR_CONSTRUCTOR
-		, inputMetadata(metadata->getInputMetadata(status))
 		, appendLogStmt(nullptr)
 	{
 	}
 
-	AutoRelease<IMessageMetadata> inputMetadata;
 	AutoRelease<IStatement> appendLogStmt;
 
 	void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
@@ -493,8 +511,6 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogByDdKey)
 
 		input.clear();
 
-		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
-
 		input->relationName.length = static_cast<ISC_USHORT>(relationName.length());
 		relationName.copy(input->relationName.str, input->relationName.length);
 
@@ -507,7 +523,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogByDdKey)
 		procedure->appendLogStmt->execute(
 			status,
 			tra,
-			inputMetadata,
+			input.getMetadata(),
 			input.getData(),
 			nullptr,
 			nullptr
@@ -551,12 +567,10 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogById)
 	);
 
 	FB_UDR_CONSTRUCTOR
-		, inputMetadata(metadata->getInputMetadata(status))
 		, appendLogStmt(nullptr)
 	{
 	}
 
-	AutoRelease<IMessageMetadata> inputMetadata;
 	AutoRelease<IStatement> appendLogStmt;
 
 	void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
@@ -612,8 +626,6 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogById)
 
 		input.clear();
 
-		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
-
 		input->relationName.length = static_cast<ISC_USHORT>(relationName.length());
 		relationName.copy(input->relationName.str, input->relationName.length);
 
@@ -626,7 +638,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogById)
 		procedure->appendLogStmt->execute(
 			status,
 			tra,
-			inputMetadata,
+			input.getMetadata(),
 			input.getData(),
 			nullptr,
 			nullptr
@@ -671,12 +683,10 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogByUuid)
 	);
 
 	FB_UDR_CONSTRUCTOR
-		, inputMetadata(metadata->getInputMetadata(status))
 		, appendLogStmt(nullptr)
 	{
 	}
 
-	AutoRelease<IMessageMetadata> inputMetadata;
 	AutoRelease<IStatement> appendLogStmt;
 
 	void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
@@ -733,8 +743,6 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogByUuid)
 
 		input.clear();
 
-		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
-
 		input->relationName.length = static_cast<ISC_USHORT>(relationName.length());
 		relationName.copy(input->relationName.str, input->relationName.length);
 
@@ -747,7 +755,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogByUuid)
 		procedure->appendLogStmt->execute(
 			status,
 			tra,
-			inputMetadata,
+			input.getMetadata(),
 			input.getData(),
 			nullptr,
 			nullptr
@@ -955,10 +963,6 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 			UUIDInput uuidInput(status, context->getMaster());
 			IDInput idInput(status, context->getMaster());
 
-			AutoRelease<IMessageMetadata> dbKeyInputMetadata(dbKeyInput.getMetadata());
-			AutoRelease<IMessageMetadata> uuidInputMetadata(uuidInput.getMetadata());
-			AutoRelease<IMessageMetadata> idInputMetadata(idInput.getMetadata());
-
 
 			// prepare statement for delete record from FTS log
 			if (!procedure->logDeleteStmt.hasData()) {
@@ -973,7 +977,6 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 			}
 
 			LogDelInput logDelInput(status, context->getMaster());
-			AutoRelease<IMessageMetadata> logDelInputMetadata(logDelInput.getMetadata());
 
 			// prepare statement for retrieval record from FTS log 
 			if (!procedure->logStmt.hasData()) {
@@ -989,16 +992,15 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 
 			LogOutput logOutput(status, context->getMaster());
 
-			AutoRelease<IMessageMetadata> logOutputMetadata(logOutput.getMetadata());
 
-			AutoRelease<IResultSet> logRs(procedure->logStmt->openCursor(
+			IResultSet* logRs = procedure->logStmt->openCursor(
 				status,
 				tra,
 				nullptr,
 				nullptr,
-				logOutputMetadata,
+				logOutput.getMetadata(),
 				0
-			));
+			);
 
 
 			while (logRs->fetchNext(status, logOutput.getData()) == IStatus::RESULT_OK) {
@@ -1057,54 +1059,54 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 
 					const auto& fields = *fieldsInfoMap[indexName];
 
-					AutoRelease<IResultSet> rs(nullptr);
+					IResultSet* rs = nullptr;
 					switch (ftsIndex->keyFieldType) {
 					case FTSKeyType::DB_KEY:
 						if (logOutput->dbKeyNull) continue;
 						dbKeyInput->dbKeyNull = logOutput->dbKeyNull;
 						dbKeyInput->dbKey.length = logOutput->dbKey.length;
 						memcpy(dbKeyInput->dbKey.str, logOutput->dbKey.str, logOutput->dbKey.length);
-						rs.reset(stmt->openCursor(
+						rs = stmt->openCursor(
 							status,
 							tra,
-							dbKeyInputMetadata,
+							dbKeyInput.getMetadata(),
 							dbKeyInput.getData(),
 							outMetadata,
 							0
-						));
+						);
 						break;
 					case FTSKeyType::UUID:
 						if (logOutput->uuidNull) continue;
 						uuidInput->uuidNull = logOutput->uuidNull;
 						uuidInput->uuid.length = logOutput->uuid.length;
 						memcpy(uuidInput->uuid.str, logOutput->uuid.str, uuidInput->uuid.length);
-						rs.reset(stmt->openCursor(
+						rs = stmt->openCursor(
 							status,
 							tra,
-							uuidInputMetadata,
+							uuidInput.getMetadata(),
 							uuidInput.getData(),
 							outMetadata,
 							0
-						));
+						);
 						break;
 					case FTSKeyType::INT_ID:
 						if (logOutput->recIdNull) continue;
 						idInput->idNull = logOutput->recIdNull;
 						idInput->id = logOutput->recId;
-						rs.reset(stmt->openCursor(
+						rs = stmt->openCursor(
 							status,
 							tra,
-							idInputMetadata,
+							idInput.getMetadata(),
 							idInput.getData(),
 							outMetadata,
 							0
-						));
+						);
 						break;
 					default:
 						continue;
 					}
 
-					if (!rs.hasData()) {
+					if (!rs) {
 						continue;
 					}
 
@@ -1168,6 +1170,7 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 							memset(buffer, 0, msgLength);
 						}
 						rs->close(status);
+						rs = nullptr;
 					}
 				}
 				// delete record from FTS log
@@ -1176,7 +1179,7 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 				procedure->logDeleteStmt->execute(
 					status,
 					tra,
-					logDelInputMetadata,
+					logDelInput.getMetadata(),
 					logDelInput.getData(),
 					nullptr,
 					nullptr
@@ -1184,6 +1187,7 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 				
 			}
 			logRs->close(status);
+			logRs = nullptr;
 			// commit changes for all indexes
 			for (const auto& pIndexWriter : indexWriters) {
 				const auto& indexWriter = pIndexWriter.second;
@@ -1254,9 +1258,16 @@ ORDER BY FTS$LOG_ID
 	{
 		ftsIndex->status = "U";
 		// this is done in an autonomous transaction				
-		AutoRelease<ITransaction> tra(att->startTransaction(status, 0, nullptr));
-		procedure->indexRepository->setIndexStatus(status, att, tra, sqlDialect, ftsIndex->indexName, ftsIndex->status);
-		tra->commit(status);
+		ITransaction* tra = att->startTransaction(status, 0, nullptr);
+		try {
+			procedure->indexRepository->setIndexStatus(status, att, tra, sqlDialect, ftsIndex->indexName, ftsIndex->status);
+			tra->commit(status);
+			tra = nullptr;
+		}
+		catch (...) {
+			if (tra) tra->release();
+			tra = nullptr;
+		}
 	}
 
 	IndexWriterPtr const getIndexWriter(ThrowStatusWrapper* const status, IAttachment* const att, ITransaction* const tra, const unsigned int sqlDialect, const FTSIndexPtr& ftsIndex)

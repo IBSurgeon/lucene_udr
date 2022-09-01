@@ -71,24 +71,29 @@ namespace FTSMetadata
 			));
 		}
 
-		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
-		AutoRelease<IMessageMetadata> outputMetadata(output.getMetadata());
-
-		AutoRelease<IResultSet> rs(m_stmt_get_relation->openCursor(
+		int result = IStatus::RESULT_NO_DATA;
+		IResultSet* rs = m_stmt_get_relation->openCursor(
 			status,
 			tra,
-			inputMetadata,
+			input.getMetadata(),
 			input.getData(),
-			outputMetadata,
+			output.getMetadata(),
 			0
-		));
-
-		int result = rs->fetchNext(status, output.getData());
+		);
+		try {
+			result = rs->fetchNext(status, output.getData());
+			rs->close(status);
+			rs = nullptr;
+		}
+		catch (...) {
+			if (rs) rs->release();
+			rs = nullptr;
+			throw;
+		}
 		if (result == IStatus::RESULT_NO_DATA) {
 			throwException(status, R"(Relation "%s" not exists)", relationName.c_str());
 		}
-		rs->close(status);
-
+		
 		if (result == IStatus::RESULT_OK) {
 			relationInfo->relationName.assign(output->relationName.str, output->relationName.length);
 			relationInfo->relationType = static_cast<RelationType>(output->relationType);
@@ -137,22 +142,27 @@ namespace FTSMetadata
 			));
 		}
 
-		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
-		AutoRelease<IMessageMetadata> outputMetadata(output.getMetadata());
-
-		AutoRelease<IResultSet> rs(m_stmt_exists_relation->openCursor(
+		IResultSet* rs = m_stmt_exists_relation->openCursor(
 			status,
 			tra,
-			inputMetadata,
+			input.getMetadata(),
 			input.getData(),
-			outputMetadata,
+			output.getMetadata(),
 			0
-		));
+		);
 		bool foundFlag = false;
-		if (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
-			foundFlag = (output->cnt > 0);
+		try {
+			if (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
+				foundFlag = (output->cnt > 0);
+			}
+			rs->close(status);
+			rs = nullptr;
 		}
-		rs->close(status);
+		catch (...) {
+			rs->release();
+			rs = nullptr;
+			throw;
+		}
 
 		return foundFlag;
 	}
@@ -207,36 +217,40 @@ namespace FTSMetadata
 				IStatement::PREPARE_PREFETCH_METADATA
 			));
 		}
-		
-		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
-		AutoRelease<IMessageMetadata> outputMetadata(output.getMetadata());
-
-		AutoRelease<IResultSet> rs(m_stmt_relation_fields->openCursor(
+	
+		IResultSet* rs = m_stmt_relation_fields->openCursor(
 			status,
 			tra,
-			inputMetadata,
+			input.getMetadata(),
 			input.getData(),
-			outputMetadata,
+			output.getMetadata(),
 			0
-		));
+		);
+		try {
+			while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
+				auto fieldInfo = make_unique<RelationFieldInfo>();
 
-		while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
-			auto fieldInfo = make_unique<RelationFieldInfo>();
+				fieldInfo->relationName.assign(output->relationName.str, output->relationName.length);
+				fieldInfo->fieldName.assign(output->fieldName.str, output->fieldName.length);
+				fieldInfo->fieldType = output->fieldType;
+				fieldInfo->fieldLength = output->fieldLength;
+				fieldInfo->charLength = output->charLength;
+				fieldInfo->charsetId = output->charsetId;
+				fieldInfo->fieldSubType = output->fieldSubType;
+				fieldInfo->fieldPrecision = output->fieldPrecision;
+				fieldInfo->fieldScale = output->fieldScale;
 
-			fieldInfo->relationName.assign(output->relationName.str, output->relationName.length);
-			fieldInfo->fieldName.assign(output->fieldName.str, output->fieldName.length);
-			fieldInfo->fieldType = output->fieldType;
-			fieldInfo->fieldLength = output->fieldLength;
-			fieldInfo->charLength = output->charLength;
-			fieldInfo->charsetId = output->charsetId;
-			fieldInfo->fieldSubType = output->fieldSubType;
-			fieldInfo->fieldPrecision = output->fieldPrecision;
-			fieldInfo->fieldScale = output->fieldScale;
+				fields.push_back(std::move(fieldInfo));
+			}
 
-			fields.push_back(std::move(fieldInfo));
+			rs->close(status);
+			rs = nullptr;
 		}
-
-		rs->close(status);
+		catch (...) {
+			if (rs) rs->release();
+			rs = nullptr;
+			throw;
+		}
 	}
 
 	/// <summary>
@@ -290,35 +304,39 @@ namespace FTSMetadata
 			));
 		}
 
-		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
-		AutoRelease<IMessageMetadata> outputMetadata(output.getMetadata());
-
-		AutoRelease<IResultSet> rs(m_stmt_pk_fields->openCursor(
+		IResultSet* rs = m_stmt_pk_fields->openCursor(
 			status,
 			tra,
-			inputMetadata,
+			input.getMetadata(),
 			input.getData(),
-			outputMetadata,
+			output.getMetadata(),
 			0
-		));
+		);
+		try {
+			while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
+				auto fieldInfo = make_unique<RelationFieldInfo>();
 
-		while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
-			auto fieldInfo = make_unique<RelationFieldInfo>();
+				fieldInfo->relationName.assign(output->relationName.str, output->relationName.length);
+				fieldInfo->fieldName.assign(output->fieldName.str, output->fieldName.length);
+				fieldInfo->fieldType = output->fieldType;
+				fieldInfo->fieldLength = output->fieldLength;
+				fieldInfo->charLength = output->charLength;
+				fieldInfo->charsetId = output->charsetId;
+				fieldInfo->fieldSubType = output->fieldSubType;
+				fieldInfo->fieldPrecision = output->fieldPrecision;
+				fieldInfo->fieldScale = output->fieldScale;
 
-			fieldInfo->relationName.assign(output->relationName.str, output->relationName.length);
-			fieldInfo->fieldName.assign(output->fieldName.str, output->fieldName.length);
-			fieldInfo->fieldType = output->fieldType;
-			fieldInfo->fieldLength = output->fieldLength;
-			fieldInfo->charLength = output->charLength;
-			fieldInfo->charsetId = output->charsetId;
-			fieldInfo->fieldSubType = output->fieldSubType;
-			fieldInfo->fieldPrecision = output->fieldPrecision;
-			fieldInfo->fieldScale = output->fieldScale;
+				keyFields.push_back(std::move(fieldInfo));
+			}
 
-			keyFields.push_back(std::move(fieldInfo));
+			rs->close(status);
+			rs = nullptr;
 		}
-
-		rs->close(status);
+		catch (...) {
+			if (rs) rs->release();
+			rs = nullptr;
+			throw;
+		}
 	}
 
 	/// <summary>
@@ -378,23 +396,30 @@ namespace FTSMetadata
 			));
 		}
 
-		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
-		AutoRelease<IMessageMetadata> outputMetadata(output.getMetadata());
-
-		AutoRelease<IResultSet> rs(m_stmt_get_field->openCursor(
+		int result = IStatus::RESULT_NO_DATA;
+		IResultSet* rs = m_stmt_get_field->openCursor(
 			status,
 			tra,
-			inputMetadata,
+			input.getMetadata(),
 			input.getData(),
-			outputMetadata,
+			output.getMetadata(),
 			0
-		));
+		);
 
-		int result = rs->fetchNext(status, output.getData());
+		try {
+			result = rs->fetchNext(status, output.getData());
+			rs->close(status);
+			rs = nullptr;
+		}
+		catch (...) {
+			if (rs) rs->release();
+			rs = nullptr;
+			throw;
+		}
+
 		if (result == IStatus::RESULT_NO_DATA) {
 			throwException(status, R"(Field "%s" not found in relation "%s".)", fieldName.c_str(), relationName.c_str());
 		}
-		rs->close(status);
 
 		if (result == IStatus::RESULT_OK) {
 			fieldInfo->relationName.assign(output->relationName.str, output->relationName.length);
@@ -457,22 +482,27 @@ namespace FTSMetadata
 			));
 		}
 
-		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
-		AutoRelease<IMessageMetadata> outputMetadata(output.getMetadata());
-
-		AutoRelease<IResultSet> rs(m_stmt_exists_field->openCursor(
+		IResultSet* rs = m_stmt_exists_field->openCursor(
 			status,
 			tra,
-			inputMetadata,
+			input.getMetadata(),
 			input.getData(),
-			outputMetadata,
+			output.getMetadata(),
 			0
-		));
+		);
 		bool foundFlag = false;
-		if (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
-			foundFlag = (output->cnt > 0);
+		try {
+			if (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
+				foundFlag = (output->cnt > 0);
+			}
+			rs->close(status);
+			rs = nullptr;
 		}
-		rs->close(status);
+		catch (...) {
+			if (rs) rs->release();
+			rs = nullptr;
+			throw;
+		}
 
 		return foundFlag;
 	}

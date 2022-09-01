@@ -79,7 +79,7 @@ namespace FTSMetadata
 		input->relationName.length = static_cast<ISC_USHORT>(relationName.length());
 		relationName.copy(input->relationName.str, input->relationName.length);
 
-		AutoRelease<IStatement> stmt(att->prepare(
+		IResultSet* rs = att->openCursor(
 			status,
 			tra,
 			0,
@@ -115,45 +115,45 @@ FROM T
 WHERE FTS$KEY_FIELD_NAME <> FTS$FIELD_NAME
 ORDER BY FTS$KEY_FIELD_NAME
 )SQL",
-sqlDialect,
-IStatement::PREPARE_PREFETCH_METADATA
-));
-
-		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
-		AutoRelease<IMessageMetadata> outputMetadata(output.getMetadata());
-
-		AutoRelease<IResultSet> rs(stmt->openCursor(
-			status,
-			tra,
-			inputMetadata,
+			sqlDialect,
+			input.getMetadata(),
 			input.getData(),
-			outputMetadata,
+			output.getMetadata(),
+			nullptr,
 			0
-		));
+		);
 
-		while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
-			const string keyFieldName(output->keyFieldName.str, output->keyFieldName.length);
-			const string keyFieldType(output->keyFieldType.str, output->keyFieldType.length);
-			const string fieldName(output->fieldName.str, output->fieldName.length);
+		try {
+			while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
+				const string keyFieldName(output->keyFieldName.str, output->keyFieldName.length);
+				const string keyFieldType(output->keyFieldType.str, output->keyFieldType.length);
+				const string fieldName(output->fieldName.str, output->fieldName.length);
 
-			auto [it, result] = keyFieldBlocks.try_emplace(keyFieldName, lazy_convert_construct([] { return std::make_unique<FTSKeyFieldBlock>(); }));
-			const auto& block = it->second;
-			if (result) {
-				block->keyFieldName = keyFieldName;
-				if (keyFieldType == "UUID") {
-					block->keyFieldType = FTSKeyType::UUID;
+				auto [it, result] = keyFieldBlocks.try_emplace(keyFieldName, lazy_convert_construct([] { return std::make_unique<FTSKeyFieldBlock>(); }));
+				const auto& block = it->second;
+				if (result) {
+					block->keyFieldName = keyFieldName;
+					if (keyFieldType == "UUID") {
+						block->keyFieldType = FTSKeyType::UUID;
+					}
+					if (keyFieldType == "DBKEY") {
+						block->keyFieldType = FTSKeyType::DB_KEY;
+					}
+					if (keyFieldType == "INT_ID") {
+						block->keyFieldType = FTSKeyType::INT_ID;
+					}
 				}
-				if (keyFieldType == "DBKEY") {
-					block->keyFieldType = FTSKeyType::DB_KEY;
-				}
-				if (keyFieldType == "INT_ID") {
-					block->keyFieldType = FTSKeyType::INT_ID;
-				}
+				block->fieldNames.insert(fieldName);
+
 			}
-			block->fieldNames.insert(fieldName);
-
+			rs->close(status);
+			rs = nullptr;
 		}
-		rs->close(status);
+		catch (...) {
+			if (rs) rs->release();
+			rs = nullptr;
+			throw;
+		}
 	}
 
 

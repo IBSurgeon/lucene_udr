@@ -88,30 +88,35 @@ namespace FTSMetadata
 			));
 		}
 
-		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
-		AutoRelease<IMessageMetadata> outputMetadata(output.getMetadata());
-
-		AutoRelease<IResultSet> rs(m_stmt_get_analyzer->openCursor(
+		int result = IStatus::RESULT_NO_DATA;
+		IResultSet* rs = m_stmt_get_analyzer->openCursor(
 			status,
 			tra,
-			inputMetadata,
+			input.getMetadata(),
 			input.getData(),
-			outputMetadata,
+			output.getMetadata(),
 			0
-		));
-
-		int result = rs->fetchNext(status, output.getData());
+		);
+		try {
+			result = rs->fetchNext(status, output.getData());
+			rs->close(status);
+			rs = nullptr;
+		}
+		catch (...) {
+			if (rs) rs->release();
+			rs = nullptr;
+			throw;
+		}
 		if (result == IStatus::RESULT_NO_DATA) {
 			throwException(status, R"(Analyzer "%s" not exists)", analyzerName.c_str());
 		}
-		rs->close(status);
-
 		if (result == IStatus::RESULT_OK) {
 			info.analyzerName.assign(output->analyzerName.str, output->analyzerName.length);
 			info.baseAnalyzer.assign(output->baseAnalyzer.str, output->baseAnalyzer.length);
 			info.stopWordsSupported = m_analyzerFactory->isStopWordsSupported(info.baseAnalyzer);
 			info.systemFlag = false;
 		}
+
 		return info;
 	}
 
@@ -141,26 +146,31 @@ namespace FTSMetadata
 			));
 		}
 
-		AutoRelease<IMessageMetadata> outputMetadata(output.getMetadata());
-
-		AutoRelease<IResultSet> rs(m_stmt_get_analyzers->openCursor(
+		IResultSet* rs = m_stmt_get_analyzers->openCursor(
 			status,
 			tra,
 			nullptr,
 			nullptr,
-			outputMetadata,
+			output.getMetadata(),
 			0
-		));
-
-		while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
-			AnalyzerInfo info;
-			info.analyzerName.assign(output->analyzerName.str, output->analyzerName.length);
-			info.baseAnalyzer.assign(output->baseAnalyzer.str, output->baseAnalyzer.length);
-			info.stopWordsSupported = m_analyzerFactory->isStopWordsSupported(info.baseAnalyzer);
-			info.systemFlag = false;
-			infos.push_back(info);
+		);
+		try {
+			while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
+				AnalyzerInfo info;
+				info.analyzerName.assign(output->analyzerName.str, output->analyzerName.length);
+				info.baseAnalyzer.assign(output->baseAnalyzer.str, output->baseAnalyzer.length);
+				info.stopWordsSupported = m_analyzerFactory->isStopWordsSupported(info.baseAnalyzer);
+				info.systemFlag = false;
+				infos.push_back(info);
+			}
+			rs->close(status);
+			rs = nullptr;
 		}
-		rs->close(status);
+		catch (...) {
+			if (rs) rs->release();
+			rs = nullptr;
+			throw;
+		}
 
 		return infos;
 	}
@@ -200,22 +210,27 @@ namespace FTSMetadata
 			));
 		}
 
-		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
-		AutoRelease<IMessageMetadata> outputMetadata(output.getMetadata());
-
-		AutoRelease<IResultSet> rs(m_stmt_has_analyzer->openCursor(
+		IResultSet* rs = m_stmt_has_analyzer->openCursor(
 			status,
 			tra,
-			inputMetadata,
+			input.getMetadata(),
 			input.getData(),
-			outputMetadata,
+			output.getMetadata(),
 			0
-		));
+		);
 		bool foundFlag = false;
-		if (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
-			foundFlag = (output->cnt > 0);
+		try {
+			if (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
+				foundFlag = (output->cnt > 0);
+			}
+			rs->close(status);
+			rs = nullptr;
 		}
-		rs->close(status);
+		catch (...) {
+			if (rs) rs->release();
+			rs = nullptr;
+			throw;
+		}
 
 		return foundFlag;
 	}
@@ -253,15 +268,21 @@ namespace FTSMetadata
 		baseAnalyzer.copy(input->baseAnalyzer.str, input->baseAnalyzer.length);
 
 		if (!description.empty()) {
-			AutoRelease<IBlob> blob(att->createBlob(status, tra, &input->description, 0, nullptr));
-			BlobUtils::setString(status, blob, description);
-			blob->close(status);
+			IBlob* blob = att->createBlob(status, tra, &input->description, 0, nullptr);
+			try {
+				BlobUtils::setString(status, blob, description);
+				blob->close(status);
+				blob = nullptr;
+			}
+			catch (...) {
+				if (blob) blob->release();
+				blob = nullptr;
+				throw;
+			}
 		}
 		else {
 			input->descriptionNull = true;
 		}
-
-		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
 
 		att->execute(
 			status,
@@ -269,7 +290,7 @@ namespace FTSMetadata
 			0,
 			SQL_INSERT_ANALYZER,
 			sqlDialect,
-			inputMetadata,
+			input.getMetadata(),
 			input.getData(),
 			nullptr,
 			nullptr
@@ -300,15 +321,13 @@ namespace FTSMetadata
 		input->analyzerName.length = static_cast<ISC_USHORT>(analyzerName.length());
 		analyzerName.copy(input->analyzerName.str, input->analyzerName.length);
 
-		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
-
 		att->execute(
 			status,
 			tra,
 			0,
 			SQL_DELETE_ANALYZER,
 			sqlDialect,
-			inputMetadata,
+			input.getMetadata(),
 			input.getData(),
 			nullptr,
 			nullptr
@@ -353,25 +372,29 @@ namespace FTSMetadata
 			));
 		}
 		
-		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
-		AutoRelease<IMessageMetadata> outputMetadata(output.getMetadata());
-
-		AutoRelease<IResultSet> rs(m_stmt_get_stopwords->openCursor(
+		IResultSet* rs = m_stmt_get_stopwords->openCursor(
 			status,
 			tra,
-			inputMetadata,
+			input.getMetadata(),
 			input.getData(),
-			outputMetadata,
+			output.getMetadata(),
 			0
-		));
+		);
 		
-		while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
-			const string stopWord(output->stopWord.str, output->stopWord.length);
-			const String uStopWord = StringUtils::toUnicode(stopWord);
-			stopWords.add(uStopWord);
+		try {
+			while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
+				const string stopWord(output->stopWord.str, output->stopWord.length);
+				const String uStopWord = StringUtils::toUnicode(stopWord);
+				stopWords.add(uStopWord);
+			}
+			rs->close(status);
+			rs = nullptr;
 		}
-
-		rs->close(status);
+		catch (...) {
+			if (rs) rs->release();
+			rs = nullptr;
+			throw;
+		}
 		
 		return stopWords;
 	}
@@ -421,12 +444,10 @@ namespace FTSMetadata
 			));
 		}
 
-		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
-
 		m_stmt_insert_stopword->execute(
 			status,
 			tra,
-			inputMetadata,
+			input.getMetadata(),
 			input.getData(),
 			nullptr,
 			nullptr);
@@ -473,12 +494,10 @@ namespace FTSMetadata
 			));
 		}
 
-		AutoRelease<IMessageMetadata> inputMetadata(input.getMetadata());
-
 		m_stmt_delete_stopword->execute(
 			status,
 			tra,
-			inputMetadata,
+			input.getMetadata(),
 			input.getData(),
 			nullptr,
 			nullptr);
