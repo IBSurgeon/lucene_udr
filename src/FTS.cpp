@@ -157,8 +157,6 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 	
 	FB_UDR_EXECUTE_PROCEDURE
 	{
-		IMaster* const master = context->getMaster();
-
 		if (in->indexNameNull) {
 			throwException(status, "Index name can not be NULL");
 		}
@@ -182,12 +180,8 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 
 		const unsigned int sqlDialect = getSqlDialect(status, att);
 
-		//auto indexRepository = make_unique<FTSIndexRepository>(context->getMaster());
-
 		const auto& ftsIndex = make_unique<FTSIndex>();
 		procedure->indexRepository->getIndex(status, att, tra, sqlDialect, ftsIndex, indexName, true);
-		//indexRepository->getIndex(status, att, tra, sqlDialect, ftsIndex, indexName, true);
-
 
 		// check if directory exists for index
 		const auto& indexDirectoryPath = ftsDirectoryPath / indexName;
@@ -202,7 +196,6 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 			}
 
 			const auto analyzers = procedure->indexRepository->getAnalyzerRepository();
-			//const auto analyzers = indexRepository->getAnalyzerRepository();
 			AnalyzerPtr analyzer = analyzers->createAnalyzer(status, att, tra, sqlDialect, ftsIndex->analyzer);
 			searcher = newLucene<IndexSearcher>(ftsIndexDir, true);
 			
@@ -221,7 +214,6 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 			keyFieldInfo = make_unique<RelationFieldInfo>();
 			if (keyFieldName != "RDB$DB_KEY") {
 				procedure->indexRepository->getRelationHelper()->getField(status, att, tra, sqlDialect, keyFieldInfo, ftsIndex->relationName, keyFieldName);
-				//indexRepository->getRelationHelper()->getField(status, att, tra, sqlDialect, keyFieldInfo, ftsIndex->relationName, keyFieldName);
 			}
 			else {
 				keyFieldInfo->initDB_KEYField(ftsIndex->relationName);
