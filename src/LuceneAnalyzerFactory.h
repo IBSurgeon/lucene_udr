@@ -27,70 +27,70 @@ using namespace Firebird;
 
 namespace LuceneUDR {
 
-	struct ci_more
-	{
-		// case-independent (ci) compare_more binary function
-		struct nocase_compare
-		{
-			bool operator() (const unsigned char& c1, const unsigned char& c2) const {
-				return toupper(c1) < toupper(c2);
-			}
-		};
+    struct ci_more
+    {
+        // case-independent (ci) compare_more binary function
+        struct nocase_compare
+        {
+            bool operator() (const unsigned char& c1, const unsigned char& c2) const {
+                return toupper(c1) < toupper(c2);
+            }
+        };
 
-		bool operator() (const string& s1, const string& s2) const {
-			return lexicographical_compare(
-				s1.begin(), s1.end(),   // source range
-				s2.begin(), s2.end(),   // dest range
-				nocase_compare()        // comparison
-			);
-		}
-	};
+        bool operator() (const string& s1, const string& s2) const {
+            return lexicographical_compare(
+                s1.begin(), s1.end(),   // source range
+                s2.begin(), s2.end(),   // dest range
+                nocase_compare()        // comparison
+            );
+        }
+    };
 
-	static const string DEFAULT_ANALYZER_NAME = "STANDARD";
+    static const string DEFAULT_ANALYZER_NAME = "STANDARD";
 
-	struct AnalyzerInfo
-	{
-		string analyzerName;
-		string baseAnalyzer;
-		bool stopWordsSupported;
-		bool systemFlag;
-	};
+    struct AnalyzerInfo
+    {
+        string analyzerName;
+        string baseAnalyzer;
+        bool stopWordsSupported;
+        bool systemFlag;
+    };
 
-	class LuceneAnalyzerFactory final {
-	private:
-		struct AnalyzerFactory
-		{
-			function<AnalyzerPtr()> simpleFactory;
-			function<AnalyzerPtr(const HashSet<String>)> extFactory;
-			function<const HashSet<String>()> getStopWords;
-			bool stopWordsSupported;
-		};
+    class LuceneAnalyzerFactory final {
+    private:
+        struct AnalyzerFactory
+        {
+            function<AnalyzerPtr()> simpleFactory;
+            function<AnalyzerPtr(const HashSet<String>)> extFactory;
+            function<const HashSet<String>()> getStopWords;
+            bool stopWordsSupported;
+        };
 
-		map<string, AnalyzerFactory, ci_more> m_factories;
+        map<string, AnalyzerFactory, ci_more> m_factories;
 
-	public:
+    public:
 
-		LuceneAnalyzerFactory();
+        LuceneAnalyzerFactory();
 
-		~LuceneAnalyzerFactory();
+        ~LuceneAnalyzerFactory();
 
-		bool hasAnalyzer(const string& analyzerName);
+        bool hasAnalyzer(const string& analyzerName);
 
-		bool isStopWordsSupported(const string& analyzerName);
+        bool isStopWordsSupported(const string& analyzerName);
 
-		AnalyzerPtr createAnalyzer(ThrowStatusWrapper* status, const string& analyzerName);
+        AnalyzerPtr createAnalyzer(ThrowStatusWrapper* status, const string& analyzerName);
 
-		AnalyzerPtr createAnalyzer(ThrowStatusWrapper* status, const string& analyzerName, const HashSet<String> stopWords);
+        AnalyzerPtr createAnalyzer(ThrowStatusWrapper* status, const string& analyzerName, const HashSet<String> stopWords);
 
-		unordered_set<string> getAnalyzerNames();
+        unordered_set<string> getAnalyzerNames();
 
-		const AnalyzerInfo getAnalyzerInfo(ThrowStatusWrapper* status, const string& analyzerName);
+        const AnalyzerInfo getAnalyzerInfo(ThrowStatusWrapper* status, const string& analyzerName);
 
-		list<AnalyzerInfo> getAnalyzerInfos();
+        list<AnalyzerInfo> getAnalyzerInfos();
 
-		const HashSet<String> getAnalyzerStopWords(ThrowStatusWrapper* status, const string& analyzerName);
+        const HashSet<String> getAnalyzerStopWords(ThrowStatusWrapper* status, const string& analyzerName);
 
-	};
+    };
 
 }
 

@@ -28,144 +28,144 @@ using namespace std;
 namespace FTSMetadata
 {
 
-	FB_MESSAGE(FTSIndexNameInput, ThrowStatusWrapper,
-		(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
-	);
+    FB_MESSAGE(FTSIndexNameInput, ThrowStatusWrapper,
+        (FB_INTL_VARCHAR(252, CS_UTF8), indexName)
+    );
 
-	FB_MESSAGE(FTSIndexRecord, ThrowStatusWrapper,
-		(FB_INTL_VARCHAR(252, CS_UTF8), indexName)
-		(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
-		(FB_INTL_VARCHAR(252, CS_UTF8), analyzer)
-		(FB_BLOB, description)
-		(FB_INTL_VARCHAR(4, CS_UTF8), indexStatus)
-	);
+    FB_MESSAGE(FTSIndexRecord, ThrowStatusWrapper,
+        (FB_INTL_VARCHAR(252, CS_UTF8), indexName)
+        (FB_INTL_VARCHAR(252, CS_UTF8), relationName)
+        (FB_INTL_VARCHAR(252, CS_UTF8), analyzer)
+        (FB_BLOB, description)
+        (FB_INTL_VARCHAR(4, CS_UTF8), indexStatus)
+    );
 
-	enum class FTSKeyType {NONE, DB_KEY, INT_ID, UUID};
+    enum class FTSKeyType {NONE, DB_KEY, INT_ID, UUID};
 
-	class FTSIndexSegment;
+    class FTSIndexSegment;
 
-	using FTSIndexSegmentPtr = unique_ptr<FTSIndexSegment>;
-	using FTSIndexSegmentList = list<FTSIndexSegmentPtr>;
-	using FTSIndexSegmentsMap = map<string, FTSIndexSegmentList>;
-
-
-	/// <summary>
-	/// Full-text index metadata.
-	/// </summary>
-	class FTSIndex final
-	{
-	public:
-		string indexName{ "" };
-		string relationName{ "" };
-		string analyzer{ "" };
-		string status{ "" }; // N - new index, I - inactive, U - need rebuild, C - complete
-
-		FTSIndexSegmentList segments;
-
-		FTSKeyType keyFieldType{ FTSKeyType::NONE };
-		wstring unicodeKeyFieldName{ L"" };
-		wstring unicodeIndexDir{ L"" };
-	private:
-		AutoRelease<IStatement> m_stmtExtractRecord{ nullptr };
-		AutoRelease<IMessageMetadata> m_inMetaExtractRecord{ nullptr };
-		AutoRelease<IMessageMetadata> m_outMetaExtractRecord{ nullptr };
-	public: 
-
-		FTSIndex() = default;
-
-		explicit FTSIndex(const FTSIndexRecord& record);
-
-		void init(const FTSIndexRecord& record);
-
-		bool inline isActive() {
-			return (status == "C") || (status == "U");
-		}
-
-		FTSIndexSegmentList::const_iterator findSegment(const string& fieldName);
-
-		FTSIndexSegmentList::const_iterator findKey();
-
-		bool checkAllFieldsExists();
-
-		string buildSqlSelectFieldValues(
-			ThrowStatusWrapper* const status,
-			const unsigned int sqlDialect,
-			const bool whereKey = false);
-
-		void prepareExtractRecordStmt(
-			ThrowStatusWrapper* const status,
-			IAttachment* const att,
-			ITransaction* const tra,
-			const unsigned int sqlDialect
-		);
-
-		IStatement* const getPreparedExtractRecordStmt()
-		{
-			return m_stmtExtractRecord;
-		}
-
-		IMessageMetadata* const getOutExtractRecordMetadata()
-		{
-			return m_outMetaExtractRecord;
-		}
-
-		IMessageMetadata* const getInExtractRecordMetadata()
-		{
-			return m_inMetaExtractRecord;
-		}
-	};
+    using FTSIndexSegmentPtr = unique_ptr<FTSIndexSegment>;
+    using FTSIndexSegmentList = list<FTSIndexSegmentPtr>;
+    using FTSIndexSegmentsMap = map<string, FTSIndexSegmentList>;
 
 
-	using FTSIndexPtr = unique_ptr<FTSIndex>;
-	using FTSIndexList = list<FTSIndexPtr>;
-	using FTSIndexMap = map<string, FTSIndexPtr>;
+    /// <summary>
+    /// Full-text index metadata.
+    /// </summary>
+    class FTSIndex final
+    {
+    public:
+        string indexName{ "" };
+        string relationName{ "" };
+        string analyzer{ "" };
+        string status{ "" }; // N - new index, I - inactive, U - need rebuild, C - complete
 
-	/// <summary>
-	/// Metadata for a full-text index segment.
-	/// </summary>
-	class FTSIndexSegment final
-	{
-	public:
-		string indexName{""};
-		string fieldName{""};
-		bool key = false;
-		double boost = 1.0;
-		bool boostNull = true;
-		bool fieldExists = false;
-	public:
-		FTSIndexSegment() = default;
+        FTSIndexSegmentList segments;
 
-		bool inline compareFieldName(const string& aFieldName) {
-			return (fieldName == aFieldName) || (fieldName == "RDB$DB_KEY" && aFieldName == "DB_KEY");
-		}
-	};
+        FTSKeyType keyFieldType{ FTSKeyType::NONE };
+        wstring unicodeKeyFieldName{ L"" };
+        wstring unicodeIndexDir{ L"" };
+    private:
+        AutoRelease<IStatement> m_stmtExtractRecord{ nullptr };
+        AutoRelease<IMessageMetadata> m_inMetaExtractRecord{ nullptr };
+        AutoRelease<IMessageMetadata> m_outMetaExtractRecord{ nullptr };
+    public: 
+
+        FTSIndex() = default;
+
+        explicit FTSIndex(const FTSIndexRecord& record);
+
+        void init(const FTSIndexRecord& record);
+
+        bool inline isActive() {
+            return (status == "C") || (status == "U");
+        }
+
+        FTSIndexSegmentList::const_iterator findSegment(const string& fieldName);
+
+        FTSIndexSegmentList::const_iterator findKey();
+
+        bool checkAllFieldsExists();
+
+        string buildSqlSelectFieldValues(
+            ThrowStatusWrapper* const status,
+            const unsigned int sqlDialect,
+            const bool whereKey = false);
+
+        void prepareExtractRecordStmt(
+            ThrowStatusWrapper* const status,
+            IAttachment* const att,
+            ITransaction* const tra,
+            const unsigned int sqlDialect
+        );
+
+        IStatement* const getPreparedExtractRecordStmt()
+        {
+            return m_stmtExtractRecord;
+        }
+
+        IMessageMetadata* const getOutExtractRecordMetadata()
+        {
+            return m_outMetaExtractRecord;
+        }
+
+        IMessageMetadata* const getInExtractRecordMetadata()
+        {
+            return m_inMetaExtractRecord;
+        }
+    };
 
 
-	class RelationHelper;
-	class AnalyzerRepository;
+    using FTSIndexPtr = unique_ptr<FTSIndex>;
+    using FTSIndexList = list<FTSIndexPtr>;
+    using FTSIndexMap = map<string, FTSIndexPtr>;
+
+    /// <summary>
+    /// Metadata for a full-text index segment.
+    /// </summary>
+    class FTSIndexSegment final
+    {
+    public:
+        string indexName{""};
+        string fieldName{""};
+        bool key = false;
+        double boost = 1.0;
+        bool boostNull = true;
+        bool fieldExists = false;
+    public:
+        FTSIndexSegment() = default;
+
+        bool inline compareFieldName(const string& aFieldName) {
+            return (fieldName == aFieldName) || (fieldName == "RDB$DB_KEY" && aFieldName == "DB_KEY");
+        }
+    };
 
 
-	/// <summary>
-	/// Repository of full-text indexes. 
-	/// 
-	/// Allows you to retrieve and manage full-text index metadata.
-	/// </summary>
-	class FTSIndexRepository final
-	{
+    class RelationHelper;
+    class AnalyzerRepository;
 
-	private:
-		IMaster* m_master = nullptr;	
-		AnalyzerRepository* const m_analyzerRepository{ nullptr };
-		RelationHelper* const m_relationHelper{nullptr};
-		// prepared statements
-		AutoRelease<IStatement> m_stmt_exists_index{ nullptr };
-		AutoRelease<IStatement> m_stmt_get_index{ nullptr };
-		AutoRelease<IStatement> m_stmt_index_fields{ nullptr };
-		AutoRelease<IStatement> m_stmt_index_key_field{ nullptr };
-		AutoRelease<IStatement> m_stmt_active_indexes_by_analyzer{ nullptr };
 
-	public:
-		const char* SQL_CREATE_FTS_INDEX = R"SQL(
+    /// <summary>
+    /// Repository of full-text indexes. 
+    /// 
+    /// Allows you to retrieve and manage full-text index metadata.
+    /// </summary>
+    class FTSIndexRepository final
+    {
+
+    private:
+        IMaster* m_master = nullptr;	
+        AnalyzerRepository* const m_analyzerRepository{ nullptr };
+        RelationHelper* const m_relationHelper{nullptr};
+        // prepared statements
+        AutoRelease<IStatement> m_stmt_exists_index{ nullptr };
+        AutoRelease<IStatement> m_stmt_get_index{ nullptr };
+        AutoRelease<IStatement> m_stmt_index_fields{ nullptr };
+        AutoRelease<IStatement> m_stmt_index_key_field{ nullptr };
+        AutoRelease<IStatement> m_stmt_active_indexes_by_analyzer{ nullptr };
+
+    public:
+        const char* SQL_CREATE_FTS_INDEX = R"SQL(
 INSERT INTO FTS$INDICES (
   FTS$INDEX_NAME, 
   FTS$RELATION_NAME, 
@@ -175,21 +175,21 @@ INSERT INTO FTS$INDICES (
 VALUES(?, ?, ?, ?, ?)
 )SQL";
 
-		const char* SQL_DROP_FTS_INDEX = R"SQL(
+        const char* SQL_DROP_FTS_INDEX = R"SQL(
 DELETE FROM FTS$INDICES WHERE FTS$INDEX_NAME = ?
 )SQL";
 
-		const char* SQL_FTS_INDEX_EXISTS = R"SQL(
+        const char* SQL_FTS_INDEX_EXISTS = R"SQL(
 SELECT COUNT(*) AS CNT
 FROM FTS$INDICES
 WHERE FTS$INDEX_NAME = ?
 )SQL";
 
-		const char* SQL_SET_FTS_INDEX_STATUS = R"SQL(
+        const char* SQL_SET_FTS_INDEX_STATUS = R"SQL(
 UPDATE FTS$INDICES SET FTS$INDEX_STATUS = ? WHERE FTS$INDEX_NAME = ?
 )SQL";
 
-		const char* SQL_GET_FTS_INDEX = R"SQL(
+        const char* SQL_GET_FTS_INDEX = R"SQL(
 SELECT 
   FTS$INDEX_NAME, 
   FTS$RELATION_NAME, 
@@ -200,7 +200,7 @@ FROM FTS$INDICES
 WHERE FTS$INDEX_NAME = ?
 )SQL";
 
-		const char* SQL_ALL_FTS_INDECES = R"SQL(
+        const char* SQL_ALL_FTS_INDECES = R"SQL(
 SELECT 
   FTS$INDEX_NAME, 
   FTS$RELATION_NAME, 
@@ -211,7 +211,7 @@ FROM FTS$INDICES
 ORDER BY FTS$INDEX_NAME
 )SQL";
 
-		const char* SQL_ALL_FTS_INDECES_AND_SEGMENTS = R"SQL(
+        const char* SQL_ALL_FTS_INDECES_AND_SEGMENTS = R"SQL(
 SELECT
   FTS$INDICES.FTS$INDEX_NAME,
   FTS$INDICES.FTS$RELATION_NAME,
@@ -229,7 +229,7 @@ LEFT JOIN RDB$RELATION_FIELDS RF
 ORDER BY FTS$INDICES.FTS$INDEX_NAME
 )SQL";
 
-		const char* SQL_FTS_INDEX_SEGMENTS = R"SQL(
+        const char* SQL_FTS_INDEX_SEGMENTS = R"SQL(
 SELECT
   FTS$INDEX_SEGMENTS.FTS$INDEX_NAME,
   FTS$INDEX_SEGMENTS.FTS$FIELD_NAME,
@@ -245,25 +245,25 @@ LEFT JOIN RDB$RELATION_FIELDS RF
 WHERE FTS$INDICES.FTS$INDEX_NAME = ?
 )SQL";
 
-		const char* SQL_FTS_INDEX_FIELD_EXISTS = R"SQL(
+        const char* SQL_FTS_INDEX_FIELD_EXISTS = R"SQL(
 SELECT COUNT(*) AS CNT
 FROM FTS$INDEX_SEGMENTS
 WHERE FTS$INDEX_NAME = ? AND FTS$FIELD_NAME = ?
 )SQL";
 
-		const char* SQL_FTS_KEY_INDEX_FIELD_EXISTS = R"SQL(
+        const char* SQL_FTS_KEY_INDEX_FIELD_EXISTS = R"SQL(
 SELECT COUNT(*) AS CNT
 FROM FTS$INDEX_SEGMENTS
 WHERE FTS$INDEX_NAME = ? AND FTS$KEY IS TRUE
 )SQL";
 
-		const char* SQL_GET_FTS_KEY_INDEX_FIELD = R"SQL(
+        const char* SQL_GET_FTS_KEY_INDEX_FIELD = R"SQL(
 SELECT FTS$INDEX_NAME, FTS$FIELD_NAME
 FROM FTS$INDEX_SEGMENTS
 WHERE FTS$INDEX_NAME = ? AND FTS$KEY IS TRUE
 )SQL";
 
-		const char* SQL_FTS_ADD_INDEX_FIELD = R"SQL(
+        const char* SQL_FTS_ADD_INDEX_FIELD = R"SQL(
 INSERT INTO FTS$INDEX_SEGMENTS (
   FTS$INDEX_NAME, 
   FTS$FIELD_NAME, 
@@ -273,340 +273,340 @@ INSERT INTO FTS$INDEX_SEGMENTS (
 VALUES(?, ?, ?, ?)
 )SQL";
 
-		const char* SQL_FTS_DROP_INDEX_FIELD = R"SQL(
+        const char* SQL_FTS_DROP_INDEX_FIELD = R"SQL(
 DELETE FROM FTS$INDEX_SEGMENTS
 WHERE FTS$INDEX_NAME = ? AND FTS$FIELD_NAME = ?
 )SQL";
 
-		const char* SQL_FTS_SET_INDEX_FIELD_BOOST = R"SQL(
+        const char* SQL_FTS_SET_INDEX_FIELD_BOOST = R"SQL(
 UPDATE FTS$INDEX_SEGMENTS
 SET FTS$BOOST = ?
 WHERE FTS$INDEX_NAME = ? AND FTS$FIELD_NAME = ?
 )SQL";
 
-		const char* SQL_HAS_INDEX_BY_ANALYZER = R"SQL(
+        const char* SQL_HAS_INDEX_BY_ANALYZER = R"SQL(
 SELECT COUNT(*) AS CNT
 FROM FTS$INDICES
 WHERE FTS$ANALYZER = ?
 )SQL";
 
-		const char* SQL_ACTIVE_INDEXES_BY_ANALYZER = R"SQL(
+        const char* SQL_ACTIVE_INDEXES_BY_ANALYZER = R"SQL(
 SELECT FTS$INDEX_NAME
 FROM FTS$INDICES
 WHERE FTS$ANALYZER = ? AND FTS$INDEX_STATUS = 'C'
 )SQL";
-	public:
+    public:
 
-		FTSIndexRepository() = delete;
-
-
-		explicit FTSIndexRepository(IMaster* master);
-
-		~FTSIndexRepository();
-
-		RelationHelper* const getRelationHelper()
-		{
-			return m_relationHelper;
-		}
-
-		AnalyzerRepository* const getAnalyzerRepository()
-		{
-			return m_analyzerRepository;
-		}
-
-		/// <summary>
-		/// Create a new full-text index. 
-		/// </summary>
-		/// 
-		/// <param name="status">Firebird status</param>
-		/// <param name="att">Firebird attachment</param>
-		/// <param name="tra">Firebird transaction</param>
-		/// <param name="sqlDialect">SQL dialect</param>
-		/// <param name="indexName">Index name</param>
-		/// <param name="relationName">Relation name</param>
-		/// <param name="analyzerName">Analyzer name</param>
-		/// <param name="description">Custom index description</param>
-		void createIndex (
-			ThrowStatusWrapper* const status,
-			IAttachment* const att,
-			ITransaction* const tra,
-			const unsigned int sqlDialect,
-			const string& indexName,
-			const string& relationName,
-			const string& analyzerName,
-			const string& description);
-
-		/// <summary>
-		/// Remove a full-text index. 
-		/// </summary>
-		/// 
-		/// <param name="status">Firebird status</param>
-		/// <param name="att">Firebird attachment</param>
-		/// <param name="tra">Firebird transaction</param>
-		/// <param name="sqlDialect">SQL dialect</param>
-		/// <param name="indexName">Index name</param>
-		void dropIndex (
-			ThrowStatusWrapper* const status,
-			IAttachment* const att,
-			ITransaction* const tra,
-			const unsigned int sqlDialect,
-			const string& indexName);
-
-		/// <summary>
-		/// Set the index status.
-		/// </summary>
-		/// 
-		/// <param name="status">Firebird status</param>
-		/// <param name="att">Firebird attachment</param>
-		/// <param name="tra">Firebird transaction</param>
-		/// <param name="sqlDialect">SQL dialect</param>
-		/// <param name="indexName">Index name</param>
-		/// <param name="indexStatus">Index Status</param>
-		void setIndexStatus (
-			ThrowStatusWrapper* const status,
-			IAttachment* const att,
-			ITransaction* const tra,
-			const unsigned int sqlDialect,
-			const string& indexName,
-			const string& indexStatus);
-
-		/// <summary>
-		/// Checks if an index with the given name exists.
-		/// </summary>
-		/// 
-		/// <param name="status">Firebird status</param>
-		/// <param name="att">Firebird attachment</param>
-		/// <param name="tra">Firebird transaction</param>
-		/// <param name="sqlDialect">SQL dialect</param>
-		/// <param name="indexName">Index name</param>
-		/// 
-		/// <returns>Returns true if the index exists, false otherwise</returns>
-		bool hasIndex (
-			ThrowStatusWrapper* const status, 
-			IAttachment* const att, 
-			ITransaction* const tra, 
-			const unsigned int sqlDialect, 
-			const string& indexName);
-
-		/// <summary>
-		/// Returns index metadata by index name.
-		/// 
-		/// Throws an exception if the index does not exist. 
-		/// </summary>
-		/// 
-		/// <param name="status">Firebird status</param>
-		/// <param name="att">Firebird attachment</param>
-		/// <param name="tra">Firebird transaction</param>
-		/// <param name="sqlDialect">SQL dialect</param>
-		/// <param name="ftsIndex">Index metadata</param>
-		/// <param name="indexName">Index name</param>
-		/// <param name="withSegments">Fill segments list</param>
-		/// 
-		void getIndex (
-			ThrowStatusWrapper* const status, 
-			IAttachment* att, 
-			ITransaction* tra, 
-			const unsigned int sqlDialect, 
-			const FTSIndexPtr& ftsIndex,
-			const string& indexName,
-			const bool withSegments = false);
-
-		/// <summary>
-		/// Returns a list of indexes. 
-		/// </summary>
-		/// 
-		/// <param name="status">Firebird status</param>
-		/// <param name="att">Firebird attachment</param>
-		/// <param name="tra">Firebird transaction</param>
-		/// <param name="sqlDialect">SQL dialect</param>
-		/// <param name="indexes">List of indexes</param>
-		/// 
-		void fillAllIndexes (
-			ThrowStatusWrapper* const status, 
-			IAttachment* const att, 
-			ITransaction* const tra, 
-			const unsigned int sqlDialect,
-			FTSIndexList& indexes);
-
-		/// <summary>
-		/// Returns a list of indexes with fields (segments). 
-		/// </summary>
-		/// 
-		/// <param name="status">Firebird status</param>
-		/// <param name="att">Firebird attachment</param>
-		/// <param name="tra">Firebird transaction</param>
-		/// <param name="sqlDialect">SQL dialect</param>
-		/// <param name="indexes">Map indexes of name with fields (segments)</param>
-		/// 
-		void fillAllIndexesWithFields(
-			ThrowStatusWrapper* const status,
-			IAttachment* const att,
-			ITransaction* const tra,
-			const unsigned int sqlDialect,
-			FTSIndexMap& indexes);
-
-		/// <summary>
-		/// Returns a list of index fields with the given name.
-		/// </summary>
-		/// 
-		/// <param name="status">Firebird status</param>
-		/// <param name="att">Firebird attachment</param>
-		/// <param name="tra">Firebird transaction</param>
-		/// <param name="sqlDialect">SQL dialect</param>
-		/// <param name="indexName">Index name</param>
-		/// <param name="segments">Segments list</param>
-		/// 
-		/// <returns>List of index fields (segments)</returns>
-		void fillIndexFields(
-			ThrowStatusWrapper* const status,
-			IAttachment* const att,
-			ITransaction* const tra,
-			const unsigned int sqlDialect,
-			const string& indexName,
-			FTSIndexSegmentList& segments);
+        FTSIndexRepository() = delete;
 
 
+        explicit FTSIndexRepository(IMaster* master);
 
-		/// <summary>
-		/// Checks if an index key field exists for given relation.
-		/// </summary>
-		/// 
-		/// <param name="status">Firebird status</param>
-		/// <param name="att">Firebird attachment</param>
-		/// <param name="tra">Firebird transaction</param>
-		/// <param name="sqlDialect">SQL dialect</param>
-		/// <param name="indexName">Index name</param>
-		/// 
-		/// <returns>Returns true if the index field exists, false otherwise</returns>
-		bool hasKeyIndexField(
-			ThrowStatusWrapper* const status,
-			IAttachment* const att,
-			ITransaction* const tra,
-			const unsigned int sqlDialect,
-			const string& indexName
-		);
+        ~FTSIndexRepository();
 
-		/// <summary>
-		/// Returns segment with key field.
-		/// </summary>
-		/// 
-		/// <param name="status">Firebird status</param>
-		/// <param name="att">Firebird attachment</param>
-		/// <param name="tra">Firebird transaction</param>
-		/// <param name="sqlDialect">SQL dialect</param>
-		/// <param name="ftsIndexSegment">Key index field</param>
-		/// <param name="indexName">Index name</param>
-		/// 
-		void getKeyIndexField (
-			ThrowStatusWrapper* const status,
-			IAttachment* const att,
-			ITransaction* const tra,
-			const unsigned int sqlDialect,
-			const FTSIndexSegmentPtr& keyIndexSegment,
-			const string& indexName
-		);
+        RelationHelper* const getRelationHelper()
+        {
+            return m_relationHelper;
+        }
 
-		/// <summary>
-		/// Adds a new field (segment) to the full-text index.
-		/// </summary>
-		/// 
-		/// <param name="status">Firebird status</param>
-		/// <param name="att">Firebird attachment</param>
-		/// <param name="tra">Firebird transaction</param>
-		/// <param name="sqlDialect">SQL dialect</param>
-		/// <param name="indexName">Index name</param>
-		/// <param name="fieldName">Field name</param>
-		/// <param name="key">Field is key</param>
-		/// <param name="boost">Significance multiplier</param>
-		/// <param name="boostNull">Boost null flag</param>
-		void addIndexField (
-			ThrowStatusWrapper* const status,
-			IAttachment* const att,
-			ITransaction* const tra,
-			const unsigned int sqlDialect,
-			const string& indexName,
-			const string& fieldName,
-			const bool key,
-			const double boost = 1.0,
-			const bool boostNull = true);
+        AnalyzerRepository* const getAnalyzerRepository()
+        {
+            return m_analyzerRepository;
+        }
 
-		/// <summary>
-		/// Removes a field (segment) from the full-text index.
-		/// </summary>
-		/// 
-		/// <param name="status">Firebird status</param>
-		/// <param name="att">Firebird attachment</param>
-		/// <param name="tra">Firebird transaction</param>
-		/// <param name="sqlDialect">SQL dialect</param>
-		/// <param name="indexName">Index name</param>
-		/// <param name="fieldName">Field name</param>
-		void dropIndexField (
-			ThrowStatusWrapper* const status,
-			IAttachment* const att,
-			ITransaction* const tra,
-			const unsigned int sqlDialect,
-			const string& indexName,
-			const string& fieldName);
+        /// <summary>
+        /// Create a new full-text index. 
+        /// </summary>
+        /// 
+        /// <param name="status">Firebird status</param>
+        /// <param name="att">Firebird attachment</param>
+        /// <param name="tra">Firebird transaction</param>
+        /// <param name="sqlDialect">SQL dialect</param>
+        /// <param name="indexName">Index name</param>
+        /// <param name="relationName">Relation name</param>
+        /// <param name="analyzerName">Analyzer name</param>
+        /// <param name="description">Custom index description</param>
+        void createIndex (
+            ThrowStatusWrapper* const status,
+            IAttachment* const att,
+            ITransaction* const tra,
+            const unsigned int sqlDialect,
+            const string& indexName,
+            const string& relationName,
+            const string& analyzerName,
+            const string& description);
 
-		/// <summary>
-		/// Sets the significance multiplier for the index field.
-		/// </summary>
-		/// 
-		/// <param name="status">Firebird status</param>
-		/// <param name="att">Firebird attachment</param>
-		/// <param name="tra">Firebird transaction</param>
-		/// <param name="sqlDialect">SQL dialect</param>
-		/// <param name="indexName">Index name</param>
-		/// <param name="fieldName">Field name</param>
-		/// <param name="boost">Significance multiplier</param>
-		/// <param name="boostNull">Boost null flag</param>
-		void setIndexFieldBoost(
-			ThrowStatusWrapper* const status,
-			IAttachment* const att,
-			ITransaction* const tra,
-			const unsigned int sqlDialect,
-			const string& indexName,
-			const string& fieldName,
-			const double boost,
-			const bool boostNull = false);
+        /// <summary>
+        /// Remove a full-text index. 
+        /// </summary>
+        /// 
+        /// <param name="status">Firebird status</param>
+        /// <param name="att">Firebird attachment</param>
+        /// <param name="tra">Firebird transaction</param>
+        /// <param name="sqlDialect">SQL dialect</param>
+        /// <param name="indexName">Index name</param>
+        void dropIndex (
+            ThrowStatusWrapper* const status,
+            IAttachment* const att,
+            ITransaction* const tra,
+            const unsigned int sqlDialect,
+            const string& indexName);
+
+        /// <summary>
+        /// Set the index status.
+        /// </summary>
+        /// 
+        /// <param name="status">Firebird status</param>
+        /// <param name="att">Firebird attachment</param>
+        /// <param name="tra">Firebird transaction</param>
+        /// <param name="sqlDialect">SQL dialect</param>
+        /// <param name="indexName">Index name</param>
+        /// <param name="indexStatus">Index Status</param>
+        void setIndexStatus (
+            ThrowStatusWrapper* const status,
+            IAttachment* const att,
+            ITransaction* const tra,
+            const unsigned int sqlDialect,
+            const string& indexName,
+            const string& indexStatus);
+
+        /// <summary>
+        /// Checks if an index with the given name exists.
+        /// </summary>
+        /// 
+        /// <param name="status">Firebird status</param>
+        /// <param name="att">Firebird attachment</param>
+        /// <param name="tra">Firebird transaction</param>
+        /// <param name="sqlDialect">SQL dialect</param>
+        /// <param name="indexName">Index name</param>
+        /// 
+        /// <returns>Returns true if the index exists, false otherwise</returns>
+        bool hasIndex (
+            ThrowStatusWrapper* const status, 
+            IAttachment* const att, 
+            ITransaction* const tra, 
+            const unsigned int sqlDialect, 
+            const string& indexName);
+
+        /// <summary>
+        /// Returns index metadata by index name.
+        /// 
+        /// Throws an exception if the index does not exist. 
+        /// </summary>
+        /// 
+        /// <param name="status">Firebird status</param>
+        /// <param name="att">Firebird attachment</param>
+        /// <param name="tra">Firebird transaction</param>
+        /// <param name="sqlDialect">SQL dialect</param>
+        /// <param name="ftsIndex">Index metadata</param>
+        /// <param name="indexName">Index name</param>
+        /// <param name="withSegments">Fill segments list</param>
+        /// 
+        void getIndex (
+            ThrowStatusWrapper* const status, 
+            IAttachment* att, 
+            ITransaction* tra, 
+            const unsigned int sqlDialect, 
+            const FTSIndexPtr& ftsIndex,
+            const string& indexName,
+            const bool withSegments = false);
+
+        /// <summary>
+        /// Returns a list of indexes. 
+        /// </summary>
+        /// 
+        /// <param name="status">Firebird status</param>
+        /// <param name="att">Firebird attachment</param>
+        /// <param name="tra">Firebird transaction</param>
+        /// <param name="sqlDialect">SQL dialect</param>
+        /// <param name="indexes">List of indexes</param>
+        /// 
+        void fillAllIndexes (
+            ThrowStatusWrapper* const status, 
+            IAttachment* const att, 
+            ITransaction* const tra, 
+            const unsigned int sqlDialect,
+            FTSIndexList& indexes);
+
+        /// <summary>
+        /// Returns a list of indexes with fields (segments). 
+        /// </summary>
+        /// 
+        /// <param name="status">Firebird status</param>
+        /// <param name="att">Firebird attachment</param>
+        /// <param name="tra">Firebird transaction</param>
+        /// <param name="sqlDialect">SQL dialect</param>
+        /// <param name="indexes">Map indexes of name with fields (segments)</param>
+        /// 
+        void fillAllIndexesWithFields(
+            ThrowStatusWrapper* const status,
+            IAttachment* const att,
+            ITransaction* const tra,
+            const unsigned int sqlDialect,
+            FTSIndexMap& indexes);
+
+        /// <summary>
+        /// Returns a list of index fields with the given name.
+        /// </summary>
+        /// 
+        /// <param name="status">Firebird status</param>
+        /// <param name="att">Firebird attachment</param>
+        /// <param name="tra">Firebird transaction</param>
+        /// <param name="sqlDialect">SQL dialect</param>
+        /// <param name="indexName">Index name</param>
+        /// <param name="segments">Segments list</param>
+        /// 
+        /// <returns>List of index fields (segments)</returns>
+        void fillIndexFields(
+            ThrowStatusWrapper* const status,
+            IAttachment* const att,
+            ITransaction* const tra,
+            const unsigned int sqlDialect,
+            const string& indexName,
+            FTSIndexSegmentList& segments);
 
 
-		/// <summary>
-		/// Checks for the existence of a field (segment) in a full-text index. 
-		/// </summary>
-		/// 
-		/// <param name="status">Firebird status</param>
-		/// <param name="att">Firebird attachment</param>
-		/// <param name="tra">Firebird transaction</param>
-		/// <param name="sqlDialect">SQL dialect</param>
-		/// <param name="indexName">Index name</param>
-		/// <param name="fieldName">Field name</param>
-		/// <returns>Returns true if the field (segment) exists in the index, false otherwise</returns>
-		bool hasIndexField (
-			ThrowStatusWrapper* const status,
-			IAttachment* const att,
-			ITransaction* const tra,
-			const unsigned int sqlDialect,
-			const string& indexName,
-			const string& fieldName);
 
-		bool hasIndexByAnalyzer(
-			ThrowStatusWrapper* const status,
-			IAttachment* const att,
-			ITransaction* const tra,
-			const unsigned int sqlDialect,
-			const string& analyzerName
-		);
+        /// <summary>
+        /// Checks if an index key field exists for given relation.
+        /// </summary>
+        /// 
+        /// <param name="status">Firebird status</param>
+        /// <param name="att">Firebird attachment</param>
+        /// <param name="tra">Firebird transaction</param>
+        /// <param name="sqlDialect">SQL dialect</param>
+        /// <param name="indexName">Index name</param>
+        /// 
+        /// <returns>Returns true if the index field exists, false otherwise</returns>
+        bool hasKeyIndexField(
+            ThrowStatusWrapper* const status,
+            IAttachment* const att,
+            ITransaction* const tra,
+            const unsigned int sqlDialect,
+            const string& indexName
+        );
 
-		unordered_set<string> getActiveIndexByAnalyzer(
-			ThrowStatusWrapper* const status,
-			IAttachment* const att,
-			ITransaction* const tra,
-			const unsigned int sqlDialect,
-			const string& analyzerName
-		);
-	};
-	using FTSIndexRepositoryPtr = unique_ptr<FTSIndexRepository>;
+        /// <summary>
+        /// Returns segment with key field.
+        /// </summary>
+        /// 
+        /// <param name="status">Firebird status</param>
+        /// <param name="att">Firebird attachment</param>
+        /// <param name="tra">Firebird transaction</param>
+        /// <param name="sqlDialect">SQL dialect</param>
+        /// <param name="ftsIndexSegment">Key index field</param>
+        /// <param name="indexName">Index name</param>
+        /// 
+        void getKeyIndexField (
+            ThrowStatusWrapper* const status,
+            IAttachment* const att,
+            ITransaction* const tra,
+            const unsigned int sqlDialect,
+            const FTSIndexSegmentPtr& keyIndexSegment,
+            const string& indexName
+        );
+
+        /// <summary>
+        /// Adds a new field (segment) to the full-text index.
+        /// </summary>
+        /// 
+        /// <param name="status">Firebird status</param>
+        /// <param name="att">Firebird attachment</param>
+        /// <param name="tra">Firebird transaction</param>
+        /// <param name="sqlDialect">SQL dialect</param>
+        /// <param name="indexName">Index name</param>
+        /// <param name="fieldName">Field name</param>
+        /// <param name="key">Field is key</param>
+        /// <param name="boost">Significance multiplier</param>
+        /// <param name="boostNull">Boost null flag</param>
+        void addIndexField (
+            ThrowStatusWrapper* const status,
+            IAttachment* const att,
+            ITransaction* const tra,
+            const unsigned int sqlDialect,
+            const string& indexName,
+            const string& fieldName,
+            const bool key,
+            const double boost = 1.0,
+            const bool boostNull = true);
+
+        /// <summary>
+        /// Removes a field (segment) from the full-text index.
+        /// </summary>
+        /// 
+        /// <param name="status">Firebird status</param>
+        /// <param name="att">Firebird attachment</param>
+        /// <param name="tra">Firebird transaction</param>
+        /// <param name="sqlDialect">SQL dialect</param>
+        /// <param name="indexName">Index name</param>
+        /// <param name="fieldName">Field name</param>
+        void dropIndexField (
+            ThrowStatusWrapper* const status,
+            IAttachment* const att,
+            ITransaction* const tra,
+            const unsigned int sqlDialect,
+            const string& indexName,
+            const string& fieldName);
+
+        /// <summary>
+        /// Sets the significance multiplier for the index field.
+        /// </summary>
+        /// 
+        /// <param name="status">Firebird status</param>
+        /// <param name="att">Firebird attachment</param>
+        /// <param name="tra">Firebird transaction</param>
+        /// <param name="sqlDialect">SQL dialect</param>
+        /// <param name="indexName">Index name</param>
+        /// <param name="fieldName">Field name</param>
+        /// <param name="boost">Significance multiplier</param>
+        /// <param name="boostNull">Boost null flag</param>
+        void setIndexFieldBoost(
+            ThrowStatusWrapper* const status,
+            IAttachment* const att,
+            ITransaction* const tra,
+            const unsigned int sqlDialect,
+            const string& indexName,
+            const string& fieldName,
+            const double boost,
+            const bool boostNull = false);
+
+
+        /// <summary>
+        /// Checks for the existence of a field (segment) in a full-text index. 
+        /// </summary>
+        /// 
+        /// <param name="status">Firebird status</param>
+        /// <param name="att">Firebird attachment</param>
+        /// <param name="tra">Firebird transaction</param>
+        /// <param name="sqlDialect">SQL dialect</param>
+        /// <param name="indexName">Index name</param>
+        /// <param name="fieldName">Field name</param>
+        /// <returns>Returns true if the field (segment) exists in the index, false otherwise</returns>
+        bool hasIndexField (
+            ThrowStatusWrapper* const status,
+            IAttachment* const att,
+            ITransaction* const tra,
+            const unsigned int sqlDialect,
+            const string& indexName,
+            const string& fieldName);
+
+        bool hasIndexByAnalyzer(
+            ThrowStatusWrapper* const status,
+            IAttachment* const att,
+            ITransaction* const tra,
+            const unsigned int sqlDialect,
+            const string& analyzerName
+        );
+
+        unordered_set<string> getActiveIndexByAnalyzer(
+            ThrowStatusWrapper* const status,
+            IAttachment* const att,
+            ITransaction* const tra,
+            const unsigned int sqlDialect,
+            const string& analyzerName
+        );
+    };
+    using FTSIndexRepositoryPtr = unique_ptr<FTSIndexRepository>;
 
 }
 

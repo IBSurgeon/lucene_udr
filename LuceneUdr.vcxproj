@@ -127,20 +127,23 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <OutDir>$(SolutionDir)build\windows-x64\$(Configuration)\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <OutDir>$(SolutionDir)\Build\$(Platform)\$(Configuration)\</OutDir>
+    <OutDir>$(SolutionDir)build\windows-x64\$(Configuration)\</OutDir>
+    <IntDir>$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <OutDir>$(SolutionDir)build\windows-x86\$(Configuration)\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
+    <OutDir>$(SolutionDir)build\windows-x64\$(Configuration)\</OutDir>
+    <IntDir>$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -154,12 +157,12 @@
       <AdditionalIncludeDirectories>$(BOOST_ROOT);C:\Firebird\4.0\include;c:\lucene++\include;include</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-	  <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-	  <RandomizedBaseAddress>false</RandomizedBaseAddress>
+      <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <EnableUAC>false</EnableUAC>
       <AdditionalLibraryDirectories>c:\Firebird\4.0\WOW64\lib;$(BOOST_ROOT)\stage\x86\lib;c:\lucene++\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>fbclient_ms.lib;lucene++.lib;lucene++-contrib.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -177,48 +180,44 @@
       <AdditionalIncludeDirectories>$(BOOST_ROOT);C:\Firebird\4.0\include;c:\lucene++\include;include</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-	  <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-	  <RandomizedBaseAddress>false</RandomizedBaseAddress>
+      <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <EnableUAC>false</EnableUAC>
       <AdditionalLibraryDirectories>c:\Firebird\4.0\lib;$(BOOST_ROOT)\stage\x64\lib;c:\lucene++\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>fbclient_ms.lib;lucene++.lib;lucene++-contrib.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>defs\udr_plugin.def</ModuleDefinitionFile>
     </Link>
-    <PreBuildEvent>
-      <Command>
-      </Command>
-    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
-	  <LanguageStandard>stdcpp17</LanguageStandard>
-	  <SDLCheck>true</SDLCheck>
-	  <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <SDLCheck>true</SDLCheck>
+      <ConformanceMode>true</ConformanceMode>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-	  <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
-	  <OmitFramePointers>true</OmitFramePointers>
-	  <Optimization>MaxSpeed</Optimization>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <OmitFramePointers>true</OmitFramePointers>
+      <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>   
-      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>	  
-	  <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <PrecompiledHeaderFile>
       </PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(BOOST_ROOT);C:\Firebird\4.0\include;c:\lucene++\include;include</AdditionalIncludeDirectories>
-	  <PreprocessorDefinitions>WIN32_LEAN_AND_MEAN;WIN32;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>   
+      <PreprocessorDefinitions>WIN32_LEAN_AND_MEAN;WIN32;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>false</GenerateDebugInformation>
-	  <RandomizedBaseAddress>false</RandomizedBaseAddress>
+      <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <EnableUAC>false</EnableUAC>
       <AdditionalLibraryDirectories>c:\Firebird\4.0\WOW64\lib;$(BOOST_ROOT)\stage\x86\lib;c:\lucene++\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <ModuleDefinitionFile>defs\udr_plugin.def</ModuleDefinitionFile>
@@ -226,7 +225,12 @@
     </Link>
     <PreBuildEvent>
       <Command>write_build_no.bat &gt; src/udr_build_no.h</Command>
+      <Message>Generate build number</Message>
     </PreBuildEvent>
+    <PostBuildEvent>
+      <Command>release_pack-x86.bat "$(SolutionDir)"</Command>
+      <Message>Release pack</Message>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Midl>
@@ -234,20 +238,20 @@
       <MkTypLibCompatible>true</MkTypLibCompatible>
       <TargetEnvironment>X64</TargetEnvironment>
     </Midl>
-    <ClCompile>  
+    <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <LanguageStandard>stdcpp17</LanguageStandard>
-	  <SDLCheck>true</SDLCheck>     
+      <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-	  <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>	  
-	  <OmitFramePointers>true</OmitFramePointers>
-	  <Optimization>MaxSpeed</Optimization>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <OmitFramePointers>true</OmitFramePointers>
+      <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-	  <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
-	  <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <PrecompiledHeaderFile>
       </PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(BOOST_ROOT);C:\Firebird\4.0\include;c:\lucene++\include;include</AdditionalIncludeDirectories>
@@ -258,7 +262,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>false</GenerateDebugInformation>
-	  <RandomizedBaseAddress>false</RandomizedBaseAddress>
+      <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <EnableUAC>false</EnableUAC>
       <AdditionalLibraryDirectories>c:\Firebird\4.0\lib;$(BOOST_ROOT)\stage\x64\lib;c:\lucene++\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>fbclient_ms.lib;lucene++.lib;lucene++-contrib.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -266,7 +270,12 @@
     </Link>
     <PreBuildEvent>
       <Command>write_build_no.bat &gt; src/udr_build_no.h</Command>
+      <Message>Generate build number</Message>
     </PreBuildEvent>
+    <PostBuildEvent>
+      <Command>release_pack-x64.bat "$(SolutionDir)"</Command>
+      <Message>Release pack</Message>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

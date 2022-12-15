@@ -18,8 +18,8 @@
 #include "Analyzer.h"
 
 namespace Lucene {
-	class EnglishAnalyzer : public Analyzer {
-	public:
+    class EnglishAnalyzer : public Analyzer {
+    public:
         /// Builds an analyzer with the default stop words ({@link #STOP_WORDS_SET}).
         /// @param matchVersion Lucene version to match.
         EnglishAnalyzer(LuceneVersion::Version matchVersion);
@@ -43,7 +43,7 @@ namespace Lucene {
 
         virtual ~EnglishAnalyzer();
 
-		LUCENE_CLASS(EnglishAnalyzer);
+        LUCENE_CLASS(EnglishAnalyzer);
 
     public:
         /// Default maximum allowed token length
@@ -64,13 +64,13 @@ namespace Lucene {
         /// Construct an analyzer with the given stop words.
         void ConstructAnalyser(LuceneVersion::Version matchVersion, HashSet<String> stopWords);
 
-	public:
+    public:
         /// Returns an unmodifiable instance of the default stop-words set.
         static const HashSet<String> getDefaultStopSet();
 
-		/// Constructs a {@link StandardTokenizer} filtered by a {@link StandardFilter}, a {@link LowerCaseFilter}
-		/// a {@link StopFilter} and a {@link PorterStemFilter}.
-		TokenStreamPtr tokenStream(const String& fieldName, const ReaderPtr& reader);
+        /// Constructs a {@link StandardTokenizer} filtered by a {@link StandardFilter}, a {@link LowerCaseFilter}
+        /// a {@link StopFilter} and a {@link PorterStemFilter}.
+        TokenStreamPtr tokenStream(const String& fieldName, const ReaderPtr& reader);
 
         /// Set maximum allowed token length.  If a token is seen that exceeds this length then it is discarded.  This setting
         /// only takes effect the next time tokenStream or reusableTokenStream is called.

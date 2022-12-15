@@ -26,143 +26,129 @@ using namespace FTSMetadata;
 
 /***
 PROCEDURE FTS$MAKE_TRIGGER (
-	FTS$RELATION_NAME VARCHAR(63) CHARACTER SET UTF8,
-	FTS$MULTI_ACTION BOOLEAN DEFAULT TRUE NOT NULL,
-	FTS$POSITION SMALLINT DEFAULT 100 NOT NULL
+    FTS$RELATION_NAME VARCHAR(63) CHARACTER SET UTF8,
+    FTS$MULTI_ACTION BOOLEAN DEFAULT TRUE NOT NULL,
+    FTS$POSITION SMALLINT DEFAULT 100 NOT NULL
 )
 RETURNS (
     FTS$TRIGGER_NAME VARCHAR(63) CHARACTER SET UTF8,
     FTS$TRIGGER_RELATION VARCHAR(63) CHARACTER SET UTF8,
-	FTS$TRIGGER_EVENTS VARCHAR(26) CHARACTER SET UTF8,
-	FTS$TRIGGER_POSITION SMALLINT,
-	FTS$TRIGGER_SOURCE BLOB SUB_TYPE TEXT CHARACTER SET UTF8,
-	FTS$TRIGGER_SCRIPT BLOB SUB_TYPE TEXT CHARACTER SET UTF8
+    FTS$TRIGGER_EVENTS VARCHAR(26) CHARACTER SET UTF8,
+    FTS$TRIGGER_POSITION SMALLINT,
+    FTS$TRIGGER_SOURCE BLOB SUB_TYPE TEXT CHARACTER SET UTF8,
+    FTS$TRIGGER_SCRIPT BLOB SUB_TYPE TEXT CHARACTER SET UTF8
 )
 EXTERNAL NAME 'luceneudr!ftsMakeTrigger'
 ENGINE UDR;
 ***/
 FB_UDR_BEGIN_PROCEDURE(ftsMakeTrigger)
-	FB_UDR_MESSAGE(InMessage,
-		(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
-		(FB_BOOLEAN, multiAction)
-		(FB_SMALLINT, position)
-	);
+    FB_UDR_MESSAGE(InMessage,
+        (FB_INTL_VARCHAR(252, CS_UTF8), relationName)
+        (FB_BOOLEAN, multiAction)
+        (FB_SMALLINT, position)
+    );
 
-	FB_UDR_MESSAGE(OutMessage,
-		(FB_INTL_VARCHAR(252, CS_UTF8), triggerName)
-		(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
-		(FB_INTL_VARCHAR(104, CS_UTF8), events)
-		(FB_SMALLINT, position)
-		(FB_BLOB, triggerSource)
-		(FB_BLOB, triggerScript)
-	);
+    FB_UDR_MESSAGE(OutMessage,
+        (FB_INTL_VARCHAR(252, CS_UTF8), triggerName)
+        (FB_INTL_VARCHAR(252, CS_UTF8), relationName)
+        (FB_INTL_VARCHAR(104, CS_UTF8), events)
+        (FB_SMALLINT, position)
+        (FB_BLOB, triggerSource)
+        (FB_BLOB, triggerScript)
+    );
 
-	FB_UDR_CONSTRUCTOR
-		, triggerHelper(make_unique<FTSTriggerHelper>(context->getMaster()))
-	{
-	}
+    FB_UDR_CONSTRUCTOR
+        , triggerHelper(make_unique<FTSTriggerHelper>(context->getMaster()))
+    {
+    }
 
-	unique_ptr<FTSTriggerHelper> triggerHelper{nullptr};
+    unique_ptr<FTSTriggerHelper> triggerHelper{nullptr};
 
-	void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
-		char* name, unsigned nameSize)
-	{
-		// Forced internal request encoding to UTF8
-		memset(name, 0, nameSize);
+    void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
+        char* name, unsigned nameSize)
+    {
+        // Forced internal request encoding to UTF8
+        memset(name, 0, nameSize);
 
-		const string charset = "UTF8";
-		charset.copy(name, charset.length());
-	}
+        const string charset = "UTF8";
+        charset.copy(name, charset.length());
+    }
 
-	FB_UDR_EXECUTE_PROCEDURE
-	{
-		if (in->relationNameNull) {
-			throwException(status, "FTS$RELATION_NAME can not be NULL");
-		}
-		string relationName(in->relationName.str, in->relationName.length);
+    FB_UDR_EXECUTE_PROCEDURE
+    {
+        if (in->relationNameNull) {
+            throwException(status, "FTS$RELATION_NAME can not be NULL");
+        }
+        string relationName(in->relationName.str, in->relationName.length);
 
-		const bool multiActionFlag = in->multiAction;
+        const bool multiActionFlag = in->multiAction;
 
-		const auto triggerPosition = in->position;
+        const auto triggerPosition = in->position;
 
-		att.reset(context->getAttachment(status));
-		tra.reset(context->getTransaction(status));
+        att.reset(context->getAttachment(status));
+        tra.reset(context->getTransaction(status));
 
-		sqlDialect = getSqlDialect(status, att);
-
-
-		try {
-			procedure->triggerHelper->makeTriggerSourceByRelation(status, att, tra, sqlDialect, relationName, multiActionFlag, triggerPosition, triggers);
-			it = triggers.cbegin();
-		}
-		catch (LuceneException& e) {
-			string error_message = StringUtils::toUTF8(e.getError());
-			throwException(status, error_message.c_str());
-		}
-	}
-
-	FTSTriggerList triggers;
-	FTSTriggerList::const_iterator it;
-	AutoRelease<IAttachment> att;
-	AutoRelease<ITransaction> tra;
-	unsigned int sqlDialect;
+        sqlDialect = getSqlDialect(status, att);
 
 
-	FB_UDR_FETCH_PROCEDURE
-	{
-		if (it == triggers.end()) {
-			return false;
-		}
+        try {
+            procedure->triggerHelper->makeTriggerSourceByRelation(status, att, tra, sqlDialect, relationName, multiActionFlag, triggerPosition, triggers);
+            it = triggers.cbegin();
+        }
+        catch (LuceneException& e) {
+            string error_message = StringUtils::toUTF8(e.getError());
+            throwException(status, error_message.c_str());
+        }
+    }
 
-		const auto& trigger = *it;
+    FTSTriggerList triggers;
+    FTSTriggerList::const_iterator it;
+    AutoRelease<IAttachment> att;
+    AutoRelease<ITransaction> tra;
+    unsigned int sqlDialect;
 
-		out->triggerNameNull = false;
-		out->triggerName.length = static_cast<ISC_SHORT>(trigger->triggerName.length());
-		trigger->triggerName.copy(out->triggerName.str, out->triggerName.length);
 
-		out->relationNameNull = false;
-		out->relationName.length = static_cast<ISC_SHORT>(trigger->relationName.length());
-		trigger->relationName.copy(out->relationName.str, out->relationName.length);
+    FB_UDR_FETCH_PROCEDURE
+    {
+        if (it == triggers.end()) {
+            return false;
+        }
 
-		out->eventsNull = false;
-		out->events.length = static_cast<ISC_SHORT>(trigger->triggerEvents.length());
-		trigger->triggerEvents.copy(out->events.str, out->events.length);
+        const auto& trigger = *it;
 
-		out->positionNull = false;
-		out->position = trigger->position;
+        out->triggerNameNull = false;
+        out->triggerName.length = static_cast<ISC_SHORT>(trigger->triggerName.length());
+        trigger->triggerName.copy(out->triggerName.str, out->triggerName.length);
 
-		out->triggerSourceNull = false;
-		{
-			IBlob* blob = att->createBlob(status, tra, &out->triggerSource, 0, nullptr);
-			try {
-				BlobUtils::setString(status, blob, trigger->triggerSource);
-				blob->close(status);
-				blob = nullptr;
-			}
-			catch (...) {
-				if (blob) blob->release();
-				blob = nullptr;
-				throw;
-			}
-		}
+        out->relationNameNull = false;
+        out->relationName.length = static_cast<ISC_SHORT>(trigger->relationName.length());
+        trigger->relationName.copy(out->relationName.str, out->relationName.length);
 
-		out->triggerScriptNull = false;
-		{
-			IBlob* blob = att->createBlob(status, tra, &out->triggerScript, 0, nullptr);
-			try {
-				BlobUtils::setString(status, blob, trigger->getScript(sqlDialect));
-				blob->close(status);
-				blob = nullptr;
-			}
-			catch (...) {
-				if (blob) blob->release();
-				blob = nullptr;
-				throw;
-			}
-		}
+        out->eventsNull = false;
+        out->events.length = static_cast<ISC_SHORT>(trigger->triggerEvents.length());
+        trigger->triggerEvents.copy(out->events.str, out->events.length);
 
-		++it;
-		return true;
-	}
+        out->positionNull = false;
+        out->position = trigger->position;
+
+        out->triggerSourceNull = false;
+        {
+            AutoRelease<IBlob> blob(att->createBlob(status, tra, &out->triggerSource, 0, nullptr));
+            BlobUtils::setString(status, blob, trigger->triggerSource);
+            blob->close(status);
+            blob.release();
+        }
+
+        out->triggerScriptNull = false;
+        {
+            AutoRelease<IBlob> blob(att->createBlob(status, tra, &out->triggerScript, 0, nullptr));
+            BlobUtils::setString(status, blob, trigger->getScript(sqlDialect));
+            blob->close(status);
+            blob.release();
+        }
+
+        ++it;
+        return true;
+    }
 FB_UDR_END_PROCEDURE
 

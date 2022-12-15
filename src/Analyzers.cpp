@@ -21,486 +21,454 @@ using namespace LuceneUDR;
 namespace FTSMetadata
 {
 
-	AnalyzerRepository::AnalyzerRepository(IMaster* const master)
-		: m_master(master)
-		, m_analyzerFactory(new LuceneAnalyzerFactory())
-	{}
+    AnalyzerRepository::AnalyzerRepository(IMaster* const master)
+        : m_master(master)
+        , m_analyzerFactory(new LuceneAnalyzerFactory())
+    {}
 
-	AnalyzerRepository::~AnalyzerRepository()
-	{
-		delete m_analyzerFactory;
-	}
+    AnalyzerRepository::~AnalyzerRepository()
+    {
+        delete m_analyzerFactory;
+    }
 
-	AnalyzerPtr AnalyzerRepository::createAnalyzer(
-		ThrowStatusWrapper* const status,
-		IAttachment* const att,
-		ITransaction* const tra,
-		const unsigned int sqlDialect,
-		const string& analyzerName
-	)
-	{
-		if (m_analyzerFactory->hasAnalyzer(analyzerName)) {
-			return m_analyzerFactory->createAnalyzer(status, analyzerName);
-		}
-		const auto& info = getAnalyzerInfo(status, att, tra, sqlDialect, analyzerName);
-		if (!m_analyzerFactory->hasAnalyzer(info.baseAnalyzer)) {
-			throwException(status, R"(Base analyzer "%s" not exists)", info.baseAnalyzer.c_str());
-		}
-		const auto stopWords = getStopWords(status, att, tra, sqlDialect, analyzerName);
-		return m_analyzerFactory->createAnalyzer(status, info.baseAnalyzer, stopWords);
-	}
+    AnalyzerPtr AnalyzerRepository::createAnalyzer(
+        ThrowStatusWrapper* const status,
+        IAttachment* const att,
+        ITransaction* const tra,
+        const unsigned int sqlDialect,
+        const string& analyzerName
+    )
+    {
+        if (m_analyzerFactory->hasAnalyzer(analyzerName)) {
+            return m_analyzerFactory->createAnalyzer(status, analyzerName);
+        }
+        const auto& info = getAnalyzerInfo(status, att, tra, sqlDialect, analyzerName);
+        if (!m_analyzerFactory->hasAnalyzer(info.baseAnalyzer)) {
+            throwException(status, R"(Base analyzer "%s" not exists)", info.baseAnalyzer.c_str());
+        }
+        const auto stopWords = getStopWords(status, att, tra, sqlDialect, analyzerName);
+        return m_analyzerFactory->createAnalyzer(status, info.baseAnalyzer, stopWords);
+    }
 
-	const AnalyzerInfo AnalyzerRepository::getAnalyzerInfo(
-		ThrowStatusWrapper* const status,
-		IAttachment* const att,
-		ITransaction* const tra,
-		const unsigned int sqlDialect,
-		const string& analyzerName
-	)
-	{
-		if (m_analyzerFactory->hasAnalyzer(analyzerName)) {
-			return m_analyzerFactory->getAnalyzerInfo(status, analyzerName);
-		}
-		AnalyzerInfo info;
+    const AnalyzerInfo AnalyzerRepository::getAnalyzerInfo(
+        ThrowStatusWrapper* const status,
+        IAttachment* const att,
+        ITransaction* const tra,
+        const unsigned int sqlDialect,
+        const string& analyzerName
+    )
+    {
+        if (m_analyzerFactory->hasAnalyzer(analyzerName)) {
+            return m_analyzerFactory->getAnalyzerInfo(status, analyzerName);
+        }
+        AnalyzerInfo info;
 
-		FB_MESSAGE(Input, ThrowStatusWrapper,
-			(FB_INTL_VARCHAR(252, CS_UTF8), analyzerName)
-		) input(status, m_master);
+        FB_MESSAGE(Input, ThrowStatusWrapper,
+            (FB_INTL_VARCHAR(252, CS_UTF8), analyzerName)
+        ) input(status, m_master);
 
-		FB_MESSAGE(Output, ThrowStatusWrapper,
-			(FB_INTL_VARCHAR(252, CS_UTF8), analyzerName)
-			(FB_INTL_VARCHAR(252, CS_UTF8), baseAnalyzer)
-			(FB_BLOB, description)
-		) output(status, m_master);
+        FB_MESSAGE(Output, ThrowStatusWrapper,
+            (FB_INTL_VARCHAR(252, CS_UTF8), analyzerName)
+            (FB_INTL_VARCHAR(252, CS_UTF8), baseAnalyzer)
+            (FB_BLOB, description)
+        ) output(status, m_master);
 
-		input.clear();
-		input->analyzerName.length = static_cast<ISC_USHORT>(analyzerName.length());
-		analyzerName.copy(input->analyzerName.str, input->analyzerName.length);
+        input.clear();
+        input->analyzerName.length = static_cast<ISC_USHORT>(analyzerName.length());
+        analyzerName.copy(input->analyzerName.str, input->analyzerName.length);
 
-		if (!m_stmt_get_analyzer.hasData()) {
-			m_stmt_get_analyzer.reset(att->prepare(
-				status,
-				tra,
-				0,
-				SQL_ANALYZER_INFO,
-				sqlDialect,
-				IStatement::PREPARE_PREFETCH_METADATA
-			));
-		}
+        if (!m_stmt_get_analyzer.hasData()) {
+            m_stmt_get_analyzer.reset(att->prepare(
+                status,
+                tra,
+                0,
+                SQL_ANALYZER_INFO,
+                sqlDialect,
+                IStatement::PREPARE_PREFETCH_METADATA
+            ));
+        }
 
-		int result = IStatus::RESULT_NO_DATA;
-		IResultSet* rs = m_stmt_get_analyzer->openCursor(
-			status,
-			tra,
-			input.getMetadata(),
-			input.getData(),
-			output.getMetadata(),
-			0
-		);
-		try {
-			result = rs->fetchNext(status, output.getData());
-			rs->close(status);
-			rs = nullptr;
-		}
-		catch (...) {
-			if (rs) rs->release();
-			rs = nullptr;
-			throw;
-		}
-		if (result == IStatus::RESULT_NO_DATA) {
-			throwException(status, R"(Analyzer "%s" not exists)", analyzerName.c_str());
-		}
-		if (result == IStatus::RESULT_OK) {
-			info.analyzerName.assign(output->analyzerName.str, output->analyzerName.length);
-			info.baseAnalyzer.assign(output->baseAnalyzer.str, output->baseAnalyzer.length);
-			info.stopWordsSupported = m_analyzerFactory->isStopWordsSupported(info.baseAnalyzer);
-			info.systemFlag = false;
-		}
+        AutoRelease<IResultSet> rs(m_stmt_get_analyzer->openCursor(
+            status,
+            tra,
+            input.getMetadata(),
+            input.getData(),
+            output.getMetadata(),
+            0
+        ));
+        
+        int result = rs->fetchNext(status, output.getData());
+        rs->close(status);
+        rs.release();
 
-		return info;
-	}
+        if (result == IStatus::RESULT_NO_DATA) {
+            throwException(status, R"(Analyzer "%s" not exists)", analyzerName.c_str());
+        }
+        if (result == IStatus::RESULT_OK) {
+            info.analyzerName.assign(output->analyzerName.str, output->analyzerName.length);
+            info.baseAnalyzer.assign(output->baseAnalyzer.str, output->baseAnalyzer.length);
+            info.stopWordsSupported = m_analyzerFactory->isStopWordsSupported(info.baseAnalyzer);
+            info.systemFlag = false;
+        }
 
-	list<AnalyzerInfo> AnalyzerRepository::getAnalyzerInfos(
-		ThrowStatusWrapper* const status,
-		IAttachment* const att,
-		ITransaction* const tra,
-		const unsigned int sqlDialect
-	)
-	{
-		auto infos = m_analyzerFactory->getAnalyzerInfos();
+        return info;
+    }
 
-		FB_MESSAGE(Output, ThrowStatusWrapper,
-			(FB_INTL_VARCHAR(252, CS_UTF8), analyzerName)
-			(FB_INTL_VARCHAR(252, CS_UTF8), baseAnalyzer)
-			(FB_BLOB, description)
-		) output(status, m_master);
+    list<AnalyzerInfo> AnalyzerRepository::getAnalyzerInfos(
+        ThrowStatusWrapper* const status,
+        IAttachment* const att,
+        ITransaction* const tra,
+        const unsigned int sqlDialect
+    )
+    {
+        auto infos = m_analyzerFactory->getAnalyzerInfos();
 
-		if (!m_stmt_get_analyzers.hasData()) {
-			m_stmt_get_analyzers.reset(att->prepare(
-				status,
-				tra,
-				0,
-				SQL_ANALYZER_INFOS,
-				sqlDialect,
-				IStatement::PREPARE_PREFETCH_METADATA
-			));
-		}
+        FB_MESSAGE(Output, ThrowStatusWrapper,
+            (FB_INTL_VARCHAR(252, CS_UTF8), analyzerName)
+            (FB_INTL_VARCHAR(252, CS_UTF8), baseAnalyzer)
+            (FB_BLOB, description)
+        ) output(status, m_master);
 
-		IResultSet* rs = m_stmt_get_analyzers->openCursor(
-			status,
-			tra,
-			nullptr,
-			nullptr,
-			output.getMetadata(),
-			0
-		);
-		try {
-			while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
-				AnalyzerInfo info;
-				info.analyzerName.assign(output->analyzerName.str, output->analyzerName.length);
-				info.baseAnalyzer.assign(output->baseAnalyzer.str, output->baseAnalyzer.length);
-				info.stopWordsSupported = m_analyzerFactory->isStopWordsSupported(info.baseAnalyzer);
-				info.systemFlag = false;
-				infos.push_back(info);
-			}
-			rs->close(status);
-			rs = nullptr;
-		}
-		catch (...) {
-			if (rs) rs->release();
-			rs = nullptr;
-			throw;
-		}
+        if (!m_stmt_get_analyzers.hasData()) {
+            m_stmt_get_analyzers.reset(att->prepare(
+                status,
+                tra,
+                0,
+                SQL_ANALYZER_INFOS,
+                sqlDialect,
+                IStatement::PREPARE_PREFETCH_METADATA
+            ));
+        }
 
-		return infos;
-	}
+        AutoRelease<IResultSet> rs(m_stmt_get_analyzers->openCursor(
+            status,
+            tra,
+            nullptr,
+            nullptr,
+            output.getMetadata(),
+            0
+        ));
 
-	bool AnalyzerRepository::hasAnalyzer (
-		ThrowStatusWrapper* const status,
-		IAttachment* const att,
-		ITransaction* const tra,
-		const unsigned int sqlDialect,
-		const string& analyzerName
-	)
-	{
-		if (m_analyzerFactory->hasAnalyzer(analyzerName)) {
-			return true;
-		}
+        while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
+            AnalyzerInfo info;
+            info.analyzerName.assign(output->analyzerName.str, output->analyzerName.length);
+            info.baseAnalyzer.assign(output->baseAnalyzer.str, output->baseAnalyzer.length);
+            info.stopWordsSupported = m_analyzerFactory->isStopWordsSupported(info.baseAnalyzer);
+            info.systemFlag = false;
+            infos.push_back(info);
+        }
+        rs->close(status);
+        rs.release();
 
-		FB_MESSAGE(Input, ThrowStatusWrapper,
-			(FB_INTL_VARCHAR(252, CS_UTF8), analyzerName)
-		) input(status, m_master);
+        return infos;
+    }
 
-		FB_MESSAGE(Output, ThrowStatusWrapper,
-			(FB_INTEGER, cnt)
-		) output(status, m_master);
+    bool AnalyzerRepository::hasAnalyzer (
+        ThrowStatusWrapper* const status,
+        IAttachment* const att,
+        ITransaction* const tra,
+        const unsigned int sqlDialect,
+        const string& analyzerName
+    )
+    {
+        if (m_analyzerFactory->hasAnalyzer(analyzerName)) {
+            return true;
+        }
 
-		input.clear();
-		input->analyzerName.length = static_cast<ISC_USHORT>(analyzerName.length());
-		analyzerName.copy(input->analyzerName.str, input->analyzerName.length);
+        FB_MESSAGE(Input, ThrowStatusWrapper,
+            (FB_INTL_VARCHAR(252, CS_UTF8), analyzerName)
+        ) input(status, m_master);
 
-		if (!m_stmt_has_analyzer.hasData()) {
-			m_stmt_has_analyzer.reset(att->prepare(
-				status,
-				tra,
-				0,
-				SQL_ANALYZER_EXISTS,
-				sqlDialect,
-				IStatement::PREPARE_PREFETCH_METADATA
-			));
-		}
+        FB_MESSAGE(Output, ThrowStatusWrapper,
+            (FB_INTEGER, cnt)
+        ) output(status, m_master);
 
-		IResultSet* rs = m_stmt_has_analyzer->openCursor(
-			status,
-			tra,
-			input.getMetadata(),
-			input.getData(),
-			output.getMetadata(),
-			0
-		);
-		bool foundFlag = false;
-		try {
-			if (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
-				foundFlag = (output->cnt > 0);
-			}
-			rs->close(status);
-			rs = nullptr;
-		}
-		catch (...) {
-			if (rs) rs->release();
-			rs = nullptr;
-			throw;
-		}
+        input.clear();
+        input->analyzerName.length = static_cast<ISC_USHORT>(analyzerName.length());
+        analyzerName.copy(input->analyzerName.str, input->analyzerName.length);
 
-		return foundFlag;
-	}
+        if (!m_stmt_has_analyzer.hasData()) {
+            m_stmt_has_analyzer.reset(att->prepare(
+                status,
+                tra,
+                0,
+                SQL_ANALYZER_EXISTS,
+                sqlDialect,
+                IStatement::PREPARE_PREFETCH_METADATA
+            ));
+        }
 
-	void AnalyzerRepository::addAnalyzer (
-		ThrowStatusWrapper* const status,
-		IAttachment* const att,
-		ITransaction* const tra,
-		const unsigned int sqlDialect,
-		const string& analyzerName,
-		const string& baseAnalyzer,
-		const string& description
-	)
-	{
-		if (hasAnalyzer(status, att, tra, sqlDialect, analyzerName)) {
-			throwException(status, R"(Cannot create analyzer. Analyzer "%s" already exists)", analyzerName.c_str());
-		}
+        AutoRelease<IResultSet> rs(m_stmt_has_analyzer->openCursor(
+            status,
+            tra,
+            input.getMetadata(),
+            input.getData(),
+            output.getMetadata(),
+            0
+        ));
 
-		if (!m_analyzerFactory->hasAnalyzer(baseAnalyzer)) {
-			throwException(status, R"(Cannot create analyzer. Base analyzer "%s" not exists or not system analyzer)", baseAnalyzer.c_str());
-		}
+        bool foundFlag = false;
+        if (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
+            foundFlag = (output->cnt > 0);
+        }
+        rs->close(status);
+        rs.release();
 
-		FB_MESSAGE(Input, ThrowStatusWrapper,
-			(FB_INTL_VARCHAR(252, CS_UTF8), analyzerName)
-			(FB_INTL_VARCHAR(252, CS_UTF8), baseAnalyzer)
-			(FB_BLOB, description)
-		) input(status, m_master);
+        return foundFlag;
+    }
 
-		input.clear();
+    void AnalyzerRepository::addAnalyzer (
+        ThrowStatusWrapper* const status,
+        IAttachment* const att,
+        ITransaction* const tra,
+        const unsigned int sqlDialect,
+        const string& analyzerName,
+        const string& baseAnalyzer,
+        const string& description
+    )
+    {
+        if (hasAnalyzer(status, att, tra, sqlDialect, analyzerName)) {
+            throwException(status, R"(Cannot create analyzer. Analyzer "%s" already exists)", analyzerName.c_str());
+        }
 
-		input->analyzerName.length = static_cast<ISC_USHORT>(analyzerName.length());
-		analyzerName.copy(input->analyzerName.str, input->analyzerName.length);
+        if (!m_analyzerFactory->hasAnalyzer(baseAnalyzer)) {
+            throwException(status, R"(Cannot create analyzer. Base analyzer "%s" not exists or not system analyzer)", baseAnalyzer.c_str());
+        }
 
-		input->baseAnalyzer.length = static_cast<ISC_USHORT>(baseAnalyzer.length());
-		baseAnalyzer.copy(input->baseAnalyzer.str, input->baseAnalyzer.length);
+        FB_MESSAGE(Input, ThrowStatusWrapper,
+            (FB_INTL_VARCHAR(252, CS_UTF8), analyzerName)
+            (FB_INTL_VARCHAR(252, CS_UTF8), baseAnalyzer)
+            (FB_BLOB, description)
+        ) input(status, m_master);
 
-		if (!description.empty()) {
-			IBlob* blob = att->createBlob(status, tra, &input->description, 0, nullptr);
-			try {
-				BlobUtils::setString(status, blob, description);
-				blob->close(status);
-				blob = nullptr;
-			}
-			catch (...) {
-				if (blob) blob->release();
-				blob = nullptr;
-				throw;
-			}
-		}
-		else {
-			input->descriptionNull = true;
-		}
+        input.clear();
 
-		att->execute(
-			status,
-			tra,
-			0,
-			SQL_INSERT_ANALYZER,
-			sqlDialect,
-			input.getMetadata(),
-			input.getData(),
-			nullptr,
-			nullptr
-		);
-	}
+        input->analyzerName.length = static_cast<ISC_USHORT>(analyzerName.length());
+        analyzerName.copy(input->analyzerName.str, input->analyzerName.length);
 
-	void AnalyzerRepository::deleteAnalyzer(
-		ThrowStatusWrapper* const status,
-		IAttachment* const att,
-		ITransaction* const tra,
-		const unsigned int sqlDialect,
-		const string& analyzerName
-	)
-	{
-		if (m_analyzerFactory->hasAnalyzer(analyzerName)) {
-			throwException(status, R"(Cannot drop system analyzer "%s")", analyzerName.c_str());
-		}
-		if (!hasAnalyzer(status, att, tra, sqlDialect, analyzerName)) {
-			throwException(status, R"(Cannot drop analyzer. Analyzer "%s" not exists)", analyzerName.c_str());
-		}
+        input->baseAnalyzer.length = static_cast<ISC_USHORT>(baseAnalyzer.length());
+        baseAnalyzer.copy(input->baseAnalyzer.str, input->baseAnalyzer.length);
 
-		FB_MESSAGE(Input, ThrowStatusWrapper,
-			(FB_INTL_VARCHAR(252, CS_UTF8), analyzerName)
-		) input(status, m_master);
+        if (!description.empty()) {
+            AutoRelease<IBlob> blob(att->createBlob(status, tra, &input->description, 0, nullptr));
+            BlobUtils::setString(status, blob, description);
+            blob->close(status);
+            blob.release();
+        }
+        else {
+            input->descriptionNull = true;
+        }
 
-		input.clear();
+        att->execute(
+            status,
+            tra,
+            0,
+            SQL_INSERT_ANALYZER,
+            sqlDialect,
+            input.getMetadata(),
+            input.getData(),
+            nullptr,
+            nullptr
+        );
+    }
 
-		input->analyzerName.length = static_cast<ISC_USHORT>(analyzerName.length());
-		analyzerName.copy(input->analyzerName.str, input->analyzerName.length);
+    void AnalyzerRepository::deleteAnalyzer(
+        ThrowStatusWrapper* const status,
+        IAttachment* const att,
+        ITransaction* const tra,
+        const unsigned int sqlDialect,
+        const string& analyzerName
+    )
+    {
+        if (m_analyzerFactory->hasAnalyzer(analyzerName)) {
+            throwException(status, R"(Cannot drop system analyzer "%s")", analyzerName.c_str());
+        }
+        if (!hasAnalyzer(status, att, tra, sqlDialect, analyzerName)) {
+            throwException(status, R"(Cannot drop analyzer. Analyzer "%s" not exists)", analyzerName.c_str());
+        }
 
-		att->execute(
-			status,
-			tra,
-			0,
-			SQL_DELETE_ANALYZER,
-			sqlDialect,
-			input.getMetadata(),
-			input.getData(),
-			nullptr,
-			nullptr
-		);
-	}
+        FB_MESSAGE(Input, ThrowStatusWrapper,
+            (FB_INTL_VARCHAR(252, CS_UTF8), analyzerName)
+        ) input(status, m_master);
 
-	const HashSet<String> AnalyzerRepository::getStopWords(
-		ThrowStatusWrapper* const status,
-		IAttachment* const att,
-		ITransaction* const tra,
-		const unsigned int sqlDialect,
-		const string& analyzerName
-	)
-	{
-		if (m_analyzerFactory->hasAnalyzer(analyzerName)) {
-			return m_analyzerFactory->getAnalyzerStopWords(status, analyzerName);
-		}
+        input.clear();
 
-		FB_MESSAGE(Input, ThrowStatusWrapper,
-			(FB_INTL_VARCHAR(252, CS_UTF8), analyzerName)
-		) input(status, m_master);
+        input->analyzerName.length = static_cast<ISC_USHORT>(analyzerName.length());
+        analyzerName.copy(input->analyzerName.str, input->analyzerName.length);
 
-		FB_MESSAGE(Output, ThrowStatusWrapper,
-			(FB_INTL_VARCHAR(252, CS_UTF8), stopWord)
-		) output(status, m_master);
+        att->execute(
+            status,
+            tra,
+            0,
+            SQL_DELETE_ANALYZER,
+            sqlDialect,
+            input.getMetadata(),
+            input.getData(),
+            nullptr,
+            nullptr
+        );
+    }
 
-		input.clear();
+    const HashSet<String> AnalyzerRepository::getStopWords(
+        ThrowStatusWrapper* const status,
+        IAttachment* const att,
+        ITransaction* const tra,
+        const unsigned int sqlDialect,
+        const string& analyzerName
+    )
+    {
+        if (m_analyzerFactory->hasAnalyzer(analyzerName)) {
+            return m_analyzerFactory->getAnalyzerStopWords(status, analyzerName);
+        }
 
-		input->analyzerName.length = static_cast<ISC_USHORT>(analyzerName.length());
-		analyzerName.copy(input->analyzerName.str, input->analyzerName.length);
+        FB_MESSAGE(Input, ThrowStatusWrapper,
+            (FB_INTL_VARCHAR(252, CS_UTF8), analyzerName)
+        ) input(status, m_master);
 
-		auto stopWords = HashSet<String>::newInstance();
-		
-		if (!m_stmt_get_stopwords.hasData()) {
-			m_stmt_get_stopwords.reset(att->prepare(
-				status,
-				tra,
-				0,
-				SQL_STOP_WORDS,
-				sqlDialect,
-				IStatement::PREPARE_PREFETCH_METADATA
-			));
-		}
-		
-		IResultSet* rs = m_stmt_get_stopwords->openCursor(
-			status,
-			tra,
-			input.getMetadata(),
-			input.getData(),
-			output.getMetadata(),
-			0
-		);
-		
-		try {
-			while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
-				const string stopWord(output->stopWord.str, output->stopWord.length);
-				const String uStopWord = StringUtils::toUnicode(stopWord);
-				stopWords.add(uStopWord);
-			}
-			rs->close(status);
-			rs = nullptr;
-		}
-		catch (...) {
-			if (rs) rs->release();
-			rs = nullptr;
-			throw;
-		}
-		
-		return stopWords;
-	}
+        FB_MESSAGE(Output, ThrowStatusWrapper,
+            (FB_INTL_VARCHAR(252, CS_UTF8), stopWord)
+        ) output(status, m_master);
 
-	void AnalyzerRepository::addStopWord(
-		ThrowStatusWrapper* const status,
-		IAttachment* const att,
-		ITransaction* const tra,
-		const unsigned int sqlDialect,
-		const string& analyzerName,
-		const string& stopWord
-	)
-	{
-		if (m_analyzerFactory->hasAnalyzer(analyzerName)) {
-			throwException(status, R"(Cannot add stop word to system analyzer "%s")", analyzerName.c_str());
-		}
-		const auto info = getAnalyzerInfo(status, att, tra, sqlDialect, analyzerName);
-		if (!info.stopWordsSupported) {
-			throwException(status, R"(Cannot add stop word. Base analyzer "%s" not supported stop words)", info.baseAnalyzer.c_str());
-		}
+        input.clear();
 
-		FB_MESSAGE(Input, ThrowStatusWrapper,
-			(FB_INTL_VARCHAR(252, CS_UTF8), analyzerName)
-			(FB_INTL_VARCHAR(252, CS_UTF8), stopWord)
-		) input(status, m_master);
+        input->analyzerName.length = static_cast<ISC_USHORT>(analyzerName.length());
+        analyzerName.copy(input->analyzerName.str, input->analyzerName.length);
 
-		input.clear();
+        auto stopWords = HashSet<String>::newInstance();
+        
+        if (!m_stmt_get_stopwords.hasData()) {
+            m_stmt_get_stopwords.reset(att->prepare(
+                status,
+                tra,
+                0,
+                SQL_STOP_WORDS,
+                sqlDialect,
+                IStatement::PREPARE_PREFETCH_METADATA
+            ));
+        }
+        
+        AutoRelease<IResultSet> rs(m_stmt_get_stopwords->openCursor(
+            status,
+            tra,
+            input.getMetadata(),
+            input.getData(),
+            output.getMetadata(),
+            0
+        ));
+        
+        while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
+            const string stopWord(output->stopWord.str, output->stopWord.length);
+            const String uStopWord = StringUtils::toUnicode(stopWord);
+            stopWords.add(uStopWord);
+        }
+        rs->close(status);
+        rs.release();
+        
+        return stopWords;
+    }
 
-		input->analyzerName.length = static_cast<ISC_USHORT>(analyzerName.length());
-		analyzerName.copy(input->analyzerName.str, input->analyzerName.length);
+    void AnalyzerRepository::addStopWord(
+        ThrowStatusWrapper* const status,
+        IAttachment* const att,
+        ITransaction* const tra,
+        const unsigned int sqlDialect,
+        const string& analyzerName,
+        const string& stopWord
+    )
+    {
+        if (m_analyzerFactory->hasAnalyzer(analyzerName)) {
+            throwException(status, R"(Cannot add stop word to system analyzer "%s")", analyzerName.c_str());
+        }
+        const auto info = getAnalyzerInfo(status, att, tra, sqlDialect, analyzerName);
+        if (!info.stopWordsSupported) {
+            throwException(status, R"(Cannot add stop word. Base analyzer "%s" not supported stop words)", info.baseAnalyzer.c_str());
+        }
 
-		input->stopWord.length = static_cast<ISC_USHORT>(stopWord.length());
-		stopWord.copy(input->stopWord.str, input->stopWord.length);
+        FB_MESSAGE(Input, ThrowStatusWrapper,
+            (FB_INTL_VARCHAR(252, CS_UTF8), analyzerName)
+            (FB_INTL_VARCHAR(252, CS_UTF8), stopWord)
+        ) input(status, m_master);
 
-		if (input->stopWord.length == 0) {
-			throwException(status, "Cannot add empty stop word");
-		}
+        input.clear();
 
-		if (!m_stmt_insert_stopword.hasData()) {
-			m_stmt_insert_stopword.reset(att->prepare(
-				status,
-				tra,
-				0,
-				SQL_INSERT_STOP_WORD,
-				sqlDialect,
-				IStatement::PREPARE_PREFETCH_METADATA
-			));
-		}
+        input->analyzerName.length = static_cast<ISC_USHORT>(analyzerName.length());
+        analyzerName.copy(input->analyzerName.str, input->analyzerName.length);
 
-		m_stmt_insert_stopword->execute(
-			status,
-			tra,
-			input.getMetadata(),
-			input.getData(),
-			nullptr,
-			nullptr);
-	}
+        input->stopWord.length = static_cast<ISC_USHORT>(stopWord.length());
+        stopWord.copy(input->stopWord.str, input->stopWord.length);
 
-	void AnalyzerRepository::deleteStopWord(
-		ThrowStatusWrapper* const status,
-		IAttachment* const att,
-		ITransaction* const tra,
-		const unsigned int sqlDialect,
-		const string& analyzerName,
-		const string& stopWord
-	)
-	{
-		if (m_analyzerFactory->hasAnalyzer(analyzerName)) {
-			throwException(status, R"(Cannot delete stop word from system analyzer "%s")", analyzerName.c_str());
-		}
-		const auto info = getAnalyzerInfo(status, att, tra, sqlDialect, analyzerName);
-		if (!info.stopWordsSupported) {
-			throwException(status, R"(Cannot delete stop word. Base analyzer "%s" not supported stop words)", info.baseAnalyzer.c_str());
-		}
+        if (input->stopWord.length == 0) {
+            throwException(status, "Cannot add empty stop word");
+        }
 
-		FB_MESSAGE(Input, ThrowStatusWrapper,
-			(FB_INTL_VARCHAR(252, CS_UTF8), analyzerName)
-			(FB_INTL_VARCHAR(252, CS_UTF8), stopWord)
-		) input(status, m_master);
+        if (!m_stmt_insert_stopword.hasData()) {
+            m_stmt_insert_stopword.reset(att->prepare(
+                status,
+                tra,
+                0,
+                SQL_INSERT_STOP_WORD,
+                sqlDialect,
+                IStatement::PREPARE_PREFETCH_METADATA
+            ));
+        }
 
-		input.clear();
+        m_stmt_insert_stopword->execute(
+            status,
+            tra,
+            input.getMetadata(),
+            input.getData(),
+            nullptr,
+            nullptr);
+    }
 
-		input->analyzerName.length = static_cast<ISC_USHORT>(analyzerName.length());
-		analyzerName.copy(input->analyzerName.str, input->analyzerName.length);
+    void AnalyzerRepository::deleteStopWord(
+        ThrowStatusWrapper* const status,
+        IAttachment* const att,
+        ITransaction* const tra,
+        const unsigned int sqlDialect,
+        const string& analyzerName,
+        const string& stopWord
+    )
+    {
+        if (m_analyzerFactory->hasAnalyzer(analyzerName)) {
+            throwException(status, R"(Cannot delete stop word from system analyzer "%s")", analyzerName.c_str());
+        }
+        const auto info = getAnalyzerInfo(status, att, tra, sqlDialect, analyzerName);
+        if (!info.stopWordsSupported) {
+            throwException(status, R"(Cannot delete stop word. Base analyzer "%s" not supported stop words)", info.baseAnalyzer.c_str());
+        }
 
-		input->stopWord.length = static_cast<ISC_USHORT>(stopWord.length());
-		stopWord.copy(input->stopWord.str, input->stopWord.length);
+        FB_MESSAGE(Input, ThrowStatusWrapper,
+            (FB_INTL_VARCHAR(252, CS_UTF8), analyzerName)
+            (FB_INTL_VARCHAR(252, CS_UTF8), stopWord)
+        ) input(status, m_master);
 
-		if (!m_stmt_delete_stopword.hasData()) {
-			m_stmt_delete_stopword.reset(att->prepare(
-				status,
-				tra,
-				0,
-				SQL_DELETE_STOP_WORD,
-				sqlDialect,
-				IStatement::PREPARE_PREFETCH_METADATA
-			));
-		}
+        input.clear();
 
-		m_stmt_delete_stopword->execute(
-			status,
-			tra,
-			input.getMetadata(),
-			input.getData(),
-			nullptr,
-			nullptr);
-	}
+        input->analyzerName.length = static_cast<ISC_USHORT>(analyzerName.length());
+        analyzerName.copy(input->analyzerName.str, input->analyzerName.length);
+
+        input->stopWord.length = static_cast<ISC_USHORT>(stopWord.length());
+        stopWord.copy(input->stopWord.str, input->stopWord.length);
+
+        if (!m_stmt_delete_stopword.hasData()) {
+            m_stmt_delete_stopword.reset(att->prepare(
+                status,
+                tra,
+                0,
+                SQL_DELETE_STOP_WORD,
+                sqlDialect,
+                IStatement::PREPARE_PREFETCH_METADATA
+            ));
+        }
+
+        m_stmt_delete_stopword->execute(
+            status,
+            tra,
+            input.getMetadata(),
+            input.getData(),
+            nullptr,
+            nullptr);
+    }
 
 }

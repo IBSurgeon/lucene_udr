@@ -25,29 +25,29 @@ using namespace std;
 
 namespace LuceneUDR 
 {
-	class LuceneAnalyzerFactory;
-	struct AnalyzerInfo;
+    class LuceneAnalyzerFactory;
+    struct AnalyzerInfo;
 }
 
 namespace FTSMetadata
 {
-	class AnalyzerRepository final
-	{
-	private:
-		IMaster* const m_master = nullptr;
-		LuceneUDR::LuceneAnalyzerFactory* const m_analyzerFactory = nullptr;
+    class AnalyzerRepository final
+    {
+    private:
+        IMaster* const m_master = nullptr;
+        LuceneUDR::LuceneAnalyzerFactory* const m_analyzerFactory = nullptr;
 
-		// prepared statements
-		AutoRelease<IStatement> m_stmt_get_analyzer{ nullptr };
-		AutoRelease<IStatement> m_stmt_get_analyzers{ nullptr };
-		AutoRelease<IStatement> m_stmt_has_analyzer{ nullptr };
-		AutoRelease<IStatement> m_stmt_get_stopwords{ nullptr };
-		AutoRelease<IStatement> m_stmt_insert_stopword{ nullptr };
-		AutoRelease<IStatement> m_stmt_delete_stopword{ nullptr };
+        // prepared statements
+        AutoRelease<IStatement> m_stmt_get_analyzer{ nullptr };
+        AutoRelease<IStatement> m_stmt_get_analyzers{ nullptr };
+        AutoRelease<IStatement> m_stmt_has_analyzer{ nullptr };
+        AutoRelease<IStatement> m_stmt_get_stopwords{ nullptr };
+        AutoRelease<IStatement> m_stmt_insert_stopword{ nullptr };
+        AutoRelease<IStatement> m_stmt_delete_stopword{ nullptr };
 
-		// SQL texts
-		const char* SQL_ANALYZER_INFO =
-			R"SQL(
+        // SQL texts
+        const char* SQL_ANALYZER_INFO =
+            R"SQL(
 SELECT
     A.FTS$ANALYZER_NAME
   , A.FTS$BASE_ANALYZER
@@ -56,8 +56,8 @@ FROM FTS$ANALYZERS A
 WHERE A.FTS$ANALYZER_NAME = ?
 )SQL";
 
-		const char* SQL_ANALYZER_INFOS =
-			R"SQL(
+        const char* SQL_ANALYZER_INFOS =
+            R"SQL(
 SELECT
     A.FTS$ANALYZER_NAME
   , A.FTS$BASE_ANALYZER
@@ -66,15 +66,15 @@ FROM FTS$ANALYZERS A
 ORDER BY A.FTS$ANALYZER_NAME
 )SQL";
 
-		const char* SQL_ANALYZER_EXISTS =
-			R"SQL(
+        const char* SQL_ANALYZER_EXISTS =
+            R"SQL(
 SELECT COUNT(*) AS CNT
 FROM FTS$ANALYZERS A
 WHERE A.FTS$ANALYZER_NAME = ?
 )SQL";
 
-		const char* SQL_INSERT_ANALYZER =
-			R"SQL(
+        const char* SQL_INSERT_ANALYZER =
+            R"SQL(
 INSERT INTO FTS$ANALYZERS (
     FTS$ANALYZER_NAME,
     FTS$BASE_ANALYZER,
@@ -85,22 +85,22 @@ VALUES (
     ?)
 )SQL";
 
-		const char* SQL_DELETE_ANALYZER =
-			R"SQL(
+        const char* SQL_DELETE_ANALYZER =
+            R"SQL(
 DELETE FROM FTS$ANALYZERS A
 WHERE A.FTS$ANALYZER_NAME = ?
 )SQL";
 
-		const char* SQL_STOP_WORDS =
-			R"SQL(
+        const char* SQL_STOP_WORDS =
+            R"SQL(
 SELECT
     W.FTS$WORD
 FROM FTS$STOP_WORDS W
 WHERE W.FTS$ANALYZER_NAME = ?
 )SQL";
 
-		const char* SQL_INSERT_STOP_WORD =
-			R"SQL(
+        const char* SQL_INSERT_STOP_WORD =
+            R"SQL(
 EXECUTE BLOCK (
     FTS$ANALYZER_NAME VARCHAR(63) CHARACTER SET UTF8 = ?,
     FTS$WORD          VARCHAR(63) CHARACTER SET UTF8 = ?)
@@ -118,94 +118,94 @@ BEGIN
 END
 )SQL";
 
-		const char* SQL_DELETE_STOP_WORD =
-			R"SQL(
+        const char* SQL_DELETE_STOP_WORD =
+            R"SQL(
 DELETE FROM FTS$STOP_WORDS
 WHERE FTS$ANALYZER_NAME = ? AND FTS$WORD = ?
 )SQL";
-	public:
-		AnalyzerRepository() = delete;
-		AnalyzerRepository(AnalyzerRepository&&) = default;
-		explicit AnalyzerRepository(IMaster* const master);
+    public:
+        AnalyzerRepository() = delete;
+        AnalyzerRepository(AnalyzerRepository&&) = default;
+        explicit AnalyzerRepository(IMaster* const master);
 
-		~AnalyzerRepository();
+        ~AnalyzerRepository();
 
 
-		AnalyzerPtr createAnalyzer (
-			ThrowStatusWrapper* const status,
-			IAttachment* const att,
-			ITransaction* const tra,
-			const unsigned int sqlDialect,
-			const string& analyzerName
-		);
+        AnalyzerPtr createAnalyzer (
+            ThrowStatusWrapper* const status,
+            IAttachment* const att,
+            ITransaction* const tra,
+            const unsigned int sqlDialect,
+            const string& analyzerName
+        );
 
-		const LuceneUDR::AnalyzerInfo getAnalyzerInfo (
-			ThrowStatusWrapper* const status,
-			IAttachment* const att,
-			ITransaction* const tra,
-			const unsigned int sqlDialect,
-			const string& analyzerName
-		);
+        const LuceneUDR::AnalyzerInfo getAnalyzerInfo (
+            ThrowStatusWrapper* const status,
+            IAttachment* const att,
+            ITransaction* const tra,
+            const unsigned int sqlDialect,
+            const string& analyzerName
+        );
 
-		list<LuceneUDR::AnalyzerInfo> getAnalyzerInfos (
-			ThrowStatusWrapper* const status,
-			IAttachment* const att,
-			ITransaction* const tra,
-			const unsigned int sqlDialect
-		);
+        list<LuceneUDR::AnalyzerInfo> getAnalyzerInfos (
+            ThrowStatusWrapper* const status,
+            IAttachment* const att,
+            ITransaction* const tra,
+            const unsigned int sqlDialect
+        );
 
-		bool hasAnalyzer (
-			ThrowStatusWrapper* const status,
-			IAttachment* const att,
-			ITransaction* const tra,
-			const unsigned int sqlDialect,
-			const string& analyzerName
-		);
+        bool hasAnalyzer (
+            ThrowStatusWrapper* const status,
+            IAttachment* const att,
+            ITransaction* const tra,
+            const unsigned int sqlDialect,
+            const string& analyzerName
+        );
 
-		void addAnalyzer (
-			ThrowStatusWrapper* const status,
-			IAttachment* const att,
-			ITransaction* const tra,
-			const unsigned int sqlDialect,
-			const string& analyzerName,
-			const string& baseAnalyzer,
-			const string& description
-		);
+        void addAnalyzer (
+            ThrowStatusWrapper* const status,
+            IAttachment* const att,
+            ITransaction* const tra,
+            const unsigned int sqlDialect,
+            const string& analyzerName,
+            const string& baseAnalyzer,
+            const string& description
+        );
 
-		void deleteAnalyzer(
-			ThrowStatusWrapper* const status,
-			IAttachment* const att,
-			ITransaction* const tra,
-			const unsigned int sqlDialect,
-			const string& analyzerName
-		);
+        void deleteAnalyzer(
+            ThrowStatusWrapper* const status,
+            IAttachment* const att,
+            ITransaction* const tra,
+            const unsigned int sqlDialect,
+            const string& analyzerName
+        );
 
-		const HashSet<String> getStopWords (
-			ThrowStatusWrapper* const status,
-			IAttachment* const att,
-			ITransaction* const tra,
-			const unsigned int sqlDialect,
-			const string& analyzerName
-		);
+        const HashSet<String> getStopWords (
+            ThrowStatusWrapper* const status,
+            IAttachment* const att,
+            ITransaction* const tra,
+            const unsigned int sqlDialect,
+            const string& analyzerName
+        );
 
-		void addStopWord (
-			ThrowStatusWrapper* const status,
-			IAttachment* const att,
-			ITransaction* const tra,
-			const unsigned int sqlDialect,
-			const string& analyzerName,
-			const string& stopWord
-		);
+        void addStopWord (
+            ThrowStatusWrapper* const status,
+            IAttachment* const att,
+            ITransaction* const tra,
+            const unsigned int sqlDialect,
+            const string& analyzerName,
+            const string& stopWord
+        );
 
-		void deleteStopWord(
-			ThrowStatusWrapper* const status,
-			IAttachment* const att,
-			ITransaction* const tra,
-			const unsigned int sqlDialect,
-			const string& analyzerName,
-			const string& stopWord
-		);
-	};
+        void deleteStopWord(
+            ThrowStatusWrapper* const status,
+            IAttachment* const att,
+            ITransaction* const tra,
+            const unsigned int sqlDialect,
+            const string& analyzerName,
+            const string& stopWord
+        );
+    };
 }
 
 #endif // LUCENE_ANALYZERS_H

@@ -24,95 +24,95 @@ using namespace std;
 
 namespace FTSMetadata
 {
-	enum class RelationType {
-	   RT_REGULAR,
-	   RT_VIEW,
-	   RT_EXTERNAL,
-	   RT_VIRTUAL,
-	   RT_GTT_PRESERVE_ROWS,
-	   RT_GTT_DELETE_ROWS
-	};
+    enum class RelationType {
+       RT_REGULAR,
+       RT_VIEW,
+       RT_EXTERNAL,
+       RT_VIRTUAL,
+       RT_GTT_PRESERVE_ROWS,
+       RT_GTT_DELETE_ROWS
+    };
 
-	class RelationInfo final
-	{
-	public:
-		string relationName{ "" };
-		RelationType relationType{ RelationType::RT_REGULAR };
-		bool systemFlag = false;
-	public:
-		RelationInfo() = default;
+    class RelationInfo final
+    {
+    public:
+        string relationName{ "" };
+        RelationType relationType{ RelationType::RT_REGULAR };
+        bool systemFlag = false;
+    public:
+        RelationInfo() = default;
 
-		bool findKeyFieldSupported() {
-			return (relationType == RelationType::RT_REGULAR || relationType == RelationType::RT_GTT_PRESERVE_ROWS || relationType == RelationType::RT_GTT_DELETE_ROWS);
-		}
-	};
-	using RelationInfoPtr = unique_ptr<RelationInfo>;
+        bool findKeyFieldSupported() {
+            return (relationType == RelationType::RT_REGULAR || relationType == RelationType::RT_GTT_PRESERVE_ROWS || relationType == RelationType::RT_GTT_DELETE_ROWS);
+        }
+    };
+    using RelationInfoPtr = unique_ptr<RelationInfo>;
 
-	class RelationFieldInfo final
-	{
-	public:
-		string relationName{ "" };
-		string fieldName{ "" };
-		short  fieldType = 0;
-		short fieldLength = 0;
-		short charLength = 0;
-		short charsetId = 0;
-		short fieldSubType = 0;
-		short fieldPrecision = 0;
-		short fieldScale = 0;
-	public:
-		RelationFieldInfo() = default;
+    class RelationFieldInfo final
+    {
+    public:
+        string relationName{ "" };
+        string fieldName{ "" };
+        short  fieldType = 0;
+        short fieldLength = 0;
+        short charLength = 0;
+        short charsetId = 0;
+        short fieldSubType = 0;
+        short fieldPrecision = 0;
+        short fieldScale = 0;
+    public:
+        RelationFieldInfo() = default;
 
-		bool isInt() {
-			return (fieldScale == 0) && (fieldType == 7 || fieldType == 8 || fieldType == 16 || fieldType == 26);
-		}
+        bool isInt() {
+            return (fieldScale == 0) && (fieldType == 7 || fieldType == 8 || fieldType == 16 || fieldType == 26);
+        }
 
-		bool isFixedChar() {
-			return (fieldType == 14);
-		}
+        bool isFixedChar() {
+            return (fieldType == 14);
+        }
 
-		bool isVarChar() {
-			return (fieldType == 37);
-		}
+        bool isVarChar() {
+            return (fieldType == 37);
+        }
 
-		bool isBlob() {
-			return (fieldType == 261);
-		}
+        bool isBlob() {
+            return (fieldType == 261);
+        }
 
-		bool isBinary() {
-			return (isBlob() && fieldSubType == 0) || ((isFixedChar() || isVarChar()) && charsetId == 1);
-		}
+        bool isBinary() {
+            return (isBlob() && fieldSubType == 0) || ((isFixedChar() || isVarChar()) && charsetId == 1);
+        }
 
-		void initDB_KEYField(const string& aRelationName) {
-			relationName = aRelationName;
-			fieldName = "RDB$DB_KEY";
-			fieldType = 14;
-			fieldLength = 8;
-			charLength = 8;
-			charsetId = 1;
-			fieldSubType = 0;
-			fieldPrecision = 0;
-			fieldScale = 0;
-		}
-	};
+        void initDB_KEYField(const string& aRelationName) {
+            relationName = aRelationName;
+            fieldName = "RDB$DB_KEY";
+            fieldType = 14;
+            fieldLength = 8;
+            charLength = 8;
+            charsetId = 1;
+            fieldSubType = 0;
+            fieldPrecision = 0;
+            fieldScale = 0;
+        }
+    };
 
-	using RelationFieldInfoPtr = unique_ptr<RelationFieldInfo>;
-	using RelationFieldList = list<RelationFieldInfoPtr>;
+    using RelationFieldInfoPtr = unique_ptr<RelationFieldInfo>;
+    using RelationFieldList = list<RelationFieldInfoPtr>;
 
-	class RelationHelper final
-	{
-	private:
-		IMaster* m_master = nullptr;
-		// prepared statements
-		AutoRelease<IStatement> m_stmt_get_relation{ nullptr };
-		AutoRelease<IStatement> m_stmt_exists_relation{ nullptr };
-		AutoRelease<IStatement> m_stmt_relation_fields{ nullptr };
-		AutoRelease<IStatement> m_stmt_pk_fields{ nullptr };
-		AutoRelease<IStatement> m_stmt_get_field{ nullptr };
-		AutoRelease<IStatement> m_stmt_exists_field{ nullptr };
+    class RelationHelper final
+    {
+    private:
+        IMaster* m_master = nullptr;
+        // prepared statements
+        AutoRelease<IStatement> m_stmt_get_relation{ nullptr };
+        AutoRelease<IStatement> m_stmt_exists_relation{ nullptr };
+        AutoRelease<IStatement> m_stmt_relation_fields{ nullptr };
+        AutoRelease<IStatement> m_stmt_pk_fields{ nullptr };
+        AutoRelease<IStatement> m_stmt_get_field{ nullptr };
+        AutoRelease<IStatement> m_stmt_exists_field{ nullptr };
 
-		// SQL texts
-		const char* SQL_RELATION_INFO = 
+        // SQL texts
+        const char* SQL_RELATION_INFO = 
 R"SQL(
 SELECT
   TRIM(R.RDB$RELATION_NAME) AS RDB$RELATION_NAME,
@@ -125,14 +125,14 @@ FROM RDB$RELATIONS R
 WHERE R.RDB$RELATION_NAME = ?
 )SQL";
 
-		const char* SQL_RELATION_EXISTS =
+        const char* SQL_RELATION_EXISTS =
 R"SQL(
 SELECT COUNT(*) AS CNT
 FROM RDB$RELATIONS
 WHERE RDB$RELATION_NAME = ?
 )SQL";
 
-		const char* SQL_RELATION_FIELDS =
+        const char* SQL_RELATION_FIELDS =
 R"SQL(
 SELECT
     TRIM(RF.RDB$RELATION_NAME) AS RDB$RELATION_NAME
@@ -150,7 +150,7 @@ JOIN RDB$FIELDS F
 WHERE RF.RDB$RELATION_NAME = ?
 )SQL";
 
-		const char* SQL_RELATION_KEY_FIELDS =
+        const char* SQL_RELATION_KEY_FIELDS =
 R"SQL(
 SELECT
     TRIM(RF.RDB$RELATION_NAME) AS RDB$RELATION_NAME
@@ -174,7 +174,7 @@ WHERE RC.RDB$RELATION_NAME = ?
   AND RC.RDB$CONSTRAINT_TYPE = 'PRIMARY KEY'
 )SQL";
 
-		const char* SQL_RELATION_FIELD =
+        const char* SQL_RELATION_FIELD =
 R"SQL(
 SELECT
     TRIM(RF.RDB$RELATION_NAME) AS RDB$RELATION_NAME
@@ -192,141 +192,141 @@ JOIN RDB$FIELDS F
 WHERE RF.RDB$RELATION_NAME = ? AND RF.RDB$FIELD_NAME = ?
 )SQL";
 
-		const char* SQL_RELATION_FIELD_EXISTS = 
+        const char* SQL_RELATION_FIELD_EXISTS = 
 R"SQL(
 SELECT COUNT(*) AS CNT
 FROM RDB$RELATION_FIELDS
 WHERE RDB$RELATION_NAME = ? AND RDB$FIELD_NAME = ?
 )SQL";
-	public:
-		RelationHelper() = delete;
+    public:
+        RelationHelper() = delete;
 
-		explicit RelationHelper(IMaster* master);
+        explicit RelationHelper(IMaster* master);
 
-		~RelationHelper();
+        ~RelationHelper();
 
-		/// <summary>
-		/// Returns information about the relation.
-		/// </summary>
-		/// 
-		/// <param name="status">Firebird status</param>
-		/// <param name="att">Firebird attachment</param>
-		/// <param name="tra">Firebird transaction</param>
-		/// <param name="sqlDialect">SQL dialect</param>
-		/// <param name="relationInfo">Information about the relation</param>
-		/// <param name="relationName">Relation name</param>
-		/// 
-		void getRelationInfo(
-			ThrowStatusWrapper* const status,
-			IAttachment* const att,
-			ITransaction* const tra,
-			const unsigned int sqlDialect,
-			RelationInfoPtr& relationInfo,
-			const string& relationName
-		);
+        /// <summary>
+        /// Returns information about the relation.
+        /// </summary>
+        /// 
+        /// <param name="status">Firebird status</param>
+        /// <param name="att">Firebird attachment</param>
+        /// <param name="tra">Firebird transaction</param>
+        /// <param name="sqlDialect">SQL dialect</param>
+        /// <param name="relationInfo">Information about the relation</param>
+        /// <param name="relationName">Relation name</param>
+        /// 
+        void getRelationInfo(
+            ThrowStatusWrapper* const status,
+            IAttachment* const att,
+            ITransaction* const tra,
+            const unsigned int sqlDialect,
+            RelationInfoPtr& relationInfo,
+            const string& relationName
+        );
 
-		/// <summary>
-		/// Checks if the given relation exists.
-		/// </summary>
-		/// 
-		/// <param name="status">Firebird status</param>
-		/// <param name="att">Firebird attachment</param>
-		/// <param name="tra">Firebird transaction</param>
-		/// <param name="sqlDialect">SQL dialect</param>
-		/// <param name="relationName">Relation name</param>
-		/// 
-		/// <returns>Returns true if the relation exists, false otherwise.</returns>
-		bool relationExists(
-			ThrowStatusWrapper* const status,
-			IAttachment* const att,
-			ITransaction* const tra,
-			const unsigned int sqlDialect,
-			const string &relationName);
+        /// <summary>
+        /// Checks if the given relation exists.
+        /// </summary>
+        /// 
+        /// <param name="status">Firebird status</param>
+        /// <param name="att">Firebird attachment</param>
+        /// <param name="tra">Firebird transaction</param>
+        /// <param name="sqlDialect">SQL dialect</param>
+        /// <param name="relationName">Relation name</param>
+        /// 
+        /// <returns>Returns true if the relation exists, false otherwise.</returns>
+        bool relationExists(
+            ThrowStatusWrapper* const status,
+            IAttachment* const att,
+            ITransaction* const tra,
+            const unsigned int sqlDialect,
+            const string &relationName);
 
-		/// <summary>
-		/// Returns a list of relations fields.
-		/// </summary>
-		/// 
-		/// <param name="status">Firebird status</param>
-		/// <param name="att">Firebird attachment</param>
-		/// <param name="tra">Firebird transaction</param>
-		/// <param name="sqlDialect">SQL dialect</param>
-		/// <param name="relationName">Relation name</param>
-		/// <param name="fields">List of relations fields</param>
-		/// 
-		void fillRelationFields(
-			ThrowStatusWrapper* const status,
-			IAttachment* const att,
-			ITransaction* const tra,
-			const unsigned int sqlDialect,
-			const string& relationName,
-			RelationFieldList& fields
-		);
+        /// <summary>
+        /// Returns a list of relations fields.
+        /// </summary>
+        /// 
+        /// <param name="status">Firebird status</param>
+        /// <param name="att">Firebird attachment</param>
+        /// <param name="tra">Firebird transaction</param>
+        /// <param name="sqlDialect">SQL dialect</param>
+        /// <param name="relationName">Relation name</param>
+        /// <param name="fields">List of relations fields</param>
+        /// 
+        void fillRelationFields(
+            ThrowStatusWrapper* const status,
+            IAttachment* const att,
+            ITransaction* const tra,
+            const unsigned int sqlDialect,
+            const string& relationName,
+            RelationFieldList& fields
+        );
 
-		/// <summary>
-		/// Returns a list of relations primary key fields.
-		/// </summary>
-		/// 
-		/// <param name="status">Firebird status</param>
-		/// <param name="att">Firebird attachment</param>
-		/// <param name="tra">Firebird transaction</param>
-		/// <param name="sqlDialect">SQL dialect</param>
-		/// <param name="relationName">Relation name</param>
-		/// <param name="keyFields">List of relations primary key fields</param>
-		/// 
-		void fillPrimaryKeyFields(
-			ThrowStatusWrapper* const status,
-			IAttachment* const att,
-			ITransaction* const tra,
-			const unsigned int sqlDialect,
-			const string& relationName,
-			RelationFieldList& keyFields
-		);
+        /// <summary>
+        /// Returns a list of relations primary key fields.
+        /// </summary>
+        /// 
+        /// <param name="status">Firebird status</param>
+        /// <param name="att">Firebird attachment</param>
+        /// <param name="tra">Firebird transaction</param>
+        /// <param name="sqlDialect">SQL dialect</param>
+        /// <param name="relationName">Relation name</param>
+        /// <param name="keyFields">List of relations primary key fields</param>
+        /// 
+        void fillPrimaryKeyFields(
+            ThrowStatusWrapper* const status,
+            IAttachment* const att,
+            ITransaction* const tra,
+            const unsigned int sqlDialect,
+            const string& relationName,
+            RelationFieldList& keyFields
+        );
 
-		/// <summary>
-		/// Returns information about the field.
-		/// </summary>
-		/// 
-		/// <param name="status">Firebird status</param>
-		/// <param name="att">Firebird attachment</param>
-		/// <param name="tra">Firebird transaction</param>
-		/// <param name="sqlDialect">SQL dialect</param>
-		/// <param name="fieldInfo">Information about the field</param>
-		/// <param name="relationName">Relation name</param>
-		/// <param name="fieldName">Field name</param>
-		/// 
-		void getField(
-			ThrowStatusWrapper* const status,
-			IAttachment* const att,
-			ITransaction* const tra,
-			const unsigned int sqlDialect,
-			const RelationFieldInfoPtr& fieldInfo,
-			const string& relationName,
-			const string& fieldName
-		);
+        /// <summary>
+        /// Returns information about the field.
+        /// </summary>
+        /// 
+        /// <param name="status">Firebird status</param>
+        /// <param name="att">Firebird attachment</param>
+        /// <param name="tra">Firebird transaction</param>
+        /// <param name="sqlDialect">SQL dialect</param>
+        /// <param name="fieldInfo">Information about the field</param>
+        /// <param name="relationName">Relation name</param>
+        /// <param name="fieldName">Field name</param>
+        /// 
+        void getField(
+            ThrowStatusWrapper* const status,
+            IAttachment* const att,
+            ITransaction* const tra,
+            const unsigned int sqlDialect,
+            const RelationFieldInfoPtr& fieldInfo,
+            const string& relationName,
+            const string& fieldName
+        );
 
-		/// <summary>
-		/// Checks if the specified column exists in the relation. 
-		/// </summary>
-		/// 
-		/// <param name="status">Firebird status</param>
-		/// <param name="att">Firebird attachment</param>
-		/// <param name="tra">Firebird transaction</param>
-		/// <param name="sqlDialect">SQL dialect</param>
-		/// <param name="relationName">Relation name</param>
-		/// <param name="fieldName">Field name</param>
-		/// 
-		/// <returns>Returns true if the column exists, false otherwise.</returns>
-		bool fieldExists(
-			ThrowStatusWrapper* const status,
-			IAttachment* const att,
-			ITransaction* const tra,
-			const unsigned int sqlDialect,
-			const string &relationName,
-			const string &fieldName);
-	};
+        /// <summary>
+        /// Checks if the specified column exists in the relation. 
+        /// </summary>
+        /// 
+        /// <param name="status">Firebird status</param>
+        /// <param name="att">Firebird attachment</param>
+        /// <param name="tra">Firebird transaction</param>
+        /// <param name="sqlDialect">SQL dialect</param>
+        /// <param name="relationName">Relation name</param>
+        /// <param name="fieldName">Field name</param>
+        /// 
+        /// <returns>Returns true if the column exists, false otherwise.</returns>
+        bool fieldExists(
+            ThrowStatusWrapper* const status,
+            IAttachment* const att,
+            ITransaction* const tra,
+            const unsigned int sqlDialect,
+            const string &relationName,
+            const string &fieldName);
+    };
 
-	using RelationHelperPtr = unique_ptr<RelationHelper>;
+    using RelationHelperPtr = unique_ptr<RelationHelper>;
 }
 
 #endif	// FTS_RELATIONS_H

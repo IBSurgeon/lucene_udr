@@ -23,50 +23,50 @@ using namespace std;
 namespace LuceneUDR 
 {
 
-	class LuceneFileHelper final
-	{
-	public:
-		LuceneFileHelper()
-			: m_ftsIndexDir(nullptr)
-		{}
+    class LuceneFileHelper final
+    {
+    public:
+        LuceneFileHelper()
+            : m_ftsIndexDir(nullptr)
+        {}
 
-		LuceneFileHelper(FSDirectoryPtr fsDirectory)
-			: m_ftsIndexDir(fsDirectory)
-		{
-		}
+        LuceneFileHelper(FSDirectoryPtr fsDirectory)
+            : m_ftsIndexDir(fsDirectory)
+        {
+        }
 
-		void setDirectory(FSDirectoryPtr fsDirectory)
-		{
-			m_ftsIndexDir = fsDirectory;
-		}
+        void setDirectory(FSDirectoryPtr fsDirectory)
+        {
+            m_ftsIndexDir = fsDirectory;
+        }
 
-		list<String> getIndexFileNames();
+        list<String> getIndexFileNames();
 
-		size_t getIndexSize()
-		{
-			size_t size = 0;
-			for (const auto& fileName : getIndexFileNames())
-			{
-				size += m_ftsIndexDir->fileLength(fileName);
-			}
-			return size;
-		}
+        size_t getIndexSize()
+        {
+            size_t size = 0;
+            for (const auto& fileName : getIndexFileNames())
+            {
+                size += m_ftsIndexDir->fileLength(fileName);
+            }
+            return size;
+        }
 
-		size_t getFileSize(const String& fileName)
-		{
-			return m_ftsIndexDir->fileLength(fileName);
-		}
+        size_t getFileSize(const String& fileName)
+        {
+            return m_ftsIndexDir->fileLength(fileName);
+        }
 
-		string getIndexFileType(const String& fileName);
+        string getIndexFileType(const String& fileName);
 
-	private:
-		FSDirectoryPtr m_ftsIndexDir;
+    private:
+        FSDirectoryPtr m_ftsIndexDir;
 
-		inline bool endsWith(const String& str, const String& suffix)
-		{
-			return str.size() >= suffix.size() && 0 == str.compare(str.size() - suffix.size(), suffix.size(), suffix);
-		}
-	};
+        inline bool endsWith(const String& str, const String& suffix)
+        {
+            return str.size() >= suffix.size() && 0 == str.compare(str.size() - suffix.size(), suffix.size(), suffix);
+        }
+    };
 
 }
 

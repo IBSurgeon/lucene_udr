@@ -21,490 +21,453 @@ using namespace LuceneUDR;
 namespace FTSMetadata
 {
 
-	RelationHelper::RelationHelper(IMaster* master)
-		: m_master(master)
-	{}
+    RelationHelper::RelationHelper(IMaster* master)
+        : m_master(master)
+    {}
 
-	RelationHelper::~RelationHelper() = default;
+    RelationHelper::~RelationHelper() = default;
 
-	/// <summary>
-	/// Returns information about the relation.
-	/// </summary>
-	/// 
-	/// <param name="status">Firebird status</param>
-	/// <param name="att">Firebird attachment</param>
-	/// <param name="tra">Firebird transaction</param>
-	/// <param name="sqlDialect">SQL dialect</param>
-	/// <param name="relationInfo">Information about the relation</param>
-	/// <param name="relationName">Relation name</param>
-	/// 
-	void RelationHelper::getRelationInfo(
-		ThrowStatusWrapper* const status,
-		IAttachment* const att,
-		ITransaction* const tra,
-		const unsigned int sqlDialect,
-		RelationInfoPtr& relationInfo,
-		const string& relationName)
-	{
-		FB_MESSAGE(Input, ThrowStatusWrapper,
-			(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
-		) input(status, m_master);
+    /// <summary>
+    /// Returns information about the relation.
+    /// </summary>
+    /// 
+    /// <param name="status">Firebird status</param>
+    /// <param name="att">Firebird attachment</param>
+    /// <param name="tra">Firebird transaction</param>
+    /// <param name="sqlDialect">SQL dialect</param>
+    /// <param name="relationInfo">Information about the relation</param>
+    /// <param name="relationName">Relation name</param>
+    /// 
+    void RelationHelper::getRelationInfo(
+        ThrowStatusWrapper* const status,
+        IAttachment* const att,
+        ITransaction* const tra,
+        const unsigned int sqlDialect,
+        RelationInfoPtr& relationInfo,
+        const string& relationName)
+    {
+        FB_MESSAGE(Input, ThrowStatusWrapper,
+            (FB_INTL_VARCHAR(252, CS_UTF8), relationName)
+        ) input(status, m_master);
 
-		FB_MESSAGE(Output, ThrowStatusWrapper,
-			(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
-			(FB_INTEGER, relationType)
-			(FB_SMALLINT, systemFlag)
-		) output(status, m_master);
+        FB_MESSAGE(Output, ThrowStatusWrapper,
+            (FB_INTL_VARCHAR(252, CS_UTF8), relationName)
+            (FB_INTEGER, relationType)
+            (FB_SMALLINT, systemFlag)
+        ) output(status, m_master);
 
-		input.clear();
-		input->relationName.length = static_cast<ISC_USHORT>(relationName.length());
-		relationName.copy(input->relationName.str, input->relationName.length);
+        input.clear();
+        input->relationName.length = static_cast<ISC_USHORT>(relationName.length());
+        relationName.copy(input->relationName.str, input->relationName.length);
 
-		if (!m_stmt_get_relation.hasData()) {
-			m_stmt_get_relation.reset(att->prepare(
-				status,
-				tra,
-				0,
-				SQL_RELATION_INFO,
-				sqlDialect,
-				IStatement::PREPARE_PREFETCH_METADATA
-			));
-		}
+        if (!m_stmt_get_relation.hasData()) {
+            m_stmt_get_relation.reset(att->prepare(
+                status,
+                tra,
+                0,
+                SQL_RELATION_INFO,
+                sqlDialect,
+                IStatement::PREPARE_PREFETCH_METADATA
+            ));
+        }
 
-		int result = IStatus::RESULT_NO_DATA;
-		IResultSet* rs = m_stmt_get_relation->openCursor(
-			status,
-			tra,
-			input.getMetadata(),
-			input.getData(),
-			output.getMetadata(),
-			0
-		);
-		try {
-			result = rs->fetchNext(status, output.getData());
-			rs->close(status);
-			rs = nullptr;
-		}
-		catch (...) {
-			if (rs) rs->release();
-			rs = nullptr;
-			throw;
-		}
-		if (result == IStatus::RESULT_NO_DATA) {
-			throwException(status, R"(Relation "%s" not exists)", relationName.c_str());
-		}
-		
-		if (result == IStatus::RESULT_OK) {
-			relationInfo->relationName.assign(output->relationName.str, output->relationName.length);
-			relationInfo->relationType = static_cast<RelationType>(output->relationType);
-			relationInfo->systemFlag = static_cast<bool>(output->systemFlag);
-		}
-	}
+        AutoRelease<IResultSet> rs(m_stmt_get_relation->openCursor(
+            status,
+            tra,
+            input.getMetadata(),
+            input.getData(),
+            output.getMetadata(),
+            0
+        ));
 
-	/// <summary>
-	/// Checks if the given relation exists.
-	/// </summary>
-	/// 
-	/// <param name="status">Firebird status</param>
-	/// <param name="att">Firebird attachment</param>
-	/// <param name="tra">Firebird transaction</param>
-	/// <param name="sqlDialect">SQL dialect</param>
-	/// <param name="relationName">Relation name</param>
-	/// 
-	/// <returns>Returns true if the relation exists, false otherwise.</returns>
-	bool RelationHelper::relationExists(
-		ThrowStatusWrapper* status,
-		IAttachment* att,
-		ITransaction* tra,
-		const unsigned int sqlDialect,
-		const string& relationName)
-	{
-		FB_MESSAGE(Input, ThrowStatusWrapper,
-			(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
-		) input(status, m_master);
+        int result = rs->fetchNext(status, output.getData());
+        rs->close(status);
+        rs.release();
 
-		FB_MESSAGE(Output, ThrowStatusWrapper,
-			(FB_INTEGER, cnt)
-		) output(status, m_master);
+        if (result == IStatus::RESULT_NO_DATA) {
+            throwException(status, R"(Relation "%s" not exists)", relationName.c_str());
+        }
+        
+        if (result == IStatus::RESULT_OK) {
+            relationInfo->relationName.assign(output->relationName.str, output->relationName.length);
+            relationInfo->relationType = static_cast<RelationType>(output->relationType);
+            relationInfo->systemFlag = static_cast<bool>(output->systemFlag);
+        }
+    }
 
-		input.clear();
-		input->relationName.length = static_cast<ISC_USHORT>(relationName.length());
-		relationName.copy(input->relationName.str, input->relationName.length);
+    /// <summary>
+    /// Checks if the given relation exists.
+    /// </summary>
+    /// 
+    /// <param name="status">Firebird status</param>
+    /// <param name="att">Firebird attachment</param>
+    /// <param name="tra">Firebird transaction</param>
+    /// <param name="sqlDialect">SQL dialect</param>
+    /// <param name="relationName">Relation name</param>
+    /// 
+    /// <returns>Returns true if the relation exists, false otherwise.</returns>
+    bool RelationHelper::relationExists(
+        ThrowStatusWrapper* status,
+        IAttachment* att,
+        ITransaction* tra,
+        const unsigned int sqlDialect,
+        const string& relationName)
+    {
+        FB_MESSAGE(Input, ThrowStatusWrapper,
+            (FB_INTL_VARCHAR(252, CS_UTF8), relationName)
+        ) input(status, m_master);
 
-		if (!m_stmt_exists_relation.hasData()) {
-			m_stmt_exists_relation.reset(att->prepare(
-				status,
-				tra,
-				0,
-				SQL_RELATION_EXISTS,
-				sqlDialect,
-				IStatement::PREPARE_PREFETCH_METADATA
-			));
-		}
+        FB_MESSAGE(Output, ThrowStatusWrapper,
+            (FB_INTEGER, cnt)
+        ) output(status, m_master);
 
-		IResultSet* rs = m_stmt_exists_relation->openCursor(
-			status,
-			tra,
-			input.getMetadata(),
-			input.getData(),
-			output.getMetadata(),
-			0
-		);
-		bool foundFlag = false;
-		try {
-			if (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
-				foundFlag = (output->cnt > 0);
-			}
-			rs->close(status);
-			rs = nullptr;
-		}
-		catch (...) {
-			rs->release();
-			rs = nullptr;
-			throw;
-		}
+        input.clear();
+        input->relationName.length = static_cast<ISC_USHORT>(relationName.length());
+        relationName.copy(input->relationName.str, input->relationName.length);
 
-		return foundFlag;
-	}
+        if (!m_stmt_exists_relation.hasData()) {
+            m_stmt_exists_relation.reset(att->prepare(
+                status,
+                tra,
+                0,
+                SQL_RELATION_EXISTS,
+                sqlDialect,
+                IStatement::PREPARE_PREFETCH_METADATA
+            ));
+        }
 
-	/// <summary>
-	/// Returns a list of relations fields.
-	/// </summary>
-	/// 
-	/// <param name="status">Firebird status</param>
-	/// <param name="att">Firebird attachment</param>
-	/// <param name="tra">Firebird transaction</param>
-	/// <param name="sqlDialect">SQL dialect</param>
-	/// <param name="relationName">Relation name</param>
-	/// <param name="fields">List of relations fields</param>
-	/// 
-	void RelationHelper::fillRelationFields(
-		ThrowStatusWrapper* const status,
-		IAttachment* const att,
-		ITransaction* const tra,
-		const unsigned int sqlDialect,
-		const string& relationName,
-		RelationFieldList& fields
-	)
-	{
-		FB_MESSAGE(Input, ThrowStatusWrapper,
-			(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
-		) input(status, m_master);
+        AutoRelease<IResultSet> rs(m_stmt_exists_relation->openCursor(
+            status,
+            tra,
+            input.getMetadata(),
+            input.getData(),
+            output.getMetadata(),
+            0
+        ));
+        
+        bool foundFlag = false;
+        if (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
+            foundFlag = (output->cnt > 0);
+        }
+        rs->close(status);
+        rs.release();
 
-		FB_MESSAGE(Output, ThrowStatusWrapper,
-			(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
-			(FB_INTL_VARCHAR(252, CS_UTF8), fieldName)
-			(FB_SMALLINT, fieldType)
-			(FB_SMALLINT, fieldLength)
-			(FB_SMALLINT, charLength)
-			(FB_SMALLINT, charsetId)
-			(FB_SMALLINT, fieldSubType)
-			(FB_SMALLINT, fieldPrecision)
-			(FB_SMALLINT, fieldScale)
-		) output(status, m_master);
+        return foundFlag;
+    }
 
-		input.clear();
-		input->relationName.length = static_cast<ISC_USHORT>(relationName.length());
-		relationName.copy(input->relationName.str, input->relationName.length);
+    /// <summary>
+    /// Returns a list of relations fields.
+    /// </summary>
+    /// 
+    /// <param name="status">Firebird status</param>
+    /// <param name="att">Firebird attachment</param>
+    /// <param name="tra">Firebird transaction</param>
+    /// <param name="sqlDialect">SQL dialect</param>
+    /// <param name="relationName">Relation name</param>
+    /// <param name="fields">List of relations fields</param>
+    /// 
+    void RelationHelper::fillRelationFields(
+        ThrowStatusWrapper* const status,
+        IAttachment* const att,
+        ITransaction* const tra,
+        const unsigned int sqlDialect,
+        const string& relationName,
+        RelationFieldList& fields
+    )
+    {
+        FB_MESSAGE(Input, ThrowStatusWrapper,
+            (FB_INTL_VARCHAR(252, CS_UTF8), relationName)
+        ) input(status, m_master);
 
-		if (!m_stmt_relation_fields.hasData()) {
-			m_stmt_relation_fields.reset(att->prepare(
-				status,
-				tra,
-				0,
-				SQL_RELATION_FIELDS,
-				sqlDialect,
-				IStatement::PREPARE_PREFETCH_METADATA
-			));
-		}
-	
-		IResultSet* rs = m_stmt_relation_fields->openCursor(
-			status,
-			tra,
-			input.getMetadata(),
-			input.getData(),
-			output.getMetadata(),
-			0
-		);
-		try {
-			while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
-				auto fieldInfo = make_unique<RelationFieldInfo>();
+        FB_MESSAGE(Output, ThrowStatusWrapper,
+            (FB_INTL_VARCHAR(252, CS_UTF8), relationName)
+            (FB_INTL_VARCHAR(252, CS_UTF8), fieldName)
+            (FB_SMALLINT, fieldType)
+            (FB_SMALLINT, fieldLength)
+            (FB_SMALLINT, charLength)
+            (FB_SMALLINT, charsetId)
+            (FB_SMALLINT, fieldSubType)
+            (FB_SMALLINT, fieldPrecision)
+            (FB_SMALLINT, fieldScale)
+        ) output(status, m_master);
 
-				fieldInfo->relationName.assign(output->relationName.str, output->relationName.length);
-				fieldInfo->fieldName.assign(output->fieldName.str, output->fieldName.length);
-				fieldInfo->fieldType = output->fieldType;
-				fieldInfo->fieldLength = output->fieldLength;
-				fieldInfo->charLength = output->charLength;
-				fieldInfo->charsetId = output->charsetId;
-				fieldInfo->fieldSubType = output->fieldSubType;
-				fieldInfo->fieldPrecision = output->fieldPrecision;
-				fieldInfo->fieldScale = output->fieldScale;
+        input.clear();
+        input->relationName.length = static_cast<ISC_USHORT>(relationName.length());
+        relationName.copy(input->relationName.str, input->relationName.length);
 
-				fields.push_back(std::move(fieldInfo));
-			}
+        if (!m_stmt_relation_fields.hasData()) {
+            m_stmt_relation_fields.reset(att->prepare(
+                status,
+                tra,
+                0,
+                SQL_RELATION_FIELDS,
+                sqlDialect,
+                IStatement::PREPARE_PREFETCH_METADATA
+            ));
+        }
+    
+        AutoRelease<IResultSet> rs(m_stmt_relation_fields->openCursor(
+            status,
+            tra,
+            input.getMetadata(),
+            input.getData(),
+            output.getMetadata(),
+            0
+        ));
 
-			rs->close(status);
-			rs = nullptr;
-		}
-		catch (...) {
-			if (rs) rs->release();
-			rs = nullptr;
-			throw;
-		}
-	}
+        while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
+            auto fieldInfo = make_unique<RelationFieldInfo>();
 
-	/// <summary>
-	/// Returns a list of relations primary key fields.
-	/// </summary>
-	/// 
-	/// <param name="status">Firebird status</param>
-	/// <param name="att">Firebird attachment</param>
-	/// <param name="tra">Firebird transaction</param>
-	/// <param name="sqlDialect">SQL dialect</param>
-	/// <param name="relationName">Relation name</param>
-	/// <param name="keyFields">List of relations primary key fields</param>
-	/// 
-	void RelationHelper::fillPrimaryKeyFields(
-		ThrowStatusWrapper* const status,
-		IAttachment* const att,
-		ITransaction* const tra,
-		const unsigned int sqlDialect,
-		const string& relationName,
-		RelationFieldList& keyFields
-	)
-	{
-		FB_MESSAGE(Input, ThrowStatusWrapper,
-			(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
-		) input(status, m_master);
+            fieldInfo->relationName.assign(output->relationName.str, output->relationName.length);
+            fieldInfo->fieldName.assign(output->fieldName.str, output->fieldName.length);
+            fieldInfo->fieldType = output->fieldType;
+            fieldInfo->fieldLength = output->fieldLength;
+            fieldInfo->charLength = output->charLength;
+            fieldInfo->charsetId = output->charsetId;
+            fieldInfo->fieldSubType = output->fieldSubType;
+            fieldInfo->fieldPrecision = output->fieldPrecision;
+            fieldInfo->fieldScale = output->fieldScale;
 
-		FB_MESSAGE(Output, ThrowStatusWrapper,
-			(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
-			(FB_INTL_VARCHAR(252, CS_UTF8), fieldName)
-			(FB_SMALLINT, fieldType)
-			(FB_SMALLINT, fieldLength)
-			(FB_SMALLINT, charLength)
-			(FB_SMALLINT, charsetId)
-			(FB_SMALLINT, fieldSubType)
-			(FB_SMALLINT, fieldPrecision)
-			(FB_SMALLINT, fieldScale)
-		) output(status, m_master);
+            fields.push_back(std::move(fieldInfo));
+        }
 
-		input.clear();
-		input->relationName.length = static_cast<ISC_USHORT>(relationName.length());
-		relationName.copy(input->relationName.str, input->relationName.length);
+        rs->close(status);
+        rs.release();
+    }
 
-		if (!m_stmt_pk_fields.hasData()) {
-			m_stmt_pk_fields.reset(att->prepare(
-				status,
-				tra,
-				0,
-				SQL_RELATION_KEY_FIELDS,
-				sqlDialect,
-				IStatement::PREPARE_PREFETCH_METADATA
-			));
-		}
+    /// <summary>
+    /// Returns a list of relations primary key fields.
+    /// </summary>
+    /// 
+    /// <param name="status">Firebird status</param>
+    /// <param name="att">Firebird attachment</param>
+    /// <param name="tra">Firebird transaction</param>
+    /// <param name="sqlDialect">SQL dialect</param>
+    /// <param name="relationName">Relation name</param>
+    /// <param name="keyFields">List of relations primary key fields</param>
+    /// 
+    void RelationHelper::fillPrimaryKeyFields(
+        ThrowStatusWrapper* const status,
+        IAttachment* const att,
+        ITransaction* const tra,
+        const unsigned int sqlDialect,
+        const string& relationName,
+        RelationFieldList& keyFields
+    )
+    {
+        FB_MESSAGE(Input, ThrowStatusWrapper,
+            (FB_INTL_VARCHAR(252, CS_UTF8), relationName)
+        ) input(status, m_master);
 
-		IResultSet* rs = m_stmt_pk_fields->openCursor(
-			status,
-			tra,
-			input.getMetadata(),
-			input.getData(),
-			output.getMetadata(),
-			0
-		);
-		try {
-			while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
-				auto fieldInfo = make_unique<RelationFieldInfo>();
+        FB_MESSAGE(Output, ThrowStatusWrapper,
+            (FB_INTL_VARCHAR(252, CS_UTF8), relationName)
+            (FB_INTL_VARCHAR(252, CS_UTF8), fieldName)
+            (FB_SMALLINT, fieldType)
+            (FB_SMALLINT, fieldLength)
+            (FB_SMALLINT, charLength)
+            (FB_SMALLINT, charsetId)
+            (FB_SMALLINT, fieldSubType)
+            (FB_SMALLINT, fieldPrecision)
+            (FB_SMALLINT, fieldScale)
+        ) output(status, m_master);
 
-				fieldInfo->relationName.assign(output->relationName.str, output->relationName.length);
-				fieldInfo->fieldName.assign(output->fieldName.str, output->fieldName.length);
-				fieldInfo->fieldType = output->fieldType;
-				fieldInfo->fieldLength = output->fieldLength;
-				fieldInfo->charLength = output->charLength;
-				fieldInfo->charsetId = output->charsetId;
-				fieldInfo->fieldSubType = output->fieldSubType;
-				fieldInfo->fieldPrecision = output->fieldPrecision;
-				fieldInfo->fieldScale = output->fieldScale;
+        input.clear();
+        input->relationName.length = static_cast<ISC_USHORT>(relationName.length());
+        relationName.copy(input->relationName.str, input->relationName.length);
 
-				keyFields.push_back(std::move(fieldInfo));
-			}
+        if (!m_stmt_pk_fields.hasData()) {
+            m_stmt_pk_fields.reset(att->prepare(
+                status,
+                tra,
+                0,
+                SQL_RELATION_KEY_FIELDS,
+                sqlDialect,
+                IStatement::PREPARE_PREFETCH_METADATA
+            ));
+        }
 
-			rs->close(status);
-			rs = nullptr;
-		}
-		catch (...) {
-			if (rs) rs->release();
-			rs = nullptr;
-			throw;
-		}
-	}
+        AutoRelease<IResultSet> rs(m_stmt_pk_fields->openCursor(
+            status,
+            tra,
+            input.getMetadata(),
+            input.getData(),
+            output.getMetadata(),
+            0
+        ));
 
-	/// <summary>
-	/// Returns information about the field.
-	/// </summary>
-	/// 
-	/// <param name="status">Firebird status</param>
-	/// <param name="att">Firebird attachment</param>
-	/// <param name="tra">Firebird transaction</param>
-	/// <param name="sqlDialect">SQL dialect</param>
-	/// <param name="fieldInfo">Information about the field</param>
-	/// <param name="relationName">Relation name</param>
-	/// <param name="fieldName">Field name</param>
-	/// 
-	void RelationHelper::getField(
-		ThrowStatusWrapper* status,
-		IAttachment* att,
-		ITransaction* tra,
-		const unsigned int sqlDialect,
-		const RelationFieldInfoPtr& fieldInfo,
-		const string& relationName,
-		const string& fieldName)
-	{
-		FB_MESSAGE(Input, ThrowStatusWrapper,
-			(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
-			(FB_INTL_VARCHAR(252, CS_UTF8), fieldName)
-		) input(status, m_master);
+        while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
+            auto fieldInfo = make_unique<RelationFieldInfo>();
 
-		FB_MESSAGE(Output, ThrowStatusWrapper,
-			(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
-			(FB_INTL_VARCHAR(252, CS_UTF8), fieldName)
-			(FB_SMALLINT, fieldType)
-			(FB_SMALLINT, fieldLength)
-			(FB_SMALLINT, charLength)
-			(FB_SMALLINT, charsetId)
-			(FB_SMALLINT, fieldSubType)
-			(FB_SMALLINT, fieldPrecision)
-			(FB_SMALLINT, fieldScale)
-		) output(status, m_master);
+            fieldInfo->relationName.assign(output->relationName.str, output->relationName.length);
+            fieldInfo->fieldName.assign(output->fieldName.str, output->fieldName.length);
+            fieldInfo->fieldType = output->fieldType;
+            fieldInfo->fieldLength = output->fieldLength;
+            fieldInfo->charLength = output->charLength;
+            fieldInfo->charsetId = output->charsetId;
+            fieldInfo->fieldSubType = output->fieldSubType;
+            fieldInfo->fieldPrecision = output->fieldPrecision;
+            fieldInfo->fieldScale = output->fieldScale;
 
-		input.clear();
+            keyFields.push_back(std::move(fieldInfo));
+        }
 
-		input->relationName.length = static_cast<ISC_USHORT>(relationName.length());
-		relationName.copy(input->relationName.str, input->relationName.length);
+        rs->close(status);
+        rs.release();
+    }
 
-		input->fieldName.length = static_cast<ISC_USHORT>(fieldName.length());
-		fieldName.copy(input->fieldName.str, input->fieldName.length);
+    /// <summary>
+    /// Returns information about the field.
+    /// </summary>
+    /// 
+    /// <param name="status">Firebird status</param>
+    /// <param name="att">Firebird attachment</param>
+    /// <param name="tra">Firebird transaction</param>
+    /// <param name="sqlDialect">SQL dialect</param>
+    /// <param name="fieldInfo">Information about the field</param>
+    /// <param name="relationName">Relation name</param>
+    /// <param name="fieldName">Field name</param>
+    /// 
+    void RelationHelper::getField(
+        ThrowStatusWrapper* status,
+        IAttachment* att,
+        ITransaction* tra,
+        const unsigned int sqlDialect,
+        const RelationFieldInfoPtr& fieldInfo,
+        const string& relationName,
+        const string& fieldName)
+    {
+        FB_MESSAGE(Input, ThrowStatusWrapper,
+            (FB_INTL_VARCHAR(252, CS_UTF8), relationName)
+            (FB_INTL_VARCHAR(252, CS_UTF8), fieldName)
+        ) input(status, m_master);
 
-		if (!m_stmt_get_field.hasData()) {
-			m_stmt_get_field.reset(att->prepare(
-				status,
-				tra,
-				0,
-				SQL_RELATION_FIELD,
-				sqlDialect,
-				IStatement::PREPARE_PREFETCH_METADATA
-			));
-		}
+        FB_MESSAGE(Output, ThrowStatusWrapper,
+            (FB_INTL_VARCHAR(252, CS_UTF8), relationName)
+            (FB_INTL_VARCHAR(252, CS_UTF8), fieldName)
+            (FB_SMALLINT, fieldType)
+            (FB_SMALLINT, fieldLength)
+            (FB_SMALLINT, charLength)
+            (FB_SMALLINT, charsetId)
+            (FB_SMALLINT, fieldSubType)
+            (FB_SMALLINT, fieldPrecision)
+            (FB_SMALLINT, fieldScale)
+        ) output(status, m_master);
 
-		int result = IStatus::RESULT_NO_DATA;
-		IResultSet* rs = m_stmt_get_field->openCursor(
-			status,
-			tra,
-			input.getMetadata(),
-			input.getData(),
-			output.getMetadata(),
-			0
-		);
+        input.clear();
 
-		try {
-			result = rs->fetchNext(status, output.getData());
-			rs->close(status);
-			rs = nullptr;
-		}
-		catch (...) {
-			if (rs) rs->release();
-			rs = nullptr;
-			throw;
-		}
+        input->relationName.length = static_cast<ISC_USHORT>(relationName.length());
+        relationName.copy(input->relationName.str, input->relationName.length);
 
-		if (result == IStatus::RESULT_NO_DATA) {
-			throwException(status, R"(Field "%s" not found in relation "%s".)", fieldName.c_str(), relationName.c_str());
-		}
+        input->fieldName.length = static_cast<ISC_USHORT>(fieldName.length());
+        fieldName.copy(input->fieldName.str, input->fieldName.length);
 
-		if (result == IStatus::RESULT_OK) {
-			fieldInfo->relationName.assign(output->relationName.str, output->relationName.length);
-			fieldInfo->fieldName.assign(output->fieldName.str, output->fieldName.length);
-			fieldInfo->fieldType = output->fieldType;
-			fieldInfo->fieldLength = output->fieldLength;
-			fieldInfo->charLength = output->charLength;
-			fieldInfo->charsetId = output->charsetId;
-			fieldInfo->fieldSubType = output->fieldSubType;
-			fieldInfo->fieldPrecision = output->fieldPrecision;
-			fieldInfo->fieldScale = output->fieldScale;
-		}
-	}
+        if (!m_stmt_get_field.hasData()) {
+            m_stmt_get_field.reset(att->prepare(
+                status,
+                tra,
+                0,
+                SQL_RELATION_FIELD,
+                sqlDialect,
+                IStatement::PREPARE_PREFETCH_METADATA
+            ));
+        }
 
-	/// <summary>
-	/// Checks if the specified column exists in the relation. 
-	/// </summary>
-	/// 
-	/// <param name="status">Firebird status</param>
-	/// <param name="att">Firebird attachment</param>
-	/// <param name="tra">Firebird transaction</param>
-	/// <param name="sqlDialect">SQL dialect</param>
-	/// <param name="relationName">Relation name</param>
-	/// <param name="fieldName">Field name</param>
-	/// 
-	/// <returns>Returns true if the column exists, false otherwise.</returns>
-	bool RelationHelper::fieldExists(
-		ThrowStatusWrapper* status,
-		IAttachment* att,
-		ITransaction* tra,
-		const unsigned int sqlDialect,
-		const string& relationName,
-		const string& fieldName)
-	{
-		FB_MESSAGE(Input, ThrowStatusWrapper,
-			(FB_INTL_VARCHAR(252, CS_UTF8), relationName)
-			(FB_INTL_VARCHAR(252, CS_UTF8), fieldName)
-		) input(status, m_master);
+        AutoRelease<IResultSet> rs(m_stmt_get_field->openCursor(
+            status,
+            tra,
+            input.getMetadata(),
+            input.getData(),
+            output.getMetadata(),
+            0
+        ));
 
-		FB_MESSAGE(Output, ThrowStatusWrapper,
-			(FB_INTEGER, cnt)
-		) output(status, m_master);
+        int result = rs->fetchNext(status, output.getData());
+        rs->close(status);
+        rs.release();
 
-		input.clear();
 
-		input->relationName.length = static_cast<ISC_USHORT>(relationName.length());
-		relationName.copy(input->relationName.str, input->relationName.length);
+        if (result == IStatus::RESULT_NO_DATA) {
+            throwException(status, R"(Field "%s" not found in relation "%s".)", fieldName.c_str(), relationName.c_str());
+        }
 
-		input->fieldName.length = static_cast<ISC_USHORT>(fieldName.length());
-		fieldName.copy(input->fieldName.str, input->fieldName.length);
+        if (result == IStatus::RESULT_OK) {
+            fieldInfo->relationName.assign(output->relationName.str, output->relationName.length);
+            fieldInfo->fieldName.assign(output->fieldName.str, output->fieldName.length);
+            fieldInfo->fieldType = output->fieldType;
+            fieldInfo->fieldLength = output->fieldLength;
+            fieldInfo->charLength = output->charLength;
+            fieldInfo->charsetId = output->charsetId;
+            fieldInfo->fieldSubType = output->fieldSubType;
+            fieldInfo->fieldPrecision = output->fieldPrecision;
+            fieldInfo->fieldScale = output->fieldScale;
+        }
+    }
 
-		if (!m_stmt_exists_field.hasData()) {
-			m_stmt_exists_field.reset(att->prepare(
-				status,
-				tra,
-				0,
-				SQL_RELATION_FIELD_EXISTS,
-				sqlDialect,
-				IStatement::PREPARE_PREFETCH_METADATA
-			));
-		}
+    /// <summary>
+    /// Checks if the specified column exists in the relation. 
+    /// </summary>
+    /// 
+    /// <param name="status">Firebird status</param>
+    /// <param name="att">Firebird attachment</param>
+    /// <param name="tra">Firebird transaction</param>
+    /// <param name="sqlDialect">SQL dialect</param>
+    /// <param name="relationName">Relation name</param>
+    /// <param name="fieldName">Field name</param>
+    /// 
+    /// <returns>Returns true if the column exists, false otherwise.</returns>
+    bool RelationHelper::fieldExists(
+        ThrowStatusWrapper* status,
+        IAttachment* att,
+        ITransaction* tra,
+        const unsigned int sqlDialect,
+        const string& relationName,
+        const string& fieldName)
+    {
+        FB_MESSAGE(Input, ThrowStatusWrapper,
+            (FB_INTL_VARCHAR(252, CS_UTF8), relationName)
+            (FB_INTL_VARCHAR(252, CS_UTF8), fieldName)
+        ) input(status, m_master);
 
-		IResultSet* rs = m_stmt_exists_field->openCursor(
-			status,
-			tra,
-			input.getMetadata(),
-			input.getData(),
-			output.getMetadata(),
-			0
-		);
-		bool foundFlag = false;
-		try {
-			if (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
-				foundFlag = (output->cnt > 0);
-			}
-			rs->close(status);
-			rs = nullptr;
-		}
-		catch (...) {
-			if (rs) rs->release();
-			rs = nullptr;
-			throw;
-		}
+        FB_MESSAGE(Output, ThrowStatusWrapper,
+            (FB_INTEGER, cnt)
+        ) output(status, m_master);
 
-		return foundFlag;
-	}
+        input.clear();
+
+        input->relationName.length = static_cast<ISC_USHORT>(relationName.length());
+        relationName.copy(input->relationName.str, input->relationName.length);
+
+        input->fieldName.length = static_cast<ISC_USHORT>(fieldName.length());
+        fieldName.copy(input->fieldName.str, input->fieldName.length);
+
+        if (!m_stmt_exists_field.hasData()) {
+            m_stmt_exists_field.reset(att->prepare(
+                status,
+                tra,
+                0,
+                SQL_RELATION_FIELD_EXISTS,
+                sqlDialect,
+                IStatement::PREPARE_PREFETCH_METADATA
+            ));
+        }
+
+        AutoRelease<IResultSet> rs(m_stmt_exists_field->openCursor(
+            status,
+            tra,
+            input.getMetadata(),
+            input.getData(),
+            output.getMetadata(),
+            0
+        ));
+
+        bool foundFlag = false;
+        if (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
+            foundFlag = (output->cnt > 0);
+        }
+        rs->close(status);
+        rs.release();
+
+        return foundFlag;
+    }
 
 }

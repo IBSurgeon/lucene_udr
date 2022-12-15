@@ -25,30 +25,30 @@ namespace fs = std::filesystem;
 namespace LuceneUDR
 {
 
-	/// <summary>
-	/// Returns the directory where full-text indexes are located.
-	/// </summary>
-	/// 
-	/// <param name="context">The context of the external routine.</param>
-	/// 
-	/// <returns>Full path to full-text index directory</returns>
-	const fs::path getFtsDirectory(ThrowStatusWrapper* const status, IExternalContext* const context);
+    /// <summary>
+    /// Returns the directory where full-text indexes are located.
+    /// </summary>
+    /// 
+    /// <param name="context">The context of the external routine.</param>
+    /// 
+    /// <returns>Full path to full-text index directory</returns>
+    const fs::path getFtsDirectory(ThrowStatusWrapper* const status, IExternalContext* const context);
 
-	inline bool createIndexDirectory(const fs::path& indexDir)
-	{
-		if (!fs::is_directory(indexDir)) {
-			return fs::create_directory(indexDir);
-		}
-		return true;
-	}
+    inline bool createIndexDirectory(const fs::path& indexDir)
+    {
+        if (!fs::is_directory(indexDir)) {
+            return fs::create_directory(indexDir);
+        }
+        return true;
+    }
 
-	inline bool removeIndexDirectory(const fs::path& indexDir)
-	{
-		if (fs::is_directory(indexDir)) {
-			return (fs::remove_all(indexDir) > 0);
-		}
-		return true;
-	}
+    inline bool removeIndexDirectory(const fs::path& indexDir)
+    {
+        if (fs::is_directory(indexDir)) {
+            return (fs::remove_all(indexDir) > 0);
+        }
+        return true;
+    }
 
 }
 
