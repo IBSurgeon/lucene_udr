@@ -131,9 +131,15 @@ FB_UDR_BEGIN_PROCEDURE(ftsMakeTrigger)
         out->positionNull = false;
         out->position = trigger->position;
 
+        const unsigned char bpb[] = {
+            isc_bpb_version1,
+            isc_bpb_type, 1, isc_bpb_type_stream,
+            isc_bpb_storage, 1, isc_bpb_storage_temp
+        };
+
         out->triggerSourceNull = false;
         {
-            AutoRelease<IBlob> blob(att->createBlob(status, tra, &out->triggerSource, 0, nullptr));
+            AutoRelease<IBlob> blob(att->createBlob(status, tra, &out->triggerSource, sizeof(bpb), bpb));
             BlobUtils::setString(status, blob, trigger->triggerSource);
             blob->close(status);
             blob.release();
@@ -141,7 +147,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsMakeTrigger)
 
         out->triggerScriptNull = false;
         {
-            AutoRelease<IBlob> blob(att->createBlob(status, tra, &out->triggerScript, 0, nullptr));
+            AutoRelease<IBlob> blob(att->createBlob(status, tra, &out->triggerScript, sizeof(bpb), bpb));
             BlobUtils::setString(status, blob, trigger->getScript(sqlDialect));
             blob->close(status);
             blob.release();

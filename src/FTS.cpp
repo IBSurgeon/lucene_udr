@@ -310,10 +310,16 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
             out->score = scoreDoc->score;
 
             if (explainFlag) {
+                const unsigned char bpb[] = {
+                    isc_bpb_version1,
+                    isc_bpb_type, 1, isc_bpb_type_stream,
+                    isc_bpb_storage, 1, isc_bpb_storage_temp
+                };
+
                 out->explanationNull = false;
                 const auto explanation = searcher->explain(query, scoreDoc->doc);
                 const string explanationStr = StringUtils::toUTF8(explanation->toString());
-                AutoRelease<IBlob> blob(att->createBlob(status, tra, &out->explanation, 0, nullptr));
+                AutoRelease<IBlob> blob(att->createBlob(status, tra, &out->explanation, sizeof(bpb), bpb));
                 BlobUtils::setString(status, blob, explanationStr);
                 blob->close(status);
                 blob.release();
