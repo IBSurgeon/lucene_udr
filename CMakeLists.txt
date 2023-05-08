@@ -79,6 +79,7 @@ file(GLOB_RECURSE luceneudr_sources "src/*")
 
 set(FIREBIRD_DIR /opt/firebird)
 set(FIREBIRD_LIB_DIR ${FIREBIRD_DIR}/lib)
+set(FIREBIRD_INCLUDE_DIR ${FIREBIRD_DIR}/include)
 set(FIREBIRD_UDR_DIR ${FIREBIRD_DIR}/plugins/udr)
 
 ####################################
