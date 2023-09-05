@@ -17,23 +17,19 @@
 #include "LuceneUdr.h"
 #include <string>
 
-using namespace std;
-using namespace Firebird;
 
 namespace LuceneUDR
 {
 
     class BlobUtils final {
     public:
-        static const size_t MAX_SEGMENT_SIZE = 65535;
+        static std::string getString(Firebird::ThrowStatusWrapper* status, Firebird::IBlob* blob);
 
-        static string getString(ThrowStatusWrapper* status, IBlob* blob);
-
-        static void setString(ThrowStatusWrapper* status, IBlob* blob, const string& str);
+        static void setString(Firebird::ThrowStatusWrapper* status, Firebird::IBlob* blob, const std::string& str);
     };
 
 
-    const unsigned int getSqlDialect(ThrowStatusWrapper* status, IAttachment* att);
+    const unsigned int getSqlDialect(Firebird::ThrowStatusWrapper* status, Firebird::IAttachment* att);
 
     /// <summary>
     /// Escapes the name of the metadata object depending on the SQL dialect. 
@@ -43,7 +39,7 @@ namespace LuceneUDR
     /// <param name="name">Metadata object name</param>
     /// 
     /// <returns>Returns the escaped name of the metadata object.</returns>
-    inline string escapeMetaName(const unsigned int sqlDialect, const string& name)
+    inline std::string escapeMetaName(const unsigned int sqlDialect, const std::string& name)
     {
         if (name == "RDB$DB_KEY")
             return name;
@@ -59,7 +55,7 @@ namespace LuceneUDR
     [[noreturn]]
     void throwException(Firebird::ThrowStatusWrapper* const status, const char* message, ...);
 
-    IMessageMetadata* prepareTextMetaData(ThrowStatusWrapper* status, IMessageMetadata* meta);
+    Firebird::IMessageMetadata* prepareTextMetaData(Firebird::ThrowStatusWrapper* status, Firebird::IMessageMetadata* meta);
 }
 
 #endif	// FB_BLOB_UTILS_H

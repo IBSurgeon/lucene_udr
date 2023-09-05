@@ -20,8 +20,6 @@
 #include <memory>
 #include "LuceneUdr.h"
 
-using namespace std;
-using namespace Firebird;
 
 namespace FTSMetadata
 {
@@ -36,10 +34,10 @@ namespace FTSMetadata
     public:
         unsigned fieldIndex = 0;
 
-        string fieldName{""};
-        string relationName{""};
-        string owner{""};
-        string alias{""};
+        std::string fieldName{""};
+        std::string relationName{""};
+        std::string owner{""};
+        std::string alias{""};
         bool nullable = false;
         unsigned dataType = 0;
         int subType = 0;
@@ -49,7 +47,7 @@ namespace FTSMetadata
         unsigned offset = 0;
         unsigned nullOffset = 0;
 
-        wstring ftsFieldName{L""};
+        std::wstring ftsFieldName{L""};
         bool ftsKey = false;
         double ftsBoost = 1.0;
         bool ftsBoostNull = true;
@@ -183,27 +181,31 @@ namespace FTSMetadata
             }
         }
 
-        string getStringValue(ThrowStatusWrapper* status, IAttachment* att, ITransaction* tra, unsigned char* buffer);
+        std::string getStringValue(
+            Firebird::ThrowStatusWrapper* status, 
+            Firebird::IAttachment* att, 
+            Firebird::ITransaction* tra, 
+            unsigned char* buffer);
     };
 
 
 
-    using FbFieldInfoPtr = unique_ptr<FbFieldInfo>;
-    using FbFieldInfoVector = vector<FbFieldInfoPtr>;
+    using FbFieldInfoPtr = std::unique_ptr<FbFieldInfo>;
+    using FbFieldInfoVector = std::vector<FbFieldInfoPtr>;
 
     class FbFieldsInfo : public FbFieldInfoVector
     {
     private:
-        map<string, unsigned> m_fieldByNameMap;
+        std::map<std::string, unsigned> m_fieldByNameMap;
     public:
         FbFieldsInfo() = delete;
 
-        FbFieldsInfo(ThrowStatusWrapper* status, IMessageMetadata* const meta);
+        FbFieldsInfo(Firebird::ThrowStatusWrapper* status, Firebird::IMessageMetadata* const meta);
 
-        int findFieldByName(const string& fieldName);
+        int findFieldByName(const std::string& fieldName);
     };
 
-    using FbFieldsInfoPtr = unique_ptr<FbFieldsInfo>;
+    using FbFieldsInfoPtr = std::unique_ptr<FbFieldsInfo>;
 
 }
 

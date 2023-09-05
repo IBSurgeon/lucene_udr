@@ -21,6 +21,88 @@ using namespace LuceneUDR;
 namespace FTSMetadata
 {
 
+    // SQL texts
+    constexpr char SQL_RELATION_INFO[] = R"SQL(
+SELECT
+  TRIM(R.RDB$RELATION_NAME) AS RDB$RELATION_NAME,
+  CASE
+    WHEN R.RDB$RELATION_TYPE IS NOT NULL THEN R.RDB$RELATION_TYPE
+    ELSE IIF(R.RDB$VIEW_BLR IS NULL, 0, 1)
+  END AS RDB$RELATION_TYPE,
+  COALESCE(R.RDB$SYSTEM_FLAG, 0) AS RDB$SYSTEM_FLAG
+FROM RDB$RELATIONS R
+WHERE R.RDB$RELATION_NAME = ?
+)SQL";
+
+    constexpr char SQL_RELATION_EXISTS[] = R"SQL(
+SELECT COUNT(*) AS CNT
+FROM RDB$RELATIONS
+WHERE RDB$RELATION_NAME = ?
+)SQL";
+
+    constexpr char SQL_RELATION_FIELDS[] = R"SQL(
+SELECT
+    TRIM(RF.RDB$RELATION_NAME) AS RDB$RELATION_NAME
+  , TRIM(RF.RDB$FIELD_NAME) AS RDB$FIELD_NAME
+  , F.RDB$FIELD_TYPE
+  , F.RDB$FIELD_LENGTH
+  , F.RDB$CHARACTER_LENGTH
+  , F.RDB$CHARACTER_SET_ID
+  , F.RDB$FIELD_SUB_TYPE
+  , F.RDB$FIELD_PRECISION
+  , F.RDB$FIELD_SCALE
+FROM RDB$RELATION_FIELDS RF
+JOIN RDB$FIELDS F
+  ON F.RDB$FIELD_NAME = RF.RDB$FIELD_SOURCE
+WHERE RF.RDB$RELATION_NAME = ?
+)SQL";
+
+    constexpr char SQL_RELATION_KEY_FIELDS[] = R"SQL(
+SELECT
+    TRIM(RF.RDB$RELATION_NAME) AS RDB$RELATION_NAME
+  , TRIM(RF.RDB$FIELD_NAME) AS RDB$FIELD_NAME
+  , F.RDB$FIELD_TYPE
+  , F.RDB$FIELD_LENGTH
+  , F.RDB$CHARACTER_LENGTH
+  , F.RDB$CHARACTER_SET_ID
+  , F.RDB$FIELD_SUB_TYPE
+  , F.RDB$FIELD_PRECISION
+  , F.RDB$FIELD_SCALE
+FROM RDB$RELATION_CONSTRAINTS RC
+JOIN RDB$INDEX_SEGMENTS INDS
+  ON INDS.RDB$INDEX_NAME = RC.RDB$INDEX_NAME
+JOIN RDB$RELATION_FIELDS RF
+  ON RF.RDB$RELATION_NAME = RC.RDB$RELATION_NAME
+ AND RF.RDB$FIELD_NAME = INDS.RDB$FIELD_NAME
+JOIN RDB$FIELDS F
+  ON F.RDB$FIELD_NAME = RF.RDB$FIELD_SOURCE
+WHERE RC.RDB$RELATION_NAME = ?
+  AND RC.RDB$CONSTRAINT_TYPE = 'PRIMARY KEY'
+)SQL";
+
+    constexpr char SQL_RELATION_FIELD[] = R"SQL(
+SELECT
+    TRIM(RF.RDB$RELATION_NAME) AS RDB$RELATION_NAME
+  , TRIM(RF.RDB$FIELD_NAME) AS RDB$FIELD_NAME
+  , F.RDB$FIELD_TYPE
+  , F.RDB$FIELD_LENGTH
+  , F.RDB$CHARACTER_LENGTH
+  , F.RDB$CHARACTER_SET_ID
+  , F.RDB$FIELD_SUB_TYPE
+  , F.RDB$FIELD_PRECISION
+  , F.RDB$FIELD_SCALE
+FROM RDB$RELATION_FIELDS RF
+JOIN RDB$FIELDS F
+  ON F.RDB$FIELD_NAME = RF.RDB$FIELD_SOURCE
+WHERE RF.RDB$RELATION_NAME = ? AND RF.RDB$FIELD_NAME = ?
+)SQL";
+
+    constexpr char SQL_RELATION_FIELD_EXISTS[] = R"SQL(
+SELECT COUNT(*) AS CNT
+FROM RDB$RELATION_FIELDS
+WHERE RDB$RELATION_NAME = ? AND RDB$FIELD_NAME = ?
+)SQL";
+
     RelationHelper::RelationHelper(IMaster* master)
         : m_master(master)
     {}
@@ -42,7 +124,7 @@ namespace FTSMetadata
         ThrowStatusWrapper* const status,
         IAttachment* const att,
         ITransaction* const tra,
-        const unsigned int sqlDialect,
+        unsigned int sqlDialect,
         RelationInfoPtr& relationInfo,
         const string& relationName)
     {
@@ -110,7 +192,7 @@ namespace FTSMetadata
         ThrowStatusWrapper* status,
         IAttachment* att,
         ITransaction* tra,
-        const unsigned int sqlDialect,
+        unsigned int sqlDialect,
         const string& relationName)
     {
         FB_MESSAGE(Input, ThrowStatusWrapper,
@@ -170,7 +252,7 @@ namespace FTSMetadata
         ThrowStatusWrapper* const status,
         IAttachment* const att,
         ITransaction* const tra,
-        const unsigned int sqlDialect,
+        unsigned int sqlDialect,
         const string& relationName,
         RelationFieldList& fields
     )
@@ -250,7 +332,7 @@ namespace FTSMetadata
         ThrowStatusWrapper* const status,
         IAttachment* const att,
         ITransaction* const tra,
-        const unsigned int sqlDialect,
+        unsigned int sqlDialect,
         const string& relationName,
         RelationFieldList& keyFields
     )
@@ -331,7 +413,7 @@ namespace FTSMetadata
         ThrowStatusWrapper* status,
         IAttachment* att,
         ITransaction* tra,
-        const unsigned int sqlDialect,
+        unsigned int sqlDialect,
         const RelationFieldInfoPtr& fieldInfo,
         const string& relationName,
         const string& fieldName)
@@ -419,7 +501,7 @@ namespace FTSMetadata
         ThrowStatusWrapper* status,
         IAttachment* att,
         ITransaction* tra,
-        const unsigned int sqlDialect,
+        unsigned int sqlDialect,
         const string& relationName,
         const string& fieldName)
     {

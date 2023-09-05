@@ -17,12 +17,8 @@
 
 #include <string>
 
+std::string string_to_hex(const std::string& input);
 
-using namespace std;
-
-
-string string_to_hex(const string& input);
-
-string hex_to_string(const string& input);
+std::string hex_to_string(const std::string& input);
 
 #endif	// ENCODE_UTILS_H

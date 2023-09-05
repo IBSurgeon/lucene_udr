@@ -17,9 +17,83 @@
 #include "Utils.h"
 
 using namespace LuceneUDR;
+using namespace Firebird;
+using namespace std;
+using namespace Lucene;
 
 namespace FTSMetadata
 {
+
+    // SQL texts
+    constexpr char SQL_ANALYZER_INFO[] = R"SQL(
+SELECT
+    A.FTS$ANALYZER_NAME
+  , A.FTS$BASE_ANALYZER
+  , A.FTS$DESCRIPTION
+FROM FTS$ANALYZERS A
+WHERE A.FTS$ANALYZER_NAME = ?
+)SQL";
+
+    constexpr char SQL_ANALYZER_INFOS[] = R"SQL(
+SELECT
+    A.FTS$ANALYZER_NAME
+  , A.FTS$BASE_ANALYZER
+  , A.FTS$DESCRIPTION
+FROM FTS$ANALYZERS A
+ORDER BY A.FTS$ANALYZER_NAME
+)SQL";
+
+    constexpr char SQL_ANALYZER_EXISTS[] = R"SQL(
+SELECT COUNT(*) AS CNT
+FROM FTS$ANALYZERS A
+WHERE A.FTS$ANALYZER_NAME = ?
+)SQL";
+
+    constexpr char SQL_INSERT_ANALYZER[] = R"SQL(
+INSERT INTO FTS$ANALYZERS (
+    FTS$ANALYZER_NAME,
+    FTS$BASE_ANALYZER,
+    FTS$DESCRIPTION)
+VALUES (
+    ?,
+    ?,
+    ?)
+)SQL";
+
+    constexpr char SQL_DELETE_ANALYZER[] = R"SQL(
+DELETE FROM FTS$ANALYZERS A
+WHERE A.FTS$ANALYZER_NAME = ?
+)SQL";
+
+    constexpr char SQL_STOP_WORDS[] = R"SQL(
+SELECT
+    W.FTS$WORD
+FROM FTS$STOP_WORDS W
+WHERE W.FTS$ANALYZER_NAME = ?
+)SQL";
+
+    constexpr char SQL_INSERT_STOP_WORD[] = R"SQL(
+EXECUTE BLOCK (
+    FTS$ANALYZER_NAME VARCHAR(63) CHARACTER SET UTF8 = ?,
+    FTS$WORD          VARCHAR(63) CHARACTER SET UTF8 = ?)
+AS
+BEGIN
+  INSERT INTO FTS$STOP_WORDS (
+      FTS$ANALYZER_NAME,
+      FTS$WORD)
+  VALUES (
+      :FTS$ANALYZER_NAME,
+      LOWER(:FTS$WORD));
+
+  WHEN GDSCODE UNIQUE_KEY_VIOLATION DO
+    EXCEPTION FTS$EXCEPTION 'Stop word "' || FTS$WORD || '" already exists for analyzer "' || FTS$ANALYZER_NAME || '"';
+END
+)SQL";
+
+    constexpr char SQL_DELETE_STOP_WORD[] = R"SQL(
+DELETE FROM FTS$STOP_WORDS
+WHERE FTS$ANALYZER_NAME = ? AND FTS$WORD = ?
+)SQL";
 
     AnalyzerRepository::AnalyzerRepository(IMaster* const master)
         : m_master(master)
@@ -35,7 +109,7 @@ namespace FTSMetadata
         ThrowStatusWrapper* const status,
         IAttachment* const att,
         ITransaction* const tra,
-        const unsigned int sqlDialect,
+        unsigned int sqlDialect,
         const string& analyzerName
     )
     {
@@ -54,7 +128,7 @@ namespace FTSMetadata
         ThrowStatusWrapper* const status,
         IAttachment* const att,
         ITransaction* const tra,
-        const unsigned int sqlDialect,
+        unsigned int sqlDialect,
         const string& analyzerName
     )
     {
@@ -118,7 +192,7 @@ namespace FTSMetadata
         ThrowStatusWrapper* const status,
         IAttachment* const att,
         ITransaction* const tra,
-        const unsigned int sqlDialect
+        unsigned int sqlDialect
     )
     {
         auto infos = m_analyzerFactory->getAnalyzerInfos();
@@ -167,7 +241,7 @@ namespace FTSMetadata
         ThrowStatusWrapper* const status,
         IAttachment* const att,
         ITransaction* const tra,
-        const unsigned int sqlDialect,
+        unsigned int sqlDialect,
         const string& analyzerName
     )
     {
@@ -221,7 +295,7 @@ namespace FTSMetadata
         ThrowStatusWrapper* const status,
         IAttachment* const att,
         ITransaction* const tra,
-        const unsigned int sqlDialect,
+        unsigned int sqlDialect,
         const string& analyzerName,
         const string& baseAnalyzer,
         const string& description
@@ -276,7 +350,7 @@ namespace FTSMetadata
         ThrowStatusWrapper* const status,
         IAttachment* const att,
         ITransaction* const tra,
-        const unsigned int sqlDialect,
+        unsigned int sqlDialect,
         const string& analyzerName
     )
     {
@@ -313,7 +387,7 @@ namespace FTSMetadata
         ThrowStatusWrapper* const status,
         IAttachment* const att,
         ITransaction* const tra,
-        const unsigned int sqlDialect,
+        unsigned int sqlDialect,
         const string& analyzerName
     )
     {
@@ -371,7 +445,7 @@ namespace FTSMetadata
         ThrowStatusWrapper* const status,
         IAttachment* const att,
         ITransaction* const tra,
-        const unsigned int sqlDialect,
+        unsigned int sqlDialect,
         const string& analyzerName,
         const string& stopWord
     )
@@ -425,7 +499,7 @@ namespace FTSMetadata
         ThrowStatusWrapper* const status,
         IAttachment* const att,
         ITransaction* const tra,
-        const unsigned int sqlDialect,
+        unsigned int sqlDialect,
         const string& analyzerName,
         const string& stopWord
     )

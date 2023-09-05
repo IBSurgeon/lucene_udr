@@ -17,7 +17,8 @@
 
 #include "Analyzer.h"
 
-namespace Lucene {
+namespace Lucene 
+{
     class EnglishAnalyzer : public Analyzer {
     public:
         /// Builds an analyzer with the default stop words ({@link #STOP_WORDS_SET}).

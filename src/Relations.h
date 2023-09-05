@@ -19,9 +19,6 @@
 #include <list>
 #include <memory>
 
-using namespace Firebird;
-using namespace std;
-
 namespace FTSMetadata
 {
     enum class RelationType {
@@ -36,23 +33,23 @@ namespace FTSMetadata
     class RelationInfo final
     {
     public:
-        string relationName{ "" };
+        std::string relationName{ "" };
         RelationType relationType{ RelationType::RT_REGULAR };
         bool systemFlag = false;
     public:
         RelationInfo() = default;
 
-        bool findKeyFieldSupported() {
+        bool findKeyFieldSupported() const {
             return (relationType == RelationType::RT_REGULAR || relationType == RelationType::RT_GTT_PRESERVE_ROWS || relationType == RelationType::RT_GTT_DELETE_ROWS);
         }
     };
-    using RelationInfoPtr = unique_ptr<RelationInfo>;
+    using RelationInfoPtr = std::unique_ptr<RelationInfo>;
 
     class RelationFieldInfo final
     {
     public:
-        string relationName{ "" };
-        string fieldName{ "" };
+        std::string relationName{ "" };
+        std::string fieldName{ "" };
         short  fieldType = 0;
         short fieldLength = 0;
         short charLength = 0;
@@ -63,27 +60,27 @@ namespace FTSMetadata
     public:
         RelationFieldInfo() = default;
 
-        bool isInt() {
+        bool isInt() const {
             return (fieldScale == 0) && (fieldType == 7 || fieldType == 8 || fieldType == 16 || fieldType == 26);
         }
 
-        bool isFixedChar() {
+        bool isFixedChar() const {
             return (fieldType == 14);
         }
 
-        bool isVarChar() {
+        bool isVarChar() const {
             return (fieldType == 37);
         }
 
-        bool isBlob() {
+        bool isBlob() const {
             return (fieldType == 261);
         }
 
-        bool isBinary() {
+        bool isBinary() const {
             return (isBlob() && fieldSubType == 0) || ((isFixedChar() || isVarChar()) && charsetId == 1);
         }
 
-        void initDB_KEYField(const string& aRelationName) {
+        void initDB_KEYField(const std::string& aRelationName) {
             relationName = aRelationName;
             fieldName = "RDB$DB_KEY";
             fieldType = 14;
@@ -96,112 +93,25 @@ namespace FTSMetadata
         }
     };
 
-    using RelationFieldInfoPtr = unique_ptr<RelationFieldInfo>;
-    using RelationFieldList = list<RelationFieldInfoPtr>;
+    using RelationFieldInfoPtr = std::unique_ptr<RelationFieldInfo>;
+    using RelationFieldList = std::list<RelationFieldInfoPtr>;
 
     class RelationHelper final
     {
     private:
-        IMaster* m_master = nullptr;
+        Firebird::IMaster* m_master{ nullptr };
         // prepared statements
-        AutoRelease<IStatement> m_stmt_get_relation{ nullptr };
-        AutoRelease<IStatement> m_stmt_exists_relation{ nullptr };
-        AutoRelease<IStatement> m_stmt_relation_fields{ nullptr };
-        AutoRelease<IStatement> m_stmt_pk_fields{ nullptr };
-        AutoRelease<IStatement> m_stmt_get_field{ nullptr };
-        AutoRelease<IStatement> m_stmt_exists_field{ nullptr };
+        Firebird::AutoRelease<Firebird::IStatement> m_stmt_get_relation;
+        Firebird::AutoRelease<Firebird::IStatement> m_stmt_exists_relation;
+        Firebird::AutoRelease<Firebird::IStatement> m_stmt_relation_fields;
+        Firebird::AutoRelease<Firebird::IStatement> m_stmt_pk_fields;
+        Firebird::AutoRelease<Firebird::IStatement> m_stmt_get_field;
+        Firebird::AutoRelease<Firebird::IStatement> m_stmt_exists_field;
 
-        // SQL texts
-        const char* SQL_RELATION_INFO = 
-R"SQL(
-SELECT
-  TRIM(R.RDB$RELATION_NAME) AS RDB$RELATION_NAME,
-  CASE
-    WHEN R.RDB$RELATION_TYPE IS NOT NULL THEN R.RDB$RELATION_TYPE
-    ELSE IIF(R.RDB$VIEW_BLR IS NULL, 0, 1)
-  END AS RDB$RELATION_TYPE,
-  COALESCE(R.RDB$SYSTEM_FLAG, 0) AS RDB$SYSTEM_FLAG
-FROM RDB$RELATIONS R
-WHERE R.RDB$RELATION_NAME = ?
-)SQL";
-
-        const char* SQL_RELATION_EXISTS =
-R"SQL(
-SELECT COUNT(*) AS CNT
-FROM RDB$RELATIONS
-WHERE RDB$RELATION_NAME = ?
-)SQL";
-
-        const char* SQL_RELATION_FIELDS =
-R"SQL(
-SELECT
-    TRIM(RF.RDB$RELATION_NAME) AS RDB$RELATION_NAME
-  , TRIM(RF.RDB$FIELD_NAME) AS RDB$FIELD_NAME
-  , F.RDB$FIELD_TYPE
-  , F.RDB$FIELD_LENGTH
-  , F.RDB$CHARACTER_LENGTH
-  , F.RDB$CHARACTER_SET_ID
-  , F.RDB$FIELD_SUB_TYPE
-  , F.RDB$FIELD_PRECISION
-  , F.RDB$FIELD_SCALE
-FROM RDB$RELATION_FIELDS RF
-JOIN RDB$FIELDS F
-  ON F.RDB$FIELD_NAME = RF.RDB$FIELD_SOURCE
-WHERE RF.RDB$RELATION_NAME = ?
-)SQL";
-
-        const char* SQL_RELATION_KEY_FIELDS =
-R"SQL(
-SELECT
-    TRIM(RF.RDB$RELATION_NAME) AS RDB$RELATION_NAME
-  , TRIM(RF.RDB$FIELD_NAME) AS RDB$FIELD_NAME
-  , F.RDB$FIELD_TYPE
-  , F.RDB$FIELD_LENGTH
-  , F.RDB$CHARACTER_LENGTH
-  , F.RDB$CHARACTER_SET_ID
-  , F.RDB$FIELD_SUB_TYPE
-  , F.RDB$FIELD_PRECISION
-  , F.RDB$FIELD_SCALE
-FROM RDB$RELATION_CONSTRAINTS RC
-JOIN RDB$INDEX_SEGMENTS INDS
-  ON INDS.RDB$INDEX_NAME = RC.RDB$INDEX_NAME
-JOIN RDB$RELATION_FIELDS RF
-  ON RF.RDB$RELATION_NAME = RC.RDB$RELATION_NAME
- AND RF.RDB$FIELD_NAME = INDS.RDB$FIELD_NAME
-JOIN RDB$FIELDS F
-  ON F.RDB$FIELD_NAME = RF.RDB$FIELD_SOURCE
-WHERE RC.RDB$RELATION_NAME = ?
-  AND RC.RDB$CONSTRAINT_TYPE = 'PRIMARY KEY'
-)SQL";
-
-        const char* SQL_RELATION_FIELD =
-R"SQL(
-SELECT
-    TRIM(RF.RDB$RELATION_NAME) AS RDB$RELATION_NAME
-  , TRIM(RF.RDB$FIELD_NAME) AS RDB$FIELD_NAME
-  , F.RDB$FIELD_TYPE
-  , F.RDB$FIELD_LENGTH
-  , F.RDB$CHARACTER_LENGTH
-  , F.RDB$CHARACTER_SET_ID
-  , F.RDB$FIELD_SUB_TYPE
-  , F.RDB$FIELD_PRECISION
-  , F.RDB$FIELD_SCALE
-FROM RDB$RELATION_FIELDS RF
-JOIN RDB$FIELDS F
-  ON F.RDB$FIELD_NAME = RF.RDB$FIELD_SOURCE
-WHERE RF.RDB$RELATION_NAME = ? AND RF.RDB$FIELD_NAME = ?
-)SQL";
-
-        const char* SQL_RELATION_FIELD_EXISTS = 
-R"SQL(
-SELECT COUNT(*) AS CNT
-FROM RDB$RELATION_FIELDS
-WHERE RDB$RELATION_NAME = ? AND RDB$FIELD_NAME = ?
-)SQL";
     public:
         RelationHelper() = delete;
 
-        explicit RelationHelper(IMaster* master);
+        explicit RelationHelper(Firebird::IMaster* master);
 
         ~RelationHelper();
 
@@ -217,12 +127,12 @@ WHERE RDB$RELATION_NAME = ? AND RDB$FIELD_NAME = ?
         /// <param name="relationName">Relation name</param>
         /// 
         void getRelationInfo(
-            ThrowStatusWrapper* const status,
-            IAttachment* const att,
-            ITransaction* const tra,
-            const unsigned int sqlDialect,
+            Firebird::ThrowStatusWrapper* const status,
+            Firebird::IAttachment* const att,
+            Firebird::ITransaction* const tra,
+            unsigned int sqlDialect,
             RelationInfoPtr& relationInfo,
-            const string& relationName
+            const std::string& relationName
         );
 
         /// <summary>
@@ -237,11 +147,11 @@ WHERE RDB$RELATION_NAME = ? AND RDB$FIELD_NAME = ?
         /// 
         /// <returns>Returns true if the relation exists, false otherwise.</returns>
         bool relationExists(
-            ThrowStatusWrapper* const status,
-            IAttachment* const att,
-            ITransaction* const tra,
-            const unsigned int sqlDialect,
-            const string &relationName);
+            Firebird::ThrowStatusWrapper* const status,
+            Firebird::IAttachment* const att,
+            Firebird::ITransaction* const tra,
+            unsigned int sqlDialect,
+            const std::string &relationName);
 
         /// <summary>
         /// Returns a list of relations fields.
@@ -255,11 +165,11 @@ WHERE RDB$RELATION_NAME = ? AND RDB$FIELD_NAME = ?
         /// <param name="fields">List of relations fields</param>
         /// 
         void fillRelationFields(
-            ThrowStatusWrapper* const status,
-            IAttachment* const att,
-            ITransaction* const tra,
-            const unsigned int sqlDialect,
-            const string& relationName,
+            Firebird::ThrowStatusWrapper* const status,
+            Firebird::IAttachment* const att,
+            Firebird::ITransaction* const tra,
+            unsigned int sqlDialect,
+            const std::string& relationName,
             RelationFieldList& fields
         );
 
@@ -275,11 +185,11 @@ WHERE RDB$RELATION_NAME = ? AND RDB$FIELD_NAME = ?
         /// <param name="keyFields">List of relations primary key fields</param>
         /// 
         void fillPrimaryKeyFields(
-            ThrowStatusWrapper* const status,
-            IAttachment* const att,
-            ITransaction* const tra,
-            const unsigned int sqlDialect,
-            const string& relationName,
+            Firebird::ThrowStatusWrapper* const status,
+            Firebird::IAttachment* const att,
+            Firebird::ITransaction* const tra,
+            unsigned int sqlDialect,
+            const std::string& relationName,
             RelationFieldList& keyFields
         );
 
@@ -296,13 +206,13 @@ WHERE RDB$RELATION_NAME = ? AND RDB$FIELD_NAME = ?
         /// <param name="fieldName">Field name</param>
         /// 
         void getField(
-            ThrowStatusWrapper* const status,
-            IAttachment* const att,
-            ITransaction* const tra,
-            const unsigned int sqlDialect,
+            Firebird::ThrowStatusWrapper* const status,
+            Firebird::IAttachment* const att,
+            Firebird::ITransaction* const tra,
+            unsigned int sqlDialect,
             const RelationFieldInfoPtr& fieldInfo,
-            const string& relationName,
-            const string& fieldName
+            const std::string& relationName,
+            const std::string& fieldName
         );
 
         /// <summary>
@@ -318,15 +228,15 @@ WHERE RDB$RELATION_NAME = ? AND RDB$FIELD_NAME = ?
         /// 
         /// <returns>Returns true if the column exists, false otherwise.</returns>
         bool fieldExists(
-            ThrowStatusWrapper* const status,
-            IAttachment* const att,
-            ITransaction* const tra,
-            const unsigned int sqlDialect,
-            const string &relationName,
-            const string &fieldName);
+            Firebird::ThrowStatusWrapper* const status,
+            Firebird::IAttachment* const att,
+            Firebird::ITransaction* const tra,
+            unsigned int sqlDialect,
+            const std::string &relationName,
+            const std::string &fieldName);
     };
 
-    using RelationHelperPtr = unique_ptr<RelationHelper>;
+    using RelationHelperPtr = std::unique_ptr<RelationHelper>;
 }
 
 #endif	// FTS_RELATIONS_H
