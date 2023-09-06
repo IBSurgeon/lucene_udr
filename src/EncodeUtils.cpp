@@ -21,12 +21,10 @@
 #include <iomanip>
 
 
-using namespace std;
 
-
-string string_to_hex(const string& input)
+std::string string_to_hex(const std::string& input)
 {
-    stringstream ss;
+    std::stringstream ss;
     ss << std::hex << std::setfill('0');
     for (size_t i = 0; i < input.size(); i++) {
         const auto ch = static_cast<unsigned char>(input[i]);
@@ -44,23 +42,23 @@ unsigned char hexval(unsigned char c)
     else if ('A' <= c && c <= 'F')
         return c - 'A' + 10;
     else 
-        throw invalid_argument("not a hex digit");
+        throw std::invalid_argument("not a hex digit");
 }
 
-string hex_to_string(const string& input)
+std::string hex_to_string(const std::string& input)
 {
     size_t len = input.length();
     if (len & 1) 
-        throw invalid_argument("A hexadecimal string has an odd length");
+        throw std::invalid_argument("A hexadecimal string has an odd length");
 
-    string output;
+    std::string output;
     output.reserve(len / 2);
-    for (string::const_iterator p = input.begin(); p != input.end(); p++)
+    for (std::string::const_iterator p = input.begin(); p != input.end(); p++)
     {
         unsigned char c = hexval(*p);
         p++;
         if (p == input.end())
-            throw invalid_argument("Incomplete last digit in hex string");
+            throw std::invalid_argument("Incomplete last digit in hex string");
         c = (c << 4) + hexval(*p); // + takes precedence over <<
         output.push_back(c);
     }

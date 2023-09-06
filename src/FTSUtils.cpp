@@ -14,6 +14,8 @@
  *  Contributor(s): ______________________________________.
 **/
 
+using namespace Firebird;
+
 namespace LuceneUDR
 {
 
@@ -29,8 +31,8 @@ namespace LuceneUDR
         const auto pluginManager = context->getMaster()->getPluginManager();
         IConfigManager* configManager = context->getMaster()->getConfigManager();
 
-        const string databaseName(context->getDatabaseName());
-        const string rootDir(configManager->getRootDirectory());
+        const std::string databaseName(context->getDatabaseName());
+        const std::string rootDir(configManager->getRootDirectory());
         const fs::path rootDirPath = rootDir;
 
         const fs::path confFilePath = rootDirPath / "fts.conf";
@@ -57,7 +59,7 @@ namespace LuceneUDR
 #endif
         iniFile.load(iniFilePath.u8string());
         auto section = iniFile[databaseName];
-        const auto ftsDirectory = section["ftsDirectory"].as<string>();
+        const auto ftsDirectory = section["ftsDirectory"].as<std::string>();
         fs::path ftsDirectoryPath = ftsDirectory;
         return ftsDirectoryPath;
     }

@@ -17,7 +17,8 @@
 #include "EnglishAnalyzer.h"
 #include "PorterStemFilter.h"
 
-namespace Lucene {
+namespace Lucene 
+{
 
     /// Construct an analyzer with the given stop words.
     const int32_t EnglishAnalyzer::DEFAULT_MAX_TOKEN_LENGTH = 255;

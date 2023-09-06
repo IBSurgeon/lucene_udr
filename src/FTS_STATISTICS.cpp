@@ -48,7 +48,7 @@ FB_UDR_BEGIN_FUNCTION(getLuceneVersion)
 
     FB_UDR_EXECUTE_FUNCTION
     {
-        const string luceneVersion = StringUtils::toUTF8(Constants::LUCENE_VERSION);
+        const std::string luceneVersion = StringUtils::toUTF8(Constants::LUCENE_VERSION);
 
         out->luceneVersionNull = false;
         out->luceneVersion.length = static_cast<ISC_USHORT>(luceneVersion.length());
@@ -95,7 +95,7 @@ FB_UDR_BEGIN_PROCEDURE(getIndexStatistics)
     );
 
     FB_UDR_CONSTRUCTOR
-    , indexRepository(make_unique<FTSIndexRepository>(context->getMaster()))
+    , indexRepository(std::make_unique<FTSIndexRepository>(context->getMaster()))
     {
     }
 
@@ -106,9 +106,7 @@ FB_UDR_BEGIN_PROCEDURE(getIndexStatistics)
     {
         // Forced internal request encoding to UTF8
         memset(name, 0, nameSize);
-
-        const string charset = "UTF8";
-        charset.copy(name, charset.length());
+        memcpy(name, INTERNAL_UDR_CHARSET, std::size(INTERNAL_UDR_CHARSET));
     }
 
     FB_UDR_EXECUTE_PROCEDURE
@@ -116,7 +114,7 @@ FB_UDR_BEGIN_PROCEDURE(getIndexStatistics)
         if (in->index_nameNull) {
             throwException(status, "Index name can not be NULL");
         }
-        const string indexName(in->index_name.str, in->index_name.length);
+        const std::string indexName(in->index_name.str, in->index_name.length);
 
         const auto& ftsDirectoryPath = getFtsDirectory(status, context);
         // check if there is a directory for full-text indexes
@@ -142,7 +140,7 @@ FB_UDR_BEGIN_PROCEDURE(getIndexStatistics)
 
         try {
             // check for index existence
-            auto ftsIndex = make_unique<FTSIndex>();
+            auto ftsIndex = std::make_unique<FTSIndex>();
             procedure->indexRepository->getIndex(status, att, tra, sqlDialect, ftsIndex, indexName);
 
             out->analyzerNameNull = false;
@@ -151,7 +149,7 @@ FB_UDR_BEGIN_PROCEDURE(getIndexStatistics)
 
             const auto& indexDirectoryPath = ftsDirectoryPath / indexName;
 
-            const string indexDir = indexDirectoryPath.u8string();
+            const std::string indexDir = indexDirectoryPath.u8string();
             out->indexDirNull = false;
             out->indexDir.length = static_cast<ISC_USHORT>(indexDir.length());
             indexDir.copy(out->indexDir.str, out->indexDir.length);
@@ -207,7 +205,7 @@ FB_UDR_BEGIN_PROCEDURE(getIndexStatistics)
             ftsIndex->status.copy(out->indexStatus.str, out->indexStatus.length);
         }
         catch (const LuceneException& e) {
-            const string error_message = StringUtils::toUTF8(e.getError());
+            const std::string error_message = StringUtils::toUTF8(e.getError());
             throwException(status, error_message.c_str());
         }
     }
@@ -247,7 +245,7 @@ FB_UDR_BEGIN_PROCEDURE(getIndexFields)
     );
 
     FB_UDR_CONSTRUCTOR
-        , indexRepository(make_unique<FTSIndexRepository>(context->getMaster()))
+        , indexRepository(std::make_unique<FTSIndexRepository>(context->getMaster()))
     {
     }
 
@@ -258,9 +256,7 @@ FB_UDR_BEGIN_PROCEDURE(getIndexFields)
     {
         // Forced internal request encoding to UTF8
         memset(name, 0, nameSize);
-
-        const string charset = "UTF8";
-        charset.copy(name, charset.length());
+        memcpy(name, INTERNAL_UDR_CHARSET, std::size(INTERNAL_UDR_CHARSET));
     }
 
     FB_UDR_EXECUTE_PROCEDURE
@@ -268,7 +264,7 @@ FB_UDR_BEGIN_PROCEDURE(getIndexFields)
         if (in->index_nameNull) {
             throwException(status, "Index name can not be NULL");
         }
-        const string indexName(in->index_name.str, in->index_name.length);
+        const std::string indexName(in->index_name.str, in->index_name.length);
 
         const auto& ftsDirectoryPath = getFtsDirectory(status, context);
         // check if there is a directory for full-text indexes
@@ -312,7 +308,7 @@ FB_UDR_BEGIN_PROCEDURE(getIndexFields)
 
         }
         catch (const LuceneException& e) {
-            const string error_message = StringUtils::toUTF8(e.getError());
+            const std::string error_message = StringUtils::toUTF8(e.getError());
             throwException(status, error_message.c_str());
         }
     }
@@ -328,7 +324,7 @@ FB_UDR_BEGIN_PROCEDURE(getIndexFields)
             return false;
         }
         const auto unicodeFieldName = *it;
-        const string fieldName = StringUtils::toUTF8(unicodeFieldName);
+        const std::string fieldName = StringUtils::toUTF8(unicodeFieldName);
         out->fieldNameNull = false;
         out->fieldName.length = static_cast<ISC_USHORT>(fieldName.length());
         fieldName.copy(out->fieldName.str, out->fieldName.length);
@@ -363,7 +359,7 @@ FB_UDR_BEGIN_PROCEDURE(getIndexFiles)
     );
 
     FB_UDR_CONSTRUCTOR
-        , indexRepository(make_unique<FTSIndexRepository>(context->getMaster()))
+        , indexRepository(std::make_unique<FTSIndexRepository>(context->getMaster()))
     {
     }
 
@@ -374,9 +370,7 @@ FB_UDR_BEGIN_PROCEDURE(getIndexFiles)
     {
         // Forced internal request encoding to UTF8
         memset(name, 0, nameSize);
-
-        const string charset = "UTF8";
-        charset.copy(name, charset.length());
+        memcpy(name, INTERNAL_UDR_CHARSET, std::size(INTERNAL_UDR_CHARSET));
     }
 
     FB_UDR_EXECUTE_PROCEDURE
@@ -384,7 +378,7 @@ FB_UDR_BEGIN_PROCEDURE(getIndexFiles)
         if (in->index_nameNull) {
             throwException(status, "Index name can not be NULL");
         }
-        const string indexName(in->index_name.str, in->index_name.length);
+        const std::string indexName(in->index_name.str, in->index_name.length);
 
         const auto& ftsDirectoryPath = getFtsDirectory(status, context);
         // check if there is a directory for full-text indexes
@@ -428,7 +422,7 @@ FB_UDR_BEGIN_PROCEDURE(getIndexFiles)
 
         }
         catch (const LuceneException& e) {
-            const string error_message = StringUtils::toUTF8(e.getError());
+            const std::string error_message = StringUtils::toUTF8(e.getError());
             throwException(status, error_message.c_str());
         }
     }
@@ -436,8 +430,8 @@ FB_UDR_BEGIN_PROCEDURE(getIndexFiles)
     AutoRelease<IAttachment> att;
     AutoRelease<ITransaction> tra;
     LuceneFileHelper luceneFileHelper;
-    list<String> fileNames;
-    list<String>::const_iterator it;
+    std::list<String> fileNames;
+    std::list<String>::const_iterator it;
 
     FB_UDR_FETCH_PROCEDURE
     {
@@ -445,13 +439,13 @@ FB_UDR_BEGIN_PROCEDURE(getIndexFiles)
             return false;
         }
         const auto unicodeFileName = *it;
-        const string fileName = StringUtils::toUTF8(unicodeFileName);
+        const std::string fileName = StringUtils::toUTF8(unicodeFileName);
         out->fileNameNull = false;
         out->fileName.length = static_cast<ISC_USHORT>(fileName.length());
         fileName.copy(out->fileName.str, out->fileName.length);
 
         out->fileTypeNull = false;
-        const string fileType = luceneFileHelper.getIndexFileType(unicodeFileName);
+        const std::string fileType = LuceneFileHelper::getIndexFileType(unicodeFileName);
         out->fileType.length = static_cast<ISC_USHORT>(fileType.length());
         fileType.copy(out->fileType.str, out->fileType.length);
 
@@ -497,7 +491,7 @@ FB_UDR_BEGIN_PROCEDURE(getIndexSegments)
     );
 
     FB_UDR_CONSTRUCTOR
-        , indexRepository(make_unique<FTSIndexRepository>(context->getMaster()))
+        , indexRepository(std::make_unique<FTSIndexRepository>(context->getMaster()))
     {
     }
 
@@ -508,9 +502,7 @@ FB_UDR_BEGIN_PROCEDURE(getIndexSegments)
     {
         // Forced internal request encoding to UTF8
         memset(name, 0, nameSize);
-
-        const string charset = "UTF8";
-        charset.copy(name, charset.length());
+        memcpy(name, INTERNAL_UDR_CHARSET, std::size(INTERNAL_UDR_CHARSET));
     }
 
     FB_UDR_EXECUTE_PROCEDURE
@@ -518,7 +510,7 @@ FB_UDR_BEGIN_PROCEDURE(getIndexSegments)
         if (in->index_nameNull) {
             throwException(status, "Index name can not be NULL");
         }
-        const string indexName(in->index_name.str, in->index_name.length);
+        const std::string indexName(in->index_name.str, in->index_name.length);
 
         const auto& ftsDirectoryPath = getFtsDirectory(status, context);
         // check if there is a directory for full-text indexes
@@ -559,7 +551,7 @@ FB_UDR_BEGIN_PROCEDURE(getIndexSegments)
 
         }
         catch (const LuceneException& e) {
-            const string error_message = StringUtils::toUTF8(e.getError());
+            const std::string error_message = StringUtils::toUTF8(e.getError());
             throwException(status, error_message.c_str());
         }
     }
@@ -576,7 +568,7 @@ FB_UDR_BEGIN_PROCEDURE(getIndexSegments)
         }
         auto segmentInfo = segmentInfos->info(segNo);
 
-        const string segmentName = StringUtils::toUTF8(segmentInfo->name);
+        const std::string segmentName = StringUtils::toUTF8(segmentInfo->name);
 
         out->segmentNameNull = false;
         out->segmentName.length = static_cast<ISC_USHORT>(segmentName.length());
@@ -600,7 +592,7 @@ FB_UDR_BEGIN_PROCEDURE(getIndexSegments)
         out->delFileNameNull = true;
         auto unicodeDelFileName = segmentInfo->getDelFileName();
         if (!unicodeDelFileName.empty()) {	
-            string delFileName = StringUtils::toUTF8(unicodeDelFileName);
+            std::string delFileName = StringUtils::toUTF8(unicodeDelFileName);
             out->delFileNameNull = false;
             out->delFileName.length = static_cast<ISC_USHORT>(delFileName.length());
             delFileName.copy(out->delFileName.str, out->delFileName.length);
@@ -651,7 +643,7 @@ FB_UDR_BEGIN_PROCEDURE(getFieldInfos)
     );
 
     FB_UDR_CONSTRUCTOR
-        , indexRepository(make_unique<FTSIndexRepository>(context->getMaster()))
+        , indexRepository(std::make_unique<FTSIndexRepository>(context->getMaster()))
     {
     }
 
@@ -662,9 +654,7 @@ FB_UDR_BEGIN_PROCEDURE(getFieldInfos)
     {
         // Forced internal request encoding to UTF8
         memset(name, 0, nameSize);
-
-        const string charset = "UTF8";
-        charset.copy(name, charset.length());
+        memcpy(name, INTERNAL_UDR_CHARSET, std::size(INTERNAL_UDR_CHARSET));
     }
 
     FB_UDR_EXECUTE_PROCEDURE
@@ -672,10 +662,10 @@ FB_UDR_BEGIN_PROCEDURE(getFieldInfos)
         if (in->indexNameNull) {
             throwException(status, "Index name can not be NULL");
         }
-        const string indexName(in->indexName.str, in->indexName.length);
+        const std::string indexName(in->indexName.str, in->indexName.length);
 
         String unicodeSegmentName;
-        string segmentName;
+        std::string segmentName;
         if (!in->segmentNameNull) {
             segmentName.assign(in->segmentName.str, in->segmentName.length);
             unicodeSegmentName = StringUtils::toUnicode(segmentName);
@@ -738,7 +728,7 @@ FB_UDR_BEGIN_PROCEDURE(getFieldInfos)
 
         }
         catch (const LuceneException& e) {
-            const string error_message = StringUtils::toUTF8(e.getError());
+            const std::string error_message = StringUtils::toUTF8(e.getError());
             throwException(status, error_message.c_str());
         }
     }
@@ -755,7 +745,7 @@ FB_UDR_BEGIN_PROCEDURE(getFieldInfos)
         }
         const auto fieldInfo = fieldInfos->fieldInfo(fieldNo);
 
-        const string fieldName = StringUtils::toUTF8(fieldInfo->name);
+        const std::string fieldName = StringUtils::toUTF8(fieldInfo->name);
         out->fieldNameNull = false;
         out->fieldName.length = static_cast<ISC_USHORT>(fieldName.length());
         fieldName.copy(out->fieldName.str, out->fieldName.length);

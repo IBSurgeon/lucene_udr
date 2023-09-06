@@ -17,9 +17,6 @@
 #include "LuceneHeaders.h"
 #include <list>
 
-using namespace Lucene;
-using namespace std;
-
 namespace LuceneUDR 
 {
 
@@ -30,17 +27,17 @@ namespace LuceneUDR
             : m_ftsIndexDir(nullptr)
         {}
 
-        LuceneFileHelper(FSDirectoryPtr fsDirectory)
+        LuceneFileHelper(Lucene::FSDirectoryPtr fsDirectory)
             : m_ftsIndexDir(fsDirectory)
         {
         }
 
-        void setDirectory(FSDirectoryPtr fsDirectory)
+        void setDirectory(Lucene::FSDirectoryPtr fsDirectory)
         {
             m_ftsIndexDir = fsDirectory;
         }
 
-        list<String> getIndexFileNames();
+        std::list<Lucene::String> getIndexFileNames();
 
         size_t getIndexSize()
         {
@@ -52,17 +49,17 @@ namespace LuceneUDR
             return size;
         }
 
-        size_t getFileSize(const String& fileName)
+        size_t getFileSize(const Lucene::String& fileName)
         {
             return m_ftsIndexDir->fileLength(fileName);
         }
 
-        string getIndexFileType(const String& fileName);
+        static std::string getIndexFileType(const Lucene::String& fileName);
 
     private:
-        FSDirectoryPtr m_ftsIndexDir;
+        Lucene::FSDirectoryPtr m_ftsIndexDir;
 
-        inline bool endsWith(const String& str, const String& suffix)
+        static bool endsWith(const Lucene::String& str, const Lucene::String& suffix)
         {
             return str.size() >= suffix.size() && 0 == str.compare(str.size() - suffix.size(), suffix.size(), suffix);
         }

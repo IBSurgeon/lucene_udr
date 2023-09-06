@@ -24,6 +24,137 @@ using namespace LuceneUDR;
 namespace FTSMetadata
 {
 
+    constexpr char SQL_CREATE_FTS_INDEX[] = R"SQL(
+INSERT INTO FTS$INDICES (
+  FTS$INDEX_NAME, 
+  FTS$RELATION_NAME, 
+  FTS$ANALYZER, 
+  FTS$DESCRIPTION, 
+  FTS$INDEX_STATUS)
+VALUES(?, ?, ?, ?, ?)
+)SQL";
+
+    constexpr char SQL_DROP_FTS_INDEX[] = R"SQL(
+DELETE FROM FTS$INDICES WHERE FTS$INDEX_NAME = ?
+)SQL";
+
+    constexpr char SQL_FTS_INDEX_EXISTS[] = R"SQL(
+SELECT COUNT(*) AS CNT
+FROM FTS$INDICES
+WHERE FTS$INDEX_NAME = ?
+)SQL";
+
+    constexpr char SQL_SET_FTS_INDEX_STATUS[] = R"SQL(
+UPDATE FTS$INDICES SET FTS$INDEX_STATUS = ? WHERE FTS$INDEX_NAME = ?
+)SQL";
+
+    constexpr char SQL_GET_FTS_INDEX[] = R"SQL(
+SELECT 
+  FTS$INDEX_NAME, 
+  FTS$RELATION_NAME, 
+  FTS$ANALYZER, 
+  FTS$DESCRIPTION, 
+  FTS$INDEX_STATUS
+FROM FTS$INDICES
+WHERE FTS$INDEX_NAME = ?
+)SQL";
+
+    constexpr char SQL_ALL_FTS_INDECES[] = R"SQL(
+SELECT 
+  FTS$INDEX_NAME, 
+  FTS$RELATION_NAME, 
+  FTS$ANALYZER, 
+  FTS$DESCRIPTION, 
+  FTS$INDEX_STATUS
+FROM FTS$INDICES
+ORDER BY FTS$INDEX_NAME
+)SQL";
+
+    constexpr char SQL_ALL_FTS_INDECES_AND_SEGMENTS[] = R"SQL(
+SELECT
+  FTS$INDICES.FTS$INDEX_NAME,
+  FTS$INDICES.FTS$RELATION_NAME,
+  FTS$INDICES.FTS$ANALYZER,
+  FTS$INDICES.FTS$INDEX_STATUS,
+  FTS$INDEX_SEGMENTS.FTS$FIELD_NAME,
+  FTS$INDEX_SEGMENTS.FTS$KEY,
+  FTS$INDEX_SEGMENTS.FTS$BOOST,
+  (RF.RDB$FIELD_NAME IS NOT NULL) AS FIELD_EXISTS
+FROM FTS$INDICES
+LEFT JOIN FTS$INDEX_SEGMENTS ON FTS$INDEX_SEGMENTS.FTS$INDEX_NAME = FTS$INDICES.FTS$INDEX_NAME
+LEFT JOIN RDB$RELATION_FIELDS RF
+    ON RF.RDB$RELATION_NAME = FTS$INDICES.FTS$RELATION_NAME
+   AND RF.RDB$FIELD_NAME = FTS$INDEX_SEGMENTS.FTS$FIELD_NAME
+ORDER BY FTS$INDICES.FTS$INDEX_NAME
+)SQL";
+
+    constexpr char SQL_FTS_INDEX_SEGMENTS[] = R"SQL(
+SELECT
+  FTS$INDEX_SEGMENTS.FTS$INDEX_NAME,
+  FTS$INDEX_SEGMENTS.FTS$FIELD_NAME,
+  FTS$INDEX_SEGMENTS.FTS$KEY,
+  FTS$INDEX_SEGMENTS.FTS$BOOST,
+  (RF.RDB$FIELD_NAME IS NOT NULL) AS FIELD_EXISTS
+FROM FTS$INDICES
+JOIN FTS$INDEX_SEGMENTS
+    ON FTS$INDEX_SEGMENTS.FTS$INDEX_NAME = FTS$INDICES.FTS$INDEX_NAME
+LEFT JOIN RDB$RELATION_FIELDS RF
+    ON RF.RDB$RELATION_NAME = FTS$INDICES.FTS$RELATION_NAME
+   AND RF.RDB$FIELD_NAME = FTS$INDEX_SEGMENTS.FTS$FIELD_NAME
+WHERE FTS$INDICES.FTS$INDEX_NAME = ?
+)SQL";
+
+    constexpr char SQL_FTS_INDEX_FIELD_EXISTS[] = R"SQL(
+SELECT COUNT(*) AS CNT
+FROM FTS$INDEX_SEGMENTS
+WHERE FTS$INDEX_NAME = ? AND FTS$FIELD_NAME = ?
+)SQL";
+
+    constexpr char SQL_FTS_KEY_INDEX_FIELD_EXISTS[] = R"SQL(
+SELECT COUNT(*) AS CNT
+FROM FTS$INDEX_SEGMENTS
+WHERE FTS$INDEX_NAME = ? AND FTS$KEY IS TRUE
+)SQL";
+
+    constexpr char SQL_GET_FTS_KEY_INDEX_FIELD[] = R"SQL(
+SELECT FTS$INDEX_NAME, FTS$FIELD_NAME
+FROM FTS$INDEX_SEGMENTS
+WHERE FTS$INDEX_NAME = ? AND FTS$KEY IS TRUE
+)SQL";
+
+    constexpr char SQL_FTS_ADD_INDEX_FIELD[] = R"SQL(
+INSERT INTO FTS$INDEX_SEGMENTS (
+  FTS$INDEX_NAME, 
+  FTS$FIELD_NAME, 
+  FTS$KEY, 
+  FTS$BOOST
+)
+VALUES(?, ?, ?, ?)
+)SQL";
+
+    constexpr char SQL_FTS_DROP_INDEX_FIELD[] = R"SQL(
+DELETE FROM FTS$INDEX_SEGMENTS
+WHERE FTS$INDEX_NAME = ? AND FTS$FIELD_NAME = ?
+)SQL";
+
+    constexpr char SQL_FTS_SET_INDEX_FIELD_BOOST[] = R"SQL(
+UPDATE FTS$INDEX_SEGMENTS
+SET FTS$BOOST = ?
+WHERE FTS$INDEX_NAME = ? AND FTS$FIELD_NAME = ?
+)SQL";
+
+    constexpr char SQL_HAS_INDEX_BY_ANALYZER[] = R"SQL(
+SELECT COUNT(*) AS CNT
+FROM FTS$INDICES
+WHERE FTS$ANALYZER = ?
+)SQL";
+
+    constexpr char SQL_ACTIVE_INDEXES_BY_ANALYZER[] = R"SQL(
+SELECT FTS$INDEX_NAME
+FROM FTS$INDICES
+WHERE FTS$ANALYZER = ? AND FTS$INDEX_STATUS = 'C'
+)SQL";
+
     FTSIndexSegmentList::const_iterator FTSIndex::findSegment(const string& fieldName) {
         return std::find_if(
             segments.cbegin(),
@@ -69,7 +200,7 @@ namespace FTSMetadata
         ThrowStatusWrapper* const status,
         IAttachment* const att,
         ITransaction* const tra,
-        const unsigned int sqlDialect
+        unsigned int sqlDialect
     )
     {
         const auto sql = buildSqlSelectFieldValues(status, sqlDialect, true);
@@ -90,8 +221,8 @@ namespace FTSMetadata
 
     string FTSIndex::buildSqlSelectFieldValues(
         ThrowStatusWrapper* const status,
-        const unsigned int sqlDialect,
-        const bool whereKey)
+        unsigned int sqlDialect,
+        bool whereKey)
     {
         list<string> fieldNames;
         for (const auto& segment : segments) {
@@ -170,7 +301,7 @@ namespace FTSMetadata
         ThrowStatusWrapper* const status,
         IAttachment* const att,
         ITransaction* const tra,
-        const unsigned int sqlDialect,
+        unsigned int sqlDialect,
         const string& indexName,
         const string& relationName,
         const string& analyzerName,
@@ -246,7 +377,7 @@ namespace FTSMetadata
         ThrowStatusWrapper* const status,
         IAttachment* const att,
         ITransaction* const tra,
-        const unsigned int sqlDialect,
+        unsigned int sqlDialect,
         const string& indexName)
     {
 
@@ -291,7 +422,7 @@ namespace FTSMetadata
         ThrowStatusWrapper* const status,
         IAttachment* const att,
         ITransaction* const tra,
-        const unsigned int sqlDialect,
+        unsigned int sqlDialect,
         const string& indexName,
         const string& indexStatus)
     {
@@ -336,7 +467,7 @@ namespace FTSMetadata
         ThrowStatusWrapper* const status, 
         IAttachment* const att, 
         ITransaction* const tra, 
-        const unsigned int sqlDialect, 
+        unsigned int sqlDialect, 
         const string& indexName)
     {
         FB_MESSAGE(Input, ThrowStatusWrapper,
@@ -402,10 +533,10 @@ namespace FTSMetadata
         ThrowStatusWrapper* const status,
         IAttachment* att,
         ITransaction* tra,
-        const unsigned int sqlDialect,
+        unsigned int sqlDialect,
         const FTSIndexPtr& ftsIndex,
         const string& indexName,
-        const bool withSegments)
+        bool withSegments)
     {	
         FTSIndexNameInput input(status, m_master);		
         FTSIndexRecord output(status, m_master);
@@ -470,7 +601,7 @@ namespace FTSMetadata
         ThrowStatusWrapper* const status,
         IAttachment* const att,
         ITransaction* const tra,
-        const unsigned int sqlDialect,
+        unsigned int sqlDialect,
         FTSIndexList& indexes)
     {
 
@@ -511,7 +642,7 @@ namespace FTSMetadata
         ThrowStatusWrapper* const status,
         IAttachment* const att,
         ITransaction* const tra,
-        const unsigned int sqlDialect,
+        unsigned int sqlDialect,
         FTSIndexMap& indexes)
     {
         FB_MESSAGE(Output, ThrowStatusWrapper,
@@ -587,7 +718,7 @@ namespace FTSMetadata
         ThrowStatusWrapper* const status,
         IAttachment* const att,
         ITransaction* const tra,
-        const unsigned int sqlDialect,
+        unsigned int sqlDialect,
         const string& indexName,
         FTSIndexSegmentList& segments)
     {
@@ -663,7 +794,7 @@ namespace FTSMetadata
         ThrowStatusWrapper* const status,
         IAttachment* const att,
         ITransaction* const tra,
-        const unsigned int sqlDialect,
+        unsigned int sqlDialect,
         const string& indexName
     )
     {
@@ -718,7 +849,7 @@ namespace FTSMetadata
         ThrowStatusWrapper* const status,
         IAttachment* const att,
         ITransaction* const tra,
-        const unsigned int sqlDialect,
+        unsigned int sqlDialect,
         const FTSIndexSegmentPtr& keyIndexSegment,
         const string& indexName)
     {
@@ -788,12 +919,12 @@ namespace FTSMetadata
         ThrowStatusWrapper* const status,
         IAttachment* const att,
         ITransaction* const tra,
-        const unsigned int sqlDialect,
+        unsigned int sqlDialect,
         const string &indexName,
         const string &fieldName,
-        const bool key,
-        const double boost,
-        const bool boostNull)
+        bool key,
+        double boost,
+        bool boostNull)
     {
         FB_MESSAGE(Input, ThrowStatusWrapper,
             (FB_INTL_VARCHAR(252, CS_UTF8), indexName)
@@ -866,7 +997,7 @@ namespace FTSMetadata
         ThrowStatusWrapper* const status,
         IAttachment* const att,
         ITransaction* const tra,
-        const unsigned int sqlDialect,
+        unsigned int sqlDialect,
         const string &indexName,
         const string &fieldName)
     {
@@ -924,11 +1055,11 @@ namespace FTSMetadata
         ThrowStatusWrapper* const status,
         IAttachment* const att,
         ITransaction* const tra,
-        const unsigned int sqlDialect,
+        unsigned int sqlDialect,
         const string& indexName,
         const string& fieldName,
-        const double boost,
-        const bool boostNull)
+        double boost,
+        bool boostNull)
     {
         FB_MESSAGE(Input, ThrowStatusWrapper,
             (FB_DOUBLE, boost)
@@ -987,7 +1118,7 @@ namespace FTSMetadata
         ThrowStatusWrapper* const status,
         IAttachment* const att,
         ITransaction* const tra,
-        const unsigned int sqlDialect,
+        unsigned int sqlDialect,
         const string &indexName,
         const string &fieldName)
     {
@@ -1035,7 +1166,7 @@ namespace FTSMetadata
         ThrowStatusWrapper* const status,
         IAttachment* const att,
         ITransaction* const tra,
-        const unsigned int sqlDialect,
+        unsigned int sqlDialect,
         const string& analyzerName)
     {
         FB_MESSAGE(Input, ThrowStatusWrapper,
@@ -1079,7 +1210,7 @@ namespace FTSMetadata
         ThrowStatusWrapper* const status,
         IAttachment* const att,
         ITransaction* const tra,
-        const unsigned int sqlDialect,
+        unsigned int sqlDialect,
         const string& analyzerName)
     {
         // m_stmt_active_indexes_by_analyzer

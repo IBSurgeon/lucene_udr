@@ -18,7 +18,6 @@
 
 using namespace LuceneUDR;
 using namespace Firebird;
-using namespace std;
 using namespace Lucene;
 
 namespace FTSMetadata
@@ -110,7 +109,7 @@ WHERE FTS$ANALYZER_NAME = ? AND FTS$WORD = ?
         IAttachment* const att,
         ITransaction* const tra,
         unsigned int sqlDialect,
-        const string& analyzerName
+        const std::string& analyzerName
     )
     {
         if (m_analyzerFactory->hasAnalyzer(analyzerName)) {
@@ -129,7 +128,7 @@ WHERE FTS$ANALYZER_NAME = ? AND FTS$WORD = ?
         IAttachment* const att,
         ITransaction* const tra,
         unsigned int sqlDialect,
-        const string& analyzerName
+        const std::string& analyzerName
     )
     {
         if (m_analyzerFactory->hasAnalyzer(analyzerName)) {
@@ -188,7 +187,7 @@ WHERE FTS$ANALYZER_NAME = ? AND FTS$WORD = ?
         return info;
     }
 
-    list<AnalyzerInfo> AnalyzerRepository::getAnalyzerInfos(
+    std::list<AnalyzerInfo> AnalyzerRepository::getAnalyzerInfos(
         ThrowStatusWrapper* const status,
         IAttachment* const att,
         ITransaction* const tra,
@@ -242,7 +241,7 @@ WHERE FTS$ANALYZER_NAME = ? AND FTS$WORD = ?
         IAttachment* const att,
         ITransaction* const tra,
         unsigned int sqlDialect,
-        const string& analyzerName
+        const std::string& analyzerName
     )
     {
         if (m_analyzerFactory->hasAnalyzer(analyzerName)) {
@@ -296,9 +295,9 @@ WHERE FTS$ANALYZER_NAME = ? AND FTS$WORD = ?
         IAttachment* const att,
         ITransaction* const tra,
         unsigned int sqlDialect,
-        const string& analyzerName,
-        const string& baseAnalyzer,
-        const string& description
+        const std::string& analyzerName,
+        const std::string& baseAnalyzer,
+        const std::string& description
     )
     {
         if (hasAnalyzer(status, att, tra, sqlDialect, analyzerName)) {
@@ -351,7 +350,7 @@ WHERE FTS$ANALYZER_NAME = ? AND FTS$WORD = ?
         IAttachment* const att,
         ITransaction* const tra,
         unsigned int sqlDialect,
-        const string& analyzerName
+        const std::string& analyzerName
     )
     {
         if (m_analyzerFactory->hasAnalyzer(analyzerName)) {
@@ -388,7 +387,7 @@ WHERE FTS$ANALYZER_NAME = ? AND FTS$WORD = ?
         IAttachment* const att,
         ITransaction* const tra,
         unsigned int sqlDialect,
-        const string& analyzerName
+        const std::string& analyzerName
     )
     {
         if (m_analyzerFactory->hasAnalyzer(analyzerName)) {
@@ -431,7 +430,7 @@ WHERE FTS$ANALYZER_NAME = ? AND FTS$WORD = ?
         ));
         
         while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
-            const string stopWord(output->stopWord.str, output->stopWord.length);
+            const std::string stopWord(output->stopWord.str, output->stopWord.length);
             const String uStopWord = StringUtils::toUnicode(stopWord);
             stopWords.add(uStopWord);
         }
@@ -446,8 +445,8 @@ WHERE FTS$ANALYZER_NAME = ? AND FTS$WORD = ?
         IAttachment* const att,
         ITransaction* const tra,
         unsigned int sqlDialect,
-        const string& analyzerName,
-        const string& stopWord
+        const std::string& analyzerName,
+        const std::string& stopWord
     )
     {
         if (m_analyzerFactory->hasAnalyzer(analyzerName)) {
@@ -500,8 +499,8 @@ WHERE FTS$ANALYZER_NAME = ? AND FTS$WORD = ?
         IAttachment* const att,
         ITransaction* const tra,
         unsigned int sqlDialect,
-        const string& analyzerName,
-        const string& stopWord
+        const std::string& analyzerName,
+        const std::string& stopWord
     )
     {
         if (m_analyzerFactory->hasAnalyzer(analyzerName)) {

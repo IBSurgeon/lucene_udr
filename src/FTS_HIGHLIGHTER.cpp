@@ -57,20 +57,18 @@ FB_UDR_BEGIN_FUNCTION(bestFragementHighligh)
     );
 
     FB_UDR_CONSTRUCTOR
-        , analyzers(make_unique<AnalyzerRepository>(context->getMaster()))
+        , analyzers(std::make_unique<AnalyzerRepository>(context->getMaster()))
     {
     }
 
-    unique_ptr<AnalyzerRepository> analyzers;
+    std::unique_ptr<AnalyzerRepository> analyzers;
 
     void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
         char* name, unsigned nameSize)
     {
         // Forced internal request encoding to UTF8
         memset(name, 0, nameSize);
-
-        const string charset = "UTF8";
-        charset.copy(name, charset.length());
+        memcpy(name, INTERNAL_UDR_CHARSET, std::size(INTERNAL_UDR_CHARSET));
     }
 
     FB_UDR_EXECUTE_FUNCTION
@@ -80,7 +78,7 @@ FB_UDR_BEGIN_FUNCTION(bestFragementHighligh)
 
         out->fragmentNull = true;
 
-        string text;
+        std::string text;
         if (!in->textNull) {
             AutoRelease<IBlob> blob(att->openBlob(status, tra, &in->text, 0, nullptr));
             text = BlobUtils::getString(status, blob);
@@ -88,17 +86,17 @@ FB_UDR_BEGIN_FUNCTION(bestFragementHighligh)
             blob.release();
         }
 
-        string queryStr;
+        std::string queryStr;
         if (!in->queryNull) {
             queryStr.assign(in->query.str, in->query.length);
         }
 
-        string analyzerName = DEFAULT_ANALYZER_NAME;
+        std::string analyzerName = DEFAULT_ANALYZER_NAME;
         if (!in->analyzer_nameNull) {
             analyzerName.assign(in->analyzer_name.str, in->analyzer_name.length);
         }
 
-        string fieldName;
+        std::string fieldName;
         if (!in->field_nameNull) {
             fieldName.assign(in->field_name.str, in->field_name.length);
         }
@@ -113,12 +111,12 @@ FB_UDR_BEGIN_FUNCTION(bestFragementHighligh)
             throwException(status, "Fragment size must be greater than 0");
         }
 
-        string leftTag;
+        std::string leftTag;
         if (!in->left_tagNull) {
             leftTag.assign(in->left_tag.str, in->left_tag.length);
         }
 
-        string rightTag;
+        std::string rightTag;
         if (!in->right_tagNull) {
             rightTag.assign(in->right_tag.str, in->right_tag.length);
         }
@@ -140,14 +138,14 @@ FB_UDR_BEGIN_FUNCTION(bestFragementHighligh)
                 if (content.length() > 8191) {
                     throwException(status, "Fragment size exceeds 8191 characters");
                 }
-                string fragment = StringUtils::toUTF8(content);
+                std::string fragment = StringUtils::toUTF8(content);
                 out->fragmentNull = false;
                 out->fragment.length = static_cast<ISC_USHORT>(fragment.length());
                 fragment.copy(out->fragment.str, out->fragment.length);
             }
         }
-        catch (LuceneException& e) {
-            const string error_message = StringUtils::toUTF8(e.getError());
+        catch (const LuceneException& e) {
+            const std::string error_message = StringUtils::toUTF8(e.getError());
             throwException(status, error_message.c_str());
         }
     }
@@ -187,20 +185,18 @@ FB_UDR_BEGIN_PROCEDURE(bestFragementsHighligh)
     );
 
     FB_UDR_CONSTRUCTOR
-        , analyzers(make_unique<AnalyzerRepository>(context->getMaster()))
+        , analyzers(std::make_unique<AnalyzerRepository>(context->getMaster()))
     {
     }
 
-    unique_ptr<AnalyzerRepository> analyzers;
+    std::unique_ptr<AnalyzerRepository> analyzers;
 
     void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
         char* name, unsigned nameSize)
     {
         // Forced internal request encoding to UTF8
         memset(name, 0, nameSize);
-
-        const string charset = "UTF8";
-        charset.copy(name, charset.length());
+        memcpy(name, INTERNAL_UDR_CHARSET, std::size(INTERNAL_UDR_CHARSET));
     }
 
     FB_UDR_EXECUTE_PROCEDURE
@@ -210,7 +206,7 @@ FB_UDR_BEGIN_PROCEDURE(bestFragementsHighligh)
 
         out->fragmentNull = true;
 
-        string text;
+        std::string text;
         if (!in->textNull) {
             AutoRelease<IBlob> blob(att->openBlob(status, tra, &in->text, 0, nullptr));
             text = BlobUtils::getString(status, blob);
@@ -218,17 +214,17 @@ FB_UDR_BEGIN_PROCEDURE(bestFragementsHighligh)
             blob.release();
         }
 
-        string queryStr;
+        std::string queryStr;
         if (!in->queryNull) {
             queryStr.assign(in->query.str, in->query.length);
         }
 
-        string analyzerName = DEFAULT_ANALYZER_NAME;
+        std::string analyzerName = DEFAULT_ANALYZER_NAME;
         if (!in->analyzer_nameNull) {
             analyzerName.assign(in->analyzer_name.str, in->analyzer_name.length);
         }
 
-        string fieldName;
+        std::string fieldName;
         if (!in->field_nameNull) {
             fieldName.assign(in->field_name.str, in->field_name.length);
         }
@@ -245,12 +241,12 @@ FB_UDR_BEGIN_PROCEDURE(bestFragementsHighligh)
 
         const ISC_LONG maxNumFragments = in->maxNumFragments;
 
-        string leftTag;
+        std::string leftTag;
         if (!in->left_tagNull) {
             leftTag.assign(in->left_tag.str, in->left_tag.length);
         }
 
-        string rightTag;
+        std::string rightTag;
         if (!in->right_tagNull) {
             rightTag.assign(in->right_tag.str, in->right_tag.length);
         }
@@ -270,8 +266,8 @@ FB_UDR_BEGIN_PROCEDURE(bestFragementsHighligh)
             fragments = highlighter->getBestFragments(analyzer, StringUtils::toUnicode(fieldName), StringUtils::toUnicode(text), maxNumFragments);
             it = fragments.begin();
         }
-        catch (LuceneException& e) {
-            const string error_message = StringUtils::toUTF8(e.getError());
+        catch (const LuceneException& e) {
+            const std::string error_message = StringUtils::toUTF8(e.getError());
             throwException(status, error_message.c_str());
         }
     }
@@ -293,7 +289,7 @@ FB_UDR_BEGIN_PROCEDURE(bestFragementsHighligh)
             if (content.length() > 8191) {
                 throwException(status, "Fragment size exceeds 8191 characters");
             }
-            const string fragment = StringUtils::toUTF8(content);
+            const std::string fragment = StringUtils::toUTF8(content);
             out->fragmentNull = false;
             out->fragment.length = static_cast<ISC_USHORT>(fragment.length());
             fragment.copy(out->fragment.str, out->fragment.length);

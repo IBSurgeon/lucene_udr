@@ -58,20 +58,18 @@ FB_UDR_BEGIN_PROCEDURE(ftsMakeTrigger)
     );
 
     FB_UDR_CONSTRUCTOR
-        , triggerHelper(make_unique<FTSTriggerHelper>(context->getMaster()))
+        , triggerHelper(std::make_unique<FTSTriggerHelper>(context->getMaster()))
     {
     }
 
-    unique_ptr<FTSTriggerHelper> triggerHelper{nullptr};
+    std::unique_ptr<FTSTriggerHelper> triggerHelper{nullptr};
 
     void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
         char* name, unsigned nameSize)
     {
         // Forced internal request encoding to UTF8
         memset(name, 0, nameSize);
-
-        const string charset = "UTF8";
-        charset.copy(name, charset.length());
+        memcpy(name, INTERNAL_UDR_CHARSET, std::size(INTERNAL_UDR_CHARSET));
     }
 
     FB_UDR_EXECUTE_PROCEDURE
@@ -79,7 +77,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsMakeTrigger)
         if (in->relationNameNull) {
             throwException(status, "FTS$RELATION_NAME can not be NULL");
         }
-        string relationName(in->relationName.str, in->relationName.length);
+        std::string relationName(in->relationName.str, in->relationName.length);
 
         const bool multiActionFlag = in->multiAction;
 
@@ -96,7 +94,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsMakeTrigger)
             it = triggers.cbegin();
         }
         catch (LuceneException& e) {
-            string error_message = StringUtils::toUTF8(e.getError());
+            std::string error_message = StringUtils::toUTF8(e.getError());
             throwException(status, error_message.c_str());
         }
     }

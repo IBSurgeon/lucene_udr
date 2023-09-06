@@ -15,7 +15,6 @@
 #include "FBUtils.h"
 
 using namespace Firebird;
-using namespace std;
 using namespace LuceneUDR;
 
 namespace FTSMetadata
@@ -126,7 +125,7 @@ WHERE RDB$RELATION_NAME = ? AND RDB$FIELD_NAME = ?
         ITransaction* const tra,
         unsigned int sqlDialect,
         RelationInfoPtr& relationInfo,
-        const string& relationName)
+        const std::string& relationName)
     {
         FB_MESSAGE(Input, ThrowStatusWrapper,
             (FB_INTL_VARCHAR(252, CS_UTF8), relationName)
@@ -193,7 +192,7 @@ WHERE RDB$RELATION_NAME = ? AND RDB$FIELD_NAME = ?
         IAttachment* att,
         ITransaction* tra,
         unsigned int sqlDialect,
-        const string& relationName)
+        const std::string& relationName)
     {
         FB_MESSAGE(Input, ThrowStatusWrapper,
             (FB_INTL_VARCHAR(252, CS_UTF8), relationName)
@@ -253,7 +252,7 @@ WHERE RDB$RELATION_NAME = ? AND RDB$FIELD_NAME = ?
         IAttachment* const att,
         ITransaction* const tra,
         unsigned int sqlDialect,
-        const string& relationName,
+        const std::string& relationName,
         RelationFieldList& fields
     )
     {
@@ -298,7 +297,7 @@ WHERE RDB$RELATION_NAME = ? AND RDB$FIELD_NAME = ?
         ));
 
         while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
-            auto fieldInfo = make_unique<RelationFieldInfo>();
+            auto fieldInfo = std::make_unique<RelationFieldInfo>();
 
             fieldInfo->relationName.assign(output->relationName.str, output->relationName.length);
             fieldInfo->fieldName.assign(output->fieldName.str, output->fieldName.length);
@@ -333,7 +332,7 @@ WHERE RDB$RELATION_NAME = ? AND RDB$FIELD_NAME = ?
         IAttachment* const att,
         ITransaction* const tra,
         unsigned int sqlDialect,
-        const string& relationName,
+        const std::string& relationName,
         RelationFieldList& keyFields
     )
     {
@@ -378,7 +377,7 @@ WHERE RDB$RELATION_NAME = ? AND RDB$FIELD_NAME = ?
         ));
 
         while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
-            auto fieldInfo = make_unique<RelationFieldInfo>();
+            auto fieldInfo = std::make_unique<RelationFieldInfo>();
 
             fieldInfo->relationName.assign(output->relationName.str, output->relationName.length);
             fieldInfo->fieldName.assign(output->fieldName.str, output->fieldName.length);
@@ -415,8 +414,8 @@ WHERE RDB$RELATION_NAME = ? AND RDB$FIELD_NAME = ?
         ITransaction* tra,
         unsigned int sqlDialect,
         const RelationFieldInfoPtr& fieldInfo,
-        const string& relationName,
-        const string& fieldName)
+        const std::string& relationName,
+        const std::string& fieldName)
     {
         FB_MESSAGE(Input, ThrowStatusWrapper,
             (FB_INTL_VARCHAR(252, CS_UTF8), relationName)
@@ -502,8 +501,8 @@ WHERE RDB$RELATION_NAME = ? AND RDB$FIELD_NAME = ?
         IAttachment* att,
         ITransaction* tra,
         unsigned int sqlDialect,
-        const string& relationName,
-        const string& fieldName)
+        const std::string& relationName,
+        const std::string& fieldName)
     {
         FB_MESSAGE(Input, ThrowStatusWrapper,
             (FB_INTL_VARCHAR(252, CS_UTF8), relationName)

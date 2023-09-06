@@ -24,6 +24,7 @@
 #include "Analyzers.h"
 #include "LuceneAnalyzerFactory.h"
 #include "Utils.h"
+#include <string>
 #include <sstream>
 #include <memory>
 #include <algorithm>
@@ -33,45 +34,28 @@ using namespace Lucene;
 using namespace FTSMetadata;
 using namespace LuceneUDR;
 
-const string queryEscape(const string& query)
+const std::string queryEscape(const std::string& query)
 {
-    stringstream ss;
+    std::stringstream ss;
     for (const auto ch : query) {
         switch (ch) {
         case '+': 
-            [[fallthrough]];
         case '-':
-            [[fallthrough]];
         case '!':
-            [[fallthrough]];
         case '^':
-            [[fallthrough]];
         case '"':
-            [[fallthrough]];
         case '~':
-            [[fallthrough]];
         case '*':
-            [[fallthrough]];
         case '?':
-            [[fallthrough]];
         case ':':
-            [[fallthrough]];
         case '\\':
-            [[fallthrough]];
         case '&':
-            [[fallthrough]];
         case '|':
-            [[fallthrough]];
         case '(':
-            [[fallthrough]];
         case ')':
-            [[fallthrough]];
         case '[':
-            [[fallthrough]];
         case ']':
-            [[fallthrough]];
         case '{':
-            [[fallthrough]];
         case '}':
             ss << '\\' << ch;
             break;
@@ -102,7 +86,7 @@ FB_UDR_BEGIN_FUNCTION(ftsEscapeQuery)
     FB_UDR_EXECUTE_FUNCTION
     {
         if (!in->queryNull) {
-            string queryStr;
+            std::string queryStr;
             queryStr.assign(in->query.str, in->query.length);
 
             const auto escapedQuery = queryEscape(queryStr);
@@ -155,7 +139,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
     );
 
     FB_UDR_CONSTRUCTOR
-        , indexRepository(make_unique<FTSIndexRepository>(context->getMaster()))
+        , indexRepository(std::make_unique<FTSIndexRepository>(context->getMaster()))
     {
     }
 
@@ -167,9 +151,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
     {
         // Forced internal request encoding to UTF8
         memset(name, 0, nameSize);
-
-        const string charset = "UTF8";
-        charset.copy(name, charset.length());
+        memcpy(name, INTERNAL_UDR_CHARSET, std::size(INTERNAL_UDR_CHARSET));
     }
     
     FB_UDR_EXECUTE_PROCEDURE
@@ -177,9 +159,9 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
         if (in->indexNameNull) {
             throwException(status, "Index name can not be NULL");
         }
-        const string indexName(in->indexName.str, in->indexName.length);
+        const std::string indexName(in->indexName.str, in->indexName.length);
         
-        string queryStr;
+        std::string queryStr;
         if (!in->queryNull) {
             queryStr.assign(in->query.str, in->query.length);
         }
@@ -197,7 +179,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 
         const unsigned int sqlDialect = getSqlDialect(status, att);
 
-        const auto& ftsIndex = make_unique<FTSIndex>();
+        const auto& ftsIndex = std::make_unique<FTSIndex>();
         procedure->indexRepository->getIndex(status, att, tra, sqlDialect, ftsIndex, indexName, true);
 
         // check if directory exists for index
@@ -216,7 +198,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
             AnalyzerPtr analyzer = analyzers->createAnalyzer(status, att, tra, sqlDialect, ftsIndex->analyzer);
             searcher = newLucene<IndexSearcher>(ftsIndexDir, true);
             
-            string keyFieldName;
+            std::string keyFieldName;
             auto fields = Collection<String>::newInstance();
             for (const auto& segment : ftsIndex->segments) {
                 if (!segment->key) {
@@ -228,7 +210,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
                 }
             }
 
-            keyFieldInfo = make_unique<RelationFieldInfo>();
+            keyFieldInfo = std::make_unique<RelationFieldInfo>();
             if (keyFieldName != "RDB$DB_KEY") {
                 procedure->indexRepository->getRelationHelper()->getField(status, att, tra, sqlDialect, keyFieldInfo, ftsIndex->relationName, keyFieldName);
             }
@@ -256,8 +238,8 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
             out->idNull = true;
             out->scoreNull = true;
         }
-        catch (LuceneException& e) {
-            const string error_message = StringUtils::toUTF8(e.getError());
+        catch (const LuceneException& e) {
+            const std::string error_message = StringUtils::toUTF8(e.getError());
             throwException(status, error_message.c_str());
         }
     }
@@ -282,17 +264,17 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
             DocumentPtr doc = searcher->doc(scoreDoc->doc);
 
             try {
-                const string keyValue = StringUtils::toUTF8(doc->get(unicodeKeyFieldName));
+                const std::string keyValue = StringUtils::toUTF8(doc->get(unicodeKeyFieldName));
                 if (unicodeKeyFieldName == L"RDB$DB_KEY") {
                     // In the Lucene index, the string is stored in hexadecimal form, so let's convert it back to binary format.
-                    const string dbKey = hex_to_string(keyValue);
+                    const std::string dbKey = hex_to_string(keyValue);
                     out->dbKeyNull = false;
                     out->dbKey.length = static_cast<ISC_USHORT>(dbKey.length());
                     dbKey.copy(out->dbKey.str, out->dbKey.length);
                 }
                 else if (keyFieldInfo->isBinary()) {
                     // In the Lucene index, the string is stored in hexadecimal form, so let's convert it back to binary format.
-                    const string uuid = hex_to_string(keyValue);
+                    const std::string uuid = hex_to_string(keyValue);
                     out->uuidNull = false;
                     out->uuid.length = static_cast<ISC_USHORT>(uuid.length());
                     uuid.copy(out->uuid.str, out->uuid.length);
@@ -302,7 +284,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
                     out->id = std::stoll(keyValue);
                 }
             }
-            catch (invalid_argument& e) {
+            catch (std::invalid_argument& e) {
                 throwException(status, e.what());
             }
 
@@ -318,7 +300,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 
                 out->explanationNull = false;
                 const auto explanation = searcher->explain(query, scoreDoc->doc);
-                const string explanationStr = StringUtils::toUTF8(explanation->toString());
+                const std::string explanationStr = StringUtils::toUTF8(explanation->toString());
                 AutoRelease<IBlob> blob(att->createBlob(status, tra, &out->explanation, sizeof(bpb), bpb));
                 BlobUtils::setString(status, blob, explanationStr);
                 blob->close(status);
@@ -330,8 +312,8 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 
             ++it;
         }
-        catch (LuceneException& e) {
-            const string error_message = StringUtils::toUTF8(e.getError());
+        catch (const LuceneException& e) {
+            const std::string error_message = StringUtils::toUTF8(e.getError());
             throwException(status, error_message.c_str());
         }
         return true;
@@ -360,20 +342,18 @@ FB_UDR_BEGIN_PROCEDURE(ftsAnalyze)
     );
 
     FB_UDR_CONSTRUCTOR
-        , analyzers(make_unique<AnalyzerRepository>(context->getMaster()))
+        , analyzers(std::make_unique<AnalyzerRepository>(context->getMaster()))
     {
     }
 
-    unique_ptr<AnalyzerRepository> analyzers;
+    std::unique_ptr<AnalyzerRepository> analyzers;
 
     void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
         char* name, unsigned nameSize)
     {
         // Forced internal request encoding to UTF8
         memset(name, 0, nameSize);
-
-        const string charset = "UTF8";
-        charset.copy(name, charset.length());
+        memcpy(name, INTERNAL_UDR_CHARSET, std::size(INTERNAL_UDR_CHARSET));
     }
 
     FB_UDR_EXECUTE_PROCEDURE
@@ -383,7 +363,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsAnalyze)
 
         const unsigned int sqlDialect = getSqlDialect(status, att);
 
-        string text;
+        std::string text;
         if (!in->textNull) {
             AutoRelease<IBlob> blob(att->openBlob(status, tra, &in->text, 0, nullptr));
             text = BlobUtils::getString(status, blob);
@@ -391,7 +371,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsAnalyze)
             blob.release();
         }
 
-        string analyzerName = DEFAULT_ANALYZER_NAME;
+        std::string analyzerName = DEFAULT_ANALYZER_NAME;
         if (!in->analyzerNameNull) {
             analyzerName.assign(in->analyzerName.str, in->analyzerName.length);
         }
@@ -404,8 +384,8 @@ FB_UDR_BEGIN_PROCEDURE(ftsAnalyze)
             termAttribute = tokenStream->addAttribute<TermAttribute>();
             tokenStream->reset();
         }
-        catch (LuceneException& e) {
-            const string error_message = StringUtils::toUTF8(e.getError());
+        catch (const LuceneException& e) {
+            const std::string error_message = StringUtils::toUTF8(e.getError());
             throwException(status, error_message.c_str());
         }
     }
@@ -424,7 +404,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsAnalyze)
             throwException(status, "Term size exceeds 8191 characters");
         }
 
-        const string term = StringUtils::toUTF8(uTerm);
+        const std::string term = StringUtils::toUTF8(uTerm);
 
         out->termNull = false;
         out->term.length = static_cast<ISC_USHORT>(term.length());
@@ -463,9 +443,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogByDdKey)
     {
         // Forced internal request encoding to UTF8
         memset(name, 0, nameSize);
-
-        const string charset = "UTF8";
-        charset.copy(name, charset.length());
+        memcpy(name, INTERNAL_UDR_CHARSET, std::size(INTERNAL_UDR_CHARSET));
     }
 
     FB_UDR_EXECUTE_PROCEDURE
@@ -473,24 +451,35 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogByDdKey)
         if (in->relationNameNull) {
             throwException(status, "FTS$RELATION_NAME can not be NULL");
         }
-        string relationName(in->relationName.str, in->relationName.length);
+        std::string relationName(in->relationName.str, in->relationName.length);
         relationName = rtrim(relationName);
 
         if (in->dbKeyNull) {
             throwException(status, "FTS$DBKEY can not be NULL");
         }
-        const string dbKey(in->dbKey.str, in->dbKey.length);
+        const std::string dbKey(in->dbKey.str, in->dbKey.length);
 
         if (in->changeTypeNull) {
             throwException(status, "FTS$CHANGE_TYPE can not be NULL");
         }
-        string changeType(in->changeType.str, in->changeType.length);
+        std::string changeType(in->changeType.str, in->changeType.length);
         changeType = rtrim(changeType);
 
         AutoRelease<IAttachment> att(context->getAttachment(status));
         AutoRelease<ITransaction> tra(context->getTransaction(status));
 
         const unsigned int sqlDialect = getSqlDialect(status, att);
+
+        constexpr char SQL_APPEND_LOG[] = R"SQL(
+INSERT INTO FTS$LOG (
+  FTS$RELATION_NAME,
+  FTS$DB_KEY,
+  FTS$REC_UUID,
+  FTS$REC_ID,
+  FTS$CHANGE_TYPE
+)
+VALUES(?, ?, NULL, NULL, ?)
+)SQL";
 
         // prepare statement for append record to FTS log
         if (!procedure->appendLogStmt.hasData()) {
@@ -531,18 +520,6 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogByDdKey)
         );
     }
 
-    const char* SQL_APPEND_LOG =
-        R"SQL(
-INSERT INTO FTS$LOG (
-  FTS$RELATION_NAME,
-  FTS$DB_KEY,
-  FTS$REC_UUID,
-  FTS$REC_ID,
-  FTS$CHANGE_TYPE
-)
-VALUES(?, ?, NULL, NULL, ?)
-)SQL";
-
     FB_UDR_FETCH_PROCEDURE
     {
         return false;
@@ -579,9 +556,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogById)
     {
         // Forced internal request encoding to UTF8
         memset(name, 0, nameSize);
-
-        const string charset = "UTF8";
-        charset.copy(name, charset.length());
+        memcpy(name, INTERNAL_UDR_CHARSET, std::size(INTERNAL_UDR_CHARSET));
     }
 
     FB_UDR_EXECUTE_PROCEDURE
@@ -589,7 +564,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogById)
         if (in->relationNameNull) {
             throwException(status, "FTS$RELATION_NAME can not be NULL");
         }
-        string relationName(in->relationName.str, in->relationName.length);
+        std::string relationName(in->relationName.str, in->relationName.length);
         relationName = rtrim(relationName);
 
         if (in->idNull) {
@@ -599,13 +574,25 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogById)
         if (in->changeTypeNull) {
             throwException(status, "FTS$CHANGE_TYPE can not be NULL");
         }
-        string changeType(in->changeType.str, in->changeType.length);
+        std::string changeType(in->changeType.str, in->changeType.length);
         changeType = rtrim(changeType);
 
         AutoRelease<IAttachment> att(context->getAttachment(status));
         AutoRelease<ITransaction> tra(context->getTransaction(status));
 
         const unsigned int sqlDialect = getSqlDialect(status, att);
+
+        constexpr char SQL_APPEND_LOG[] =
+            R"SQL(
+INSERT INTO FTS$LOG (
+  FTS$RELATION_NAME,
+  FTS$DB_KEY,
+  FTS$REC_UUID,
+  FTS$REC_ID,
+  FTS$CHANGE_TYPE
+)
+VALUES(?, NULL, NULL, ?, ?)
+)SQL";
 
         // prepare statement for append record to FTS log
         if (!procedure->appendLogStmt.hasData()) {
@@ -646,19 +633,6 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogById)
         );
     }
 
-
-    const char* SQL_APPEND_LOG =
-        R"SQL(
-INSERT INTO FTS$LOG (
-  FTS$RELATION_NAME,
-  FTS$DB_KEY,
-  FTS$REC_UUID,
-  FTS$REC_ID,
-  FTS$CHANGE_TYPE
-)
-VALUES(?, NULL, NULL, ?, ?)
-)SQL";
-
     FB_UDR_FETCH_PROCEDURE
     {
         return false;
@@ -695,9 +669,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogByUuid)
     {
         // Forced internal request encoding to UTF8
         memset(name, 0, nameSize);
-
-        const string charset = "UTF8";
-        charset.copy(name, charset.length());
+        memcpy(name, INTERNAL_UDR_CHARSET, std::size(INTERNAL_UDR_CHARSET));
     }
 
     FB_UDR_EXECUTE_PROCEDURE
@@ -705,24 +677,35 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogByUuid)
         if (in->relationNameNull) {
             throwException(status, "FTS$RELATION_NAME can not be NULL");
         }
-        string relationName(in->relationName.str, in->relationName.length);
+        std::string relationName(in->relationName.str, in->relationName.length);
         relationName = rtrim(relationName);
 
         if (in->uuidNull) {
             throwException(status, "FTS$UUID can not be NULL");
         }
-        const string uuid(in->uuid.str, in->uuid.length);
+        const std::string uuid(in->uuid.str, in->uuid.length);
 
         if (in->changeTypeNull) {
             throwException(status, "FTS$CHANGE_TYPE can not be NULL");
         }
-        string changeType(in->changeType.str, in->changeType.length);
+        std::string changeType(in->changeType.str, in->changeType.length);
         changeType = rtrim(changeType);
 
         AutoRelease<IAttachment> att(context->getAttachment(status));
         AutoRelease<ITransaction> tra(context->getTransaction(status));
 
         const unsigned int sqlDialect = getSqlDialect(status, att);
+
+        constexpr char SQL_APPEND_LOG[] = R"SQL(
+INSERT INTO FTS$LOG (
+  FTS$RELATION_NAME,
+  FTS$DB_KEY,
+  FTS$REC_UUID,
+  FTS$REC_ID,
+  FTS$CHANGE_TYPE
+)
+VALUES(?, NULL, ?, NULL, ?)
+)SQL";
 
         // prepare statement for append record to FTS log
         if (!procedure->appendLogStmt.hasData()) {
@@ -763,18 +746,6 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogByUuid)
         );
     }
 
-    const char* SQL_APPEND_LOG =
-        R"SQL(
-INSERT INTO FTS$LOG (
-  FTS$RELATION_NAME,
-  FTS$DB_KEY,
-  FTS$REC_UUID,
-  FTS$REC_ID,
-  FTS$CHANGE_TYPE
-)
-VALUES(?, NULL, ?, NULL, ?)
-)SQL";
-
     FB_UDR_FETCH_PROCEDURE
     {
         return false;
@@ -795,9 +766,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsClearLog)
     {
         // Forced internal request encoding to UTF8
         memset(name, 0, nameSize);
-
-        const string charset = "UTF8";
-        charset.copy(name, charset.length());
+        memcpy(name, INTERNAL_UDR_CHARSET, std::size(INTERNAL_UDR_CHARSET));
     }
 
     FB_UDR_EXECUTE_PROCEDURE
@@ -835,7 +804,7 @@ ENGINE UDR;
 FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 
     FB_UDR_CONSTRUCTOR
-        , indexRepository(make_unique<FTSIndexRepository>(context->getMaster()))
+        , indexRepository(std::make_unique<FTSIndexRepository>(context->getMaster()))
         , logDeleteStmt(nullptr)
         , logStmt(nullptr)
     {
@@ -851,9 +820,7 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
     {
         // Forced internal request encoding to UTF8
         memset(name, 0, nameSize);
-        
-        const string charset = "UTF8";
-        charset.copy(name, charset.length());
+        memcpy(name, INTERNAL_UDR_CHARSET, std::size(INTERNAL_UDR_CHARSET));
     }
 
     FB_UDR_EXECUTE_PROCEDURE
@@ -863,13 +830,30 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 
         const unsigned int sqlDialect = getSqlDialect(status, att);
 
+        constexpr char SQL_DELETE_FTS_LOG[] = R"SQL(
+DELETE FROM FTS$LOG
+WHERE FTS$LOG_ID = ?
+)SQL";
+
+        constexpr char SQL_SELECT_FTS_LOG[] = R"SQL(
+SELECT
+    FTS$LOG_ID
+  , TRIM(FTS$RELATION_NAME) AS FTS$RELATION_NAME
+  , FTS$DB_KEY
+  , FTS$REC_UUID
+  , FTS$REC_ID
+  , FTS$CHANGE_TYPE
+FROM FTS$LOG
+ORDER BY FTS$LOG_ID
+)SQL";
+
         const auto& ftsDirectoryPath = getFtsDirectory(status, context);
         
         // get all indexes with segments
         FTSIndexMap indexes;
         procedure->indexRepository->fillAllIndexesWithFields(status, att, tra, sqlDialect, indexes);
         // fill map indexes of relationName
-        map<string, list<string>> indexesByRelation;
+        std::map<std::string, std::list<std::string>> indexesByRelation;
         for (const auto& [indexName, ftsIndex] : indexes) {	
             if (!ftsIndex->isActive()) {
                 continue;
@@ -894,7 +878,7 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
                 // go to next index
                 continue;
             }
-            const auto& params = make_unique<FbFieldsInfo>(status, inMetadata);
+            const auto& params = std::make_unique<FbFieldsInfo>(status, inMetadata);
             const auto& keyParam = params->at(0);
             if (keyParam->isBinary()) {
                 switch (keyParam->length) {
@@ -923,7 +907,7 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 
 
             const auto& outMetadata =  ftsIndex->getOutExtractRecordMetadata();
-            auto fields = make_unique<FbFieldsInfo>(status, outMetadata);
+            auto fields = std::make_unique<FbFieldsInfo>(status, outMetadata);
             // initial specific FTS property for fields
             for (unsigned int i = 0; i < fields->size(); i++) {
                 const auto& field = fields->at(i);
@@ -948,7 +932,7 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
             // put indexName to map
             auto it = indexesByRelation.find(ftsIndex->relationName);
             if (it == indexesByRelation.end()) {
-                list<string> indexNames;
+                std::list<std::string> indexNames;
                 indexNames.push_back(ftsIndex->indexName);
                 indexesByRelation[ftsIndex->relationName] = indexNames;
             }
@@ -1005,8 +989,8 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 
             while (logRs->fetchNext(status, logOutput.getData()) == IStatus::RESULT_OK) {
                 const ISC_INT64 logId = logOutput->id;
-                const string relationName(logOutput->relationName.str, logOutput->relationName.length);
-                const string changeType(logOutput->changeType.str, logOutput->changeType.length);
+                const std::string relationName(logOutput->relationName.str, logOutput->relationName.length);
+                const std::string changeType(logOutput->changeType.str, logOutput->changeType.length);
 
 
                 const auto itIndexNames = indexesByRelation.find(relationName);
@@ -1024,19 +1008,19 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
                     switch (ftsIndex->keyFieldType) {
                     case FTSKeyType::DB_KEY:
                         if (!logOutput->dbKeyNull) {
-                            string dbKey(logOutput->dbKey.str, logOutput->dbKey.length);
+                            std::string dbKey(logOutput->dbKey.str, logOutput->dbKey.length);
                             unicodeKeyValue = StringUtils::toUnicode(string_to_hex(dbKey));
                         }
                         break;
                     case FTSKeyType::UUID:
                         if (!logOutput->uuidNull) {
-                            string uuid(logOutput->uuid.str, logOutput->uuid.length);
+                            std::string uuid(logOutput->uuid.str, logOutput->uuid.length);
                             unicodeKeyValue = StringUtils::toUnicode(string_to_hex(uuid));
                         }
                         break;
                     case FTSKeyType::INT_ID:
                         if (!logOutput->recIdNull) {
-                            string id = std::to_string(logOutput->recId);
+                            std::string id = std::to_string(logOutput->recId);
                             unicodeKeyValue = StringUtils::toUnicode(id);
                         }
                         break;
@@ -1114,7 +1098,7 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
                     const unsigned msgLength = outMetadata->getMessageLength(status);
                     {
                         // allocate output buffer
-                        auto b = make_unique<unsigned char[]>(msgLength);
+                        auto b = std::make_unique<unsigned char[]>(msgLength);
                         unsigned char* buffer = b.get();
                         memset(buffer, 0, msgLength);
                         while (rs->fetchNext(status, buffer) == IStatus::RESULT_OK) {
@@ -1126,7 +1110,7 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 
                                 Lucene::String unicodeValue;
                                 if (!field->isNull(buffer)) {
-                                    const string value = field->getStringValue(status, att, tra, buffer);
+                                    const std::string value = field->getStringValue(status, att, tra, buffer);
                                     if (!value.empty()) {
                                         // re-encode content to Unicode only if the string is non-binary
                                         if (!field->isBinary()) {
@@ -1196,7 +1180,7 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
             }
         }
         catch (const LuceneException& e) {
-            const string error_message = StringUtils::toUTF8(e.getError());
+            const std::string error_message = StringUtils::toUTF8(e.getError());
             throwException(status, error_message.c_str());
         }
     }
@@ -1221,12 +1205,6 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
         (FB_BIGINT, id)
     );
 
-    const char* SQL_DELETE_FTS_LOG =
-R"SQL(
-DELETE FROM FTS$LOG
-WHERE FTS$LOG_ID = ?
-)SQL";
-
     // FTS log output message
     FB_MESSAGE(LogOutput, ThrowStatusWrapper,
         (FB_BIGINT, id)
@@ -1237,21 +1215,8 @@ WHERE FTS$LOG_ID = ?
         (FB_INTL_VARCHAR(4, CS_UTF8), changeType)
     );
 
-    const char* SQL_SELECT_FTS_LOG =
-R"SQL(
-SELECT
-    FTS$LOG_ID
-  , TRIM(FTS$RELATION_NAME) AS FTS$RELATION_NAME
-  , FTS$DB_KEY
-  , FTS$REC_UUID
-  , FTS$REC_ID
-  , FTS$CHANGE_TYPE
-FROM FTS$LOG
-ORDER BY FTS$LOG_ID
-)SQL";
-
-    map<string, FbFieldsInfoPtr> fieldsInfoMap;
-    map<string, IndexWriterPtr> indexWriters;
+    std::map<std::string, FbFieldsInfoPtr> fieldsInfoMap;
+    std::map<std::string, IndexWriterPtr> indexWriters;
 
     FB_UDR_FETCH_PROCEDURE
     {

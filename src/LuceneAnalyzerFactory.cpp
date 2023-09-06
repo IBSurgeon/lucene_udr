@@ -30,7 +30,11 @@
 #include <functional>
 #include <stdexcept>
 
-namespace LuceneUDR {
+using namespace Firebird;
+using namespace Lucene;
+
+namespace LuceneUDR 
+{
 
     LuceneAnalyzerFactory::LuceneAnalyzerFactory()
         : m_factories()
@@ -340,12 +344,12 @@ namespace LuceneUDR {
 
     LuceneAnalyzerFactory::~LuceneAnalyzerFactory() = default;
 
-    bool LuceneAnalyzerFactory::hasAnalyzer(const string& analyzerName)
+    bool LuceneAnalyzerFactory::hasAnalyzer(const std::string& analyzerName)
     {
         return (m_factories.find(analyzerName) != m_factories.end());
     }
 
-    bool LuceneAnalyzerFactory::isStopWordsSupported(const string& analyzerName)
+    bool LuceneAnalyzerFactory::isStopWordsSupported(const std::string& analyzerName)
     {
         auto pFactory = m_factories.find(analyzerName);
         if (pFactory == m_factories.end()) {
@@ -355,7 +359,7 @@ namespace LuceneUDR {
         return factory.stopWordsSupported;
     }
 
-    AnalyzerPtr LuceneAnalyzerFactory::createAnalyzer(ThrowStatusWrapper* status, const string& analyzerName)
+    AnalyzerPtr LuceneAnalyzerFactory::createAnalyzer(ThrowStatusWrapper* status, const std::string& analyzerName)
     {
         auto pFactory = m_factories.find(analyzerName);
         if (pFactory == m_factories.end()) {
@@ -365,7 +369,7 @@ namespace LuceneUDR {
         return factory.simpleFactory();
     }
 
-    AnalyzerPtr LuceneAnalyzerFactory::createAnalyzer(ThrowStatusWrapper* status, const string& analyzerName, const HashSet<String> stopWords)
+    AnalyzerPtr LuceneAnalyzerFactory::createAnalyzer(ThrowStatusWrapper* status, const std::string& analyzerName, const HashSet<String> stopWords)
     {
         auto pFactory = m_factories.find(analyzerName);
         if (pFactory == m_factories.end()) {
@@ -375,16 +379,16 @@ namespace LuceneUDR {
         return factory.extFactory(stopWords);
     }
 
-    unordered_set<string> LuceneAnalyzerFactory::getAnalyzerNames()
+    std::unordered_set<std::string> LuceneAnalyzerFactory::getAnalyzerNames()
     {
-        unordered_set<string> names;
+        std::unordered_set<std::string> names;
         for (const auto& pFactory : m_factories) {
             names.insert(pFactory.first);
         }
         return names;
     }
 
-    const AnalyzerInfo LuceneAnalyzerFactory::getAnalyzerInfo(ThrowStatusWrapper* status, const string& analyzerName)
+    const AnalyzerInfo LuceneAnalyzerFactory::getAnalyzerInfo(ThrowStatusWrapper* status, const std::string& analyzerName)
     {
         auto pFactory = m_factories.find(analyzerName);
         if (pFactory == m_factories.end()) {
@@ -395,9 +399,9 @@ namespace LuceneUDR {
         return info;
     }
 
-    list<AnalyzerInfo> LuceneAnalyzerFactory::getAnalyzerInfos()
+    std::list<AnalyzerInfo> LuceneAnalyzerFactory::getAnalyzerInfos()
     {
-        list<AnalyzerInfo> infos;
+        std::list<AnalyzerInfo> infos;
         for (const auto& pFactory : m_factories) {
             AnalyzerInfo info;
             info.analyzerName = pFactory.first;
@@ -409,7 +413,7 @@ namespace LuceneUDR {
         return infos;
     }
 
-    const HashSet<String> LuceneAnalyzerFactory::getAnalyzerStopWords(ThrowStatusWrapper* status, const string& analyzerName)
+    const HashSet<String> LuceneAnalyzerFactory::getAnalyzerStopWords(ThrowStatusWrapper* status, const std::string& analyzerName)
     {
         auto pFactory = m_factories.find(analyzerName);
         if (pFactory == m_factories.end()) {

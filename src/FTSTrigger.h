@@ -22,27 +22,23 @@
 #include <memory>
 #include <algorithm>
 
-using namespace Firebird;
-using namespace std;
-
-
 namespace FTSMetadata
 {
 
     class FTSKeyFieldBlock final
     {
     public:
-        string keyFieldName{ "" };
+        std::string keyFieldName{ "" };
         FTSKeyType keyFieldType{ FTSKeyType::NONE };
-        unordered_set<string> fieldNames;
+        std::unordered_set<std::string> fieldNames;
 
-        string insertingCondition{ "" };
-        string updatingCondition{ "" };
-        string deletingCondition{ "" };
+        std::string insertingCondition{ "" };
+        std::string updatingCondition{ "" };
+        std::string deletingCondition{ "" };
     public:
         FTSKeyFieldBlock() = default;
 
-        const string getProcedureName()
+        const std::string getProcedureName() const
         {
             switch (keyFieldType) {
             case FTSKeyType::DB_KEY:
@@ -57,21 +53,26 @@ namespace FTSMetadata
         }
     };
 
-    using FTSKeyFieldBlockPtr = unique_ptr<FTSKeyFieldBlock>;
-    using FTSKeyFieldBlockMap = map<string, FTSKeyFieldBlockPtr>;
+    using FTSKeyFieldBlockPtr = std::unique_ptr<FTSKeyFieldBlock>;
+    using FTSKeyFieldBlockMap = std::map<std::string, FTSKeyFieldBlockPtr>;
 
     class FTSTrigger final
     {
     public:
-        string triggerName{ "" };
-        string relationName{ "" };
-        string triggerEvents{ "" };
+        std::string triggerName{ "" };
+        std::string relationName{ "" };
+        std::string triggerEvents{ "" };
         unsigned int position = 0;
-        string triggerSource{ "" };
+        std::string triggerSource{ "" };
     public:
         FTSTrigger() = default;
 
-        FTSTrigger(const string& aTriggerName, const string& aRelationName, const string& aTriggerEvents, const unsigned int aPosition, const string& aTriggerSource)
+        FTSTrigger(const std::string& aTriggerName, 
+            const std::string& aRelationName, 
+            const std::string& aTriggerEvents, 
+            unsigned int aPosition, 
+            const std::string& aTriggerSource
+        )
             : triggerName(aTriggerName)
             , relationName(aRelationName)
             , triggerEvents(aTriggerEvents)
@@ -79,24 +80,24 @@ namespace FTSMetadata
             , triggerSource(aTriggerSource)
         {}
 
-        const string getHeader(unsigned int sqlDialect);
+        const std::string getHeader(unsigned int sqlDialect);
 
-        const string getScript(unsigned int sqlDialect);
+        const std::string getScript(unsigned int sqlDialect);
     };
 
-    using FTSTriggerPtr = unique_ptr<FTSTrigger>;
-    using FTSTriggerList = list<FTSTriggerPtr>;
+    using FTSTriggerPtr = std::unique_ptr<FTSTrigger>;
+    using FTSTriggerList = std::list<FTSTriggerPtr>;
 
     class FTSTriggerHelper final
     {
 
     private:
-        IMaster* m_master = nullptr;
+        Firebird::IMaster* m_master = nullptr;
 
     public:
         FTSTriggerHelper() = delete;
 
-        explicit FTSTriggerHelper(IMaster* const master);
+        explicit FTSTriggerHelper(Firebird::IMaster* const master);
 
         ~FTSTriggerHelper();
 
@@ -114,13 +115,13 @@ namespace FTSMetadata
         /// <param name="triggers">Triggers list</param>
         /// 
         void makeTriggerSourceByRelation(
-            ThrowStatusWrapper* const status,
-            IAttachment* const att,
-            ITransaction* const tra,
-            const unsigned int sqlDialect,
-            const string& relationName,
-            const bool multiAction,
-            const unsigned short position,
+            Firebird::ThrowStatusWrapper* const status,
+            Firebird::IAttachment* const att,
+            Firebird::ITransaction* const tra,
+            unsigned int sqlDialect,
+            const std::string& relationName,
+            bool multiAction,
+            unsigned short position,
             FTSTriggerList& triggers);
 
     private:
@@ -136,36 +137,36 @@ namespace FTSMetadata
         /// <param name="keyFieldBlocks">Map of field blocks by table keys</param>
         /// 
         void fillKeyFieldBlocks(
-            ThrowStatusWrapper* const status,
-            IAttachment* const att,
-            ITransaction* const tra,
-            const unsigned int sqlDialect,
-            const string& relationName,
+            Firebird::ThrowStatusWrapper* const status,
+            Firebird::IAttachment* const att,
+            Firebird::ITransaction* const tra,
+            unsigned int sqlDialect,
+            const std::string& relationName,
             FTSKeyFieldBlockMap& keyFieldBlocks
         );
 
-        const string makeTriggerSourceByRelationMulti(
+        const std::string makeTriggerSourceByRelationMulti(
             const FTSKeyFieldBlockMap& keyFieldBlocks,
-            const unsigned int sqlDialect,
-            const string& relationName
+            unsigned int sqlDialect,
+            const std::string& relationName
         );
 
-        const string makeTriggerSourceByRelationInsert(
+        const std::string makeTriggerSourceByRelationInsert(
             const FTSKeyFieldBlockMap& keyFieldBlocks,
-            const unsigned int sqlDialect,
-            const string& relationName
+            unsigned int sqlDialect,
+            const std::string& relationName
         );
 
-        const string makeTriggerSourceByRelationUpdate(
+        const std::string makeTriggerSourceByRelationUpdate(
             const FTSKeyFieldBlockMap& keyFieldBlocks,
-            const unsigned int sqlDialect,
-            const string& relationName
+            unsigned int sqlDialect,
+            const std::string& relationName
         );
 
-        const string makeTriggerSourceByRelationDelete(
+        const std::string makeTriggerSourceByRelationDelete(
             const FTSKeyFieldBlockMap& keyFieldBlocks,
-            const unsigned int sqlDialect,
-            const string& relationName
+            unsigned int sqlDialect,
+            const std::string& relationName
         );
     };
 }

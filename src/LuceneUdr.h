@@ -20,5 +20,6 @@
 #include "firebird/UdrCppEngine.h"
 #include "charsets.h"
 
+constexpr char INTERNAL_UDR_CHARSET[] = "UTF8";
 
 #endif	// UDR_LUCENE_H

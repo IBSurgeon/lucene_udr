@@ -14,25 +14,24 @@
 #include "FBFieldInfo.h"
 #include "FBUtils.h"
 
-using namespace std;
 using namespace Firebird;
 using namespace LuceneUDR;
 
 namespace FTSMetadata
 {
-    string FbFieldInfo::getStringValue(ThrowStatusWrapper* status, IAttachment* att, ITransaction* tra, unsigned char* buffer)
+    std::string FbFieldInfo::getStringValue(ThrowStatusWrapper* status, IAttachment* att, ITransaction* tra, unsigned char* buffer)
     {
         switch (dataType) {
         case SQL_TEXT:
         case SQL_VARYING:
         {
-            string s(getCharValue(buffer), getOctetsLength(buffer));
+            std::string s(getCharValue(buffer), getOctetsLength(buffer));
             return s;
         }
         case SQL_BLOB:
         {
             ISC_QUAD blobId = getQuadValue(buffer);
-            string s = "";
+            std::string s = "";
             
             AutoRelease<IBlob> blob(att->openBlob(status, tra, &blobId, 0, nullptr));
             s = BlobUtils::getString(status, blob);
@@ -71,7 +70,7 @@ namespace FTSMetadata
     {
         const auto fieldCount = meta->getCount(status);
         for (unsigned i = 0; i < fieldCount; i++) {
-            auto field = make_unique<FbFieldInfo>();
+            auto field = std::make_unique<FbFieldInfo>();
             field->fieldIndex = i;
             field->nullable = meta->isNullable(status, i);
             field->fieldName.assign(meta->getField(status, i));
@@ -93,7 +92,7 @@ namespace FTSMetadata
         }
     }
 
-    int FbFieldsInfo::findFieldByName(const string& fieldName)
+    int FbFieldsInfo::findFieldByName(const std::string& fieldName)
     {
         auto it = m_fieldByNameMap.find(fieldName);
         if (it != m_fieldByNameMap.end()) {

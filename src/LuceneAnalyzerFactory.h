@@ -21,11 +21,8 @@
 #include <string>
 #include "LuceneHeaders.h"
 
-using namespace std;
-using namespace Lucene;
-using namespace Firebird;
-
-namespace LuceneUDR {
+namespace LuceneUDR 
+{
 
     struct ci_more
     {
@@ -37,8 +34,8 @@ namespace LuceneUDR {
             }
         };
 
-        bool operator() (const string& s1, const string& s2) const {
-            return lexicographical_compare(
+        bool operator() (const std::string& s1, const std::string& s2) const {
+            return std::lexicographical_compare(
                 s1.begin(), s1.end(),   // source range
                 s2.begin(), s2.end(),   // dest range
                 nocase_compare()        // comparison
@@ -46,12 +43,12 @@ namespace LuceneUDR {
         }
     };
 
-    static const string DEFAULT_ANALYZER_NAME = "STANDARD";
+    constexpr char DEFAULT_ANALYZER_NAME[] = "STANDARD";
 
     struct AnalyzerInfo
     {
-        string analyzerName;
-        string baseAnalyzer;
+        std::string analyzerName;
+        std::string baseAnalyzer;
         bool stopWordsSupported;
         bool systemFlag;
     };
@@ -60,13 +57,13 @@ namespace LuceneUDR {
     private:
         struct AnalyzerFactory
         {
-            function<AnalyzerPtr()> simpleFactory;
-            function<AnalyzerPtr(const HashSet<String>)> extFactory;
-            function<const HashSet<String>()> getStopWords;
+            std::function<Lucene::AnalyzerPtr()> simpleFactory;
+            std::function<Lucene::AnalyzerPtr(const Lucene::HashSet<Lucene::String>)> extFactory;
+            std::function<const Lucene::HashSet<Lucene::String>()> getStopWords;
             bool stopWordsSupported;
         };
 
-        map<string, AnalyzerFactory, ci_more> m_factories;
+        std::map<std::string, AnalyzerFactory, ci_more> m_factories;
 
     public:
 
@@ -74,21 +71,21 @@ namespace LuceneUDR {
 
         ~LuceneAnalyzerFactory();
 
-        bool hasAnalyzer(const string& analyzerName);
+        bool hasAnalyzer(const std::string& analyzerName);
 
-        bool isStopWordsSupported(const string& analyzerName);
+        bool isStopWordsSupported(const std::string& analyzerName);
 
-        AnalyzerPtr createAnalyzer(ThrowStatusWrapper* status, const string& analyzerName);
+        Lucene::AnalyzerPtr createAnalyzer(Firebird::ThrowStatusWrapper* status, const std::string& analyzerName);
 
-        AnalyzerPtr createAnalyzer(ThrowStatusWrapper* status, const string& analyzerName, const HashSet<String> stopWords);
+        Lucene::AnalyzerPtr createAnalyzer(Firebird::ThrowStatusWrapper* status, const std::string& analyzerName, const Lucene::HashSet<Lucene::String> stopWords);
 
-        unordered_set<string> getAnalyzerNames();
+        std::unordered_set<std::string> getAnalyzerNames();
 
-        const AnalyzerInfo getAnalyzerInfo(ThrowStatusWrapper* status, const string& analyzerName);
+        const AnalyzerInfo getAnalyzerInfo(Firebird::ThrowStatusWrapper* status, const std::string& analyzerName);
 
-        list<AnalyzerInfo> getAnalyzerInfos();
+        std::list<AnalyzerInfo> getAnalyzerInfos();
 
-        const HashSet<String> getAnalyzerStopWords(ThrowStatusWrapper* status, const string& analyzerName);
+        const Lucene::HashSet<Lucene::String> getAnalyzerStopWords(Firebird::ThrowStatusWrapper* status, const std::string& analyzerName);
 
     };
 

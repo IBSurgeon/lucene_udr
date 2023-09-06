@@ -17,20 +17,21 @@
 #include "LazyFactory.h"
 
 using namespace LuceneUDR;
+using namespace Firebird;
 
 namespace FTSMetadata
 {
 
-    const string FTSTrigger::getHeader(unsigned int sqlDialect)
+    const std::string FTSTrigger::getHeader(unsigned int sqlDialect)
     {
-        string triggerHeader =
+        std::string triggerHeader =
             "CREATE OR ALTER TRIGGER " + escapeMetaName(sqlDialect, triggerName) + " FOR " + escapeMetaName(sqlDialect, relationName) + "\n"
             "ACTIVE AFTER " + triggerEvents + "\n"
             "POSITION " + std::to_string(position) + "\n";
         return triggerHeader;
     }
 
-    const string FTSTrigger::getScript(unsigned int sqlDialect)
+    const std::string FTSTrigger::getScript(unsigned int sqlDialect)
     {
         return getHeader(sqlDialect) + triggerSource;
     }
@@ -60,7 +61,7 @@ namespace FTSMetadata
         IAttachment* const att,
         ITransaction* const tra,
         const unsigned int sqlDialect,
-        const string& relationName,
+        const std::string& relationName,
         FTSKeyFieldBlockMap& keyFieldBlocks
     )
     {
@@ -124,11 +125,14 @@ ORDER BY FTS$KEY_FIELD_NAME
         ));
 
         while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
-            const string keyFieldName(output->keyFieldName.str, output->keyFieldName.length);
-            const string keyFieldType(output->keyFieldType.str, output->keyFieldType.length);
-            const string fieldName(output->fieldName.str, output->fieldName.length);
+            const std::string keyFieldName(output->keyFieldName.str, output->keyFieldName.length);
+            const std::string keyFieldType(output->keyFieldType.str, output->keyFieldType.length);
+            const std::string fieldName(output->fieldName.str, output->fieldName.length);
 
-            auto [it, result] = keyFieldBlocks.try_emplace(keyFieldName, lazy_convert_construct([] { return std::make_unique<FTSKeyFieldBlock>(); }));
+            auto [it, result] = keyFieldBlocks.try_emplace(
+                keyFieldName, 
+                lazy_convert_construct([] { return std::make_unique<FTSKeyFieldBlock>(); })
+            );
             const auto& block = it->second;
             if (result) {
                 block->keyFieldName = keyFieldName;
@@ -167,10 +171,10 @@ ORDER BY FTS$KEY_FIELD_NAME
         ThrowStatusWrapper* const status,
         IAttachment* const att,
         ITransaction* const tra,
-        const unsigned int sqlDialect,
-        const string& relationName,
-        const bool multiAction,
-        const unsigned short position,
+        unsigned int sqlDialect,
+        const std::string& relationName,
+        bool multiAction,
+        unsigned short position,
         FTSTriggerList& triggers)
     {
 
@@ -183,7 +187,7 @@ ORDER BY FTS$KEY_FIELD_NAME
             }
 
             for (const auto& fieldName : keyFieldBlock->fieldNames) {
-                const string metaFieldName = escapeMetaName(sqlDialect, fieldName);
+                const std::string metaFieldName = escapeMetaName(sqlDialect, fieldName);
 
                 if (!keyFieldBlock->insertingCondition.empty()) {
                     keyFieldBlock->insertingCondition += "\n      OR ";
@@ -204,9 +208,9 @@ ORDER BY FTS$KEY_FIELD_NAME
 
 
         if (multiAction) {
-            const string triggerName = "FTS$" + relationName + "_AIUD";
+            const std::string triggerName = "FTS$" + relationName + "_AIUD";
             const auto& source = makeTriggerSourceByRelationMulti(keyFieldBlocks, sqlDialect, relationName);
-            auto trigger = make_unique<FTSTrigger>(
+            auto trigger = std::make_unique<FTSTrigger>(
                 triggerName,
                 relationName,
                 "INSERT OR UPDATE OR DELETE",
@@ -218,9 +222,9 @@ ORDER BY FTS$KEY_FIELD_NAME
         else {
             {
                 // INSERT
-                const string triggerName = "FTS$" + relationName + "_AI";
+                const std::string triggerName = "FTS$" + relationName + "_AI";
                 const auto& source = makeTriggerSourceByRelationInsert(keyFieldBlocks, sqlDialect, relationName);
-                auto trigger = make_unique<FTSTrigger>(
+                auto trigger = std::make_unique<FTSTrigger>(
                     triggerName,
                     relationName,
                     "INSERT",
@@ -231,9 +235,9 @@ ORDER BY FTS$KEY_FIELD_NAME
             }
             {
                 // UPDATE
-                const string triggerName = "FTS$" + relationName + "_AU";
+                const std::string triggerName = "FTS$" + relationName + "_AU";
                 const auto& source = makeTriggerSourceByRelationUpdate(keyFieldBlocks, sqlDialect, relationName);
-                auto trigger = make_unique<FTSTrigger>(
+                auto trigger = std::make_unique<FTSTrigger>(
                     triggerName,
                     relationName,
                     "UPDATE",
@@ -244,9 +248,9 @@ ORDER BY FTS$KEY_FIELD_NAME
             }
             {
                 // DELETE
-                const string triggerName = "FTS$" + relationName + "_AD";
+                const std::string triggerName = "FTS$" + relationName + "_AD";
                 const auto& source = makeTriggerSourceByRelationDelete(keyFieldBlocks, sqlDialect, relationName);
-                auto trigger = make_unique<FTSTrigger>(
+                auto trigger = std::make_unique<FTSTrigger>(
                     triggerName,
                     relationName,
                     "DELETE",
@@ -258,20 +262,20 @@ ORDER BY FTS$KEY_FIELD_NAME
         }
     }
 
-    const string FTSTriggerHelper::makeTriggerSourceByRelationMulti(
+    const std::string FTSTriggerHelper::makeTriggerSourceByRelationMulti(
         const FTSKeyFieldBlockMap& keyFieldBlocks,
-        const unsigned int sqlDialect,
-        const string& relationName
+        unsigned int sqlDialect,
+        const std::string& relationName
     )
     {
-        string triggerSource =
+        std::string triggerSource =
             "AS\n"
             "BEGIN\n";
 
         for (const auto& [keyFieldName, keyFieldBlock] : keyFieldBlocks) {
             const auto& procedureName = keyFieldBlock->getProcedureName();
-            const string metaKeyFieldName = escapeMetaName(sqlDialect, keyFieldName);
-            const string keycodeBlock =
+            const std::string metaKeyFieldName = escapeMetaName(sqlDialect, keyFieldName);
+            const std::string keycodeBlock =
                 "  /* Block for key " + keyFieldName + " */\n"
                 "  IF (INSERTING AND (" + keyFieldBlock->insertingCondition + ")) THEN\n"
                 "    EXECUTE PROCEDURE " + procedureName + "('" + relationName + "', NEW." + metaKeyFieldName + ", 'I');\n"
@@ -287,20 +291,20 @@ ORDER BY FTS$KEY_FIELD_NAME
         return triggerSource;
     }
 
-    const string FTSTriggerHelper::makeTriggerSourceByRelationInsert(
+    const std::string FTSTriggerHelper::makeTriggerSourceByRelationInsert(
         const FTSKeyFieldBlockMap& keyFieldBlocks,
-        const unsigned int sqlDialect,
-        const string& relationName
+        unsigned int sqlDialect,
+        const std::string& relationName
     )
     {
-        string triggerSource =
+        std::string triggerSource =
             "AS\n"
             "BEGIN\n";
 
         for (const auto& [keyFieldName, keyFieldBlock] : keyFieldBlocks) {
             const auto& procedureName = keyFieldBlock->getProcedureName();
-            const string metaKeyFieldName = escapeMetaName(sqlDialect, keyFieldName);
-            const string keycodeBlock =
+            const std::string metaKeyFieldName = escapeMetaName(sqlDialect, keyFieldName);
+            const std::string keycodeBlock =
                 "  /* Block for key " + keyFieldName + " */\n"
                 "  IF (" + keyFieldBlock->insertingCondition + ") THEN\n"
                 "    EXECUTE PROCEDURE " + procedureName + "('" + relationName + "', NEW." + metaKeyFieldName + ", 'I');\n";
@@ -312,20 +316,20 @@ ORDER BY FTS$KEY_FIELD_NAME
         return triggerSource;
     }
 
-    const string FTSTriggerHelper::makeTriggerSourceByRelationUpdate(
+    const std::string FTSTriggerHelper::makeTriggerSourceByRelationUpdate(
         const FTSKeyFieldBlockMap& keyFieldBlocks,
-        const unsigned int sqlDialect,
-        const string& relationName
+        unsigned int sqlDialect,
+        const std::string& relationName
     )
     {
-        string triggerSource =
+        std::string triggerSource =
             "AS\n"
             "BEGIN\n";
 
         for (const auto& [keyFieldName, keyFieldBlock] : keyFieldBlocks) {
             const auto& procedureName = keyFieldBlock->getProcedureName();
-            const string metaKeyFieldName = escapeMetaName(sqlDialect, keyFieldName);
-            const string keycodeBlock =
+            const std::string metaKeyFieldName = escapeMetaName(sqlDialect, keyFieldName);
+            const std::string keycodeBlock =
                 "  /* Block for key " + keyFieldName + " */\n"
                 "  IF (" + keyFieldBlock->updatingCondition + ") THEN\n"
                 "    EXECUTE PROCEDURE " + procedureName + "('" + relationName + "', OLD." + metaKeyFieldName + ", 'U');\n";
@@ -337,20 +341,20 @@ ORDER BY FTS$KEY_FIELD_NAME
         return triggerSource;
     }
 
-    const string FTSTriggerHelper::makeTriggerSourceByRelationDelete(
+    const std::string FTSTriggerHelper::makeTriggerSourceByRelationDelete(
         const FTSKeyFieldBlockMap& keyFieldBlocks,
-        const unsigned int sqlDialect,
-        const string& relationName
+        unsigned int sqlDialect,
+        const std::string& relationName
     )
     {
-        string triggerSource =
+        std::string triggerSource =
             "AS\n"
             "BEGIN\n";
 
         for (const auto& [keyFieldName, keyFieldBlock] : keyFieldBlocks) {
             const auto& procedureName = keyFieldBlock->getProcedureName();
-            const string metaKeyFieldName = escapeMetaName(sqlDialect, keyFieldName);
-            const string keycodeBlock =
+            const std::string metaKeyFieldName = escapeMetaName(sqlDialect, keyFieldName);
+            const std::string keycodeBlock =
                 "  /* Block for key " + keyFieldName + " */\n"
                 "  IF (" + keyFieldBlock->deletingCondition + ") THEN\n"
                 "    EXECUTE PROCEDURE " + procedureName + "('" + relationName + "', OLD." + metaKeyFieldName + ", 'D');\n";

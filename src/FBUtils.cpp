@@ -19,7 +19,6 @@
 #include <cstdarg>
 #include <vector>
 
-using namespace std;
 using namespace Firebird;
 
 namespace LuceneUDR
@@ -27,7 +26,7 @@ namespace LuceneUDR
     constexpr unsigned int BUFFER_LARGE = 2048;
     constexpr size_t MAX_SEGMENT_SIZE = 65535;
 
-    string BlobUtils::getString(ThrowStatusWrapper* status, IBlob* blob)
+    std::string BlobUtils::getString(ThrowStatusWrapper* status, IBlob* blob)
     {
         std::stringstream ss("");
         auto buffer = std::vector<char>(MAX_SEGMENT_SIZE);
@@ -50,14 +49,14 @@ namespace LuceneUDR
         return ss.str();
     }
 
-    void BlobUtils::setString(ThrowStatusWrapper* status, IBlob* blob, const string& str)
+    void BlobUtils::setString(ThrowStatusWrapper* status, IBlob* blob, const std::string& str)
     {
         size_t str_len = str.length();
         size_t offset = 0;
         auto buffer = std::vector<char>(MAX_SEGMENT_SIZE);
         {
             while (str_len > 0) {
-                const auto len = static_cast<unsigned int>(min(str_len, MAX_SEGMENT_SIZE));
+                const auto len = static_cast<unsigned int>(std::min(str_len, MAX_SEGMENT_SIZE));
                 memcpy(buffer.data(), str.data() + offset, len);
                 blob->putSegment(status, len, buffer.data());
                 offset += len;
@@ -120,9 +119,7 @@ namespace LuceneUDR
                 builder->setType(status, i, SQL_VARYING);
                 break;
             case SQL_SHORT:
-                [[fallthrough]];
             case SQL_LONG:
-                [[fallthrough]];
             case SQL_INT64:
                 builder->setType(status, i, SQL_VARYING);
                 builder->setLength(status, i, 20 * 4);
@@ -134,9 +131,7 @@ namespace LuceneUDR
                 break;
 #endif
             case SQL_FLOAT:
-                [[fallthrough]];
             case SQL_D_FLOAT:
-                [[fallthrough]];
             case SQL_DOUBLE:
                 builder->setType(status, i, SQL_VARYING);
                 builder->setLength(status, i, 50 * 4);
@@ -146,22 +141,18 @@ namespace LuceneUDR
                 builder->setLength(status, i, 5 * 4);
                 break;
             case SQL_TYPE_DATE:
-                [[fallthrough]];
             case SQL_TYPE_TIME:
-                [[fallthrough]];
             case SQL_TIMESTAMP:
                 builder->setType(status, i, SQL_VARYING);
                 builder->setLength(status, i, 35 * 4);
                 break;
 #if FB_API_VER >= 40
             case SQL_TIME_TZ:
-                [[fallthrough]];
             case SQL_TIMESTAMP_TZ:
                 builder->setType(status, i, SQL_VARYING);
                 builder->setLength(status, i, 42 * 4);
                 break;
             case SQL_DEC16:
-                [[fallthrough]];
             case SQL_DEC34:
                 builder->setType(status, i, SQL_VARYING);
                 builder->setLength(status, i, 60 * 4);

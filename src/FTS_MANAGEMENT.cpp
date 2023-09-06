@@ -52,15 +52,13 @@ FB_UDR_BEGIN_FUNCTION(getFTSDirectory)
     {
         // Forced internal request encoding to UTF8
         memset(name, 0, nameSize);
-
-        const string charset = "UTF8";
-        charset.copy(name, charset.length());
+        memcpy(name, INTERNAL_UDR_CHARSET, std::size(INTERNAL_UDR_CHARSET));
     }
 
     FB_UDR_EXECUTE_FUNCTION
     {
         const auto& ftsDirectoryPath = getFtsDirectory(status, context);
-        const string ftsDirectory = ftsDirectoryPath.u8string();
+        const std::string ftsDirectory = ftsDirectoryPath.u8string();
 
         out->directoryNull = false;
         out->directory.length = static_cast<ISC_USHORT>(ftsDirectory.length());
@@ -90,20 +88,18 @@ FB_UDR_BEGIN_PROCEDURE(getAnalyzers)
     );
 
     FB_UDR_CONSTRUCTOR
-        , analyzers(make_unique<AnalyzerRepository>(context->getMaster()))
+        , analyzers(std::make_unique<AnalyzerRepository>(context->getMaster()))
     {
     }
 
-    unique_ptr<AnalyzerRepository> analyzers;
+    std::unique_ptr<AnalyzerRepository> analyzers;
 
     void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
         char* name, unsigned nameSize)
     {
         // Forced internal request encoding to UTF8
         memset(name, 0, nameSize);
-
-        const string charset = "UTF8";
-        charset.copy(name, charset.length());
+        memcpy(name, INTERNAL_UDR_CHARSET, std::size(INTERNAL_UDR_CHARSET));
     }
 
     FB_UDR_EXECUTE_PROCEDURE
@@ -117,8 +113,8 @@ FB_UDR_BEGIN_PROCEDURE(getAnalyzers)
         it = analyzerInfos.begin();
     }
 
-    list<AnalyzerInfo> analyzerInfos;
-    list<AnalyzerInfo>::const_iterator it;
+    std::list<AnalyzerInfo> analyzerInfos;
+    std::list<AnalyzerInfo>::const_iterator it;
 
     FB_UDR_FETCH_PROCEDURE
     {
@@ -168,9 +164,7 @@ FB_UDR_BEGIN_PROCEDURE(createAnalyzer)
     {
         // Forced internal request encoding to UTF8
         memset(name, 0, nameSize);
-
-        const string charset = "UTF8";
-        charset.copy(name, charset.length());
+        memcpy(name, INTERNAL_UDR_CHARSET, std::size(INTERNAL_UDR_CHARSET));
     }
 
     FB_UDR_EXECUTE_PROCEDURE
@@ -179,21 +173,21 @@ FB_UDR_BEGIN_PROCEDURE(createAnalyzer)
         if (in->analyzerNameNull) {
             throwException(status, "Analyzer name can not be NULL");
         }
-        const string analyzerName(in->analyzerName.str, in->analyzerName.length);
+        const std::string analyzerName(in->analyzerName.str, in->analyzerName.length);
 
         if (in->baseAnalyzerNull) {
             throwException(status, "Base analyzer name can not be NULL");
         }
-        const string baseAnalyzer(in->baseAnalyzer.str, in->baseAnalyzer.length);
+        const std::string baseAnalyzer(in->baseAnalyzer.str, in->baseAnalyzer.length);
 
         AutoRelease<IAttachment> att(context->getAttachment(status));
         AutoRelease<ITransaction> tra(context->getTransaction(status));
 
         const unsigned int sqlDialect = getSqlDialect(status, att);
 
-        const auto& analyzers = make_unique<AnalyzerRepository>(context->getMaster());
+        const auto& analyzers = std::make_unique<AnalyzerRepository>(context->getMaster());
 
-        string description;
+        std::string description;
         if (!in->descriptionNull) {
             AutoRelease<IBlob> blob(att->openBlob(status, tra, &in->description, 0, nullptr));
             description = BlobUtils::getString(status, blob);
@@ -229,9 +223,7 @@ FB_UDR_BEGIN_PROCEDURE(dropAnalyzer)
     {
         // Forced internal request encoding to UTF8
         memset(name, 0, nameSize);
-
-        const string charset = "UTF8";
-        charset.copy(name, charset.length());
+        memcpy(name, INTERNAL_UDR_CHARSET, std::size(INTERNAL_UDR_CHARSET));
     }
 
     FB_UDR_EXECUTE_PROCEDURE
@@ -240,14 +232,14 @@ FB_UDR_BEGIN_PROCEDURE(dropAnalyzer)
         if (in->analyzerNameNull) {
             throwException(status, "Analyzer name can not be NULL");
         }
-        const string analyzerName(in->analyzerName.str, in->analyzerName.length);
+        const std::string analyzerName(in->analyzerName.str, in->analyzerName.length);
 
         AutoRelease<IAttachment> att(context->getAttachment(status));
         AutoRelease<ITransaction> tra(context->getTransaction(status));
 
         const unsigned int sqlDialect = getSqlDialect(status, att);
 
-        const auto indexRepository = make_unique<FTSIndexRepository>(context->getMaster());
+        const auto indexRepository = std::make_unique<FTSIndexRepository>(context->getMaster());
 
         const auto& analyzers = indexRepository->getAnalyzerRepository();
 
@@ -287,20 +279,18 @@ FB_UDR_BEGIN_PROCEDURE(getAnalyzerStopWords)
     );
 
     FB_UDR_CONSTRUCTOR
-        , analyzers(make_unique<AnalyzerRepository>(context->getMaster()))
+        , analyzers(std::make_unique<AnalyzerRepository>(context->getMaster()))
     {
     }
 
-    unique_ptr<AnalyzerRepository> analyzers;
+    std::unique_ptr<AnalyzerRepository> analyzers;
 
     void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
         char* name, unsigned nameSize)
     {
         // Forced internal request encoding to UTF8
         memset(name, 0, nameSize);
-
-        const string charset = "UTF8";
-        charset.copy(name, charset.length());
+        memcpy(name, INTERNAL_UDR_CHARSET, std::size(INTERNAL_UDR_CHARSET));
     }
 
     FB_UDR_EXECUTE_PROCEDURE
@@ -308,7 +298,7 @@ FB_UDR_BEGIN_PROCEDURE(getAnalyzerStopWords)
         if (in->analyzerNull) {
             throwException(status, "Analyzer can not be NULL");
         }
-        const string analyzerName(in->analyzer.str, in->analyzer.length);
+        const std::string analyzerName(in->analyzer.str, in->analyzer.length);
 
         AutoRelease<IAttachment> att(context->getAttachment(status));
         AutoRelease<ITransaction> tra(context->getTransaction(status));
@@ -328,7 +318,7 @@ FB_UDR_BEGIN_PROCEDURE(getAnalyzerStopWords)
             return false;
         }
         const String uStopWord = *it;
-        const string stopWord = StringUtils::toUTF8(uStopWord);
+        const std::string stopWord = StringUtils::toUTF8(uStopWord);
 
         out->wordNull = false;
         out->word.length = static_cast<ISC_USHORT>(stopWord.length());
@@ -359,9 +349,7 @@ FB_UDR_BEGIN_PROCEDURE(addStopWord)
     {
         // Forced internal request encoding to UTF8
         memset(name, 0, nameSize);
-
-        const string charset = "UTF8";
-        charset.copy(name, charset.length());
+        memcpy(name, INTERNAL_UDR_CHARSET, std::size(INTERNAL_UDR_CHARSET));
     }
 
     FB_UDR_EXECUTE_PROCEDURE
@@ -370,7 +358,7 @@ FB_UDR_BEGIN_PROCEDURE(addStopWord)
         if (in->analyzerNameNull) {
             throwException(status, "Analyzer name can not be NULL");
         }
-        const string analyzerName(in->analyzerName.str, in->analyzerName.length);
+        const std::string analyzerName(in->analyzerName.str, in->analyzerName.length);
 
         if (in->stopWord.length == 0) {
             in->stopWordNull = true;
@@ -379,14 +367,14 @@ FB_UDR_BEGIN_PROCEDURE(addStopWord)
         if (in->stopWordNull) {
             throwException(status, "Stop word can not be NULL");
         }
-        const string stopWord(in->stopWord.str, in->stopWord.length);
+        const std::string stopWord(in->stopWord.str, in->stopWord.length);
 
         AutoRelease<IAttachment> att(context->getAttachment(status));
         AutoRelease<ITransaction> tra(context->getTransaction(status));
 
         const unsigned int sqlDialect = getSqlDialect(status, att);
 
-        const auto indexRepository = make_unique<FTSIndexRepository>(context->getMaster());
+        const auto indexRepository = std::make_unique<FTSIndexRepository>(context->getMaster());
 
         const auto& analyzers = indexRepository->getAnalyzerRepository();
 
@@ -426,9 +414,7 @@ FB_UDR_BEGIN_PROCEDURE(dropStopWord)
     {
         // Forced internal request encoding to UTF8
         memset(name, 0, nameSize);
-
-        const string charset = "UTF8";
-        charset.copy(name, charset.length());
+        memcpy(name, INTERNAL_UDR_CHARSET, std::size(INTERNAL_UDR_CHARSET));
     }
 
     FB_UDR_EXECUTE_PROCEDURE
@@ -437,7 +423,7 @@ FB_UDR_BEGIN_PROCEDURE(dropStopWord)
         if (in->analyzerNameNull) {
             throwException(status, "Analyzer name can not be NULL");
         }
-        const string analyzerName(in->analyzerName.str, in->analyzerName.length);
+        const std::string analyzerName(in->analyzerName.str, in->analyzerName.length);
 
         if (in->stopWord.length == 0) {
             in->stopWordNull = true;
@@ -446,14 +432,14 @@ FB_UDR_BEGIN_PROCEDURE(dropStopWord)
         if (in->stopWordNull) {
             throwException(status, "Stop word can not be NULL");
         }
-        const string stopWord(in->stopWord.str, in->stopWord.length);
+        const std::string stopWord(in->stopWord.str, in->stopWord.length);
 
         AutoRelease<IAttachment> att(context->getAttachment(status));
         AutoRelease<ITransaction> tra(context->getTransaction(status));
 
         const unsigned int sqlDialect = getSqlDialect(status, att);
 
-        const auto indexRepository = make_unique<FTSIndexRepository>(context->getMaster());
+        const auto indexRepository = std::make_unique<FTSIndexRepository>(context->getMaster());
 
         const auto& analyzers = indexRepository->getAnalyzerRepository();
 
@@ -494,7 +480,7 @@ FB_UDR_BEGIN_PROCEDURE(createIndex)
     );
 
     FB_UDR_CONSTRUCTOR
-        , indexRepository(make_unique<FTSIndexRepository>(context->getMaster()))
+        , indexRepository(std::make_unique<FTSIndexRepository>(context->getMaster()))
     {
     }
 
@@ -505,9 +491,7 @@ FB_UDR_BEGIN_PROCEDURE(createIndex)
     {
         // Forced internal request encoding to UTF8
         memset(name, 0, nameSize);
-
-        const string charset = "UTF8";
-        charset.copy(name, charset.length());
+        memcpy(name, INTERNAL_UDR_CHARSET, std::size(INTERNAL_UDR_CHARSET));
     }
 
     FB_UDR_EXECUTE_PROCEDURE
@@ -515,14 +499,14 @@ FB_UDR_BEGIN_PROCEDURE(createIndex)
         if (in->indexNameNull) {
             throwException(status, "Index name can not be NULL");
         }
-        const string indexName(in->indexName.str, in->indexName.length);
+        const std::string indexName(in->indexName.str, in->indexName.length);
 
         if (in->relationNameNull) {
             throwException(status, "Relation name can not be NULL");
         }
-        const string relationName(in->relationName.str, in->relationName.length);
+        const std::string relationName(in->relationName.str, in->relationName.length);
 
-        string analyzerName;
+        std::string analyzerName;
         if (!in->analyzerNull) {
             analyzerName.assign(in->analyzer.str, in->analyzer.length);
         }
@@ -539,7 +523,7 @@ FB_UDR_BEGIN_PROCEDURE(createIndex)
         const unsigned int sqlDialect = getSqlDialect(status, att);
 
 
-        string description;
+        std::string description;
         if (!in->descriptionNull) {
             AutoRelease<IBlob> blob(att->openBlob(status, tra, &in->description, 0, nullptr));
             description = BlobUtils::getString(status, blob);
@@ -548,13 +532,13 @@ FB_UDR_BEGIN_PROCEDURE(createIndex)
         }
 
         const auto& relationHelper = procedure->indexRepository->getRelationHelper();
-        auto relationInfo = make_unique<RelationInfo>();
+        auto relationInfo = std::make_unique<RelationInfo>();
         relationHelper->getRelationInfo(status, att, tra, sqlDialect, relationInfo, relationName);
 
 
         procedure->indexRepository->createIndex(status, att, tra, sqlDialect, indexName, relationName, analyzerName, description);
 
-        string keyFieldName;
+        std::string keyFieldName;
         if (in->keyFieldNameNull) {
             if (relationInfo->findKeyFieldSupported()) {
                 RelationFieldList keyFields;
@@ -593,7 +577,7 @@ FB_UDR_BEGIN_PROCEDURE(createIndex)
             }
         }
         else {
-            auto keyFieldInfo = make_unique<RelationFieldInfo>();
+            auto keyFieldInfo = std::make_unique<RelationFieldInfo>();
             relationHelper->getField(status, att, tra, sqlDialect, keyFieldInfo, relationName, keyFieldName);
             // check field type
             // Supported types SMALLINT, INTEGER, BIGINT, CHAR(16) CHARACTER SET OCTETS, BINARY(16) 
@@ -627,7 +611,7 @@ FB_UDR_BEGIN_PROCEDURE(dropIndex)
     );
 
     FB_UDR_CONSTRUCTOR
-        , indexRepository(make_unique<FTSIndexRepository>(context->getMaster()))
+        , indexRepository(std::make_unique<FTSIndexRepository>(context->getMaster()))
     {
     }
 
@@ -638,9 +622,7 @@ FB_UDR_BEGIN_PROCEDURE(dropIndex)
     {
         // Forced internal request encoding to UTF8
         memset(name, 0, nameSize);
-
-        const string charset = "UTF8";
-        charset.copy(name, charset.length());
+        memcpy(name, INTERNAL_UDR_CHARSET, std::size(INTERNAL_UDR_CHARSET));
     }
 
     FB_UDR_EXECUTE_PROCEDURE
@@ -648,7 +630,7 @@ FB_UDR_BEGIN_PROCEDURE(dropIndex)
         if (in->index_nameNull) {
             throwException(status, "Index name can not be NULL");
         }
-        const string indexName(in->index_name.str, in->index_name.length);
+        const std::string indexName(in->index_name.str, in->index_name.length);
 
         AutoRelease<IAttachment> att(context->getAttachment(status));
         AutoRelease<ITransaction> tra(context->getTransaction(status));
@@ -688,7 +670,7 @@ FB_UDR_BEGIN_PROCEDURE(setIndexActive)
     );
 
     FB_UDR_CONSTRUCTOR
-        , indexRepository(make_unique<FTSIndexRepository>(context->getMaster()))
+        , indexRepository(std::make_unique<FTSIndexRepository>(context->getMaster()))
     {
     }
 
@@ -699,9 +681,7 @@ FB_UDR_BEGIN_PROCEDURE(setIndexActive)
     {
         // Forced internal request encoding to UTF8
         memset(name, 0, nameSize);
-
-        const string charset = "UTF8";
-        charset.copy(name, charset.length());
+        memcpy(name, INTERNAL_UDR_CHARSET, std::size(INTERNAL_UDR_CHARSET));
     }
 
     FB_UDR_EXECUTE_PROCEDURE
@@ -709,7 +689,7 @@ FB_UDR_BEGIN_PROCEDURE(setIndexActive)
         if (in->index_nameNull) {
             throwException(status, "Index name can not be NULL");
         }
-        const string indexName(in->index_name.str, in->index_name.length);
+        const std::string indexName(in->index_name.str, in->index_name.length);
         const bool indexActive = in->index_active;
 
         AutoRelease<IAttachment> att(context->getAttachment(status));
@@ -717,7 +697,7 @@ FB_UDR_BEGIN_PROCEDURE(setIndexActive)
 
         const unsigned int sqlDialect = getSqlDialect(status, att);
 
-        auto ftsIndex = make_unique<FTSIndex>();
+        auto ftsIndex = std::make_unique<FTSIndex>();
         procedure->indexRepository->getIndex(status, att, tra, sqlDialect, ftsIndex, indexName);
         if (indexActive) {
             // index is inactive
@@ -760,7 +740,7 @@ FB_UDR_BEGIN_PROCEDURE(addIndexField)
     );
 
     FB_UDR_CONSTRUCTOR
-        , indexRepository(make_unique<FTSIndexRepository>(context->getMaster()))
+        , indexRepository(std::make_unique<FTSIndexRepository>(context->getMaster()))
     {
     }
 
@@ -771,9 +751,7 @@ FB_UDR_BEGIN_PROCEDURE(addIndexField)
     {
         // Forced internal request encoding to UTF8
         memset(name, 0, nameSize);
-
-        const string charset = "UTF8";
-        charset.copy(name, charset.length());
+        memcpy(name, INTERNAL_UDR_CHARSET, std::size(INTERNAL_UDR_CHARSET));
     }
 
     FB_UDR_EXECUTE_PROCEDURE
@@ -781,13 +759,13 @@ FB_UDR_BEGIN_PROCEDURE(addIndexField)
         if (in->index_nameNull) {
             throwException(status, "Index name can not be NULL");
         }
-        const string indexName(in->index_name.str, in->index_name.length);
+        const std::string indexName(in->index_name.str, in->index_name.length);
 
 
         if (in->field_nameNull) {
             throwException(status, "Field name can not be NULL");
         }
-        const string fieldName(in->field_name.str, in->field_name.length);
+        const std::string fieldName(in->field_name.str, in->field_name.length);
 
         AutoRelease<IAttachment> att(context->getAttachment(status));
         AutoRelease<ITransaction> tra(context->getTransaction(status));
@@ -821,7 +799,7 @@ FB_UDR_BEGIN_PROCEDURE(dropIndexField)
     );
 
     FB_UDR_CONSTRUCTOR
-        , indexRepository(make_unique<FTSIndexRepository>(context->getMaster()))
+        , indexRepository(std::make_unique<FTSIndexRepository>(context->getMaster()))
     {
     }
 
@@ -832,9 +810,7 @@ FB_UDR_BEGIN_PROCEDURE(dropIndexField)
     {
         // Forced internal request encoding to UTF8
         memset(name, 0, nameSize);
-
-        const string charset = "UTF8";
-        charset.copy(name, charset.length());
+        memcpy(name, INTERNAL_UDR_CHARSET, std::size(INTERNAL_UDR_CHARSET));
     }
 
     FB_UDR_EXECUTE_PROCEDURE
@@ -842,12 +818,12 @@ FB_UDR_BEGIN_PROCEDURE(dropIndexField)
         if (in->index_nameNull) {
             throwException(status, "Index name can not be NULL");
         }
-        const string indexName(in->index_name.str, in->index_name.length);
+        const std::string indexName(in->index_name.str, in->index_name.length);
 
         if (in->field_nameNull) {
             throwException(status, "Field name can not be NULL");
         }
-        const string fieldName(in->field_name.str, in->field_name.length);
+        const std::string fieldName(in->field_name.str, in->field_name.length);
 
         AutoRelease<IAttachment> att(context->getAttachment(status));
         AutoRelease<ITransaction> tra(context->getTransaction(status));
@@ -883,7 +859,7 @@ FB_UDR_BEGIN_PROCEDURE(setIndexFieldBoost)
     );
 
     FB_UDR_CONSTRUCTOR
-        , indexRepository(make_unique<FTSIndexRepository>(context->getMaster()))
+        , indexRepository(std::make_unique<FTSIndexRepository>(context->getMaster()))
     {
     }
 
@@ -894,9 +870,7 @@ FB_UDR_BEGIN_PROCEDURE(setIndexFieldBoost)
     {
         // Forced internal request encoding to UTF8
         memset(name, 0, nameSize);
-
-        const string charset = "UTF8";
-        charset.copy(name, charset.length());
+        memcpy(name, INTERNAL_UDR_CHARSET, std::size(INTERNAL_UDR_CHARSET));
     }
 
     FB_UDR_EXECUTE_PROCEDURE
@@ -904,13 +878,13 @@ FB_UDR_BEGIN_PROCEDURE(setIndexFieldBoost)
         if (in->indexNameNull) {
             throwException(status, "Index name can not be NULL");
         }
-        const string indexName(in->indexName.str, in->indexName.length);
+        const std::string indexName(in->indexName.str, in->indexName.length);
 
 
         if (in->fieldNameNull) {
             throwException(status, "Field name can not be NULL");
         }
-        const string fieldName(in->fieldName.str, in->fieldName.length);
+        const std::string fieldName(in->fieldName.str, in->fieldName.length);
 
         AutoRelease<IAttachment> att(context->getAttachment(status));
         AutoRelease<ITransaction> tra(context->getTransaction(status));
@@ -941,7 +915,7 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
     );
 
     FB_UDR_CONSTRUCTOR
-        , indexRepository(make_unique<FTSIndexRepository>(context->getMaster()))
+        , indexRepository(std::make_unique<FTSIndexRepository>(context->getMaster()))
     {
     }
 
@@ -952,9 +926,7 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
     {
         // Forced internal request encoding to UTF8
         memset(name, 0, nameSize);
-
-        const string charset = "UTF8";
-        charset.copy(name, charset.length());
+        memcpy(name, INTERNAL_UDR_CHARSET, std::size(INTERNAL_UDR_CHARSET));
     }
 
     FB_UDR_EXECUTE_PROCEDURE
@@ -965,7 +937,7 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
         if (in->index_nameNull) {
             throwException(status, "Index name can not be NULL");
         }
-        const string indexName(in->index_name.str, in->index_name.length);
+        const std::string indexName(in->index_name.str, in->index_name.length);
 
         const auto& ftsDirectoryPath = getFtsDirectory(status, context);
         // check if there is a directory for full-text indexes
@@ -977,7 +949,7 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 
         try {
             // check for index existence
-            auto ftsIndex = make_unique<FTSIndex>();
+            auto ftsIndex = std::make_unique<FTSIndex>();
             procedure->indexRepository->getIndex(status, att, tra, sqlDialect, ftsIndex, indexName, true);
             // Check if the index directory exists, and if it doesn't exist, create it. 
             const auto& indexDirectoryPath = ftsDirectoryPath / indexName;
@@ -1014,7 +986,7 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
                 }
             }
                 
-            const string sql = ftsIndex->buildSqlSelectFieldValues(status, sqlDialect); 
+            const std::string sql = ftsIndex->buildSqlSelectFieldValues(status, sqlDialect);
 
             AutoRelease<IStatement> stmt(att->prepare(
                 status,
@@ -1056,7 +1028,7 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
             const unsigned msgLength = newMeta->getMessageLength(status);
             {
                 // allocate output buffer
-                auto b = make_unique<unsigned char[]>(msgLength);
+                auto b = std::make_unique<unsigned char[]>(msgLength);
                 unsigned char* buffer = b.get();
                 memset(buffer, 0, msgLength);
                 while (rs->fetchNext(status, buffer) == IStatus::RESULT_OK) {						
@@ -1068,7 +1040,7 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 
                         Lucene::String unicodeValue;	
                         if (!field->isNull(buffer)) {
-                            const string value = field->getStringValue(status, att, tra, buffer);
+                            const std::string value = field->getStringValue(status, att, tra, buffer);
                             if (!value.empty()) {
                                 // re-encode content to Unicode only if the string is non-binary
                                 if (!field->isBinary()) {
@@ -1114,7 +1086,7 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
             procedure->indexRepository->setIndexStatus(status, att, tra, sqlDialect, indexName, "C");
         }
         catch (const LuceneException& e) {
-            const string error_message = StringUtils::toUTF8(e.getError());
+            const std::string error_message = StringUtils::toUTF8(e.getError());
             throwException(status, error_message.c_str());
         }
     }
@@ -1139,7 +1111,7 @@ FB_UDR_BEGIN_PROCEDURE(optimizeIndex)
     );
 
     FB_UDR_CONSTRUCTOR
-        , indexRepository(make_unique<FTSIndexRepository>(context->getMaster()))
+        , indexRepository(std::make_unique<FTSIndexRepository>(context->getMaster()))
     {
     }
 
@@ -1150,9 +1122,7 @@ FB_UDR_BEGIN_PROCEDURE(optimizeIndex)
     {
         // Forced internal request encoding to UTF8
         memset(name, 0, nameSize);
-
-        const string charset = "UTF8";
-        charset.copy(name, charset.length());
+        memcpy(name, INTERNAL_UDR_CHARSET, std::size(INTERNAL_UDR_CHARSET));
     }
 
     FB_UDR_EXECUTE_PROCEDURE
@@ -1163,7 +1133,7 @@ FB_UDR_BEGIN_PROCEDURE(optimizeIndex)
         if (in->index_nameNull) {
             throwException(status, "Index name can not be NULL");
         }
-        const string indexName(in->index_name.str, in->index_name.length);
+        const std::string indexName(in->index_name.str, in->index_name.length);
 
         const auto& ftsDirectoryPath = getFtsDirectory(status, context);	
         // check if there is a directory for full-text indexes
@@ -1175,7 +1145,7 @@ FB_UDR_BEGIN_PROCEDURE(optimizeIndex)
 
         try {
             // check for index existence
-            auto ftsIndex = make_unique<FTSIndex>();
+            auto ftsIndex = std::make_unique<FTSIndex>();
             procedure->indexRepository->getIndex(status, att, tra, sqlDialect, ftsIndex, indexName);
             // Check if the index directory exists. 
             const auto& indexDirectoryPath = ftsDirectoryPath / indexName;
@@ -1195,7 +1165,7 @@ FB_UDR_BEGIN_PROCEDURE(optimizeIndex)
             fsIndexDir->close();
         }
         catch (const LuceneException& e) {
-            const string error_message = StringUtils::toUTF8(e.getError());
+            const std::string error_message = StringUtils::toUTF8(e.getError());
             throwException(status, error_message.c_str());
         }
     }
