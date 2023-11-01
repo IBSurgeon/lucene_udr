@@ -199,14 +199,15 @@ namespace FTSMetadata
     private:
         std::unordered_map<std::string, unsigned> m_fieldByNameMap;
     public:
-        FbFieldsInfo() = delete;
+        FbFieldsInfo() = default;
 
         FbFieldsInfo(Firebird::ThrowStatusWrapper* status, Firebird::IMessageMetadata* const meta);
 
+        FbFieldsInfo(FbFieldsInfo&& rval) = default;
+        FbFieldsInfo& operator=(FbFieldsInfo&& rval) = default;
+
         int findFieldByName(const std::string& fieldName) const;
     };
-
-    using FbFieldsInfoPtr = std::unique_ptr<FbFieldsInfo>;
 
 }
 

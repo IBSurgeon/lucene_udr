@@ -907,10 +907,9 @@ ORDER BY FTS$LOG_ID
 
 
             const auto& outMetadata =  ftsIndex->getOutExtractRecordMetadata();
-            auto fields = std::make_unique<FbFieldsInfo>(status, outMetadata);
+            FbFieldsInfo fields(status, outMetadata);
             // initial specific FTS property for fields
-            for (unsigned int i = 0; i < fields->size(); i++) {
-                auto&& field = fields->at(i);
+            for (auto& field: fields) {
                 auto iSegment = ftsIndex->findSegment(field.fieldName);
                 if (iSegment == ftsIndex->segments.end()) {
                     // index need to rebuild
@@ -1041,7 +1040,7 @@ ORDER BY FTS$LOG_ID
                     const auto& stmt = ftsIndex->getPreparedExtractRecordStmt();
                     const auto& outMetadata = ftsIndex->getOutExtractRecordMetadata();
 
-                    const auto& fields = *fieldsInfoMap[indexName];
+                    const auto& fields = fieldsInfoMap[indexName];
 
                     AutoRelease<IResultSet> rs(nullptr);
                     switch (ftsIndex->keyFieldType) {
@@ -1103,9 +1102,7 @@ ORDER BY FTS$LOG_ID
                             bool emptyFlag = true;
                             auto doc = newLucene<Document>();
 
-                            for (unsigned int i = 0; i < colCount; i++) {
-                                const auto& field = fields[i];
-
+                            for (const auto& field : fields) {
                                 Lucene::String unicodeValue;
                                 if (!field.isNull(buffer.data())) {
                                     const std::string value = field.getStringValue(status, att, tra, buffer.data());
@@ -1213,7 +1210,7 @@ ORDER BY FTS$LOG_ID
         (FB_INTL_VARCHAR(4, CS_UTF8), changeType)
     );
 
-    std::map<std::string, FbFieldsInfoPtr> fieldsInfoMap;
+    std::map<std::string, FbFieldsInfo> fieldsInfoMap;
     std::map<std::string, IndexWriterPtr> indexWriters;
 
     FB_UDR_FETCH_PROCEDURE

@@ -1002,8 +1002,7 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
             FbFieldsInfo fields(status, newMeta);
 
             // initial specific FTS property for fields
-            for (unsigned int i = 0; i < fields.size(); i++) {
-                auto&& field = fields[i];
+            for (auto& field : fields) {
                 auto iSegment = ftsIndex->findSegment(field.fieldName);
                 if (iSegment == ftsIndex->segments.end()) {
                     throwException(status, R"(Cannot rebuild index "%s". Field "%s" not found.)", indexName.c_str(), field.fieldName.c_str());
@@ -1033,9 +1032,7 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
                     bool emptyFlag = true;
                     auto doc = newLucene<Document>();
                         
-                    for (unsigned int i = 0; i < colCount; i++) {
-                        const auto& field = fields[i];
-
+                    for (const auto& field : fields) {
                         Lucene::String unicodeValue;	
                         if (!field.isNull(buffer.data())) {
                             const std::string value = field.getStringValue(status, att, tra, buffer.data());
