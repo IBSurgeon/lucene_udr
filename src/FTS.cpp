@@ -878,10 +878,10 @@ ORDER BY FTS$LOG_ID
                 // go to next index
                 continue;
             }
-            const auto& params = std::make_unique<FbFieldsInfo>(status, inMetadata);
-            const auto& keyParam = params->at(0);
-            if (keyParam->isBinary()) {
-                switch (keyParam->length) {
+            const FbFieldsInfo params(status, inMetadata);
+            const auto& keyParam = params.at(0);
+            if (keyParam.isBinary()) {
+                switch (keyParam.length) {
                 case 8:
                     ftsIndex->keyFieldType = FTSKeyType::DB_KEY;
                     break;
@@ -895,7 +895,7 @@ ORDER BY FTS$LOG_ID
                     continue;
                 }
             }
-            else if (keyParam->isInt()) {
+            else if (keyParam.isInt()) {
                 ftsIndex->keyFieldType = FTSKeyType::INT_ID;
             }
             else {
@@ -910,8 +910,8 @@ ORDER BY FTS$LOG_ID
             auto fields = std::make_unique<FbFieldsInfo>(status, outMetadata);
             // initial specific FTS property for fields
             for (unsigned int i = 0; i < fields->size(); i++) {
-                const auto& field = fields->at(i);
-                auto iSegment = ftsIndex->findSegment(field->fieldName);
+                auto&& field = fields->at(i);
+                auto iSegment = ftsIndex->findSegment(field.fieldName);
                 if (iSegment == ftsIndex->segments.end()) {
                     // index need to rebuild
                     setIndexToRebuild(status, att, sqlDialect, ftsIndex);
@@ -919,12 +919,12 @@ ORDER BY FTS$LOG_ID
                     continue;
                 }
                 auto const& segment = *iSegment;
-                field->ftsFieldName = StringUtils::toUnicode(segment->fieldName);
-                field->ftsKey = segment->key;
-                field->ftsBoost = segment->boost;
-                field->ftsBoostNull = segment->boostNull;
-                if (field->ftsKey) {
-                    ftsIndex->unicodeKeyFieldName = field->ftsFieldName;
+                field.ftsFieldName = StringUtils::toUnicode(segment->fieldName);
+                field.ftsKey = segment->key;
+                field.ftsBoost = segment->boost;
+                field.ftsBoostNull = segment->boostNull;
+                if (field.ftsKey) {
+                    ftsIndex->unicodeKeyFieldName = field.ftsFieldName;
                 }
             }
             fieldsInfoMap[indexName] = std::move(fields);
@@ -1098,22 +1098,20 @@ ORDER BY FTS$LOG_ID
                     const unsigned msgLength = outMetadata->getMessageLength(status);
                     {
                         // allocate output buffer
-                        auto b = std::make_unique<unsigned char[]>(msgLength);
-                        unsigned char* buffer = b.get();
-                        memset(buffer, 0, msgLength);
-                        while (rs->fetchNext(status, buffer) == IStatus::RESULT_OK) {
+                        std::vector<unsigned char> buffer(msgLength, 0);
+                        while (rs->fetchNext(status, buffer.data()) == IStatus::RESULT_OK) {
                             bool emptyFlag = true;
-                            const auto& doc = newLucene<Document>();
+                            auto doc = newLucene<Document>();
 
                             for (unsigned int i = 0; i < colCount; i++) {
                                 const auto& field = fields[i];
 
                                 Lucene::String unicodeValue;
-                                if (!field->isNull(buffer)) {
-                                    const std::string value = field->getStringValue(status, att, tra, buffer);
+                                if (!field.isNull(buffer.data())) {
+                                    const std::string value = field.getStringValue(status, att, tra, buffer.data());
                                     if (!value.empty()) {
                                         // re-encode content to Unicode only if the string is non-binary
-                                        if (!field->isBinary()) {
+                                        if (!field.isBinary()) {
                                             unicodeValue = StringUtils::toUnicode(value); 
                                         }
                                         else {
@@ -1123,14 +1121,14 @@ ORDER BY FTS$LOG_ID
                                     }
                                 }
                                 // add field to document
-                                if (field->ftsKey) {
-                                    const auto& luceneField = newLucene<Field>(field->ftsFieldName, unicodeValue, Field::STORE_YES, Field::INDEX_NOT_ANALYZED);
+                                if (field.ftsKey) {
+                                    auto luceneField = newLucene<Field>(field.ftsFieldName, unicodeValue, Field::STORE_YES, Field::INDEX_NOT_ANALYZED);
                                     doc->add(luceneField);
                                 }
                                 else {
-                                    const auto& luceneField = newLucene<Field>(field->ftsFieldName, unicodeValue, Field::STORE_NO, Field::INDEX_ANALYZED);
-                                    if (!field->ftsBoostNull) {
-                                        luceneField->setBoost(field->ftsBoost);
+                                    auto luceneField = newLucene<Field>(field.ftsFieldName, unicodeValue, Field::STORE_NO, Field::INDEX_ANALYZED);
+                                    if (!field.ftsBoostNull) {
+                                        luceneField->setBoost(field.ftsBoost);
                                     }
                                     doc->add(luceneField);
                                     emptyFlag = emptyFlag && unicodeValue.empty();
@@ -1151,7 +1149,7 @@ ORDER BY FTS$LOG_ID
                                     }
                                 }
                             }
-                            memset(buffer, 0, msgLength);
+                            std::fill(buffer.begin(), buffer.end(), 0);
                         }
                         rs->close(status);
                         rs.release();

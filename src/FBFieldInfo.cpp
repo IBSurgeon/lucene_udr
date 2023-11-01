@@ -19,7 +19,24 @@ using namespace LuceneUDR;
 
 namespace FTSMetadata
 {
-    std::string FbFieldInfo::getStringValue(ThrowStatusWrapper* status, IAttachment* att, ITransaction* tra, unsigned char* buffer)
+    FbFieldInfo::FbFieldInfo(ThrowStatusWrapper* status, IMessageMetadata* const meta, unsigned index)
+    {
+        fieldIndex = index;
+        nullable = meta->isNullable(status, index);
+        fieldName.assign(meta->getField(status, index));
+        relationName.assign(meta->getRelation(status, index));
+        owner.assign(meta->getOwner(status, index));
+        alias.assign(meta->getAlias(status, index));
+        dataType = meta->getType(status, index);
+        subType = meta->getSubType(status, index);
+        length = meta->getLength(status, index);
+        scale = meta->getScale(status, index);
+        charSet = meta->getCharSet(status, index);
+        offset = meta->getOffset(status, index);
+        nullOffset = meta->getNullOffset(status, index);
+    }
+
+    std::string FbFieldInfo::getStringValue(ThrowStatusWrapper* status, IAttachment* att, ITransaction* tra, unsigned char* buffer) const
     {
         switch (dataType) {
         case SQL_TEXT:
@@ -69,30 +86,14 @@ namespace FTSMetadata
         , m_fieldByNameMap()
     {
         const auto fieldCount = meta->getCount(status);
+        reserve(fieldCount);
         for (unsigned i = 0; i < fieldCount; i++) {
-            auto field = std::make_unique<FbFieldInfo>();
-            field->fieldIndex = i;
-            field->nullable = meta->isNullable(status, i);
-            field->fieldName.assign(meta->getField(status, i));
-            field->relationName.assign(meta->getRelation(status, i));
-            field->owner.assign(meta->getOwner(status, i));
-            field->alias.assign(meta->getAlias(status, i));
-            field->dataType = meta->getType(status, i);
-            field->subType = meta->getSubType(status, i);
-            field->length = meta->getLength(status, i);
-            field->scale = meta->getScale(status, i);
-            field->charSet = meta->getCharSet(status, i);
-            field->offset = meta->getOffset(status, i);
-            field->nullOffset = meta->getNullOffset(status, i);
-            this->push_back(std::move(field));
-        }
-        for (unsigned i = 0; i < fieldCount; i++) {
-            const auto& field = this->at(i);
-            m_fieldByNameMap[field->fieldName] = i;
+            auto&& field = emplace_back(status, meta, i);
+            m_fieldByNameMap[field.fieldName] = i;
         }
     }
 
-    int FbFieldsInfo::findFieldByName(const std::string& fieldName)
+    int FbFieldsInfo::findFieldByName(const std::string& fieldName) const
     {
         auto it = m_fieldByNameMap.find(fieldName);
         if (it != m_fieldByNameMap.end()) {

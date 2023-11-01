@@ -224,10 +224,6 @@ WHERE FTS$ANALYZER = ? AND FTS$INDEX_STATUS = 'C'
         unsigned int sqlDialect,
         bool whereKey)
     {
-        list<string> fieldNames;
-        for (const auto& segment : segments) {
-            fieldNames.push_back(segment->fieldName);
-        }
         auto iKeySegment = findKey();
         if (iKeySegment == segments.end()) {
             throwException(status, R"(Key field not exists in index "%s".)", indexName.c_str());
@@ -237,12 +233,12 @@ WHERE FTS$ANALYZER = ? AND FTS$INDEX_STATUS = 'C'
         std::stringstream ss;
         ss << "SELECT\n";
         int field_cnt = 0;
-        for (const auto& fieldName : fieldNames) {
+        for (const auto& segment : segments) {
             if (field_cnt == 0) {
-                ss << "  " << escapeMetaName(sqlDialect, fieldName);
+                ss << "  " << escapeMetaName(sqlDialect, segment->fieldName);
             }
             else {
-                ss << ",\n  " << escapeMetaName(sqlDialect, fieldName);
+                ss << ",\n  " << escapeMetaName(sqlDialect, segment->fieldName);
             }
             field_cnt++;
         }
@@ -254,12 +250,12 @@ WHERE FTS$ANALYZER = ? AND FTS$INDEX_STATUS = 'C'
         else {
             ss << escapeMetaName(sqlDialect, keyFieldName) << " IS NOT NULL";
             string where;
-            for (const auto& fieldName : fieldNames) {
-                if (fieldName == keyFieldName) continue;
+            for (const auto& segment : segments) {
+                if (segment->fieldName == keyFieldName) continue;
                 if (where.empty())
-                    where += escapeMetaName(sqlDialect, fieldName) + " IS NOT NULL";
+                    where += escapeMetaName(sqlDialect, segment->fieldName) + " IS NOT NULL";
                 else
-                    where += " OR " + escapeMetaName(sqlDialect, fieldName) + " IS NOT NULL";
+                    where += " OR " + escapeMetaName(sqlDialect, segment->fieldName) + " IS NOT NULL";
             }
             if (!where.empty())
                 ss << "\nAND (" << where << ")";

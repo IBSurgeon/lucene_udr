@@ -952,7 +952,7 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
             auto ftsIndex = std::make_unique<FTSIndex>();
             procedure->indexRepository->getIndex(status, att, tra, sqlDialect, ftsIndex, indexName, true);
             // Check if the index directory exists, and if it doesn't exist, create it. 
-            const auto& indexDirectoryPath = ftsDirectoryPath / indexName;
+            const auto indexDirectoryPath = ftsDirectoryPath / indexName;
             if (!createIndexDirectory(indexDirectoryPath)) {
                 throwException(status, R"(Cannot create index directory "%s".)", indexDirectoryPath.u8string().c_str());
             }
@@ -970,9 +970,9 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 
             const auto& analyzers = procedure->indexRepository->getAnalyzerRepository();
 
-            const auto& fsIndexDir = FSDirectory::open(indexDirectoryPath.wstring());
-            const auto& analyzer = analyzers->createAnalyzer(status, att, tra, sqlDialect, ftsIndex->analyzer);
-            const auto& writer = newLucene<IndexWriter>(fsIndexDir, analyzer, true, IndexWriter::MaxFieldLengthLIMITED);
+            auto fsIndexDir = FSDirectory::open(indexDirectoryPath.wstring());
+            auto analyzer = analyzers->createAnalyzer(status, att, tra, sqlDialect, ftsIndex->analyzer);
+            auto writer = newLucene<IndexWriter>(fsIndexDir, analyzer, true, IndexWriter::MaxFieldLengthLIMITED);
 
             // clean up index directory
             writer->deleteAll();
@@ -999,20 +999,20 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
             AutoRelease<IMessageMetadata> outputMetadata(stmt->getOutputMetadata(status));
             // make all fields of string type except BLOB
             AutoRelease<IMessageMetadata> newMeta(prepareTextMetaData(status, outputMetadata));
-            const auto fields = FbFieldsInfo(status, newMeta);
+            FbFieldsInfo fields(status, newMeta);
 
             // initial specific FTS property for fields
             for (unsigned int i = 0; i < fields.size(); i++) {
-                const auto& field = fields[i];
-                auto iSegment = ftsIndex->findSegment(field->fieldName);
+                auto&& field = fields[i];
+                auto iSegment = ftsIndex->findSegment(field.fieldName);
                 if (iSegment == ftsIndex->segments.end()) {
-                    throwException(status, R"(Cannot rebuild index "%s". Field "%s" not found.)", indexName.c_str(), field->fieldName.c_str());
+                    throwException(status, R"(Cannot rebuild index "%s". Field "%s" not found.)", indexName.c_str(), field.fieldName.c_str());
                 }
-                auto const& segment = *iSegment;
-                field->ftsFieldName = StringUtils::toUnicode(segment->fieldName);
-                field->ftsKey = segment->key;
-                field->ftsBoost = segment->boost;
-                field->ftsBoostNull = segment->boostNull;
+                auto&& segment = *iSegment;
+                field.ftsFieldName = StringUtils::toUnicode(segment->fieldName);
+                field.ftsKey = segment->key;
+                field.ftsBoost = segment->boost;
+                field.ftsBoostNull = segment->boostNull;
             }
 
             AutoRelease<IResultSet> rs(stmt->openCursor(
@@ -1028,22 +1028,20 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
             const unsigned msgLength = newMeta->getMessageLength(status);
             {
                 // allocate output buffer
-                auto b = std::make_unique<unsigned char[]>(msgLength);
-                unsigned char* buffer = b.get();
-                memset(buffer, 0, msgLength);
-                while (rs->fetchNext(status, buffer) == IStatus::RESULT_OK) {						
+                std::vector<unsigned char> buffer(msgLength, 0);
+                while (rs->fetchNext(status, buffer.data()) == IStatus::RESULT_OK) {						
                     bool emptyFlag = true;
-                    const auto& doc = newLucene<Document>();
+                    auto doc = newLucene<Document>();
                         
                     for (unsigned int i = 0; i < colCount; i++) {
                         const auto& field = fields[i];
 
                         Lucene::String unicodeValue;	
-                        if (!field->isNull(buffer)) {
-                            const std::string value = field->getStringValue(status, att, tra, buffer);
+                        if (!field.isNull(buffer.data())) {
+                            const std::string value = field.getStringValue(status, att, tra, buffer.data());
                             if (!value.empty()) {
                                 // re-encode content to Unicode only if the string is non-binary
-                                if (!field->isBinary()) {
+                                if (!field.isBinary()) {
                                     unicodeValue = StringUtils::toUnicode(value);
                                 }
                                 else {
@@ -1053,14 +1051,14 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
                             }
                         }
                         // add field to document
-                        if (field->ftsKey) {
-                            const auto& luceneField = newLucene<Field>(field->ftsFieldName, unicodeValue, Field::STORE_YES, Field::INDEX_NOT_ANALYZED);
+                        if (field.ftsKey) {
+                            auto luceneField = newLucene<Field>(field.ftsFieldName, unicodeValue, Field::STORE_YES, Field::INDEX_NOT_ANALYZED);
                             doc->add(luceneField);
                         }
                         else {
-                            const auto& luceneField = newLucene<Field>(field->ftsFieldName, unicodeValue, Field::STORE_NO, Field::INDEX_ANALYZED);
-                            if (!field->ftsBoostNull) {
-                                luceneField->setBoost(field->ftsBoost);
+                            auto luceneField = newLucene<Field>(field.ftsFieldName, unicodeValue, Field::STORE_NO, Field::INDEX_ANALYZED);
+                            if (!field.ftsBoostNull) {
+                                luceneField->setBoost(field.ftsBoost);
                             }
                             doc->add(luceneField);
                             emptyFlag = emptyFlag && unicodeValue.empty();
@@ -1071,7 +1069,7 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
                     if (!emptyFlag) {
                         writer->addDocument(doc);
                     }
-                    memset(buffer, 0, msgLength);
+                    std::fill(buffer.begin(), buffer.end(), 0);
                 }
                 rs->close(status);
                 rs.release();

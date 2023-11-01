@@ -16,7 +16,7 @@
 
 #include <string>
 #include <vector>
-#include <map>
+#include <unordered_map>
 #include <memory>
 #include "LuceneUdr.h"
 
@@ -46,89 +46,91 @@ namespace FTSMetadata
         unsigned charSet = 0;
         unsigned offset = 0;
         unsigned nullOffset = 0;
-
+        // lucene specific
         std::wstring ftsFieldName{L""};
         bool ftsKey = false;
         double ftsBoost = 1.0;
         bool ftsBoostNull = true;
 
         FbFieldInfo() = default;
+        FbFieldInfo(Firebird::ThrowStatusWrapper* status, Firebird::IMessageMetadata* const meta, unsigned index);
 
-        inline bool isNull(unsigned char* buffer) {
+
+        bool isNull(unsigned char* buffer) const {
             return as<short>(buffer + nullOffset);
         }
 
-        inline FB_BOOLEAN getBooleanValue(unsigned char* buffer) {
+        FB_BOOLEAN getBooleanValue(unsigned char* buffer) const {
             return as<FB_BOOLEAN>(buffer + offset);
         }
 
-        inline ISC_SHORT getShortValue(unsigned char* buffer) {
+        ISC_SHORT getShortValue(unsigned char* buffer) const {
             return as<ISC_SHORT>(buffer + offset);
         }
 
-        inline ISC_LONG getLongValue(unsigned char* buffer) {
+        ISC_LONG getLongValue(unsigned char* buffer) const {
             return as<ISC_LONG>(buffer + offset);
         }
 
-        inline ISC_INT64 getInt64Value(unsigned char* buffer) {
+        ISC_INT64 getInt64Value(unsigned char* buffer) const {
             return as<ISC_INT64>(buffer + offset);
         }
 
-        inline float getFloatValue(unsigned char* buffer) {
+        float getFloatValue(unsigned char* buffer) const {
             return as<float>(buffer + offset);
         }
 
-        inline double getDoubleValue(unsigned char* buffer) {
+        double getDoubleValue(unsigned char* buffer) const {
             return as<double>(buffer + offset);
         }
 
-        inline ISC_DATE getDateValue(unsigned char* buffer) {
+        ISC_DATE getDateValue(unsigned char* buffer) const {
             return as<ISC_DATE>(buffer + offset);
         }
 
-        inline ISC_TIME getTimeValue(unsigned char* buffer) {
+        ISC_TIME getTimeValue(unsigned char* buffer) const {
             return as<ISC_TIME>(buffer + offset);
         }
 
-        inline ISC_TIMESTAMP getTimestampValue(unsigned char* buffer) {
+        ISC_TIMESTAMP getTimestampValue(unsigned char* buffer) const {
             return as<ISC_TIMESTAMP>(buffer + offset);
         }
 
-        inline ISC_QUAD getQuadValue(unsigned char* buffer) {
+        ISC_QUAD getQuadValue(unsigned char* buffer) const {
             return as<ISC_QUAD>(buffer + offset);
         }
 
 #if FB_API_VER >= 40
-        inline FB_I128 getInt128Value(unsigned char* buffer) {
+        FB_I128 getInt128Value(unsigned char* buffer) const {
             return as<FB_I128>(buffer + offset);
         }
 
-        inline FB_DEC16 getDecFloat16Value(unsigned char* buffer) {
+        FB_DEC16 getDecFloat16Value(unsigned char* buffer) const {
             return as<FB_DEC16>(buffer + offset);
         }
 
-        inline FB_DEC34 getDecFloat34Value(unsigned char* buffer) {
+        FB_DEC34 getDecFloat34Value(unsigned char* buffer) const {
             return as<FB_DEC34>(buffer + offset);
         }
 
-        inline ISC_TIME_TZ getTimeTzValue(unsigned char* buffer) {
+        ISC_TIME_TZ getTimeTzValue(unsigned char* buffer) const {
             return as<ISC_TIME_TZ>(buffer + offset);
         }
 
-        inline ISC_TIME_TZ_EX getTimeTzExValue(unsigned char* buffer) {
+        ISC_TIME_TZ_EX getTimeTzExValue(unsigned char* buffer) const {
             return as<ISC_TIME_TZ_EX>(buffer + offset);
         }
 
-        inline ISC_TIMESTAMP_TZ getTimestampTzValue(unsigned char* buffer) {
+        ISC_TIMESTAMP_TZ getTimestampTzValue(unsigned char* buffer) const {
             return as<ISC_TIMESTAMP_TZ>(buffer + offset);
         }
 
-        inline ISC_TIMESTAMP_TZ_EX getTimestampTzExValue(unsigned char* buffer) {
+        ISC_TIMESTAMP_TZ_EX getTimestampTzExValue(unsigned char* buffer) const {
             return as<ISC_TIMESTAMP_TZ_EX>(buffer + offset);
         }
 #endif
 
-        inline short getOctetsLength(unsigned char* buffer) {
+        short getOctetsLength(unsigned char* buffer) const {
             switch (dataType)
             {
             case SQL_TEXT:
@@ -140,7 +142,7 @@ namespace FTSMetadata
             }
         }
 
-        inline char* getCharValue(unsigned char* buffer) {
+        char* getCharValue(unsigned char* buffer) const {
             switch (dataType)
             {
             case SQL_TEXT:
@@ -152,7 +154,7 @@ namespace FTSMetadata
             }
         }
 
-        inline bool isBinary() {
+        bool isBinary() const {
             switch (dataType) {
             case SQL_TEXT:
             case SQL_VARYING:
@@ -168,7 +170,7 @@ namespace FTSMetadata
             }
         }
 
-        inline bool isInt() {
+        bool isInt() const {
             switch (dataType) {
             case SQL_SHORT:
             case SQL_LONG:
@@ -185,24 +187,23 @@ namespace FTSMetadata
             Firebird::ThrowStatusWrapper* status, 
             Firebird::IAttachment* att, 
             Firebird::ITransaction* tra, 
-            unsigned char* buffer);
+            unsigned char* buffer) const;
     };
 
 
 
-    using FbFieldInfoPtr = std::unique_ptr<FbFieldInfo>;
-    using FbFieldInfoVector = std::vector<FbFieldInfoPtr>;
+    using FbFieldInfoVector = std::vector<FbFieldInfo>;
 
     class FbFieldsInfo : public FbFieldInfoVector
     {
     private:
-        std::map<std::string, unsigned> m_fieldByNameMap;
+        std::unordered_map<std::string, unsigned> m_fieldByNameMap;
     public:
         FbFieldsInfo() = delete;
 
         FbFieldsInfo(Firebird::ThrowStatusWrapper* status, Firebird::IMessageMetadata* const meta);
 
-        int findFieldByName(const std::string& fieldName);
+        int findFieldByName(const std::string& fieldName) const;
     };
 
     using FbFieldsInfoPtr = std::unique_ptr<FbFieldsInfo>;
