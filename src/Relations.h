@@ -43,7 +43,6 @@ namespace FTSMetadata
             return (relationType == RelationType::RT_REGULAR || relationType == RelationType::RT_GTT_PRESERVE_ROWS || relationType == RelationType::RT_GTT_DELETE_ROWS);
         }
     };
-    using RelationInfoPtr = std::unique_ptr<RelationInfo>;
 
     class RelationFieldInfo final
     {
@@ -93,8 +92,7 @@ namespace FTSMetadata
         }
     };
 
-    using RelationFieldInfoPtr = std::unique_ptr<RelationFieldInfo>;
-    using RelationFieldList = std::list<RelationFieldInfoPtr>;
+    using RelationFieldList = std::list<RelationFieldInfo>;
 
     class RelationHelper final
     {
@@ -131,7 +129,7 @@ namespace FTSMetadata
             Firebird::IAttachment* const att,
             Firebird::ITransaction* const tra,
             unsigned int sqlDialect,
-            RelationInfoPtr& relationInfo,
+            RelationInfo& relationInfo,
             const std::string& relationName
         );
 
@@ -210,7 +208,7 @@ namespace FTSMetadata
             Firebird::IAttachment* const att,
             Firebird::ITransaction* const tra,
             unsigned int sqlDialect,
-            const RelationFieldInfoPtr& fieldInfo,
+            RelationFieldInfo& fieldInfo,
             const std::string& relationName,
             const std::string& fieldName
         );

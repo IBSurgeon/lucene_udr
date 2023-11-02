@@ -532,7 +532,7 @@ FB_UDR_BEGIN_PROCEDURE(createIndex)
         }
 
         const auto& relationHelper = procedure->indexRepository->getRelationHelper();
-        auto relationInfo = std::make_unique<RelationInfo>();
+        RelationInfo relationInfo {};
         relationHelper->getRelationInfo(status, att, tra, sqlDialect, relationInfo, relationName);
 
 
@@ -540,12 +540,12 @@ FB_UDR_BEGIN_PROCEDURE(createIndex)
 
         std::string keyFieldName;
         if (in->keyFieldNameNull) {
-            if (relationInfo->findKeyFieldSupported()) {
+            if (relationInfo.findKeyFieldSupported()) {
                 RelationFieldList keyFields;
                 relationHelper->fillPrimaryKeyFields(status, att, tra, sqlDialect, relationName, keyFields);
                 if (keyFields.size() == 0) {
                    // There is no primary key constraint.
-                    if (relationInfo->relationType == RelationType::RT_REGULAR) {
+                    if (relationInfo.relationType == RelationType::RT_REGULAR) {
                         keyFieldName = "RDB$DB_KEY";
                     }
                     else {
@@ -555,7 +555,7 @@ FB_UDR_BEGIN_PROCEDURE(createIndex)
                 else if (keyFields.size() == 1) {
                     // OK
                     const auto& keyFieldInfo = *keyFields.cbegin();
-                    keyFieldName = keyFieldInfo->fieldName;
+                    keyFieldName = keyFieldInfo.fieldName;
                 }
                 else {
                     throwException(status, 
@@ -572,16 +572,16 @@ FB_UDR_BEGIN_PROCEDURE(createIndex)
         }
 
         if (keyFieldName == "RDB$DB_KEY") {
-            if (relationInfo->relationType != RelationType::RT_REGULAR) {
+            if (relationInfo.relationType != RelationType::RT_REGULAR) {
                 throwException(status, R"(Using "RDB$DB_KEY" as a key is supported only for regular tables.)");
             }
         }
         else {
-            auto keyFieldInfo = std::make_unique<RelationFieldInfo>();
+            RelationFieldInfo keyFieldInfo;
             relationHelper->getField(status, att, tra, sqlDialect, keyFieldInfo, relationName, keyFieldName);
             // check field type
             // Supported types SMALLINT, INTEGER, BIGINT, CHAR(16) CHARACTER SET OCTETS, BINARY(16) 
-            if (!(keyFieldInfo->isInt() || (keyFieldInfo->isFixedChar() && keyFieldInfo->isBinary() && keyFieldInfo->fieldLength == 16))) {
+            if (!(keyFieldInfo.isInt() || (keyFieldInfo.isFixedChar() && keyFieldInfo.isBinary() && keyFieldInfo.fieldLength == 16))) {
                 throwException(status, "Unsupported data type for the key field. Supported data types: SMALLINT, INTEGER, BIGINT, CHAR(16) CHARACTER SET OCTETS, BINARY(16).");
             }
         }

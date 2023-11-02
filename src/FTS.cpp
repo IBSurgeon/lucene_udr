@@ -27,6 +27,7 @@
 #include <string>
 #include <sstream>
 #include <memory>
+#include <unordered_map>
 #include <algorithm>
 
 using namespace Firebird;
@@ -210,12 +211,11 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
                 }
             }
 
-            keyFieldInfo = std::make_unique<RelationFieldInfo>();
             if (keyFieldName != "RDB$DB_KEY") {
                 procedure->indexRepository->getRelationHelper()->getField(status, att, tra, sqlDialect, keyFieldInfo, ftsIndex->relationName, keyFieldName);
             }
             else {
-                keyFieldInfo->initDB_KEYField(ftsIndex->relationName);
+                keyFieldInfo.initDB_KEYField(ftsIndex->relationName);
             }
             
             MultiFieldQueryParserPtr  parser = newLucene<MultiFieldQueryParser>(LuceneVersion::LUCENE_CURRENT, fields, analyzer);
@@ -247,7 +247,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
     bool explainFlag = false;
     AutoRelease<IAttachment> att{ nullptr };
     AutoRelease<ITransaction> tra{ nullptr };
-    RelationFieldInfoPtr keyFieldInfo{ nullptr };
+    RelationFieldInfo keyFieldInfo;
     String unicodeKeyFieldName = L"";
     SearcherPtr searcher{ nullptr };
     QueryPtr query{ nullptr };	
@@ -272,19 +272,19 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
                     out->dbKey.length = static_cast<ISC_USHORT>(dbKey.length());
                     dbKey.copy(out->dbKey.str, out->dbKey.length);
                 }
-                else if (keyFieldInfo->isBinary()) {
+                else if (keyFieldInfo.isBinary()) {
                     // In the Lucene index, the string is stored in hexadecimal form, so let's convert it back to binary format.
                     const std::string uuid = hex_to_string(keyValue);
                     out->uuidNull = false;
                     out->uuid.length = static_cast<ISC_USHORT>(uuid.length());
                     uuid.copy(out->uuid.str, out->uuid.length);
                 }
-                else if (keyFieldInfo->isInt()) {
+                else if (keyFieldInfo.isInt()) {
                     out->idNull = false;
                     out->id = std::stoll(keyValue);
                 }
             }
-            catch (std::invalid_argument& e) {
+            catch (const std::invalid_argument& e) {
                 throwException(status, e.what());
             }
 
@@ -457,7 +457,6 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogByDdKey)
         if (in->dbKeyNull) {
             throwException(status, "FTS$DBKEY can not be NULL");
         }
-        const std::string dbKey(in->dbKey.str, in->dbKey.length);
 
         if (in->changeTypeNull) {
             throwException(status, "FTS$CHANGE_TYPE can not be NULL");
@@ -504,8 +503,8 @@ VALUES(?, ?, NULL, NULL, ?)
         input->relationName.length = static_cast<ISC_USHORT>(relationName.length());
         relationName.copy(input->relationName.str, input->relationName.length);
 
-        input->dbKey.length = static_cast<ISC_USHORT>(dbKey.length());
-        dbKey.copy(input->dbKey.str, input->dbKey.length);
+        input->dbKey.length = in->dbKey.length;
+        memcpy(input->dbKey.str, in->dbKey.str, in->dbKey.length);
 
         input->changeType.length = static_cast<ISC_USHORT>(changeType.length());
         changeType.copy(input->changeType.str, input->changeType.length);
@@ -683,7 +682,6 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogByUuid)
         if (in->uuidNull) {
             throwException(status, "FTS$UUID can not be NULL");
         }
-        const std::string uuid(in->uuid.str, in->uuid.length);
 
         if (in->changeTypeNull) {
             throwException(status, "FTS$CHANGE_TYPE can not be NULL");
@@ -730,8 +728,8 @@ VALUES(?, NULL, ?, NULL, ?)
         input->relationName.length = static_cast<ISC_USHORT>(relationName.length());
         relationName.copy(input->relationName.str, input->relationName.length);
 
-        input->uuid.length = static_cast<ISC_USHORT>(uuid.length());
-        uuid.copy(input->uuid.str, input->uuid.length);
+        input->uuid.length = in->uuid.length;
+        memcpy(input->uuid.str, in->uuid.str, in->uuid.length);
 
         input->changeType.length = static_cast<ISC_USHORT>(changeType.length());
         changeType.copy(input->changeType.str, input->changeType.length);
@@ -853,7 +851,7 @@ ORDER BY FTS$LOG_ID
         FTSIndexMap indexes;
         procedure->indexRepository->fillAllIndexesWithFields(status, att, tra, sqlDialect, indexes);
         // fill map indexes of relationName
-        std::map<std::string, std::list<std::string>> indexesByRelation;
+        std::unordered_map<std::string, std::list<std::string>> indexesByRelation;
         for (const auto& [indexName, ftsIndex] : indexes) {	
             if (!ftsIndex->isActive()) {
                 continue;
@@ -907,37 +905,32 @@ ORDER BY FTS$LOG_ID
 
 
             const auto& outMetadata =  ftsIndex->getOutExtractRecordMetadata();
-            FbFieldsInfo fields(status, outMetadata);
-            // initial specific FTS property for fields
-            for (auto& field: fields) {
-                auto iSegment = ftsIndex->findSegment(field.fieldName);
-                if (iSegment == ftsIndex->segments.end()) {
-                    // index need to rebuild
-                    setIndexToRebuild(status, att, sqlDialect, ftsIndex);
-                    // go to next index
-                    continue;
-                }
-                auto const& segment = *iSegment;
-                field.ftsFieldName = StringUtils::toUnicode(segment->fieldName);
-                field.ftsKey = segment->key;
-                field.ftsBoost = segment->boost;
-                field.ftsBoostNull = segment->boostNull;
-                if (field.ftsKey) {
-                    ftsIndex->unicodeKeyFieldName = field.ftsFieldName;
+            // add fields info for index
+            if (auto&& [it, inserted] = fieldsInfoMap.try_emplace(indexName, status, outMetadata); inserted) {
+                auto&& fields = it->second;
+                // initial specific FTS property for fields
+                for (auto& field : fields) {
+                    auto iSegment = ftsIndex->findSegment(field.fieldName);
+                    if (iSegment == ftsIndex->segments.end()) {
+                        // index need to rebuild
+                        setIndexToRebuild(status, att, sqlDialect, ftsIndex);
+                        // go to next index
+                        continue;
+                    }
+                    auto const& segment = *iSegment;
+                    field.ftsFieldName = StringUtils::toUnicode(segment->fieldName);
+                    field.ftsKey = segment->key;
+                    field.ftsBoost = segment->boost;
+                    field.ftsBoostNull = segment->boostNull;
+                    if (field.ftsKey) {
+                        ftsIndex->unicodeKeyFieldName = field.ftsFieldName;
+                    }
                 }
             }
-            fieldsInfoMap[indexName] = std::move(fields);
 
-            // put indexName to map
-            auto it = indexesByRelation.find(ftsIndex->relationName);
-            if (it == indexesByRelation.end()) {
-                std::list<std::string> indexNames;
-                indexNames.push_back(ftsIndex->indexName);
-                indexesByRelation[ftsIndex->relationName] = indexNames;
-            }
-            else {
-                it->second.push_back(ftsIndex->indexName);
-            }
+            // Add FTS indexName for relation
+            auto& indexNames = indexesByRelation[ftsIndex->relationName];
+            indexNames.push_back(ftsIndex->indexName);
         }
 
         try 
@@ -1210,7 +1203,7 @@ ORDER BY FTS$LOG_ID
         (FB_INTL_VARCHAR(4, CS_UTF8), changeType)
     );
 
-    std::map<std::string, FbFieldsInfo> fieldsInfoMap;
+    std::unordered_map<std::string, FbFieldsInfo> fieldsInfoMap;
     std::map<std::string, IndexWriterPtr> indexWriters;
 
     FB_UDR_FETCH_PROCEDURE

@@ -124,7 +124,7 @@ WHERE RDB$RELATION_NAME = ? AND RDB$FIELD_NAME = ?
         IAttachment* const att,
         ITransaction* const tra,
         unsigned int sqlDialect,
-        RelationInfoPtr& relationInfo,
+        RelationInfo& relationInfo,
         const std::string& relationName)
     {
         FB_MESSAGE(Input, ThrowStatusWrapper,
@@ -170,9 +170,9 @@ WHERE RDB$RELATION_NAME = ? AND RDB$FIELD_NAME = ?
         }
         
         if (result == IStatus::RESULT_OK) {
-            relationInfo->relationName.assign(output->relationName.str, output->relationName.length);
-            relationInfo->relationType = static_cast<RelationType>(output->relationType);
-            relationInfo->systemFlag = static_cast<bool>(output->systemFlag);
+            relationInfo.relationName.assign(output->relationName.str, output->relationName.length);
+            relationInfo.relationType = static_cast<RelationType>(output->relationType);
+            relationInfo.systemFlag = static_cast<bool>(output->systemFlag);
         }
     }
 
@@ -297,19 +297,17 @@ WHERE RDB$RELATION_NAME = ? AND RDB$FIELD_NAME = ?
         ));
 
         while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
-            auto fieldInfo = std::make_unique<RelationFieldInfo>();
+            auto& fieldInfo = fields.emplace_back();
 
-            fieldInfo->relationName.assign(output->relationName.str, output->relationName.length);
-            fieldInfo->fieldName.assign(output->fieldName.str, output->fieldName.length);
-            fieldInfo->fieldType = output->fieldType;
-            fieldInfo->fieldLength = output->fieldLength;
-            fieldInfo->charLength = output->charLength;
-            fieldInfo->charsetId = output->charsetId;
-            fieldInfo->fieldSubType = output->fieldSubType;
-            fieldInfo->fieldPrecision = output->fieldPrecision;
-            fieldInfo->fieldScale = output->fieldScale;
-
-            fields.push_back(std::move(fieldInfo));
+            fieldInfo.relationName.assign(output->relationName.str, output->relationName.length);
+            fieldInfo.fieldName.assign(output->fieldName.str, output->fieldName.length);
+            fieldInfo.fieldType = output->fieldType;
+            fieldInfo.fieldLength = output->fieldLength;
+            fieldInfo.charLength = output->charLength;
+            fieldInfo.charsetId = output->charsetId;
+            fieldInfo.fieldSubType = output->fieldSubType;
+            fieldInfo.fieldPrecision = output->fieldPrecision;
+            fieldInfo.fieldScale = output->fieldScale;
         }
 
         rs->close(status);
@@ -377,19 +375,17 @@ WHERE RDB$RELATION_NAME = ? AND RDB$FIELD_NAME = ?
         ));
 
         while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
-            auto fieldInfo = std::make_unique<RelationFieldInfo>();
+            auto& fieldInfo = keyFields.emplace_back();
 
-            fieldInfo->relationName.assign(output->relationName.str, output->relationName.length);
-            fieldInfo->fieldName.assign(output->fieldName.str, output->fieldName.length);
-            fieldInfo->fieldType = output->fieldType;
-            fieldInfo->fieldLength = output->fieldLength;
-            fieldInfo->charLength = output->charLength;
-            fieldInfo->charsetId = output->charsetId;
-            fieldInfo->fieldSubType = output->fieldSubType;
-            fieldInfo->fieldPrecision = output->fieldPrecision;
-            fieldInfo->fieldScale = output->fieldScale;
-
-            keyFields.push_back(std::move(fieldInfo));
+            fieldInfo.relationName.assign(output->relationName.str, output->relationName.length);
+            fieldInfo.fieldName.assign(output->fieldName.str, output->fieldName.length);
+            fieldInfo.fieldType = output->fieldType;
+            fieldInfo.fieldLength = output->fieldLength;
+            fieldInfo.charLength = output->charLength;
+            fieldInfo.charsetId = output->charsetId;
+            fieldInfo.fieldSubType = output->fieldSubType;
+            fieldInfo.fieldPrecision = output->fieldPrecision;
+            fieldInfo.fieldScale = output->fieldScale;
         }
 
         rs->close(status);
@@ -413,7 +409,7 @@ WHERE RDB$RELATION_NAME = ? AND RDB$FIELD_NAME = ?
         IAttachment* att,
         ITransaction* tra,
         unsigned int sqlDialect,
-        const RelationFieldInfoPtr& fieldInfo,
+        RelationFieldInfo& fieldInfo,
         const std::string& relationName,
         const std::string& fieldName)
     {
@@ -472,15 +468,15 @@ WHERE RDB$RELATION_NAME = ? AND RDB$FIELD_NAME = ?
         }
 
         if (result == IStatus::RESULT_OK) {
-            fieldInfo->relationName.assign(output->relationName.str, output->relationName.length);
-            fieldInfo->fieldName.assign(output->fieldName.str, output->fieldName.length);
-            fieldInfo->fieldType = output->fieldType;
-            fieldInfo->fieldLength = output->fieldLength;
-            fieldInfo->charLength = output->charLength;
-            fieldInfo->charsetId = output->charsetId;
-            fieldInfo->fieldSubType = output->fieldSubType;
-            fieldInfo->fieldPrecision = output->fieldPrecision;
-            fieldInfo->fieldScale = output->fieldScale;
+            fieldInfo.relationName.assign(output->relationName.str, output->relationName.length);
+            fieldInfo.fieldName.assign(output->fieldName.str, output->fieldName.length);
+            fieldInfo.fieldType = output->fieldType;
+            fieldInfo.fieldLength = output->fieldLength;
+            fieldInfo.charLength = output->charLength;
+            fieldInfo.charsetId = output->charsetId;
+            fieldInfo.fieldSubType = output->fieldSubType;
+            fieldInfo.fieldPrecision = output->fieldPrecision;
+            fieldInfo.fieldScale = output->fieldScale;
         }
     }
 

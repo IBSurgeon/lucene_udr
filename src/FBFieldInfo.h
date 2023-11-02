@@ -203,8 +203,12 @@ namespace FTSMetadata
 
         FbFieldsInfo(Firebird::ThrowStatusWrapper* status, Firebird::IMessageMetadata* const meta);
 
-        FbFieldsInfo(FbFieldsInfo&& rval) = default;
-        FbFieldsInfo& operator=(FbFieldsInfo&& rval) = default;
+        // non-copyable
+        FbFieldsInfo(const FbFieldsInfo& rhs) = delete;
+        FbFieldsInfo& operator=(const FbFieldsInfo& rhs) = delete;
+        // moveable
+        FbFieldsInfo(FbFieldsInfo&& rhs) noexcept = default;
+        FbFieldsInfo& operator=(FbFieldsInfo&& rhs) noexcept = default;
 
         int findFieldByName(const std::string& fieldName) const;
     };
