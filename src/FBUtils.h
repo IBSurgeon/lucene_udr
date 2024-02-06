@@ -55,6 +55,37 @@ namespace LuceneUDR
     [[noreturn]]
     void throwException(Firebird::ThrowStatusWrapper* const status, const char* message, ...);
 
+    struct IscRandomStatus {
+    public:
+        explicit IscRandomStatus(const std::string& message)
+            : statusVector{ isc_arg_gds, isc_random,
+                isc_arg_string, (ISC_STATUS)message.c_str(),
+                isc_arg_end }
+        {
+        }
+
+        explicit IscRandomStatus(const char* message)
+            : statusVector{ isc_arg_gds, isc_random,
+                isc_arg_string, (ISC_STATUS)message,
+                isc_arg_end }
+        {
+        }
+
+        explicit IscRandomStatus(const std::exception& e)
+            : statusVector{ isc_arg_gds, isc_random,
+                isc_arg_string, (ISC_STATUS)e.what(),
+                isc_arg_end }
+        {
+        }
+
+        operator const ISC_STATUS* () const { return statusVector; }
+
+        static IscRandomStatus createFmtStatus(const char* message, ...);
+
+    private:
+        ISC_STATUS statusVector[5] = {};
+    };
+
     Firebird::IMessageMetadata* prepareTextMetaData(Firebird::ThrowStatusWrapper* status, Firebird::IMessageMetadata* meta);
 }
 

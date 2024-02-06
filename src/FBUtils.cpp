@@ -87,6 +87,18 @@ namespace LuceneUDR
         };
         return sql_dialect;
     }
+    
+    IscRandomStatus IscRandomStatus::createFmtStatus(const char* message, ...)
+    {
+        char buffer[BUFFER_LARGE];
+
+        va_list ptr;
+        va_start(ptr, message);
+        vsnprintf(buffer, BUFFER_LARGE, message, ptr);
+        va_end(ptr);
+
+        return IscRandomStatus(buffer);
+    }
 
     void throwException(Firebird::ThrowStatusWrapper* const status, const char* message, ...)
     {

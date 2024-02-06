@@ -1,4 +1,6 @@
 #include "FTSUtils.h"
+
+#include "FBUtils.h"
 #include "inicpp.h"
 
 /**
@@ -27,7 +29,8 @@ namespace LuceneUDR
     /// <param name="context">The context of the external routine.</param>
     /// 
     /// <returns>Full path to full-text index directory</returns>
-    const fs::path getFtsDirectory(ThrowStatusWrapper* const status, IExternalContext* const context) {
+    fs::path getFtsDirectory(ThrowStatusWrapper* const status, IExternalContext* const context) 
+    try {
         const auto pluginManager = context->getMaster()->getPluginManager();
         IConfigManager* configManager = context->getMaster()->getConfigManager();
 
@@ -36,32 +39,66 @@ namespace LuceneUDR
         const fs::path rootDirPath = rootDir;
 
         const fs::path confFilePath = rootDirPath / "fts.conf";
-        AutoRelease<IConfig> conf = pluginManager->getConfig(status, confFilePath.string().c_str());
-        if (conf) {
-            AutoRelease<IConfigEntry> ftsEntry(conf->findValue(status, "database", context->getDatabaseName()));
-            if (ftsEntry) {
-                AutoRelease<IConfig> subConf(ftsEntry->getSubConfig(status));
-                if (subConf) {
-                    AutoRelease<IConfigEntry> dirEntry(subConf->find(status, "ftsDirectory"));
-                    if (dirEntry) {
-                        fs::path ftsDirectoryPath(dirEntry->getValue());
-                        return ftsDirectoryPath;
+        if (fs::exists(confFilePath)) {
+            AutoRelease<IConfig> conf = pluginManager->getConfig(status, confFilePath.string().c_str());
+            if (conf) {
+                AutoRelease<IConfigEntry> ftsEntry(conf->findValue(status, "database", context->getDatabaseName()));
+                if (ftsEntry) {
+                    AutoRelease<IConfig> subConf(ftsEntry->getSubConfig(status));
+                    if (subConf) {
+                        AutoRelease<IConfigEntry> dirEntry(subConf->find(status, "ftsDirectory"));
+                        if (dirEntry) {
+                            fs::path ftsDirectoryPath(dirEntry->getValue());
+                            return ftsDirectoryPath;
+                        }
+                        else {
+                            IscRandomStatus statusVector = IscRandomStatus::createFmtStatus(R"(Key ftsDirectory not found in entry "database = %s" file fts.conf)", databaseName.c_str());
+                            throw Firebird::FbException(status, statusVector);
+                        }
                     }
+                    else {
+                        IscRandomStatus statusVector = IscRandomStatus::createFmtStatus(R"(Key ftsDirectory not found in entry "database = %s" file fts.conf)", databaseName.c_str());
+                        throw Firebird::FbException(status, statusVector);
+                    }
+                }
+                else {
+                    IscRandomStatus statusVector = IscRandomStatus::createFmtStatus(R"(Entry "database = %s" not found in file fts.conf)", databaseName.c_str());
+                    throw Firebird::FbException(status, statusVector);
                 }
             }
         }
 
         const fs::path iniFilePath = rootDirPath / "fts.ini";
+        if (fs::exists(iniFilePath)) {
 #ifdef WIN32_LEAN_AND_MEAN
-        ini::IniFileCaseInsensitive iniFile;
+            ini::IniFileCaseInsensitive iniFile;
 #else
-        ini::IniFile iniFile;
+            ini::IniFile iniFile;
 #endif
-        iniFile.load(iniFilePath.u8string());
-        auto section = iniFile[databaseName];
-        const auto ftsDirectory = section["ftsDirectory"].as<std::string>();
-        fs::path ftsDirectoryPath = ftsDirectory;
-        return ftsDirectoryPath;
+            iniFile.load(iniFilePath.u8string());
+            auto secIt = iniFile.find(databaseName);
+            if (secIt == iniFile.end()) {
+                IscRandomStatus statusVector = IscRandomStatus::createFmtStatus(R"(Section "%s" not found in file fts.ini)", databaseName.c_str());
+                throw Firebird::FbException(status, statusVector);
+            }
+            auto&& section = secIt->second;
+            auto keyIt = section.find("ftsDirectory");
+            if (keyIt == section.end()) {
+                IscRandomStatus statusVector = IscRandomStatus::createFmtStatus(R"(Key ftsDirectory not found in section "%s" file fts.ini)", databaseName.c_str());
+                throw Firebird::FbException(status, statusVector);
+            }
+            auto&& key = keyIt->second;
+            const auto ftsDirectory = key.as<std::string>();
+            fs::path ftsDirectoryPath = ftsDirectory;
+            return ftsDirectoryPath;
+        }
+        else {
+            IscRandomStatus statusVector("Settings file fts.ini or fts.conf not found");
+            throw Firebird::FbException(status, statusVector);
+        }
     }
-
+    catch (const std::exception& e) {
+        IscRandomStatus statusVector(e);
+        throw Firebird::FbException(status, statusVector);
+    }
 }
