@@ -62,18 +62,21 @@ namespace FTSMetadata
             if (!scale) {
                 return std::to_string(getShortValue(buffer));
             }
+            return "";
         }
         case SQL_LONG:
         {
             if (!scale) {
                 return std::to_string(getLongValue(buffer));
             }
+            return "";
         }
         case SQL_INT64:
         {
             if (!scale) {
                 return std::to_string(getInt64Value(buffer));
             }
+            return "";
         }
         default:
             // Other types are not considered yet.
