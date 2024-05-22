@@ -29,7 +29,7 @@ namespace LuceneUDR
     /// <param name="context">The context of the external routine.</param>
     /// 
     /// <returns>Full path to full-text index directory</returns>
-    fs::path getFtsDirectory(ThrowStatusWrapper* const status, IExternalContext* const context) 
+    fs::path getFtsDirectory(ThrowStatusWrapper* status, IExternalContext* context) 
     try {
         const auto pluginManager = context->getMaster()->getPluginManager();
         IConfigManager* configManager = context->getMaster()->getConfigManager();
@@ -89,8 +89,7 @@ namespace LuceneUDR
             }
             auto&& key = keyIt->second;
             const auto ftsDirectory = key.as<std::string>();
-            fs::path ftsDirectoryPath = ftsDirectory;
-            return ftsDirectoryPath;
+            return { ftsDirectory };
         }
         else {
             IscRandomStatus statusVector("Settings file fts.ini or fts.conf not found");

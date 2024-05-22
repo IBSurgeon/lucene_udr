@@ -115,7 +115,7 @@ WHERE FTS$ANALYZER_NAME = ? AND FTS$WORD = ?
         if (m_analyzerFactory->hasAnalyzer(analyzerName)) {
             return m_analyzerFactory->createAnalyzer(status, analyzerName);
         }
-        const auto& info = getAnalyzerInfo(status, att, tra, sqlDialect, analyzerName);
+        const auto info = getAnalyzerInfo(status, att, tra, sqlDialect, analyzerName);
         if (!m_analyzerFactory->hasAnalyzer(info.baseAnalyzer)) {
             throwException(status, R"(Base analyzer "%s" not exists)", info.baseAnalyzer.c_str());
         }
@@ -123,7 +123,7 @@ WHERE FTS$ANALYZER_NAME = ? AND FTS$WORD = ?
         return m_analyzerFactory->createAnalyzer(status, info.baseAnalyzer, stopWords);
     }
 
-    const AnalyzerInfo AnalyzerRepository::getAnalyzerInfo(
+    AnalyzerInfo AnalyzerRepository::getAnalyzerInfo(
         ThrowStatusWrapper* const status,
         IAttachment* const att,
         ITransaction* const tra,

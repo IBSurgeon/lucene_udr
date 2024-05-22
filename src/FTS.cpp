@@ -173,24 +173,24 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
             explainFlag = in->explain;
         }
 
-        const auto& ftsDirectoryPath = getFtsDirectory(status, context);
+        const auto ftsDirectoryPath = getFtsDirectory(status, context);
 
         att.reset(context->getAttachment(status));
         tra.reset(context->getTransaction(status));
 
         const unsigned int sqlDialect = getSqlDialect(status, att);
 
-        const auto& ftsIndex = std::make_unique<FTSIndex>();
+        const auto ftsIndex = std::make_unique<FTSIndex>();
         procedure->indexRepository->getIndex(status, att, tra, sqlDialect, ftsIndex, indexName, true);
 
         // check if directory exists for index
-        const auto& indexDirectoryPath = ftsDirectoryPath / indexName;
+        const auto indexDirectoryPath = ftsDirectoryPath / indexName;
         if (ftsIndex->status == "N" || !fs::is_directory(indexDirectoryPath)) {
             throwException(status, R"(Index "%s" exists, but is not build. Please rebuild index.)", indexName.c_str());
         }
 
         try {
-            const auto& ftsIndexDir = FSDirectory::open(indexDirectoryPath.wstring());
+            auto ftsIndexDir = FSDirectory::open(indexDirectoryPath.wstring());
             if (!IndexReader::indexExists(ftsIndexDir)) {
                 throwException(status, R"(Index "%s" exists, but is not build. Please rebuild index.)", indexName.c_str());
             }
@@ -218,9 +218,15 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
                 keyFieldInfo.initDB_KEYField(ftsIndex->relationName);
             }
             
-            MultiFieldQueryParserPtr  parser = newLucene<MultiFieldQueryParser>(LuceneVersion::LUCENE_CURRENT, fields, analyzer);
-            parser->setDefaultOperator(QueryParser::OR_OPERATOR);
-            query = parser->parse(StringUtils::toUnicode(queryStr));
+            if (fields.size() == 1) {
+                QueryParserPtr parser = newLucene<QueryParser>(LuceneVersion::LUCENE_CURRENT, fields[0], analyzer);
+                query = parser->parse(StringUtils::toUnicode(queryStr));
+            }
+            else {
+                MultiFieldQueryParserPtr  parser = newLucene<MultiFieldQueryParser>(LuceneVersion::LUCENE_CURRENT, fields, analyzer);
+                parser->setDefaultOperator(QueryParser::OR_OPERATOR);
+                query = parser->parse(StringUtils::toUnicode(queryStr));
+            }
             docs = searcher->search(query, limit);
 
             it = docs->scoreDocs.begin();
@@ -299,7 +305,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
                 };
 
                 out->explanationNull = false;
-                const auto explanation = searcher->explain(query, scoreDoc->doc);
+                auto explanation = searcher->explain(query, scoreDoc->doc);
                 const std::string explanationStr = StringUtils::toUTF8(explanation->toString());
                 AutoRelease<IBlob> blob(att->createBlob(status, tra, &out->explanation, sizeof(bpb), bpb));
                 BlobUtils::setString(status, blob, explanationStr);
@@ -377,8 +383,8 @@ FB_UDR_BEGIN_PROCEDURE(ftsAnalyze)
         }
 
         try {
-            const auto& analyzer = procedure->analyzers->createAnalyzer(status, att, tra, sqlDialect, analyzerName);
-            const auto& stringReader = newLucene<StringReader>(StringUtils::toUnicode(text));
+            auto analyzer = procedure->analyzers->createAnalyzer(status, att, tra, sqlDialect, analyzerName);
+            auto stringReader = newLucene<StringReader>(StringUtils::toUnicode(text));
 
             tokenStream = analyzer->tokenStream(L"", stringReader);
             termAttribute = tokenStream->addAttribute<TermAttribute>();
@@ -845,18 +851,18 @@ FROM FTS$LOG
 ORDER BY FTS$LOG_ID
 )SQL";
 
-        const auto& ftsDirectoryPath = getFtsDirectory(status, context);
+        const auto ftsDirectoryPath = getFtsDirectory(status, context);
         
         // get all indexes with segments
         FTSIndexMap indexes;
         procedure->indexRepository->fillAllIndexesWithFields(status, att, tra, sqlDialect, indexes);
         // fill map indexes of relationName
         std::unordered_map<std::string, std::list<std::string>> indexesByRelation;
-        for (const auto& [indexName, ftsIndex] : indexes) {	
+        for (auto&& [indexName, ftsIndex] : indexes) {	
             if (!ftsIndex->isActive()) {
                 continue;
             }
-            const auto& indexDirectoryPath = ftsDirectoryPath / indexName;
+            const auto indexDirectoryPath = ftsDirectoryPath / indexName;
             if (!ftsIndex->checkAllFieldsExists() || !fs::is_directory(indexDirectoryPath)) {
                 // index need to rebuild
                 setIndexToRebuild(status, att, sqlDialect, ftsIndex);
@@ -868,7 +874,7 @@ ORDER BY FTS$LOG_ID
             // collect and save the SQL query to extract the record by key
             ftsIndex->prepareExtractRecordStmt(status, att, tra, sqlDialect);
 
-            const auto& inMetadata = ftsIndex->getInExtractRecordMetadata();
+            const auto inMetadata = ftsIndex->getInExtractRecordMetadata();
             if (inMetadata->getCount(status) != 1) {
                 // The number of input parameters must be equal to 1.
                 // index need to rebuild
@@ -904,7 +910,7 @@ ORDER BY FTS$LOG_ID
             }
 
 
-            const auto& outMetadata =  ftsIndex->getOutExtractRecordMetadata();
+            const auto outMetadata =  ftsIndex->getOutExtractRecordMetadata();
             // add fields info for index
             if (auto&& [it, inserted] = fieldsInfoMap.try_emplace(indexName, status, outMetadata); inserted) {
                 auto&& fields = it->second;
@@ -994,7 +1000,7 @@ ORDER BY FTS$LOG_ID
                 // for all indexes for relationName
                 for (const auto& indexName : indexNames) {
                     const auto& ftsIndex = indexes[indexName];
-                    const auto& indexWriter = getIndexWriter(status, att, tra, sqlDialect, ftsIndex);
+                    auto indexWriter = getIndexWriter(status, att, tra, sqlDialect, ftsIndex);
 
                     Lucene::String unicodeKeyValue;
                     switch (ftsIndex->keyFieldType) {
@@ -1030,8 +1036,8 @@ ORDER BY FTS$LOG_ID
                         continue;
                     }
 
-                    const auto& stmt = ftsIndex->getPreparedExtractRecordStmt();
-                    const auto& outMetadata = ftsIndex->getOutExtractRecordMetadata();
+                    auto stmt = ftsIndex->getPreparedExtractRecordStmt();
+                    const auto outMetadata = ftsIndex->getOutExtractRecordMetadata();
 
                     const auto& fields = fieldsInfoMap[indexName];
 
@@ -1161,8 +1167,8 @@ ORDER BY FTS$LOG_ID
             logRs->close(status);
             logRs.release();
             // commit changes for all indexes
-            for (const auto& pIndexWriter : indexWriters) {
-                const auto& indexWriter = pIndexWriter.second;
+            for (auto&& pIndexWriter : indexWriters) {
+                auto indexWriter = pIndexWriter.second;
                 indexWriter->commit();
                 indexWriter->close();
             }
@@ -1212,7 +1218,7 @@ ORDER BY FTS$LOG_ID
     }
 
 
-    void setIndexToRebuild(ThrowStatusWrapper* const status, IAttachment* const att, const unsigned int sqlDialect, const FTSIndexPtr& ftsIndex)
+    void setIndexToRebuild(ThrowStatusWrapper* status, IAttachment* att, unsigned int sqlDialect, const FTSIndexPtr& ftsIndex)
     {
         ftsIndex->status = "U";
         // this is done in an autonomous transaction				
@@ -1228,14 +1234,14 @@ ORDER BY FTS$LOG_ID
         }
     }
 
-    IndexWriterPtr const getIndexWriter(ThrowStatusWrapper* const status, IAttachment* const att, ITransaction* const tra, const unsigned int sqlDialect, const FTSIndexPtr& ftsIndex)
+    IndexWriterPtr getIndexWriter(ThrowStatusWrapper* status, IAttachment* att, ITransaction* tra, unsigned int sqlDialect, const FTSIndexPtr& ftsIndex)
     {
         const auto it = indexWriters.find(ftsIndex->indexName);
         if (it == indexWriters.end()) {
-            const auto& fsIndexDir = FSDirectory::open(ftsIndex->unicodeIndexDir);
-            const auto& analyzers = procedure->indexRepository->getAnalyzerRepository();
-            const auto& analyzer = analyzers->createAnalyzer(status, att, tra, sqlDialect, ftsIndex->analyzer);
-            const auto& indexWriter = newLucene<IndexWriter>(fsIndexDir, analyzer, IndexWriter::MaxFieldLengthLIMITED);
+            auto fsIndexDir = FSDirectory::open(ftsIndex->unicodeIndexDir);
+            const auto analyzers = procedure->indexRepository->getAnalyzerRepository();
+            auto analyzer = analyzers->createAnalyzer(status, att, tra, sqlDialect, ftsIndex->analyzer);
+            auto indexWriter = newLucene<IndexWriter>(fsIndexDir, analyzer, IndexWriter::MaxFieldLengthUNLIMITED);
             indexWriters[ftsIndex->indexName] = indexWriter;
             return indexWriter;
         }

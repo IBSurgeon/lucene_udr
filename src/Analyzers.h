@@ -58,7 +58,7 @@ namespace FTSMetadata
             const std::string& analyzerName
         );
 
-        const LuceneUDR::AnalyzerInfo getAnalyzerInfo (
+        LuceneUDR::AnalyzerInfo getAnalyzerInfo (
             Firebird::ThrowStatusWrapper* const status,
             Firebird::IAttachment* const att,
             Firebird::ITransaction* const tra,

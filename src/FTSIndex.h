@@ -96,17 +96,17 @@ namespace FTSMetadata
             unsigned int sqlDialect
         );
 
-        Firebird::IStatement* const getPreparedExtractRecordStmt()
+        Firebird::IStatement* getPreparedExtractRecordStmt()
         {
             return m_stmtExtractRecord;
         }
 
-        Firebird::IMessageMetadata* const getOutExtractRecordMetadata()
+        Firebird::IMessageMetadata* getOutExtractRecordMetadata()
         {
             return m_outMetaExtractRecord;
         }
 
-        Firebird::IMessageMetadata* const getInExtractRecordMetadata()
+        Firebird::IMessageMetadata* getInExtractRecordMetadata()
         {
             return m_inMetaExtractRecord;
         }
@@ -152,8 +152,8 @@ namespace FTSMetadata
 
     private:
         Firebird::IMaster* m_master = nullptr;
-        AnalyzerRepository* const m_analyzerRepository{ nullptr };
-        RelationHelper* const m_relationHelper{nullptr};
+        AnalyzerRepository* m_analyzerRepository{ nullptr };
+        RelationHelper* m_relationHelper{nullptr};
         // prepared statements
         Firebird::AutoRelease<Firebird::IStatement> m_stmt_exists_index{ nullptr };
         Firebird::AutoRelease<Firebird::IStatement> m_stmt_get_index{ nullptr };
@@ -170,12 +170,12 @@ namespace FTSMetadata
 
         ~FTSIndexRepository();
 
-        RelationHelper* const getRelationHelper()
+        RelationHelper* getRelationHelper()
         {
             return m_relationHelper;
         }
 
-        AnalyzerRepository* const getAnalyzerRepository()
+        AnalyzerRepository* getAnalyzerRepository()
         {
             return m_analyzerRepository;
         }

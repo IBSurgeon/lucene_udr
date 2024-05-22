@@ -11,9 +11,9 @@
 # Contributor(s): ______________________________________.
 # ----------------------------------------------------------------------------
 
-cmake_minimum_required (VERSION 3.5)
+cmake_minimum_required (VERSION 3.6)
 
-project (luceneudr VERSION 1.2.4)
+project (luceneudr VERSION 1.3.1)
 
 set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/build)
 

@@ -124,13 +124,13 @@ FB_UDR_BEGIN_FUNCTION(bestFragementHighligh)
         try {
             const unsigned int sqlDialect = getSqlDialect(status, att);
 
-            const auto& analyzer = analyzers->createAnalyzer(status, att, tra, sqlDialect, analyzerName);
-            const auto& parser = newLucene<QueryParser>(LuceneVersion::LUCENE_CURRENT, StringUtils::toUnicode(fieldName), analyzer);
-            const auto& query = parser->parse(StringUtils::toUnicode(queryStr));
-            const auto& formatter = newLucene<SimpleHTMLFormatter>(StringUtils::toUnicode(leftTag), StringUtils::toUnicode(rightTag));
-            const auto& scorer = newLucene<QueryScorer>(query);
-            const auto& highlighter = newLucene<Highlighter>(formatter, scorer);
-            const auto& fragmenter = newLucene<SimpleSpanFragmenter>(scorer, fragmentSize);
+            auto analyzer = analyzers->createAnalyzer(status, att, tra, sqlDialect, analyzerName);
+            auto parser = newLucene<QueryParser>(LuceneVersion::LUCENE_CURRENT, StringUtils::toUnicode(fieldName), analyzer);
+            auto query = parser->parse(StringUtils::toUnicode(queryStr));
+            auto formatter = newLucene<SimpleHTMLFormatter>(StringUtils::toUnicode(leftTag), StringUtils::toUnicode(rightTag));
+            auto scorer = newLucene<QueryScorer>(query);
+            auto highlighter = newLucene<Highlighter>(formatter, scorer);
+            auto fragmenter = newLucene<SimpleSpanFragmenter>(scorer, fragmentSize);
             highlighter->setTextFragmenter(fragmenter);
             const auto content = highlighter->getBestFragment(analyzer, StringUtils::toUnicode(fieldName), StringUtils::toUnicode(text));
 
@@ -254,13 +254,13 @@ FB_UDR_BEGIN_PROCEDURE(bestFragementsHighligh)
         try {
             const unsigned int sqlDialect = getSqlDialect(status, att);
 
-            const auto& analyzer = procedure->analyzers->createAnalyzer(status, att, tra, sqlDialect, analyzerName);
-            const auto& parser = newLucene<QueryParser>(LuceneVersion::LUCENE_CURRENT, StringUtils::toUnicode(fieldName), analyzer);
-            const auto& query = parser->parse(StringUtils::toUnicode(queryStr));
-            const auto& formatter = newLucene<SimpleHTMLFormatter>(StringUtils::toUnicode(leftTag), StringUtils::toUnicode(rightTag));
-            const auto& scorer = newLucene<QueryScorer>(query);
-            const auto& highlighter = newLucene<Highlighter>(formatter, scorer);
-            const auto& fragmenter = newLucene<SimpleSpanFragmenter>(scorer, fragmentSize);
+            auto analyzer = procedure->analyzers->createAnalyzer(status, att, tra, sqlDialect, analyzerName);
+            auto parser = newLucene<QueryParser>(LuceneVersion::LUCENE_CURRENT, StringUtils::toUnicode(fieldName), analyzer);
+            auto query = parser->parse(StringUtils::toUnicode(queryStr));
+            auto formatter = newLucene<SimpleHTMLFormatter>(StringUtils::toUnicode(leftTag), StringUtils::toUnicode(rightTag));
+            auto scorer = newLucene<QueryScorer>(query);
+            auto highlighter = newLucene<Highlighter>(formatter, scorer);
+            auto fragmenter = newLucene<SimpleSpanFragmenter>(scorer, fragmentSize);
             highlighter->setTextFragmenter(fragmenter);
 
             fragments = highlighter->getBestFragments(analyzer, StringUtils::toUnicode(fieldName), StringUtils::toUnicode(text), maxNumFragments);

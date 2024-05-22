@@ -29,7 +29,7 @@ namespace LuceneUDR
     /// <param name="context">The context of the external routine.</param>
     /// 
     /// <returns>Full path to full-text index directory</returns>
-    fs::path getFtsDirectory(Firebird::ThrowStatusWrapper* const status, Firebird::IExternalContext* const context);
+    fs::path getFtsDirectory(Firebird::ThrowStatusWrapper* status, Firebird::IExternalContext* context);
 
     inline bool createIndexDirectory(const fs::path& indexDir)
     {

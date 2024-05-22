@@ -19,6 +19,7 @@
 #include <list>
 #include <unordered_set>
 #include <string>
+#include <string_view>
 #include "LuceneHeaders.h"
 
 namespace LuceneUDR 
@@ -47,6 +48,14 @@ namespace LuceneUDR
 
     struct AnalyzerInfo
     {
+        AnalyzerInfo() = default;
+        AnalyzerInfo(std::string_view analyzerName_, std::string_view baseAnalyzer_, bool stopWordsSupported_, bool systemFlag_)
+            : analyzerName(analyzerName_)
+            , baseAnalyzer(baseAnalyzer_)
+            , stopWordsSupported(stopWordsSupported_)
+            , systemFlag(systemFlag_)
+        {}
+
         std::string analyzerName;
         std::string baseAnalyzer;
         bool stopWordsSupported;
@@ -59,7 +68,7 @@ namespace LuceneUDR
         {
             std::function<Lucene::AnalyzerPtr()> simpleFactory;
             std::function<Lucene::AnalyzerPtr(const Lucene::HashSet<Lucene::String>)> extFactory;
-            std::function<const Lucene::HashSet<Lucene::String>()> getStopWords;
+            std::function<Lucene::HashSet<Lucene::String>()> getStopWords;
             bool stopWordsSupported;
         };
 
@@ -71,21 +80,21 @@ namespace LuceneUDR
 
         ~LuceneAnalyzerFactory();
 
-        bool hasAnalyzer(const std::string& analyzerName);
+        bool hasAnalyzer(const std::string& analyzerName) const;
 
-        bool isStopWordsSupported(const std::string& analyzerName);
+        bool isStopWordsSupported(const std::string& analyzerName) const;
 
-        Lucene::AnalyzerPtr createAnalyzer(Firebird::ThrowStatusWrapper* status, const std::string& analyzerName);
+        Lucene::AnalyzerPtr createAnalyzer(Firebird::ThrowStatusWrapper* status, const std::string& analyzerName) const;
 
-        Lucene::AnalyzerPtr createAnalyzer(Firebird::ThrowStatusWrapper* status, const std::string& analyzerName, const Lucene::HashSet<Lucene::String> stopWords);
+        Lucene::AnalyzerPtr createAnalyzer(Firebird::ThrowStatusWrapper* status, const std::string& analyzerName, const Lucene::HashSet<Lucene::String> stopWords) const;
 
-        std::unordered_set<std::string> getAnalyzerNames();
+        std::unordered_set<std::string> getAnalyzerNames() const;
 
-        const AnalyzerInfo getAnalyzerInfo(Firebird::ThrowStatusWrapper* status, const std::string& analyzerName);
+        AnalyzerInfo getAnalyzerInfo(Firebird::ThrowStatusWrapper* status, const std::string& analyzerName) const;
 
-        std::list<AnalyzerInfo> getAnalyzerInfos();
+        std::list<AnalyzerInfo> getAnalyzerInfos() const;
 
-        const Lucene::HashSet<Lucene::String> getAnalyzerStopWords(Firebird::ThrowStatusWrapper* status, const std::string& analyzerName);
+        Lucene::HashSet<Lucene::String> getAnalyzerStopWords(Firebird::ThrowStatusWrapper* status, const std::string& analyzerName) const;
 
     };
 

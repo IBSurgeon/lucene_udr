@@ -241,7 +241,7 @@ FB_UDR_BEGIN_PROCEDURE(dropAnalyzer)
 
         const auto indexRepository = std::make_unique<FTSIndexRepository>(context->getMaster());
 
-        const auto& analyzers = indexRepository->getAnalyzerRepository();
+        const auto analyzers = indexRepository->getAnalyzerRepository();
 
         if (!indexRepository->hasIndexByAnalyzer(status, att, tra, sqlDialect, analyzerName)) {
             analyzers->deleteAnalyzer(status, att, tra, sqlDialect, analyzerName);
@@ -374,9 +374,9 @@ FB_UDR_BEGIN_PROCEDURE(addStopWord)
 
         const unsigned int sqlDialect = getSqlDialect(status, att);
 
-        const auto indexRepository = std::make_unique<FTSIndexRepository>(context->getMaster());
+        auto indexRepository = std::make_unique<FTSIndexRepository>(context->getMaster());
 
-        const auto& analyzers = indexRepository->getAnalyzerRepository();
+        auto analyzers = indexRepository->getAnalyzerRepository();
 
         analyzers->addStopWord(status, att, tra, sqlDialect, analyzerName, trim(stopWord));
 
@@ -439,9 +439,9 @@ FB_UDR_BEGIN_PROCEDURE(dropStopWord)
 
         const unsigned int sqlDialect = getSqlDialect(status, att);
 
-        const auto indexRepository = std::make_unique<FTSIndexRepository>(context->getMaster());
+        auto indexRepository = std::make_unique<FTSIndexRepository>(context->getMaster());
 
-        const auto& analyzers = indexRepository->getAnalyzerRepository();
+        auto analyzers = indexRepository->getAnalyzerRepository();
 
         analyzers->deleteStopWord(status, att, tra, sqlDialect, analyzerName, trim(stopWord));
 
@@ -531,7 +531,7 @@ FB_UDR_BEGIN_PROCEDURE(createIndex)
             blob.release();
         }
 
-        const auto& relationHelper = procedure->indexRepository->getRelationHelper();
+        auto relationHelper = procedure->indexRepository->getRelationHelper();
         RelationInfo relationInfo {};
         relationHelper->getRelationInfo(status, att, tra, sqlDialect, relationInfo, relationName);
 
@@ -639,8 +639,8 @@ FB_UDR_BEGIN_PROCEDURE(dropIndex)
 
         procedure->indexRepository->dropIndex(status, att, tra, sqlDialect, indexName);
 
-        const auto& ftsDirectoryPath = getFtsDirectory(status, context);
-        const auto& indexDirectoryPath = ftsDirectoryPath / indexName;
+        const auto ftsDirectoryPath = getFtsDirectory(status, context);
+        const auto indexDirectoryPath = ftsDirectoryPath / indexName;
         // If the directory exists, then delete it.
         if (!removeIndexDirectory(indexDirectoryPath)) {
             throwException(status, R"(Cannot delete index directory "%s".)", indexDirectoryPath.u8string().c_str());
@@ -939,7 +939,7 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
         }
         const std::string indexName(in->index_name.str, in->index_name.length);
 
-        const auto& ftsDirectoryPath = getFtsDirectory(status, context);
+        const auto ftsDirectoryPath = getFtsDirectory(status, context);
         // check if there is a directory for full-text indexes
         if (!fs::is_directory(ftsDirectoryPath)) {
             throwException(status, R"(Fts directory "%s" not exists)", ftsDirectoryPath.u8string().c_str());
@@ -958,7 +958,7 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
             }
 
             // check relation exists
-            const auto& relationHelper = procedure->indexRepository->getRelationHelper();
+            auto relationHelper = procedure->indexRepository->getRelationHelper();
             if (!relationHelper->relationExists(status, att, tra, sqlDialect, ftsIndex->relationName)) {
                 throwException(status, R"(Cannot rebuild index "%s". Table "%s" not exists.)", indexName.c_str(), ftsIndex->relationName.c_str());
             }
@@ -968,11 +968,11 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
                 throwException(status, R"(Cannot rebuild index "%s". The index does not contain fields.)", indexName.c_str());
             }
 
-            const auto& analyzers = procedure->indexRepository->getAnalyzerRepository();
-
-            auto fsIndexDir = FSDirectory::open(indexDirectoryPath.wstring());
+            auto analyzers = procedure->indexRepository->getAnalyzerRepository();
+            auto wIndexDirectoryPath = indexDirectoryPath.wstring();
+            auto fsIndexDir = FSDirectory::open(wIndexDirectoryPath);
             auto analyzer = analyzers->createAnalyzer(status, att, tra, sqlDialect, ftsIndex->analyzer);
-            auto writer = newLucene<IndexWriter>(fsIndexDir, analyzer, true, IndexWriter::MaxFieldLengthLIMITED);
+            auto writer = newLucene<IndexWriter>(fsIndexDir, analyzer, true, IndexWriter::MaxFieldLengthUNLIMITED);
 
             // clean up index directory
             writer->deleteAll();
@@ -1130,7 +1130,7 @@ FB_UDR_BEGIN_PROCEDURE(optimizeIndex)
         }
         const std::string indexName(in->index_name.str, in->index_name.length);
 
-        const auto& ftsDirectoryPath = getFtsDirectory(status, context);	
+        const auto ftsDirectoryPath = getFtsDirectory(status, context);	
         // check if there is a directory for full-text indexes
         if (!fs::is_directory(ftsDirectoryPath)) {
             throwException(status, R"(Fts directory "%s" not exists)", ftsDirectoryPath.u8string().c_str());
@@ -1148,11 +1148,11 @@ FB_UDR_BEGIN_PROCEDURE(optimizeIndex)
                 throwException(status, R"(Index directory "%s" not exists.)", indexDirectoryPath.u8string().c_str());
             }
 
-            const auto& analyzers = procedure->indexRepository->getAnalyzerRepository();
+            const auto analyzers = procedure->indexRepository->getAnalyzerRepository();
 
-            const auto& fsIndexDir = FSDirectory::open(indexDirectoryPath.wstring());
-            const auto& analyzer = analyzers->createAnalyzer(status, att, tra, sqlDialect, ftsIndex->analyzer);
-            const auto& writer = newLucene<IndexWriter>(fsIndexDir, analyzer, false, IndexWriter::MaxFieldLengthLIMITED);
+            auto fsIndexDir = FSDirectory::open(indexDirectoryPath.wstring());
+            auto analyzer = analyzers->createAnalyzer(status, att, tra, sqlDialect, ftsIndex->analyzer);
+            auto writer = newLucene<IndexWriter>(fsIndexDir, analyzer, false, IndexWriter::MaxFieldLengthUNLIMITED);
 
             // clean up index directory
             writer->optimize();

@@ -46,7 +46,7 @@ namespace LuceneUDR
                     {
                         []() -> AnalyzerPtr { return newLucene<StandardAnalyzer>(LuceneVersion::LUCENE_CURRENT); },
                         [](const HashSet<String> stopWords) -> AnalyzerPtr { return newLucene<StandardAnalyzer>(LuceneVersion::LUCENE_CURRENT, stopWords); },
-                        []() -> const HashSet<String> { return StopAnalyzer::ENGLISH_STOP_WORDS_SET(); },
+                        []() -> HashSet<String> { return StopAnalyzer::ENGLISH_STOP_WORDS_SET(); },
                         true
                     }
                 },
@@ -55,7 +55,7 @@ namespace LuceneUDR
                     {
                         []() -> AnalyzerPtr { return newLucene<SimpleAnalyzer>(); },
                         [](const HashSet<String> stopWords) -> AnalyzerPtr { return nullptr; },
-                        []() -> const HashSet<String> { return HashSet<String>::newInstance(); },
+                        []() -> HashSet<String> { return HashSet<String>::newInstance(); },
                         false
                     }
                 },
@@ -64,7 +64,7 @@ namespace LuceneUDR
                     {
                         []() -> AnalyzerPtr { return newLucene<WhitespaceAnalyzer>(); },
                         [](const HashSet<String> stopWords) -> AnalyzerPtr { return nullptr; },
-                        []() -> const HashSet<String> { return HashSet<String>::newInstance(); },
+                        []() -> HashSet<String> { return HashSet<String>::newInstance(); },
                         false
                     }
                 },
@@ -73,7 +73,7 @@ namespace LuceneUDR
                     {
                         []() -> AnalyzerPtr { return newLucene<KeywordAnalyzer>(); },
                         [](const HashSet<String> stopWords) -> AnalyzerPtr { return nullptr; },
-                        []() -> const HashSet<String> { return HashSet<String>::newInstance(); },
+                        []() -> HashSet<String> { return HashSet<String>::newInstance(); },
                         false
                     }
                 },
@@ -82,7 +82,7 @@ namespace LuceneUDR
                     {
                         []() -> AnalyzerPtr { return newLucene<StopAnalyzer>(LuceneVersion::LUCENE_CURRENT); },
                         [](const HashSet<String> stopWords) -> AnalyzerPtr { return newLucene<StopAnalyzer>(LuceneVersion::LUCENE_CURRENT, stopWords); },
-                        []() -> const HashSet<String> { return StopAnalyzer::ENGLISH_STOP_WORDS_SET(); },
+                        []() -> HashSet<String> { return StopAnalyzer::ENGLISH_STOP_WORDS_SET(); },
                         true
                     }
                 },
@@ -91,7 +91,7 @@ namespace LuceneUDR
                     {
                         []() -> AnalyzerPtr { return newLucene<ArabicAnalyzer>(LuceneVersion::LUCENE_CURRENT); },
                         [](const HashSet<String> stopWords) -> AnalyzerPtr { return newLucene<ArabicAnalyzer>(LuceneVersion::LUCENE_CURRENT, stopWords); },
-                        []() -> const HashSet<String> { return ArabicAnalyzer::getDefaultStopSet(); },
+                        []() -> HashSet<String> { return ArabicAnalyzer::getDefaultStopSet(); },
                         true
                     }
                 },
@@ -100,7 +100,7 @@ namespace LuceneUDR
                     {
                         []() -> AnalyzerPtr { return newLucene<BrazilianAnalyzer>(LuceneVersion::LUCENE_CURRENT); },
                         [](const HashSet<String> stopWords) -> AnalyzerPtr { return newLucene<BrazilianAnalyzer>(LuceneVersion::LUCENE_CURRENT, stopWords); },
-                        []() -> const HashSet<String> { return BrazilianAnalyzer::getDefaultStopSet(); },
+                        []() -> HashSet<String> { return BrazilianAnalyzer::getDefaultStopSet(); },
                         true
                     }
                 },
@@ -109,7 +109,7 @@ namespace LuceneUDR
                     {
                         []() -> AnalyzerPtr { return newLucene<ChineseAnalyzer>(); },
                         [](const HashSet<String> stopWords) -> AnalyzerPtr { return nullptr; },
-                        []() -> const HashSet<String> { return HashSet<String>::newInstance(); },
+                        []() -> HashSet<String> { return HashSet<String>::newInstance(); },
                         false
                     }
                 },
@@ -118,7 +118,7 @@ namespace LuceneUDR
                     {
                         []() -> AnalyzerPtr { return newLucene<CJKAnalyzer>(LuceneVersion::LUCENE_CURRENT); },
                         [](const HashSet<String> stopWords) -> AnalyzerPtr { return newLucene<CJKAnalyzer>(LuceneVersion::LUCENE_CURRENT, stopWords); },
-                        []() -> const HashSet<String> { return CJKAnalyzer::getDefaultStopSet(); },
+                        []() -> HashSet<String> { return CJKAnalyzer::getDefaultStopSet(); },
                         true
                     }
                 },
@@ -127,7 +127,7 @@ namespace LuceneUDR
                     {
                         []() -> AnalyzerPtr { return newLucene<CzechAnalyzer>(LuceneVersion::LUCENE_CURRENT); },
                         [](const HashSet<String> stopWords) -> AnalyzerPtr { return newLucene<CzechAnalyzer>(LuceneVersion::LUCENE_CURRENT, stopWords); },
-                        []() -> const HashSet<String> { return CzechAnalyzer::getDefaultStopSet(); },
+                        []() -> HashSet<String> { return CzechAnalyzer::getDefaultStopSet(); },
                         true
                     }
                 },
@@ -136,7 +136,7 @@ namespace LuceneUDR
                     {
                         []() -> AnalyzerPtr { return newLucene<DutchAnalyzer>(LuceneVersion::LUCENE_CURRENT); },
                         [](const HashSet<String> stopWords) -> AnalyzerPtr { return newLucene<DutchAnalyzer>(LuceneVersion::LUCENE_CURRENT, stopWords); },
-                        []() -> const HashSet<String> { return DutchAnalyzer::getDefaultStopSet(); },
+                        []() -> HashSet<String> { return DutchAnalyzer::getDefaultStopSet(); },
                         true
                     }
                 },
@@ -145,7 +145,7 @@ namespace LuceneUDR
                     {
                         []() -> AnalyzerPtr { return newLucene<EnglishAnalyzer>(LuceneVersion::LUCENE_CURRENT); },
                         [](const HashSet<String> stopWords) -> AnalyzerPtr { return newLucene<EnglishAnalyzer>(LuceneVersion::LUCENE_CURRENT, stopWords); },
-                        []() -> const HashSet<String> { return EnglishAnalyzer::getDefaultStopSet(); },
+                        []() -> HashSet<String> { return EnglishAnalyzer::getDefaultStopSet(); },
                         true
                     }
                 },
@@ -154,7 +154,7 @@ namespace LuceneUDR
                     {
                         []() -> AnalyzerPtr { return newLucene<FrenchAnalyzer>(LuceneVersion::LUCENE_CURRENT); },
                         [](const HashSet<String> stopWords) -> AnalyzerPtr { return newLucene<FrenchAnalyzer>(LuceneVersion::LUCENE_CURRENT, stopWords); },
-                        []() -> const HashSet<String> { return FrenchAnalyzer::getDefaultStopSet(); },
+                        []() -> HashSet<String> { return FrenchAnalyzer::getDefaultStopSet(); },
                         true
                     }
                 },
@@ -163,7 +163,7 @@ namespace LuceneUDR
                     {
                         []() -> AnalyzerPtr { return newLucene<GermanAnalyzer>(LuceneVersion::LUCENE_CURRENT); },
                         [](const HashSet<String> stopWords) -> AnalyzerPtr { return newLucene<GermanAnalyzer>(LuceneVersion::LUCENE_CURRENT, stopWords); },
-                        []() -> const HashSet<String> { return GermanAnalyzer::getDefaultStopSet(); },
+                        []() -> HashSet<String> { return GermanAnalyzer::getDefaultStopSet(); },
                         true
                     }
                 },
@@ -172,7 +172,7 @@ namespace LuceneUDR
                     {
                         []() -> AnalyzerPtr { return newLucene<GreekAnalyzer>(LuceneVersion::LUCENE_CURRENT); },
                         [](const HashSet<String> stopWords) -> AnalyzerPtr { return newLucene<GreekAnalyzer>(LuceneVersion::LUCENE_CURRENT, stopWords); },
-                        []() -> const HashSet<String> { return GreekAnalyzer::getDefaultStopSet(); },
+                        []() -> HashSet<String> { return GreekAnalyzer::getDefaultStopSet(); },
                         true
                     }
                 },
@@ -181,7 +181,7 @@ namespace LuceneUDR
                     {
                         []() -> AnalyzerPtr { return newLucene<PersianAnalyzer>(LuceneVersion::LUCENE_CURRENT); },
                         [](const HashSet<String> stopWords) -> AnalyzerPtr { return newLucene<PersianAnalyzer>(LuceneVersion::LUCENE_CURRENT, stopWords); },
-                        []() -> const HashSet<String> { return PersianAnalyzer::getDefaultStopSet(); },
+                        []() -> HashSet<String> { return PersianAnalyzer::getDefaultStopSet(); },
                         true
                     }
                 },
@@ -190,7 +190,7 @@ namespace LuceneUDR
                     {
                         []() -> AnalyzerPtr { return newLucene<RussianAnalyzer>(LuceneVersion::LUCENE_CURRENT); },
                         [](const HashSet<String> stopWords) -> AnalyzerPtr { return newLucene<RussianAnalyzer>(LuceneVersion::LUCENE_CURRENT, stopWords); },
-                        []() -> const HashSet<String> { return RussianAnalyzer::getDefaultStopSet(); },
+                        []() -> HashSet<String> { return RussianAnalyzer::getDefaultStopSet(); },
                         true
                     }
                 },
@@ -199,7 +199,7 @@ namespace LuceneUDR
                     {
                         []() -> AnalyzerPtr { return newLucene<SnowballAnalyzer>(LuceneVersion::LUCENE_CURRENT, L"danish"); },
                         [](const HashSet<String> stopWords) -> AnalyzerPtr { return newLucene<SnowballAnalyzer>(LuceneVersion::LUCENE_CURRENT, L"danish", stopWords); },
-                        []() -> const HashSet<String> { return HashSet<String>::newInstance(); },
+                        []() -> HashSet<String> { return HashSet<String>::newInstance(); },
                         true
                     }
                 },
@@ -208,7 +208,7 @@ namespace LuceneUDR
                     {
                         []() -> AnalyzerPtr { return newLucene<SnowballAnalyzer>(LuceneVersion::LUCENE_CURRENT, L"dutch", DutchAnalyzer::getDefaultStopSet()); },
                         [](const HashSet<String> stopWords) -> AnalyzerPtr { return newLucene<SnowballAnalyzer>(LuceneVersion::LUCENE_CURRENT, L"dutch", stopWords); },
-                        []() -> const HashSet<String> { return DutchAnalyzer::getDefaultStopSet(); },
+                        []() -> HashSet<String> { return DutchAnalyzer::getDefaultStopSet(); },
                         true
                     }
                 },
@@ -217,7 +217,7 @@ namespace LuceneUDR
                     {
                         []() -> AnalyzerPtr { return newLucene<SnowballAnalyzer>(LuceneVersion::LUCENE_CURRENT, L"english", StopAnalyzer::ENGLISH_STOP_WORDS_SET()); },
                         [](const HashSet<String> stopWords) -> AnalyzerPtr { return newLucene<SnowballAnalyzer>(LuceneVersion::LUCENE_CURRENT, L"english", stopWords); },
-                        []() -> const HashSet<String> { return StopAnalyzer::ENGLISH_STOP_WORDS_SET(); },
+                        []() -> HashSet<String> { return StopAnalyzer::ENGLISH_STOP_WORDS_SET(); },
                         true
                     }
                 },
@@ -226,7 +226,7 @@ namespace LuceneUDR
                     {
                         []() -> AnalyzerPtr { return newLucene<SnowballAnalyzer>(LuceneVersion::LUCENE_CURRENT, L"finnish"); },
                         [](const HashSet<String> stopWords) -> AnalyzerPtr { return newLucene<SnowballAnalyzer>(LuceneVersion::LUCENE_CURRENT, L"finnish", stopWords); },
-                        []() -> const HashSet<String> { return HashSet<String>::newInstance(); },
+                        []() -> HashSet<String> { return HashSet<String>::newInstance(); },
                         true
                     }
                 },
@@ -235,7 +235,7 @@ namespace LuceneUDR
                     {
                         []() -> AnalyzerPtr { return newLucene<SnowballAnalyzer>(LuceneVersion::LUCENE_CURRENT, L"french", FrenchAnalyzer::getDefaultStopSet()); },
                         [](const HashSet<String> stopWords) -> AnalyzerPtr { return newLucene<SnowballAnalyzer>(LuceneVersion::LUCENE_CURRENT, L"french", stopWords); },
-                        []() -> const HashSet<String> { return FrenchAnalyzer::getDefaultStopSet(); },
+                        []() -> HashSet<String> { return FrenchAnalyzer::getDefaultStopSet(); },
                         true
                     }
                 },
@@ -244,7 +244,7 @@ namespace LuceneUDR
                     {
                         []() -> AnalyzerPtr { return newLucene<SnowballAnalyzer>(LuceneVersion::LUCENE_CURRENT, L"german", GermanAnalyzer::getDefaultStopSet()); },
                         [](const HashSet<String> stopWords) -> AnalyzerPtr { return newLucene<SnowballAnalyzer>(LuceneVersion::LUCENE_CURRENT, L"german", stopWords); },
-                        []() -> const HashSet<String> { return GermanAnalyzer::getDefaultStopSet(); },
+                        []() -> HashSet<String> { return GermanAnalyzer::getDefaultStopSet(); },
                         true
                     }
                 },
@@ -253,7 +253,7 @@ namespace LuceneUDR
                     {
                         []() -> AnalyzerPtr { return newLucene<SnowballAnalyzer>(LuceneVersion::LUCENE_CURRENT, L"hungarian"); },
                         [](const HashSet<String> stopWords) -> AnalyzerPtr { return newLucene<SnowballAnalyzer>(LuceneVersion::LUCENE_CURRENT, L"hungarian", stopWords); },
-                        []() -> const HashSet<String> { return HashSet<String>::newInstance(); },
+                        []() -> HashSet<String> { return HashSet<String>::newInstance(); },
                         true
                     }
                 },
@@ -262,7 +262,7 @@ namespace LuceneUDR
                     {
                         []() -> AnalyzerPtr { return newLucene<SnowballAnalyzer>(LuceneVersion::LUCENE_CURRENT, L"italian"); },
                         [](const HashSet<String> stopWords) -> AnalyzerPtr { return newLucene<SnowballAnalyzer>(LuceneVersion::LUCENE_CURRENT, L"italian", stopWords); },
-                        []() -> const HashSet<String> { return HashSet<String>::newInstance(); },
+                        []() -> HashSet<String> { return HashSet<String>::newInstance(); },
                         true
                     }
                 },
@@ -271,7 +271,7 @@ namespace LuceneUDR
                     {
                         []() -> AnalyzerPtr { return newLucene<SnowballAnalyzer>(LuceneVersion::LUCENE_CURRENT, L"norwegian"); },
                         [](const HashSet<String> stopWords) -> AnalyzerPtr { return newLucene<SnowballAnalyzer>(LuceneVersion::LUCENE_CURRENT, L"norwegian", stopWords); },
-                        []() -> const HashSet<String> { return HashSet<String>::newInstance(); },
+                        []() -> HashSet<String> { return HashSet<String>::newInstance(); },
                         true
                     }
                 },
@@ -280,7 +280,7 @@ namespace LuceneUDR
                     {
                         []() -> AnalyzerPtr { return newLucene<SnowballAnalyzer>(LuceneVersion::LUCENE_CURRENT, L"porter", StopAnalyzer::ENGLISH_STOP_WORDS_SET()); },
                         [](const HashSet<String> stopWords) -> AnalyzerPtr { return newLucene<SnowballAnalyzer>(LuceneVersion::LUCENE_CURRENT, L"porter", stopWords); },
-                        []() -> const HashSet<String> { return StopAnalyzer::ENGLISH_STOP_WORDS_SET(); },
+                        []() -> HashSet<String> { return StopAnalyzer::ENGLISH_STOP_WORDS_SET(); },
                         true
                     }
                 },
@@ -289,7 +289,7 @@ namespace LuceneUDR
                     {
                         []() -> AnalyzerPtr { return newLucene<SnowballAnalyzer>(LuceneVersion::LUCENE_CURRENT, L"portuguese"); },
                         [](const HashSet<String> stopWords) -> AnalyzerPtr { return newLucene<SnowballAnalyzer>(LuceneVersion::LUCENE_CURRENT, L"portuguese", stopWords); },
-                        []() -> const HashSet<String> { return HashSet<String>::newInstance(); },
+                        []() -> HashSet<String> { return HashSet<String>::newInstance(); },
                         true
                     }
                 },
@@ -298,7 +298,7 @@ namespace LuceneUDR
                     {
                         []() -> AnalyzerPtr { return newLucene<SnowballAnalyzer>(LuceneVersion::LUCENE_CURRENT, L"romanian"); },
                         [](const HashSet<String> stopWords) -> AnalyzerPtr { return newLucene<SnowballAnalyzer>(LuceneVersion::LUCENE_CURRENT, L"romanian", stopWords); },
-                        []() -> const HashSet<String> { return HashSet<String>::newInstance(); },
+                        []() -> HashSet<String> { return HashSet<String>::newInstance(); },
                         true
                     }
                 },
@@ -307,7 +307,7 @@ namespace LuceneUDR
                     {
                         []() -> AnalyzerPtr { return newLucene<SnowballAnalyzer>(LuceneVersion::LUCENE_CURRENT, L"russian", RussianAnalyzer::getDefaultStopSet()); },
                         [](const HashSet<String> stopWords) -> AnalyzerPtr { return newLucene<SnowballAnalyzer>(LuceneVersion::LUCENE_CURRENT, L"russian", stopWords); },
-                        []() -> const HashSet<String> { return RussianAnalyzer::getDefaultStopSet(); },
+                        []() -> HashSet<String> { return RussianAnalyzer::getDefaultStopSet(); },
                         true
                     }
                 },
@@ -316,7 +316,7 @@ namespace LuceneUDR
                     {
                         []() -> AnalyzerPtr { return newLucene<SnowballAnalyzer>(LuceneVersion::LUCENE_CURRENT, L"spanish"); },
                         [](const HashSet<String> stopWords) -> AnalyzerPtr { return newLucene<SnowballAnalyzer>(LuceneVersion::LUCENE_CURRENT, L"spanish", stopWords); },
-                        []() -> const HashSet<String> { return HashSet<String>::newInstance(); },
+                        []() -> HashSet<String> { return HashSet<String>::newInstance(); },
                         true
                     }
                 },
@@ -325,7 +325,7 @@ namespace LuceneUDR
                     {
                         []() -> AnalyzerPtr { return newLucene<SnowballAnalyzer>(LuceneVersion::LUCENE_CURRENT, L"swedish"); },
                         [](const HashSet<String> stopWords) -> AnalyzerPtr { return newLucene<SnowballAnalyzer>(LuceneVersion::LUCENE_CURRENT, L"swedish", stopWords); },
-                        []() -> const HashSet<String> { return HashSet<String>::newInstance(); },
+                        []() -> HashSet<String> { return HashSet<String>::newInstance(); },
                         true
                     }
                 },
@@ -334,7 +334,7 @@ namespace LuceneUDR
                     {
                         []() -> AnalyzerPtr { return newLucene<SnowballAnalyzer>(LuceneVersion::LUCENE_CURRENT, L"turkish"); },
                         [](const HashSet<String> stopWords) -> AnalyzerPtr { return newLucene<SnowballAnalyzer>(LuceneVersion::LUCENE_CURRENT, L"turkish", stopWords); },
-                        []() -> const HashSet<String> { return HashSet<String>::newInstance(); },
+                        []() -> HashSet<String> { return HashSet<String>::newInstance(); },
                         true
                     }
                 }
@@ -344,12 +344,12 @@ namespace LuceneUDR
 
     LuceneAnalyzerFactory::~LuceneAnalyzerFactory() = default;
 
-    bool LuceneAnalyzerFactory::hasAnalyzer(const std::string& analyzerName)
+    bool LuceneAnalyzerFactory::hasAnalyzer(const std::string& analyzerName) const
     {
         return (m_factories.find(analyzerName) != m_factories.end());
     }
 
-    bool LuceneAnalyzerFactory::isStopWordsSupported(const std::string& analyzerName)
+    bool LuceneAnalyzerFactory::isStopWordsSupported(const std::string& analyzerName) const
     {
         auto pFactory = m_factories.find(analyzerName);
         if (pFactory == m_factories.end()) {
@@ -359,7 +359,7 @@ namespace LuceneUDR
         return factory.stopWordsSupported;
     }
 
-    AnalyzerPtr LuceneAnalyzerFactory::createAnalyzer(ThrowStatusWrapper* status, const std::string& analyzerName)
+    AnalyzerPtr LuceneAnalyzerFactory::createAnalyzer(ThrowStatusWrapper* status, const std::string& analyzerName) const
     {
         auto pFactory = m_factories.find(analyzerName);
         if (pFactory == m_factories.end()) {
@@ -369,7 +369,7 @@ namespace LuceneUDR
         return factory.simpleFactory();
     }
 
-    AnalyzerPtr LuceneAnalyzerFactory::createAnalyzer(ThrowStatusWrapper* status, const std::string& analyzerName, const HashSet<String> stopWords)
+    AnalyzerPtr LuceneAnalyzerFactory::createAnalyzer(ThrowStatusWrapper* status, const std::string& analyzerName, const HashSet<String> stopWords) const
     {
         auto pFactory = m_factories.find(analyzerName);
         if (pFactory == m_factories.end()) {
@@ -379,7 +379,7 @@ namespace LuceneUDR
         return factory.extFactory(stopWords);
     }
 
-    std::unordered_set<std::string> LuceneAnalyzerFactory::getAnalyzerNames()
+    std::unordered_set<std::string> LuceneAnalyzerFactory::getAnalyzerNames() const
     {
         std::unordered_set<std::string> names;
         for (const auto& pFactory : m_factories) {
@@ -388,32 +388,26 @@ namespace LuceneUDR
         return names;
     }
 
-    const AnalyzerInfo LuceneAnalyzerFactory::getAnalyzerInfo(ThrowStatusWrapper* status, const std::string& analyzerName)
+    AnalyzerInfo LuceneAnalyzerFactory::getAnalyzerInfo(ThrowStatusWrapper* status, const std::string& analyzerName) const
     {
         auto pFactory = m_factories.find(analyzerName);
         if (pFactory == m_factories.end()) {
             throwException(status, R"(Analyzer "%s" not found.)", analyzerName.c_str());
         }
         auto factory = pFactory->second;
-        AnalyzerInfo info { analyzerName, "", factory.stopWordsSupported, true };
-        return info;
+        return { analyzerName, "", factory.stopWordsSupported, true };
     }
 
-    std::list<AnalyzerInfo> LuceneAnalyzerFactory::getAnalyzerInfos()
+    std::list<AnalyzerInfo> LuceneAnalyzerFactory::getAnalyzerInfos() const
     {
         std::list<AnalyzerInfo> infos;
         for (const auto& pFactory : m_factories) {
-            AnalyzerInfo info;
-            info.analyzerName = pFactory.first;
-            info.baseAnalyzer = "";
-            info.stopWordsSupported = pFactory.second.stopWordsSupported;
-            info.systemFlag = true;
-            infos.push_back(info);
+            infos.emplace_back(pFactory.first, "", pFactory.second.stopWordsSupported, true);
         }
         return infos;
     }
 
-    const HashSet<String> LuceneAnalyzerFactory::getAnalyzerStopWords(ThrowStatusWrapper* status, const std::string& analyzerName)
+    HashSet<String> LuceneAnalyzerFactory::getAnalyzerStopWords(ThrowStatusWrapper* status, const std::string& analyzerName) const
     {
         auto pFactory = m_factories.find(analyzerName);
         if (pFactory == m_factories.end()) {
