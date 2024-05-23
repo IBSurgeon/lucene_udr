@@ -21,18 +21,18 @@ to register procedures and functions in an indexed database.
 For databases of the 1st SQL dialect, use the script [fts$install_1.sql](https://github.com/IBSurgeon/lucene_udr/blob/main/sql/fts%24install_1.sql)
 
 You can download ready-made builds for Windows OS using the links:
-* [LuceneUdr_Win_x64.zip](https://github.com/IBSurgeon/lucene_udr/releases/download/1.2/LuceneUdr_Win_x64.zip)
-* [LuceneUdr_Win_x86.zip](https://github.com/IBSurgeon/lucene_udr/releases/download/1.2/LuceneUdr_Win_x86.zip)
+* [LuceneUdr_Win_x64.zip](https://github.com/IBSurgeon/lucene_udr/releases/download/1.3/LuceneUdr_Win_x64.zip)
+* [LuceneUdr_Win_x86.zip](https://github.com/IBSurgeon/lucene_udr/releases/download/1.3/LuceneUdr_Win_x86.zip)
 
 Under Linux, you can compile the library yourself.
 
 Download the demo database, for which the examples are prepared, using the following links:
-* [fts_demo_3.0.zip](https://github.com/IBSurgeon/lucene_udr/releases/download/1.2/fts_demo_3.0.zip) - database for Firebird 3.0;
-* [fts_demo_4.0.zip](https://github.com/IBSurgeon/lucene_udr/releases/download/1.2/fts_demo_4.0.zip) - database for Firebird 4.0.
+* [fts_demo_3.0.zip](https://github.com/IBSurgeon/lucene_udr/releases/download/1.3/fts_demo_3.0.zip) - database for Firebird 3.0;
+* [fts_demo_4.0.zip](https://github.com/IBSurgeon/lucene_udr/releases/download/1.3/fts_demo_4.0.zip) - database for Firebird 4.0.
 
 Documentation in English and Russian is available at the links:
-* [lucene-udr.pdf](https://github.com/IBSurgeon/lucene_udr/releases/download/1.2/lucene-udr.pdf);
-* [lucene-udr-rus.pdf](https://github.com/IBSurgeon/lucene_udr/releases/download/1.2/lucene-udr-rus.pdf).
+* [lucene-udr.pdf](https://github.com/IBSurgeon/lucene_udr/releases/download/1.3/lucene-udr.pdf);
+* [lucene-udr-rus.pdf](https://github.com/IBSurgeon/lucene_udr/releases/download/1.3/lucene-udr-rus.pdf).
 
 ## Building and installing the library under Linux
 
