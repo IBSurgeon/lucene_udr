@@ -203,8 +203,8 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <EnableUAC>false</EnableUAC>
-      <AdditionalLibraryDirectories>c:\Firebird\4.0\WOW64\lib;$(BOOST_ROOT)\stage\x86\lib;c:\lucene++\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>fbclient_ms.lib;lucene++.lib;lucene++-contrib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>c:\lucene++\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>lucene++.lib;lucene++-contrib.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -227,8 +227,8 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <EnableUAC>false</EnableUAC>
-      <AdditionalLibraryDirectories>c:\Firebird\5.0\lib;c:\lucene++\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>fbclient_ms.lib;lucene++.lib;lucene++-contrib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>c:\lucene++\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>lucene++.lib;lucene++-contrib.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>defs\udr_plugin.def</ModuleDefinitionFile>
     </Link>
   </ItemDefinitionGroup>
@@ -260,9 +260,9 @@
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <EnableUAC>false</EnableUAC>
-      <AdditionalLibraryDirectories>c:\Firebird\5.0\WOW64\lib;c:\lucene++\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>c:\lucene++\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <ModuleDefinitionFile>defs\udr_plugin.def</ModuleDefinitionFile>
-      <AdditionalDependencies>fbclient_ms.lib;lucene++.lib;lucene++-contrib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>lucene++.lib;lucene++-contrib.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PreBuildEvent>
       <Command>write_build_no.bat &gt; src/udr_build_no.h</Command>
@@ -301,9 +301,9 @@
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <EnableUAC>false</EnableUAC>
-      <AdditionalLibraryDirectories>c:\Firebird\5.0\WOW64\lib;c:\lucene++\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>c:\lucene++\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <ModuleDefinitionFile>defs\udr_plugin.def</ModuleDefinitionFile>
-      <AdditionalDependencies>fbclient_ms.lib;lucene++.lib;lucene++-contrib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>lucene++.lib;lucene++-contrib.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PreBuildEvent>
       <Command>write_build_no.bat &gt; src/udr_build_no.h</Command>
@@ -346,8 +346,8 @@
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <EnableUAC>false</EnableUAC>
-      <AdditionalLibraryDirectories>c:\Firebird\5.0\lib;c:\lucene++\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>fbclient_ms.lib;lucene++.lib;lucene++-contrib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>c:\lucene++\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>lucene++.lib;lucene++-contrib.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>defs\udr_plugin.def</ModuleDefinitionFile>
     </Link>
     <PreBuildEvent>
@@ -392,8 +392,8 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <EnableUAC>false</EnableUAC>
-      <AdditionalLibraryDirectories>c:\Firebird\5.0\lib;c:\lucene++\x64_with_pdb;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>fbclient_ms.lib;lucene++.lib;lucene++-contrib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>c:\lucene++\x64_with_pdb;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>lucene++.lib;lucene++-contrib.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>defs\udr_plugin.def</ModuleDefinitionFile>
     </Link>
     <PreBuildEvent>
