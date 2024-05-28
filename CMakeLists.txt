@@ -103,7 +103,6 @@ target_include_directories(luceneudr
      "include"
 )
 
-target_link_libraries(luceneudr fbclient)
 target_link_libraries(luceneudr -lstdc++fs)
 
 target_link_libraries(luceneudr ${liblucene++_LIBRARIES})
