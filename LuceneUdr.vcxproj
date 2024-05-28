@@ -64,7 +64,6 @@
     <ClInclude Include="src\Utils.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="defs\udr_plugin.def" />
     <None Include="doc\lucene-udr-rus.adoc" />
     <None Include="doc\lucene-udr.adoc" />
     <None Include="README.md" />
@@ -229,7 +228,8 @@
       <EnableUAC>false</EnableUAC>
       <AdditionalLibraryDirectories>c:\lucene++\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>lucene++.lib;lucene++-contrib.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <ModuleDefinitionFile>defs\udr_plugin.def</ModuleDefinitionFile>
+      <ModuleDefinitionFile>
+      </ModuleDefinitionFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -261,7 +261,8 @@
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <EnableUAC>false</EnableUAC>
       <AdditionalLibraryDirectories>c:\lucene++\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <ModuleDefinitionFile>defs\udr_plugin.def</ModuleDefinitionFile>
+      <ModuleDefinitionFile>
+      </ModuleDefinitionFile>
       <AdditionalDependencies>lucene++.lib;lucene++-contrib.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PreBuildEvent>
@@ -302,7 +303,8 @@
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <EnableUAC>false</EnableUAC>
       <AdditionalLibraryDirectories>c:\lucene++\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <ModuleDefinitionFile>defs\udr_plugin.def</ModuleDefinitionFile>
+      <ModuleDefinitionFile>
+      </ModuleDefinitionFile>
       <AdditionalDependencies>lucene++.lib;lucene++-contrib.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PreBuildEvent>
@@ -348,7 +350,8 @@
       <EnableUAC>false</EnableUAC>
       <AdditionalLibraryDirectories>c:\lucene++\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>lucene++.lib;lucene++-contrib.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <ModuleDefinitionFile>defs\udr_plugin.def</ModuleDefinitionFile>
+      <ModuleDefinitionFile>
+      </ModuleDefinitionFile>
     </Link>
     <PreBuildEvent>
       <Command>write_build_no.bat &gt; src/udr_build_no.h</Command>
@@ -394,7 +397,8 @@
       <EnableUAC>false</EnableUAC>
       <AdditionalLibraryDirectories>c:\lucene++\x64_with_pdb;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>lucene++.lib;lucene++-contrib.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <ModuleDefinitionFile>defs\udr_plugin.def</ModuleDefinitionFile>
+      <ModuleDefinitionFile>
+      </ModuleDefinitionFile>
     </Link>
     <PreBuildEvent>
       <Command>write_build_no.bat &gt; src/udr_build_no.h</Command>

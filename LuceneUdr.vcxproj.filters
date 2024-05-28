@@ -131,9 +131,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="defs\udr_plugin.def">
-      <Filter>Source files</Filter>
-    </None>
     <None Include="sql\fts%24install.sql">
       <Filter>SQL scripts</Filter>
     </None>

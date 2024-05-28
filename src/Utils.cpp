@@ -14,7 +14,7 @@
 
 #include "Utils.h"
 
-const std::string WHITESPACE = " \n\r\t\f\v";
+constexpr const char* WHITESPACE = " \n\r\t\f\v";
 
 std::string ltrim(const std::string& s)
 {
