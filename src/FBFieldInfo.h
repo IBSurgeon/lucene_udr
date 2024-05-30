@@ -24,12 +24,6 @@
 namespace FTSMetadata
 {
 
-    template <typename T>
-    inline T as(unsigned char* ptr)
-    {
-        return *((T*)ptr);
-    }
-
     class FbFieldInfo {
     public:
         unsigned fieldIndex = 0;
@@ -57,76 +51,81 @@ namespace FTSMetadata
 
 
         bool isNull(unsigned char* buffer) const {
-            return as<short>(buffer + nullOffset);
+            return *reinterpret_cast<short*>(buffer + nullOffset);
         }
 
         FB_BOOLEAN getBooleanValue(unsigned char* buffer) const {
-            return as<FB_BOOLEAN>(buffer + offset);
+            return *reinterpret_cast<FB_BOOLEAN*>(buffer + offset);
         }
 
         ISC_SHORT getShortValue(unsigned char* buffer) const {
-            return as<ISC_SHORT>(buffer + offset);
+            return *reinterpret_cast<ISC_SHORT*>(buffer + offset);
         }
 
         ISC_LONG getLongValue(unsigned char* buffer) const {
-            return as<ISC_LONG>(buffer + offset);
+            return *reinterpret_cast<ISC_LONG*>(buffer + offset);
         }
 
         ISC_INT64 getInt64Value(unsigned char* buffer) const {
-            return as<ISC_INT64>(buffer + offset);
+            return *reinterpret_cast<ISC_INT64*>(buffer + offset);
         }
 
         float getFloatValue(unsigned char* buffer) const {
-            return as<float>(buffer + offset);
+            return *reinterpret_cast<float*>(buffer + offset);
         }
 
         double getDoubleValue(unsigned char* buffer) const {
-            return as<double>(buffer + offset);
+            return *reinterpret_cast<double*>(buffer + offset);
         }
 
         ISC_DATE getDateValue(unsigned char* buffer) const {
-            return as<ISC_DATE>(buffer + offset);
+            return *reinterpret_cast<ISC_DATE*>(buffer + offset);
         }
 
         ISC_TIME getTimeValue(unsigned char* buffer) const {
-            return as<ISC_TIME>(buffer + offset);
+            return *reinterpret_cast<ISC_TIME*>(buffer + offset);
         }
 
         ISC_TIMESTAMP getTimestampValue(unsigned char* buffer) const {
-            return as<ISC_TIMESTAMP>(buffer + offset);
+            return *reinterpret_cast<ISC_TIMESTAMP*>(buffer + offset);
         }
 
         ISC_QUAD getQuadValue(unsigned char* buffer) const {
-            return as<ISC_QUAD>(buffer + offset);
+            return *reinterpret_cast<ISC_QUAD*>(buffer + offset);
+        }
+
+        ISC_QUAD* getQuadPtr(unsigned char* buffer) const
+        {
+            return reinterpret_cast<ISC_QUAD*>(buffer + offset);
         }
 
 #if FB_API_VER >= 40
         FB_I128 getInt128Value(unsigned char* buffer) const {
-            return as<FB_I128>(buffer + offset);
+            return *reinterpret_cast<FB_I128*>(buffer + offset);
         }
 
         FB_DEC16 getDecFloat16Value(unsigned char* buffer) const {
-            return as<FB_DEC16>(buffer + offset);
+            return *reinterpret_cast<FB_DEC16*>(buffer + offset);
         }
 
         FB_DEC34 getDecFloat34Value(unsigned char* buffer) const {
-            return as<FB_DEC34>(buffer + offset);
+            return *reinterpret_cast<FB_DEC34*>(buffer + offset);
         }
 
         ISC_TIME_TZ getTimeTzValue(unsigned char* buffer) const {
-            return as<ISC_TIME_TZ>(buffer + offset);
+            return *reinterpret_cast<ISC_TIME_TZ*>(buffer + offset);
         }
 
         ISC_TIME_TZ_EX getTimeTzExValue(unsigned char* buffer) const {
-            return as<ISC_TIME_TZ_EX>(buffer + offset);
+            return *reinterpret_cast<ISC_TIME_TZ_EX*>(buffer + offset);
         }
 
         ISC_TIMESTAMP_TZ getTimestampTzValue(unsigned char* buffer) const {
-            return as<ISC_TIMESTAMP_TZ>(buffer + offset);
+            return *reinterpret_cast<ISC_TIMESTAMP_TZ*>(buffer + offset);
         }
 
         ISC_TIMESTAMP_TZ_EX getTimestampTzExValue(unsigned char* buffer) const {
-            return as<ISC_TIMESTAMP_TZ_EX>(buffer + offset);
+            return *reinterpret_cast<ISC_TIMESTAMP_TZ_EX*>(buffer + offset);
         }
 #endif
 
@@ -136,7 +135,7 @@ namespace FTSMetadata
             case SQL_TEXT:
                 return length;
             case SQL_VARYING:
-                return as<short>(buffer + offset);
+                return *reinterpret_cast<short*>(buffer + offset);
             default:
                 return 0;
             }
@@ -146,9 +145,9 @@ namespace FTSMetadata
             switch (dataType)
             {
             case SQL_TEXT:
-                return (char*)(buffer + offset);
+                return reinterpret_cast<char*>(buffer + offset);
             case SQL_VARYING:
-                return (char*)(buffer + offset + sizeof(short));
+                return reinterpret_cast<char*>(buffer + offset + sizeof(short));
             default:
                 return nullptr;
             }
@@ -206,7 +205,7 @@ namespace FTSMetadata
         // non-copyable
         FbFieldsInfo(const FbFieldsInfo& rhs) = delete;
         FbFieldsInfo& operator=(const FbFieldsInfo& rhs) = delete;
-        // moveable
+        // movable
         FbFieldsInfo(FbFieldsInfo&& rhs) noexcept = default;
         FbFieldsInfo& operator=(FbFieldsInfo&& rhs) noexcept = default;
 

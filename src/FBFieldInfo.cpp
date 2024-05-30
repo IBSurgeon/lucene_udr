@@ -42,45 +42,37 @@ namespace FTSMetadata
         case SQL_TEXT:
         case SQL_VARYING:
         {
-            std::string s(getCharValue(buffer), getOctetsLength(buffer));
-            return s;
+            return { getCharValue(buffer), static_cast<size_t>(getOctetsLength(buffer)) };
         }
         case SQL_BLOB:
         {
-            ISC_QUAD blobId = getQuadValue(buffer);
-            std::string s = "";
-            
-            AutoRelease<IBlob> blob(att->openBlob(status, tra, &blobId, 0, nullptr));
-            s = BlobUtils::getString(status, blob);
-            blob->close(status);
-            blob.release();
-            
-            return s;
+            ISC_QUAD* blobIdPtr = getQuadPtr(buffer);
+            return BlobUtils::getString(status, att, tra, blobIdPtr);
         }
         case SQL_SHORT:
         {
             if (!scale) {
                 return std::to_string(getShortValue(buffer));
             }
-            return "";
+            return {};
         }
         case SQL_LONG:
         {
             if (!scale) {
                 return std::to_string(getLongValue(buffer));
             }
-            return "";
+            return {};
         }
         case SQL_INT64:
         {
             if (!scale) {
                 return std::to_string(getInt64Value(buffer));
             }
-            return "";
+            return {};
         }
         default:
             // Other types are not considered yet.
-            return "";
+            return {};
         }
     }
 

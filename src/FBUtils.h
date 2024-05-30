@@ -24,6 +24,7 @@ namespace LuceneUDR
     class BlobUtils final {
     public:
         static std::string getString(Firebird::ThrowStatusWrapper* status, Firebird::IBlob* blob);
+        static std::string getString(Firebird::ThrowStatusWrapper* status, Firebird::IAttachment* att, Firebird::ITransaction* tra, ISC_QUAD* blobIdPtr);
 
         static void setString(Firebird::ThrowStatusWrapper* status, Firebird::IBlob* blob, const std::string& str);
     };
