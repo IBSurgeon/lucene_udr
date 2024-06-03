@@ -1023,7 +1023,7 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
                 0
             ));
                 
-            const unsigned colCount = newMeta->getCount(status);
+            //const unsigned colCount = newMeta->getCount(status);
             const unsigned msgLength = newMeta->getMessageLength(status);
             {
                 // allocate output buffer

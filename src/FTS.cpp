@@ -1092,7 +1092,7 @@ ORDER BY FTS$LOG_ID
                         continue;
                     }
 
-                    const unsigned colCount = outMetadata->getCount(status);
+                    //const unsigned colCount = outMetadata->getCount(status);
                     const unsigned msgLength = outMetadata->getMessageLength(status);
                     {
                         // allocate output buffer
