@@ -20,17 +20,20 @@
 #include <sstream>
 #include <iomanip>
 
+namespace {
+    constexpr const char hex_digits[] = "0123456789ABCDEF";
+}
 
 
 std::string string_to_hex(const std::string& input)
 {
-    std::stringstream ss;
-    ss << std::hex << std::setfill('0');
-    for (size_t i = 0; i < input.size(); i++) {
-        const auto ch = static_cast<unsigned char>(input[i]);
-        ss << std::setw(2) << std::uppercase << static_cast<unsigned int>(ch);
+    std::string output;
+    output.reserve(input.length() * 2);
+    for (unsigned char c : input) {
+        output.push_back(hex_digits[c >> 4]);
+        output.push_back(hex_digits[c & 15]);
     }
-    return ss.str();
+    return output;
 }
 
 unsigned char hexval(unsigned char c)
