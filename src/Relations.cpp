@@ -116,16 +116,14 @@ WHERE RDB$RELATION_NAME = ? AND RDB$FIELD_NAME = ?
     /// <param name="att">Firebird attachment</param>
     /// <param name="tra">Firebird transaction</param>
     /// <param name="sqlDialect">SQL dialect</param>
-    /// <param name="relationInfo">Information about the relation</param>
     /// <param name="relationName">Relation name</param>
     /// 
-    void RelationHelper::getRelationInfo(
-        ThrowStatusWrapper* const status,
-        IAttachment* const att,
-        ITransaction* const tra,
+    RelationInfo RelationHelper::getRelationInfo(
+        ThrowStatusWrapper* status,
+        IAttachment* att,
+        ITransaction* tra,
         unsigned int sqlDialect,
-        RelationInfo& relationInfo,
-        const std::string& relationName)
+        std::string_view relationName)
     {
         FB_MESSAGE(Input, ThrowStatusWrapper,
             (FB_INTL_VARCHAR(252, CS_UTF8), relationName)
@@ -166,14 +164,14 @@ WHERE RDB$RELATION_NAME = ? AND RDB$FIELD_NAME = ?
         rs.release();
 
         if (result == IStatus::RESULT_NO_DATA) {
-            throwException(status, R"(Relation "%s" not exists)", relationName.c_str());
+            std::string sRelationName(relationName);
+            throwException(status, R"(Relation "%s" not exists)", sRelationName.c_str());
         }
         
-        if (result == IStatus::RESULT_OK) {
-            relationInfo.relationName.assign(output->relationName.str, output->relationName.length);
-            relationInfo.relationType = static_cast<RelationType>(output->relationType);
-            relationInfo.systemFlag = static_cast<bool>(output->systemFlag);
-        }
+        
+        std::string_view swRelationName(output->relationName.str, output->relationName.length);
+
+        return { swRelationName, static_cast<RelationType>(output->relationType), static_cast<bool>(output->systemFlag) };        
     }
 
     /// <summary>
@@ -248,9 +246,9 @@ WHERE RDB$RELATION_NAME = ? AND RDB$FIELD_NAME = ?
     /// <param name="fields">List of relations fields</param>
     /// 
     void RelationHelper::fillRelationFields(
-        ThrowStatusWrapper* const status,
-        IAttachment* const att,
-        ITransaction* const tra,
+        ThrowStatusWrapper* status,
+        IAttachment* att,
+        ITransaction* tra,
         unsigned int sqlDialect,
         const std::string& relationName,
         RelationFieldList& fields
@@ -326,9 +324,9 @@ WHERE RDB$RELATION_NAME = ? AND RDB$FIELD_NAME = ?
     /// <param name="keyFields">List of relations primary key fields</param>
     /// 
     void RelationHelper::fillPrimaryKeyFields(
-        ThrowStatusWrapper* const status,
-        IAttachment* const att,
-        ITransaction* const tra,
+        ThrowStatusWrapper* status,
+        IAttachment* att,
+        ITransaction* tra,
         unsigned int sqlDialect,
         const std::string& relationName,
         RelationFieldList& keyFields
