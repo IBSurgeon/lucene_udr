@@ -13,7 +13,7 @@
 
 cmake_minimum_required (VERSION 3.6)
 
-project (luceneudr VERSION 1.3.1)
+project (luceneudr VERSION 1.3.2)
 
 set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/build)
 
@@ -94,7 +94,6 @@ include_directories(${liblucene++-contrib_INCLUDE_DIRS})
 
 link_directories(${liblucene++_LIBRARY_DIRS})
 link_directories(${liblucene++-contrib_LIBRARY_DIRS})
-link_directories(${FIREBIRD_LIB_DIR})
 
 ####################################
 # include directories

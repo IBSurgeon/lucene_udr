@@ -47,7 +47,7 @@ namespace FTSMetadata
         case SQL_BLOB:
         {
             ISC_QUAD* blobIdPtr = getQuadPtr(buffer);
-            return BlobUtils::getString(status, att, tra, blobIdPtr);
+            return readStringFromBlob(status, att, tra, blobIdPtr);
         }
         case SQL_SHORT:
         {

@@ -514,20 +514,11 @@ FB_UDR_BEGIN_PROCEDURE(createIndex)
 
         const unsigned int sqlDialect = getSqlDialect(status, att);
 
-
-        std::string description;
-        if (!in->descriptionNull) {
-            AutoRelease<IBlob> blob(att->openBlob(status, tra, &in->description, 0, nullptr));
-            description = BlobUtils::getString(status, blob);
-            blob->close(status);
-            blob.release();
-        }
-
         auto relationHelper = procedure->indexRepository->getRelationHelper();
         auto relationInfo = relationHelper->getRelationInfo(status, att, tra, sqlDialect, relationName);
 
 
-        procedure->indexRepository->createIndex(status, att, tra, sqlDialect, indexName, relationName, analyzerName, description);
+        procedure->indexRepository->createIndex(status, att, tra, sqlDialect, indexName, relationName, analyzerName, !in->descriptionNull ? &in->description : nullptr);
 
         std::string keyFieldName;
         if (in->keyFieldNameNull) {

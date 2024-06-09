@@ -200,7 +200,7 @@ namespace FTSMetadata
             const std::string& indexName,
             const std::string& relationName,
             const std::string& analyzerName,
-            const std::string& description);
+            ISC_QUAD* description);
 
         /// <summary>
         /// Remove a full-text index. 

@@ -301,7 +301,7 @@ WHERE FTS$ANALYZER = ? AND FTS$INDEX_STATUS = 'C'
         const string& indexName,
         const string& relationName,
         const string& analyzerName,
-        const string& description)
+        ISC_QUAD* description)
     {
         // check for index existence
         if (hasIndex(status, att, tra, sqlDialect, indexName)) {
@@ -332,11 +332,9 @@ WHERE FTS$ANALYZER = ? AND FTS$INDEX_STATUS = 'C'
         input->analyzer.length = static_cast<ISC_USHORT>(analyzerName.length());
         analyzerName.copy(input->analyzer.str, input->analyzer.length);
 
-        if (!description.empty()) {
-            AutoRelease<IBlob> blob(att->createBlob(status, tra, &input->description, 0, nullptr));
-            BlobUtils::setString(status, blob, description);
-            blob->close(status);
-            blob.release();
+        if (!description) {
+            input->descriptionNull = false;
+            input->description = *description;
         }
         else {
             input->descriptionNull = true;

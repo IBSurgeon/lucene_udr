@@ -49,30 +49,7 @@ namespace LuceneUDR
     constexpr unsigned int BUFFER_LARGE = 2048;
     constexpr size_t MAX_SEGMENT_SIZE = 65535;
 
-    std::string BlobUtils::getString(ThrowStatusWrapper* status, IBlob* blob)
-    {
-        std::stringstream ss;
-        auto buffer = std::vector<char>(MAX_SEGMENT_SIZE);
-        {
-            bool eof = false;
-            unsigned int l;
-            while (!eof) {
-                switch (blob->getSegment(status, MAX_SEGMENT_SIZE, buffer.data(), &l))
-                {
-                case IStatus::RESULT_OK:
-                case IStatus::RESULT_SEGMENT:
-                    ss.write(buffer.data(), l);
-                    continue;
-                default:
-                    eof = true;
-                    break;
-                }
-            }
-        }
-        return ss.str();
-    }
-
-    std::string BlobUtils::getString(Firebird::ThrowStatusWrapper* status, Firebird::IAttachment* att, Firebird::ITransaction* tra, ISC_QUAD* blobIdPtr)
+    std::string readStringFromBlob(Firebird::ThrowStatusWrapper* status, Firebird::IAttachment* att, Firebird::ITransaction* tra, ISC_QUAD* blobIdPtr)
     {
         if (!blobIdPtr) {
             return "";
@@ -100,8 +77,18 @@ namespace LuceneUDR
         return ss.str();
     }
 
-    void BlobUtils::setString(ThrowStatusWrapper* status, IBlob* blob, const std::string& str)
+    void writeStringToBlob(Firebird::ThrowStatusWrapper* status, Firebird::IAttachment* att,
+        Firebird::ITransaction* tra, ISC_QUAD* blobIdPtr, std::string_view str)
     {
+
+        const unsigned char bpb[] = {
+            isc_bpb_version1,
+            isc_bpb_type, 1, isc_bpb_type_stream,
+            isc_bpb_storage, 1, isc_bpb_storage_temp
+        };
+
+        AutoRelease<IBlob> blob(att->createBlob(status, tra, blobIdPtr, sizeof(bpb), bpb));
+
         size_t str_len = str.length();
         size_t offset = 0;
         auto buffer = std::vector<char>(MAX_SEGMENT_SIZE);
@@ -114,6 +101,9 @@ namespace LuceneUDR
                 str_len -= len;
             }
         }
+
+        blob->close(status);
+        blob.release();
     }
 
     const unsigned int getSqlDialect(ThrowStatusWrapper* status, IAttachment* att)
@@ -219,7 +209,7 @@ namespace LuceneUDR
             case SQL_TYPE_TIME:
             case SQL_TIMESTAMP:
                 builder->setType(status, i, SQL_VARYING);
-                builder->setLength(status, i, 35 * 4);
+                builder->setLength(status, i, 35);
                 builder->setCharSet(status, i, 0);
                 break;
 #if FB_API_VER >= 40

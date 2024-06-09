@@ -2,8 +2,8 @@
 
 SET MajorVer=1
 SET MinorVer=3
-SET RevNo=1
-SET BuildNum=37
+SET RevNo=2
+SET BuildNum=38
 
 SET PRODUCT_VER_STRING=%MajorVer%.%MinorVer%.%RevNo%.%BuildNum%
 SET FILE_VER_STRING=WIN-%MajorVer%.%MinorVer%.%RevNo%.%BuildNum%

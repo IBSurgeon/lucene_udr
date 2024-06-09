@@ -81,7 +81,7 @@ FB_UDR_BEGIN_FUNCTION(bestFragementHighligh)
             return;
         }
 
-        std::string text = BlobUtils::getString(status, att, tra, &in->text);
+        std::string text = readStringFromBlob(status, att, tra, &in->text);
 
         std::string queryStr;
         if (!in->queryNull) {
@@ -203,7 +203,7 @@ FB_UDR_BEGIN_PROCEDURE(bestFragementsHighligh)
 
         out->fragmentNull = true;
 
-        std::string text = BlobUtils::getString(status, att, tra, !in->textNull ? &in->text : nullptr);        
+        std::string text = readStringFromBlob(status, att, tra, !in->textNull ? &in->text : nullptr);        
 
         std::string queryStr;
         if (!in->queryNull) {

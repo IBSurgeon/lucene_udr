@@ -297,20 +297,11 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
             out->scoreNull = false;
             out->score = scoreDoc->score;
 
-            if (explainFlag) {
-                const unsigned char bpb[] = {
-                    isc_bpb_version1,
-                    isc_bpb_type, 1, isc_bpb_type_stream,
-                    isc_bpb_storage, 1, isc_bpb_storage_temp
-                };
-
-                out->explanationNull = false;
+            if (explainFlag) {    
                 auto explanation = searcher->explain(query, scoreDoc->doc);
                 const std::string explanationStr = StringUtils::toUTF8(explanation->toString());
-                AutoRelease<IBlob> blob(att->createBlob(status, tra, &out->explanation, sizeof(bpb), bpb));
-                BlobUtils::setString(status, blob, explanationStr);
-                blob->close(status);
-                blob.release();
+                out->explanationNull = false;
+                writeStringToBlob(status, att, tra, &out->explanation, explanationStr);
             }
             else {
                 out->explanationNull = true;
@@ -375,7 +366,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsAnalyze)
         }
 
         if (!in->textNull) {
-            std::string text = BlobUtils::getString(status, att, tra, &in->text);
+            std::string text = readStringFromBlob(status, att, tra, &in->text);
             try {
                 auto analyzer = procedure->analyzers->createAnalyzer(status, att, tra, sqlDialect, analyzerName);
                 auto stringReader = newLucene<StringReader>(StringUtils::toUnicode(text));
@@ -395,7 +386,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsAnalyze)
 
     FB_UDR_FETCH_PROCEDURE
     {
-        if (!tokenStream && !tokenStream->incrementToken()) {
+        if (!(tokenStream && tokenStream->incrementToken())) {
             return false;
         }
         const auto uTerm = termAttribute->term();
