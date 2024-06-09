@@ -369,30 +369,24 @@ FB_UDR_BEGIN_PROCEDURE(ftsAnalyze)
 
         const unsigned int sqlDialect = getSqlDialect(status, att);
 
-        std::string text;
-        if (!in->textNull) {
-            AutoRelease<IBlob> blob(att->openBlob(status, tra, &in->text, 0, nullptr));
-            text = BlobUtils::getString(status, blob);
-            blob->close(status);
-            blob.release();
-        }
-
         std::string analyzerName = DEFAULT_ANALYZER_NAME;
         if (!in->analyzerNameNull) {
             analyzerName.assign(in->analyzerName.str, in->analyzerName.length);
         }
 
-        try {
-            auto analyzer = procedure->analyzers->createAnalyzer(status, att, tra, sqlDialect, analyzerName);
-            auto stringReader = newLucene<StringReader>(StringUtils::toUnicode(text));
+        if (!in->textNull) {
+            std::string text = BlobUtils::getString(status, att, tra, &in->text);
+            try {
+                auto analyzer = procedure->analyzers->createAnalyzer(status, att, tra, sqlDialect, analyzerName);
+                auto stringReader = newLucene<StringReader>(StringUtils::toUnicode(text));
 
-            tokenStream = analyzer->tokenStream(L"", stringReader);
-            termAttribute = tokenStream->addAttribute<TermAttribute>();
-            tokenStream->reset();
-        }
-        catch (const LuceneException& e) {
-            const std::string error_message = StringUtils::toUTF8(e.getError());
-            throwException(status, error_message.c_str());
+                tokenStream = analyzer->tokenStream(L"", stringReader);
+                termAttribute = tokenStream->addAttribute<TermAttribute>();
+                tokenStream->reset();
+            } catch (const LuceneException& e) {
+                const std::string error_message = StringUtils::toUTF8(e.getError());
+                throwException(status, error_message.c_str());
+            }
         }
     }
 
@@ -401,7 +395,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsAnalyze)
 
     FB_UDR_FETCH_PROCEDURE
     {
-        if (!tokenStream->incrementToken()) {
+        if (!tokenStream && !tokenStream->incrementToken()) {
             return false;
         }
         const auto uTerm = termAttribute->term();

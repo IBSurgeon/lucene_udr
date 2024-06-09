@@ -185,17 +185,9 @@ FB_UDR_BEGIN_PROCEDURE(createAnalyzer)
 
         const unsigned int sqlDialect = getSqlDialect(status, att);
 
-        const auto& analyzers = std::make_unique<AnalyzerRepository>(context->getMaster());
+        auto analyzers = std::make_unique<AnalyzerRepository>(context->getMaster());
 
-        std::string description;
-        if (!in->descriptionNull) {
-            AutoRelease<IBlob> blob(att->openBlob(status, tra, &in->description, 0, nullptr));
-            description = BlobUtils::getString(status, blob);
-            blob->close(status);
-            blob.release();
-        }
-
-        analyzers->addAnalyzer(status, att, tra, sqlDialect, analyzerName, baseAnalyzer, description);
+        analyzers->addAnalyzer(status, att, tra, sqlDialect, analyzerName, baseAnalyzer, !in->descriptionNull ? &in->description : nullptr);
     }
 
     FB_UDR_FETCH_PROCEDURE

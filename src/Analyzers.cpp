@@ -291,13 +291,13 @@ WHERE FTS$ANALYZER_NAME = ? AND FTS$WORD = ?
     }
 
     void AnalyzerRepository::addAnalyzer (
-        ThrowStatusWrapper* const status,
-        IAttachment* const att,
-        ITransaction* const tra,
+        ThrowStatusWrapper* status,
+        IAttachment* att,
+        ITransaction* tra,
         unsigned int sqlDialect,
         const std::string& analyzerName,
         const std::string& baseAnalyzer,
-        const std::string& description
+        ISC_QUAD* description
     )
     {
         if (hasAnalyzer(status, att, tra, sqlDialect, analyzerName)) {
@@ -322,11 +322,9 @@ WHERE FTS$ANALYZER_NAME = ? AND FTS$WORD = ?
         input->baseAnalyzer.length = static_cast<ISC_USHORT>(baseAnalyzer.length());
         baseAnalyzer.copy(input->baseAnalyzer.str, input->baseAnalyzer.length);
 
-        if (!description.empty()) {
-            AutoRelease<IBlob> blob(att->createBlob(status, tra, &input->description, 0, nullptr));
-            BlobUtils::setString(status, blob, description);
-            blob->close(status);
-            blob.release();
+        if (!description) {
+            input->descriptionNull = false;
+            input->description = *description;
         }
         else {
             input->descriptionNull = true;

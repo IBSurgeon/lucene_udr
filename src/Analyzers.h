@@ -82,13 +82,13 @@ namespace FTSMetadata
         );
 
         void addAnalyzer (
-            Firebird::ThrowStatusWrapper* const status,
-            Firebird::IAttachment* const att,
-            Firebird::ITransaction* const tra,
+            Firebird::ThrowStatusWrapper* status,
+            Firebird::IAttachment* att,
+            Firebird::ITransaction* tra,
             unsigned int sqlDialect,
             const std::string& analyzerName,
             const std::string& baseAnalyzer,
-            const std::string& description
+            ISC_QUAD* description
         );
 
         void deleteAnalyzer(

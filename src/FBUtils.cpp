@@ -74,6 +74,9 @@ namespace LuceneUDR
 
     std::string BlobUtils::getString(Firebird::ThrowStatusWrapper* status, Firebird::IAttachment* att, Firebird::ITransaction* tra, ISC_QUAD* blobIdPtr)
     {
+        if (!blobIdPtr) {
+            return "";
+        }
         std::stringstream ss;
         AutoRelease<IBlob> blob(att->openBlob(status, tra, blobIdPtr, 0, nullptr));
         auto buffer = std::vector<char>(MAX_SEGMENT_SIZE);

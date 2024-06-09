@@ -77,14 +77,11 @@ FB_UDR_BEGIN_FUNCTION(bestFragementHighligh)
         AutoRelease<ITransaction> tra(context->getTransaction(status));
 
         out->fragmentNull = true;
-
-        std::string text;
-        if (!in->textNull) {
-            AutoRelease<IBlob> blob(att->openBlob(status, tra, &in->text, 0, nullptr));
-            text = BlobUtils::getString(status, blob);
-            blob->close(status);
-            blob.release();
+        if (in->textNull) {
+            return;
         }
+
+        std::string text = BlobUtils::getString(status, att, tra, &in->text);
 
         std::string queryStr;
         if (!in->queryNull) {
@@ -206,13 +203,7 @@ FB_UDR_BEGIN_PROCEDURE(bestFragementsHighligh)
 
         out->fragmentNull = true;
 
-        std::string text;
-        if (!in->textNull) {
-            AutoRelease<IBlob> blob(att->openBlob(status, tra, &in->text, 0, nullptr));
-            text = BlobUtils::getString(status, blob);
-            blob->close(status);
-            blob.release();
-        }
+        std::string text = BlobUtils::getString(status, att, tra, !in->textNull ? &in->text : nullptr);        
 
         std::string queryStr;
         if (!in->queryNull) {
