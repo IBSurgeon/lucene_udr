@@ -24,7 +24,7 @@ namespace FTSMetadata
 {
 
     // SQL texts
-    constexpr char SQL_ANALYZER_INFO[] = R"SQL(
+    constexpr const char* SQL_ANALYZER_INFO = R"SQL(
 SELECT
     A.FTS$ANALYZER_NAME
   , A.FTS$BASE_ANALYZER
@@ -33,7 +33,7 @@ FROM FTS$ANALYZERS A
 WHERE A.FTS$ANALYZER_NAME = ?
 )SQL";
 
-    constexpr char SQL_ANALYZER_INFOS[] = R"SQL(
+    constexpr const char* SQL_ANALYZER_INFOS = R"SQL(
 SELECT
     A.FTS$ANALYZER_NAME
   , A.FTS$BASE_ANALYZER
@@ -42,13 +42,13 @@ FROM FTS$ANALYZERS A
 ORDER BY A.FTS$ANALYZER_NAME
 )SQL";
 
-    constexpr char SQL_ANALYZER_EXISTS[] = R"SQL(
+    constexpr const char* SQL_ANALYZER_EXISTS = R"SQL(
 SELECT COUNT(*) AS CNT
 FROM FTS$ANALYZERS A
 WHERE A.FTS$ANALYZER_NAME = ?
 )SQL";
 
-    constexpr char SQL_INSERT_ANALYZER[] = R"SQL(
+    constexpr const char* SQL_INSERT_ANALYZER = R"SQL(
 INSERT INTO FTS$ANALYZERS (
     FTS$ANALYZER_NAME,
     FTS$BASE_ANALYZER,
@@ -59,19 +59,19 @@ VALUES (
     ?)
 )SQL";
 
-    constexpr char SQL_DELETE_ANALYZER[] = R"SQL(
+    constexpr const char* SQL_DELETE_ANALYZER = R"SQL(
 DELETE FROM FTS$ANALYZERS A
 WHERE A.FTS$ANALYZER_NAME = ?
 )SQL";
 
-    constexpr char SQL_STOP_WORDS[] = R"SQL(
+    constexpr const char* SQL_STOP_WORDS = R"SQL(
 SELECT
     W.FTS$WORD
 FROM FTS$STOP_WORDS W
 WHERE W.FTS$ANALYZER_NAME = ?
 )SQL";
 
-    constexpr char SQL_INSERT_STOP_WORD[] = R"SQL(
+    constexpr const char* SQL_INSERT_STOP_WORD = R"SQL(
 EXECUTE BLOCK (
     FTS$ANALYZER_NAME VARCHAR(63) CHARACTER SET UTF8 = ?,
     FTS$WORD          VARCHAR(63) CHARACTER SET UTF8 = ?)
@@ -89,7 +89,7 @@ BEGIN
 END
 )SQL";
 
-    constexpr char SQL_DELETE_STOP_WORD[] = R"SQL(
+    constexpr const char* SQL_DELETE_STOP_WORD = R"SQL(
 DELETE FROM FTS$STOP_WORDS
 WHERE FTS$ANALYZER_NAME = ? AND FTS$WORD = ?
 )SQL";
