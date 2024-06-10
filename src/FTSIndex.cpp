@@ -332,7 +332,7 @@ WHERE FTS$ANALYZER = ? AND FTS$INDEX_STATUS = 'C'
         input->analyzer.length = static_cast<ISC_USHORT>(analyzerName.length());
         analyzerName.copy(input->analyzer.str, input->analyzer.length);
 
-        if (!description) {
+        if (description) {
             input->descriptionNull = false;
             input->description = *description;
         }

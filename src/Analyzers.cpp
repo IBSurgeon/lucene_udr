@@ -322,7 +322,7 @@ WHERE FTS$ANALYZER_NAME = ? AND FTS$WORD = ?
         input->baseAnalyzer.length = static_cast<ISC_USHORT>(baseAnalyzer.length());
         baseAnalyzer.copy(input->baseAnalyzer.str, input->baseAnalyzer.length);
 
-        if (!description) {
+        if (description) {
             input->descriptionNull = false;
             input->description = *description;
         }
