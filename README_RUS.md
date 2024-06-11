@@ -146,7 +146,7 @@ FROM RDB$DATABASE
 
 Текст проходит через различные операции по извлечению ключевых слов, удалению общих слов и знаков препинания, преобразования слов в нижний регистр и так далее.
 
-Список доступных анализаторов можно получить с помощью процедуры `FTS$MANAGEMENT.FTS$ANALYZERS`.
+Список доступных анализаторов можно получить с помощью процедуры `FTS$MANAGEMENT.FTS$ALL_ANALYZERS`.
 
 По умолчанию доступны следующие анализаторы:
 
@@ -1293,12 +1293,12 @@ SET TERM ;^
   DETERMINISTIC;
 ```
 
-#### Процедура FTS$MANAGEMENT.FTS$ANALYZERS
+#### Процедура FTS$MANAGEMENT.FTS$ALL_ANALYZERS
 
-Процедура `FTS$MANAGEMENT.FTS$ANALYZERS` возвращает список доступных анализаторов.
+Процедура `FTS$MANAGEMENT.FTS$ALL_ANALYZERS` возвращает список доступных анализаторов.
 
 ```sql
-  PROCEDURE FTS$ANALYZERS
+  PROCEDURE FTS$ALL_ANALYZERS
   RETURNS (
       FTS$ANALYZER VARCHAR(63) CHARACTER SET UTF8,
       FTS$BASE_ANALYZER VARCHAR(63) CHARACTER SET UTF8,

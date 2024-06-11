@@ -162,7 +162,7 @@ Analysis is the transformation of known text into smaller, more precise units fo
 
 The text goes through various operations to extract keywords, remove common words and punctuation marks, convert words to lower case, and so on.
 
-The list of available analyzers can be obtained using the `FTS$MANAGEMENT.FTS$ANALYZERS` procedure.
+The list of available analyzers can be obtained using the `FTS$MANAGEMENT.FTS$ALL_ANALYZERS` procedure.
 
 The following analyzers are available by default:
 
@@ -1339,13 +1339,13 @@ the current database are located.
   DETERMINISTIC;
 ----
 
-==== Procedure FTS$MANAGEMENT.FTS$ANALYZERS
+==== Procedure FTS$MANAGEMENT.FTS$ALL_ANALYZERS
 
-The procedure `FTS$MANAGEMENT.FTS$ANALYZERS` returns a list of available analyzers.
+The procedure `FTS$MANAGEMENT.FTS$ALL_ANALYZERS` returns a list of available analyzers.
 
 [source,sql]
 ----
-  PROCEDURE FTS$ANALYZERS
+  PROCEDURE FTS$ALL_ANALYZERS
   RETURNS (
       FTS$ANALYZER VARCHAR(63) CHARACTER SET UTF8,
       FTS$BASE_ANALYZER VARCHAR(63) CHARACTER SET UTF8,
