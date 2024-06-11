@@ -457,7 +457,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogByDdKey)
 
         const unsigned int sqlDialect = getSqlDialect(status, att);
 
-        constexpr char SQL_APPEND_LOG[] = R"SQL(
+        constexpr const char* SQL_APPEND_LOG = R"SQL(
 INSERT INTO FTS$LOG (
   FTS$RELATION_NAME,
   FTS$DB_KEY,
@@ -569,7 +569,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogById)
 
         const unsigned int sqlDialect = getSqlDialect(status, att);
 
-        constexpr char SQL_APPEND_LOG[] =
+        constexpr const char* SQL_APPEND_LOG =
             R"SQL(
 INSERT INTO FTS$LOG (
   FTS$RELATION_NAME,
@@ -682,7 +682,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogByUuid)
 
         const unsigned int sqlDialect = getSqlDialect(status, att);
 
-        constexpr char SQL_APPEND_LOG[] = R"SQL(
+        constexpr const char* SQL_APPEND_LOG = R"SQL(
 INSERT INTO FTS$LOG (
   FTS$RELATION_NAME,
   FTS$DB_KEY,
@@ -816,12 +816,12 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 
         const unsigned int sqlDialect = getSqlDialect(status, att);
 
-        constexpr char SQL_DELETE_FTS_LOG[] = R"SQL(
+        constexpr const char* SQL_DELETE_FTS_LOG = R"SQL(
 DELETE FROM FTS$LOG
 WHERE FTS$LOG_ID = ?
 )SQL";
 
-        constexpr char SQL_SELECT_FTS_LOG[] = R"SQL(
+        constexpr const char* SQL_SELECT_FTS_LOG = R"SQL(
 SELECT
     FTS$LOG_ID
   , TRIM(FTS$RELATION_NAME) AS FTS$RELATION_NAME
