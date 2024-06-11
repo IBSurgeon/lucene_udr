@@ -1038,7 +1038,7 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
                             }
                             doc->add(luceneField);
                             emptyFlag = emptyFlag && unicodeValue.empty();
-                        }						
+                        }
                         
                     }
                     // if all indexed fields are empty, then it makes no sense to add the document to the index
