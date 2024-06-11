@@ -160,7 +160,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
         if (in->indexNameNull) {
             throwException(status, "Index name can not be NULL");
         }
-        const std::string indexName(in->indexName.str, in->indexName.length);
+        std::string_view indexName(in->indexName.str, in->indexName.length);
         
         std::string queryStr;
         if (!in->queryNull) {
@@ -186,13 +186,15 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
         // check if directory exists for index
         const auto indexDirectoryPath = ftsDirectoryPath / indexName;
         if (ftsIndex->status == "N" || !fs::is_directory(indexDirectoryPath)) {
-            throwException(status, R"(Index "%s" exists, but is not build. Please rebuild index.)", indexName.c_str());
+            std::string sIndexName(indexName);
+            throwException(status, R"(Index "%s" exists, but is not build. Please rebuild index.)", sIndexName.c_str());
         }
 
         try {
             auto ftsIndexDir = FSDirectory::open(indexDirectoryPath.wstring());
             if (!IndexReader::indexExists(ftsIndexDir)) {
-                throwException(status, R"(Index "%s" exists, but is not build. Please rebuild index.)", indexName.c_str());
+                std::string sIndexName(indexName);
+                throwException(status, R"(Index "%s" exists, but is not build. Please rebuild index.)", sIndexName.c_str());
             }
 
             const auto analyzers = procedure->indexRepository->getAnalyzerRepository();
@@ -211,13 +213,8 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
                 }
             }
 
-            if (keyFieldName != "RDB$DB_KEY") {
-                procedure->indexRepository->getRelationHelper()->getField(status, att, tra, sqlDialect, keyFieldInfo, ftsIndex->relationName, keyFieldName);
-            }
-            else {
-                keyFieldInfo.initDB_KEYField(ftsIndex->relationName);
-            }
-            
+            keyFieldInfo = procedure->indexRepository->getRelationHelper()->getField(status, att, tra, sqlDialect, ftsIndex->relationName, keyFieldName);
+
             if (fields.size() == 1) {
                 QueryParserPtr parser = newLucene<QueryParser>(LuceneVersion::LUCENE_CURRENT, fields[0], analyzer);
                 query = parser->parse(StringUtils::toUnicode(queryStr));

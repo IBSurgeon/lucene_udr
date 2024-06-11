@@ -274,7 +274,7 @@ namespace FTSMetadata
             Firebird::ITransaction* tra,
             unsigned int sqlDialect, 
             const FTSIndexPtr& ftsIndex,
-            const std::string& indexName,
+            std::string_view indexName,
             bool withSegments = false);
 
         /// <summary>
@@ -328,7 +328,7 @@ namespace FTSMetadata
             Firebird::IAttachment* const att,
             Firebird::ITransaction* const tra,
             unsigned int sqlDialect,
-            const std::string& indexName,
+            std::string_view indexName,
             FTSIndexSegmentList& segments);
 
 

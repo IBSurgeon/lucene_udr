@@ -45,38 +45,38 @@ namespace FTSMetadata
     public:
         AnalyzerRepository() = delete;
         AnalyzerRepository(AnalyzerRepository&&) = default;
-        explicit AnalyzerRepository(Firebird::IMaster* const master);
+        explicit AnalyzerRepository(Firebird::IMaster* master);
 
         ~AnalyzerRepository();
 
 
         Lucene::AnalyzerPtr createAnalyzer (
-            Firebird::ThrowStatusWrapper* const status,
-            Firebird::IAttachment* const att,
-            Firebird::ITransaction* const tra,
+            Firebird::ThrowStatusWrapper* status,
+            Firebird::IAttachment* att,
+            Firebird::ITransaction* tra,
             unsigned int sqlDialect,
             const std::string& analyzerName
         );
 
         LuceneUDR::AnalyzerInfo getAnalyzerInfo (
-            Firebird::ThrowStatusWrapper* const status,
-            Firebird::IAttachment* const att,
-            Firebird::ITransaction* const tra,
+            Firebird::ThrowStatusWrapper* status,
+            Firebird::IAttachment* att,
+            Firebird::ITransaction* tra,
             unsigned int sqlDialect,
             const std::string& analyzerName
         );
 
         std::list<LuceneUDR::AnalyzerInfo> getAnalyzerInfos (
-            Firebird::ThrowStatusWrapper* const status,
-            Firebird::IAttachment* const att,
-            Firebird::ITransaction* const tra,
+            Firebird::ThrowStatusWrapper* status,
+            Firebird::IAttachment* att,
+            Firebird::ITransaction* tra,
             unsigned int sqlDialect
         );
 
         bool hasAnalyzer (
-            Firebird::ThrowStatusWrapper* const status,
-            Firebird::IAttachment* const att,
-            Firebird::ITransaction* const tra,
+            Firebird::ThrowStatusWrapper* status,
+            Firebird::IAttachment* att,
+            Firebird::ITransaction* tra,
             unsigned int sqlDialect,
             const std::string& analyzerName
         );
@@ -92,34 +92,34 @@ namespace FTSMetadata
         );
 
         void deleteAnalyzer(
-            Firebird::ThrowStatusWrapper* const status,
-            Firebird::IAttachment* const att,
-            Firebird::ITransaction* const tra,
+            Firebird::ThrowStatusWrapper* status,
+            Firebird::IAttachment* att,
+            Firebird::ITransaction* tra,
             unsigned int sqlDialect,
             const std::string& analyzerName
         );
 
         const Lucene::HashSet<Lucene::String> getStopWords (
-            Firebird::ThrowStatusWrapper* const status,
-            Firebird::IAttachment* const att,
-            Firebird::ITransaction* const tra,
+            Firebird::ThrowStatusWrapper* status,
+            Firebird::IAttachment* att,
+            Firebird::ITransaction* tra,
             unsigned int sqlDialect,
             const std::string& analyzerName
         );
 
         void addStopWord (
-            Firebird::ThrowStatusWrapper* const status,
-            Firebird::IAttachment* const att,
-            Firebird::ITransaction* const tra,
+            Firebird::ThrowStatusWrapper* status,
+            Firebird::IAttachment* att,
+            Firebird::ITransaction* tra,
             unsigned int sqlDialect,
             const std::string& analyzerName,
             const std::string& stopWord
         );
 
         void deleteStopWord(
-            Firebird::ThrowStatusWrapper* const status,
-            Firebird::IAttachment* const att,
-            Firebird::ITransaction* const tra,
+            Firebird::ThrowStatusWrapper* status,
+            Firebird::IAttachment* att,
+            Firebird::ITransaction* tra,
             unsigned int sqlDialect,
             const std::string& analyzerName,
             const std::string& stopWord

@@ -21,8 +21,7 @@ using namespace Firebird;
 using namespace std;
 using namespace LuceneUDR;
 
-namespace FTSMetadata
-{
+namespace {
 
     constexpr const char* SQL_CREATE_FTS_INDEX = R"SQL(
 INSERT INTO FTS$INDICES (
@@ -155,6 +154,10 @@ FROM FTS$INDICES
 WHERE FTS$ANALYZER = ? AND FTS$INDEX_STATUS = 'C'
 )SQL";
 
+}
+
+namespace FTSMetadata
+{
     FTSIndexSegmentList::const_iterator FTSIndex::findSegment(const string& fieldName) {
         return std::find_if(
             segments.cbegin(),
@@ -529,7 +532,7 @@ WHERE FTS$ANALYZER = ? AND FTS$INDEX_STATUS = 'C'
         ITransaction* tra,
         unsigned int sqlDialect,
         const FTSIndexPtr& ftsIndex,
-        const string& indexName,
+        std::string_view indexName,
         bool withSegments)
     {	
         FTSIndexNameInput input(status, m_master);		
@@ -538,8 +541,8 @@ WHERE FTS$ANALYZER = ? AND FTS$INDEX_STATUS = 'C'
 
         input.clear();
         input->indexNameNull = false;
-        input->indexName.set(indexName.c_str());
-
+        input->indexName.length = static_cast<ISC_USHORT>(indexName.length());
+        indexName.copy(input->indexName.str, input->indexName.length);
 
         if (!m_stmt_get_index.hasData()) {
             m_stmt_get_index.reset(att->prepare(
@@ -566,7 +569,8 @@ WHERE FTS$ANALYZER = ? AND FTS$INDEX_STATUS = 'C'
         rs.release();
 
         if (result == IStatus::RESULT_NO_DATA) {
-            throwException(status, R"(Index "%s" not exists)", indexName.c_str());
+            std::string sIndexName(indexName);
+            throwException(status, R"(Index "%s" not exists)", sIndexName.c_str());
         }
         // index found
         if (result == IStatus::RESULT_OK) {
@@ -713,7 +717,7 @@ WHERE FTS$ANALYZER = ? AND FTS$INDEX_STATUS = 'C'
         IAttachment* const att,
         ITransaction* const tra,
         unsigned int sqlDialect,
-        const string& indexName,
+        std::string_view indexName,
         FTSIndexSegmentList& segments)
     {
         FB_MESSAGE(Input, ThrowStatusWrapper,

@@ -17,7 +17,7 @@
 using namespace Firebird;
 using namespace LuceneUDR;
 
-namespace FTSMetadata
+namespace 
 {
 
     // SQL texts
@@ -101,6 +101,34 @@ SELECT COUNT(*) AS CNT
 FROM RDB$RELATION_FIELDS
 WHERE RDB$RELATION_NAME = ? AND RDB$FIELD_NAME = ?
 )SQL";
+
+}
+
+namespace FTSMetadata
+{
+
+    RelationFieldInfo::RelationFieldInfo(
+        std::string_view relationName_,
+        std::string_view fieldName_,
+        short fieldType_,
+        short fieldLength_,
+        short charLength_,
+        short charsetId_,
+        short fieldSubType_,
+        short fieldPrecision_,
+        short fieldScale_
+    )
+        : relationName(relationName_)
+        , fieldName(fieldName_)
+        , fieldType(fieldType_)
+        , fieldLength(fieldLength_)
+        , charLength(charLength_)
+        , charsetId(charsetId_)
+        , fieldSubType(fieldSubType_)
+        , fieldPrecision(fieldPrecision_)
+        , fieldScale(fieldScale_)
+    {}
+
 
     RelationHelper::RelationHelper(IMaster* master)
         : m_master(master)
@@ -190,7 +218,7 @@ WHERE RDB$RELATION_NAME = ? AND RDB$FIELD_NAME = ?
         IAttachment* att,
         ITransaction* tra,
         unsigned int sqlDialect,
-        const std::string& relationName)
+        std::string_view relationName)
     {
         FB_MESSAGE(Input, ThrowStatusWrapper,
             (FB_INTL_VARCHAR(252, CS_UTF8), relationName)
@@ -245,13 +273,12 @@ WHERE RDB$RELATION_NAME = ? AND RDB$FIELD_NAME = ?
     /// <param name="relationName">Relation name</param>
     /// <param name="fields">List of relations fields</param>
     /// 
-    void RelationHelper::fillRelationFields(
+    RelationFieldList RelationHelper::fillRelationFields(
         ThrowStatusWrapper* status,
         IAttachment* att,
         ITransaction* tra,
         unsigned int sqlDialect,
-        const std::string& relationName,
-        RelationFieldList& fields
+        std::string_view relationName
     )
     {
         FB_MESSAGE(Input, ThrowStatusWrapper,
@@ -285,6 +312,8 @@ WHERE RDB$RELATION_NAME = ? AND RDB$FIELD_NAME = ?
             ));
         }
     
+        RelationFieldList fields;
+
         AutoRelease<IResultSet> rs(m_stmt_relation_fields->openCursor(
             status,
             tra,
@@ -295,21 +324,23 @@ WHERE RDB$RELATION_NAME = ? AND RDB$FIELD_NAME = ?
         ));
 
         while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
-            auto& fieldInfo = fields.emplace_back();
-
-            fieldInfo.relationName.assign(output->relationName.str, output->relationName.length);
-            fieldInfo.fieldName.assign(output->fieldName.str, output->fieldName.length);
-            fieldInfo.fieldType = output->fieldType;
-            fieldInfo.fieldLength = output->fieldLength;
-            fieldInfo.charLength = output->charLength;
-            fieldInfo.charsetId = output->charsetId;
-            fieldInfo.fieldSubType = output->fieldSubType;
-            fieldInfo.fieldPrecision = output->fieldPrecision;
-            fieldInfo.fieldScale = output->fieldScale;
+            fields.emplace_back(
+                std::string_view(output->relationName.str, output->relationName.length),
+                std::string_view(output->fieldName.str, output->fieldName.length),
+                output->fieldType,
+                output->fieldLength,
+                output->charLength,
+                output->charsetId,
+                output->fieldSubType,
+                output->fieldPrecision,
+                output->fieldScale
+            );
         }
 
         rs->close(status);
         rs.release();
+
+        return fields;
     }
 
     /// <summary>
@@ -321,15 +352,13 @@ WHERE RDB$RELATION_NAME = ? AND RDB$FIELD_NAME = ?
     /// <param name="tra">Firebird transaction</param>
     /// <param name="sqlDialect">SQL dialect</param>
     /// <param name="relationName">Relation name</param>
-    /// <param name="keyFields">List of relations primary key fields</param>
     /// 
-    void RelationHelper::fillPrimaryKeyFields(
+    RelationFieldList RelationHelper::fillPrimaryKeyFields(
         ThrowStatusWrapper* status,
         IAttachment* att,
         ITransaction* tra,
         unsigned int sqlDialect,
-        const std::string& relationName,
-        RelationFieldList& keyFields
+        std::string_view relationName
     )
     {
         FB_MESSAGE(Input, ThrowStatusWrapper,
@@ -363,6 +392,8 @@ WHERE RDB$RELATION_NAME = ? AND RDB$FIELD_NAME = ?
             ));
         }
 
+        RelationFieldList keyFields;
+
         AutoRelease<IResultSet> rs(m_stmt_pk_fields->openCursor(
             status,
             tra,
@@ -373,21 +404,23 @@ WHERE RDB$RELATION_NAME = ? AND RDB$FIELD_NAME = ?
         ));
 
         while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
-            auto& fieldInfo = keyFields.emplace_back();
-
-            fieldInfo.relationName.assign(output->relationName.str, output->relationName.length);
-            fieldInfo.fieldName.assign(output->fieldName.str, output->fieldName.length);
-            fieldInfo.fieldType = output->fieldType;
-            fieldInfo.fieldLength = output->fieldLength;
-            fieldInfo.charLength = output->charLength;
-            fieldInfo.charsetId = output->charsetId;
-            fieldInfo.fieldSubType = output->fieldSubType;
-            fieldInfo.fieldPrecision = output->fieldPrecision;
-            fieldInfo.fieldScale = output->fieldScale;
+            keyFields.emplace_back(
+                std::string_view(output->relationName.str, output->relationName.length),
+                std::string_view(output->fieldName.str, output->fieldName.length),
+                output->fieldType,
+                output->fieldLength,
+                output->charLength,
+                output->charsetId,
+                output->fieldSubType,
+                output->fieldPrecision,
+                output->fieldScale
+            );
         }
 
         rs->close(status);
         rs.release();
+
+        return keyFields;
     }
 
     /// <summary>
@@ -398,19 +431,33 @@ WHERE RDB$RELATION_NAME = ? AND RDB$FIELD_NAME = ?
     /// <param name="att">Firebird attachment</param>
     /// <param name="tra">Firebird transaction</param>
     /// <param name="sqlDialect">SQL dialect</param>
-    /// <param name="fieldInfo">Information about the field</param>
     /// <param name="relationName">Relation name</param>
     /// <param name="fieldName">Field name</param>
     /// 
-    void RelationHelper::getField(
+    RelationFieldInfo RelationHelper::getField(
         ThrowStatusWrapper* status,
         IAttachment* att,
         ITransaction* tra,
         unsigned int sqlDialect,
-        RelationFieldInfo& fieldInfo,
-        const std::string& relationName,
-        const std::string& fieldName)
+        std::string_view relationName,
+        std::string_view fieldName)
     {
+
+        if (fieldName == "RDB$DB_KEY") {
+            // special case
+            return {
+                relationName,
+                "RDB$DB_KEY",
+                14,
+                8,
+                8,
+                1,
+                0,
+                0,
+                0
+            };
+        }
+
         FB_MESSAGE(Input, ThrowStatusWrapper,
             (FB_INTL_VARCHAR(252, CS_UTF8), relationName)
             (FB_INTL_VARCHAR(252, CS_UTF8), fieldName)
@@ -462,20 +509,22 @@ WHERE RDB$RELATION_NAME = ? AND RDB$FIELD_NAME = ?
 
 
         if (result == IStatus::RESULT_NO_DATA) {
-            throwException(status, R"(Field "%s" not found in relation "%s".)", fieldName.c_str(), relationName.c_str());
+            std::string sFieldName(fieldName);
+            std::string sRelationName(relationName);
+            throwException(status, R"(Field "%s" not found in relation "%s".)", sFieldName.c_str(), sRelationName.c_str());
         }
 
-        if (result == IStatus::RESULT_OK) {
-            fieldInfo.relationName.assign(output->relationName.str, output->relationName.length);
-            fieldInfo.fieldName.assign(output->fieldName.str, output->fieldName.length);
-            fieldInfo.fieldType = output->fieldType;
-            fieldInfo.fieldLength = output->fieldLength;
-            fieldInfo.charLength = output->charLength;
-            fieldInfo.charsetId = output->charsetId;
-            fieldInfo.fieldSubType = output->fieldSubType;
-            fieldInfo.fieldPrecision = output->fieldPrecision;
-            fieldInfo.fieldScale = output->fieldScale;
-        }
+        return { 
+            std::string_view(output->relationName.str, output->relationName.length),
+            std::string_view(output->fieldName.str, output->fieldName.length),
+            output->fieldType,
+            output->fieldLength,
+            output->charLength,
+            output->charsetId,
+            output->fieldSubType,
+            output->fieldPrecision,
+            output->fieldScale
+        };
     }
 
     /// <summary>
@@ -495,8 +544,8 @@ WHERE RDB$RELATION_NAME = ? AND RDB$FIELD_NAME = ?
         IAttachment* att,
         ITransaction* tra,
         unsigned int sqlDialect,
-        const std::string& relationName,
-        const std::string& fieldName)
+        std::string_view relationName,
+        std::string_view fieldName)
     {
         FB_MESSAGE(Input, ThrowStatusWrapper,
             (FB_INTL_VARCHAR(252, CS_UTF8), relationName)

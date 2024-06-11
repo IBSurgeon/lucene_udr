@@ -523,8 +523,7 @@ FB_UDR_BEGIN_PROCEDURE(createIndex)
         std::string keyFieldName;
         if (in->keyFieldNameNull) {
             if (relationInfo.findKeyFieldSupported()) {
-                RelationFieldList keyFields;
-                relationHelper->fillPrimaryKeyFields(status, att, tra, sqlDialect, relationName, keyFields);
+                auto keyFields = relationHelper->fillPrimaryKeyFields(status, att, tra, sqlDialect, relationName);
                 if (keyFields.size() == 0) {
                    // There is no primary key constraint.
                     if (relationInfo.relationType == RelationType::RT_REGULAR) {
@@ -559,11 +558,9 @@ FB_UDR_BEGIN_PROCEDURE(createIndex)
             }
         }
         else {
-            RelationFieldInfo keyFieldInfo;
-            relationHelper->getField(status, att, tra, sqlDialect, keyFieldInfo, relationName, keyFieldName);
+            const auto keyFieldInfo = relationHelper->getField(status, att, tra, sqlDialect, relationName, keyFieldName);
             // check field type
-            // Supported types SMALLINT, INTEGER, BIGINT, CHAR(16) CHARACTER SET OCTETS, BINARY(16) 
-            if (!(keyFieldInfo.isInt() || (keyFieldInfo.isFixedChar() && keyFieldInfo.isBinary() && keyFieldInfo.fieldLength == 16))) {
+            if (!keyFieldInfo.ftsKeySupported()) {
                 throwException(status, "Unsupported data type for the key field. Supported data types: SMALLINT, INTEGER, BIGINT, CHAR(16) CHARACTER SET OCTETS, BINARY(16).");
             }
         }

@@ -20,9 +20,7 @@ using namespace LuceneUDR;
 using namespace Firebird;
 using namespace Lucene;
 
-namespace FTSMetadata
-{
-
+namespace {
     // SQL texts
     constexpr const char* SQL_ANALYZER_INFO = R"SQL(
 SELECT
@@ -94,7 +92,12 @@ DELETE FROM FTS$STOP_WORDS
 WHERE FTS$ANALYZER_NAME = ? AND FTS$WORD = ?
 )SQL";
 
-    AnalyzerRepository::AnalyzerRepository(IMaster* const master)
+}
+
+namespace FTSMetadata
+{
+
+    AnalyzerRepository::AnalyzerRepository(IMaster* master)
         : m_master(master)
         , m_analyzerFactory(new LuceneAnalyzerFactory())
     {}
@@ -105,9 +108,9 @@ WHERE FTS$ANALYZER_NAME = ? AND FTS$WORD = ?
     }
 
     AnalyzerPtr AnalyzerRepository::createAnalyzer(
-        ThrowStatusWrapper* const status,
-        IAttachment* const att,
-        ITransaction* const tra,
+        ThrowStatusWrapper* status,
+        IAttachment* att,
+        ITransaction* tra,
         unsigned int sqlDialect,
         const std::string& analyzerName
     )
@@ -124,9 +127,9 @@ WHERE FTS$ANALYZER_NAME = ? AND FTS$WORD = ?
     }
 
     AnalyzerInfo AnalyzerRepository::getAnalyzerInfo(
-        ThrowStatusWrapper* const status,
-        IAttachment* const att,
-        ITransaction* const tra,
+        ThrowStatusWrapper* status,
+        IAttachment* att,
+        ITransaction* tra,
         unsigned int sqlDialect,
         const std::string& analyzerName
     )
@@ -188,9 +191,9 @@ WHERE FTS$ANALYZER_NAME = ? AND FTS$WORD = ?
     }
 
     std::list<AnalyzerInfo> AnalyzerRepository::getAnalyzerInfos(
-        ThrowStatusWrapper* const status,
-        IAttachment* const att,
-        ITransaction* const tra,
+        ThrowStatusWrapper* status,
+        IAttachment* att,
+        ITransaction* tra,
         unsigned int sqlDialect
     )
     {
@@ -237,9 +240,9 @@ WHERE FTS$ANALYZER_NAME = ? AND FTS$WORD = ?
     }
 
     bool AnalyzerRepository::hasAnalyzer (
-        ThrowStatusWrapper* const status,
-        IAttachment* const att,
-        ITransaction* const tra,
+        ThrowStatusWrapper* status,
+        IAttachment* att,
+        ITransaction* tra,
         unsigned int sqlDialect,
         const std::string& analyzerName
     )
@@ -344,9 +347,9 @@ WHERE FTS$ANALYZER_NAME = ? AND FTS$WORD = ?
     }
 
     void AnalyzerRepository::deleteAnalyzer(
-        ThrowStatusWrapper* const status,
-        IAttachment* const att,
-        ITransaction* const tra,
+        ThrowStatusWrapper* status,
+        IAttachment* att,
+        ITransaction* tra,
         unsigned int sqlDialect,
         const std::string& analyzerName
     )
@@ -381,9 +384,9 @@ WHERE FTS$ANALYZER_NAME = ? AND FTS$WORD = ?
     }
 
     const HashSet<String> AnalyzerRepository::getStopWords(
-        ThrowStatusWrapper* const status,
-        IAttachment* const att,
-        ITransaction* const tra,
+        ThrowStatusWrapper* status,
+        IAttachment* att,
+        ITransaction* tra,
         unsigned int sqlDialect,
         const std::string& analyzerName
     )
@@ -439,9 +442,9 @@ WHERE FTS$ANALYZER_NAME = ? AND FTS$WORD = ?
     }
 
     void AnalyzerRepository::addStopWord(
-        ThrowStatusWrapper* const status,
-        IAttachment* const att,
-        ITransaction* const tra,
+        ThrowStatusWrapper* status,
+        IAttachment* att,
+        ITransaction* tra,
         unsigned int sqlDialect,
         const std::string& analyzerName,
         const std::string& stopWord
@@ -493,9 +496,9 @@ WHERE FTS$ANALYZER_NAME = ? AND FTS$WORD = ?
     }
 
     void AnalyzerRepository::deleteStopWord(
-        ThrowStatusWrapper* const status,
-        IAttachment* const att,
-        ITransaction* const tra,
+        ThrowStatusWrapper* status,
+        IAttachment* att,
+        ITransaction* tra,
         unsigned int sqlDialect,
         const std::string& analyzerName,
         const std::string& stopWord
