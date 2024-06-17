@@ -35,7 +35,7 @@ namespace LuceneUDR
             }
         };
 
-        bool operator() (const std::string& s1, const std::string& s2) const {
+        bool operator() (const std::string_view& s1, const std::string_view& s2) const {
             return std::lexicographical_compare(
                 s1.begin(), s1.end(),   // source range
                 s2.begin(), s2.end(),   // dest range
@@ -44,7 +44,7 @@ namespace LuceneUDR
         }
     };
 
-    constexpr char DEFAULT_ANALYZER_NAME[] = "STANDARD";
+    constexpr const char* DEFAULT_ANALYZER_NAME = "STANDARD";
 
     struct AnalyzerInfo
     {
@@ -72,7 +72,7 @@ namespace LuceneUDR
             bool stopWordsSupported;
         };
 
-        std::map<std::string, AnalyzerFactory, ci_more> m_factories;
+        std::map<std::string_view, AnalyzerFactory, ci_more> m_factories;
 
     public:
 
@@ -80,21 +80,21 @@ namespace LuceneUDR
 
         ~LuceneAnalyzerFactory();
 
-        bool hasAnalyzer(const std::string& analyzerName) const;
+        bool hasAnalyzer(std::string_view analyzerName) const;
 
-        bool isStopWordsSupported(const std::string& analyzerName) const;
+        bool isStopWordsSupported(std::string_view analyzerName) const;
 
-        Lucene::AnalyzerPtr createAnalyzer(Firebird::ThrowStatusWrapper* status, const std::string& analyzerName) const;
+        Lucene::AnalyzerPtr createAnalyzer(Firebird::ThrowStatusWrapper* status, std::string_view analyzerName) const;
 
-        Lucene::AnalyzerPtr createAnalyzer(Firebird::ThrowStatusWrapper* status, const std::string& analyzerName, const Lucene::HashSet<Lucene::String> stopWords) const;
+        Lucene::AnalyzerPtr createAnalyzer(Firebird::ThrowStatusWrapper* status, std::string_view analyzerName, const Lucene::HashSet<Lucene::String> stopWords) const;
 
         std::unordered_set<std::string> getAnalyzerNames() const;
 
-        AnalyzerInfo getAnalyzerInfo(Firebird::ThrowStatusWrapper* status, const std::string& analyzerName) const;
+        AnalyzerInfo getAnalyzerInfo(Firebird::ThrowStatusWrapper* status, std::string_view analyzerName) const;
 
         std::list<AnalyzerInfo> getAnalyzerInfos() const;
 
-        Lucene::HashSet<Lucene::String> getAnalyzerStopWords(Firebird::ThrowStatusWrapper* status, const std::string& analyzerName) const;
+        Lucene::HashSet<Lucene::String> getAnalyzerStopWords(Firebird::ThrowStatusWrapper* status, std::string_view analyzerName) const;
 
     };
 
