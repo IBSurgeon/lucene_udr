@@ -76,10 +76,10 @@ namespace FTSMetadata
        );
 
         RelationFieldInfo(const RelationFieldInfo&) = delete;
-        RelationFieldInfo(RelationFieldInfo&&) = default;
+        RelationFieldInfo(RelationFieldInfo&&) noexcept = default;
 
         RelationFieldInfo& operator=(const RelationFieldInfo&) = delete;
-        RelationFieldInfo& operator=(RelationFieldInfo&&) = default;
+        RelationFieldInfo& operator=(RelationFieldInfo&&) noexcept = default;
 
         bool isInt() const {
             return (fieldScale == 0) && (fieldType == 7 || fieldType == 8 || fieldType == 16 || fieldType == 26);

@@ -60,10 +60,10 @@ namespace FTSMetadata
         );
 
         FTSPreparedIndexStmt(const FTSPreparedIndexStmt&) = delete;
-        FTSPreparedIndexStmt(FTSPreparedIndexStmt&&) = default;
+        FTSPreparedIndexStmt(FTSPreparedIndexStmt&&) noexcept = default;
 
         FTSPreparedIndexStmt& operator=(const FTSPreparedIndexStmt&) = delete;
-        FTSPreparedIndexStmt& operator=(FTSPreparedIndexStmt&&) = default;
+        FTSPreparedIndexStmt& operator=(FTSPreparedIndexStmt&&) noexcept = default;
 
         Firebird::IStatement* getPreparedExtractRecordStmt()
         {
