@@ -158,7 +158,6 @@ namespace FTSMetadata
         Firebird::AutoRelease<Firebird::IStatement> m_stmt_exists_index{ nullptr };
         Firebird::AutoRelease<Firebird::IStatement> m_stmt_get_index{ nullptr };
         Firebird::AutoRelease<Firebird::IStatement> m_stmt_index_fields{ nullptr };
-        Firebird::AutoRelease<Firebird::IStatement> m_stmt_index_key_field{ nullptr };
         Firebird::AutoRelease<Firebird::IStatement> m_stmt_active_indexes_by_analyzer{ nullptr };
 
     public:
@@ -347,26 +346,6 @@ namespace FTSMetadata
             Firebird::IAttachment* att,
             Firebird::ITransaction* tra,
             unsigned int sqlDialect,
-            std::string_view indexName
-        );
-
-        /// <summary>
-        /// Returns segment with key field.
-        /// </summary>
-        /// 
-        /// <param name="status">Firebird status</param>
-        /// <param name="att">Firebird attachment</param>
-        /// <param name="tra">Firebird transaction</param>
-        /// <param name="sqlDialect">SQL dialect</param>
-        /// <param name="ftsIndexSegment">Key index field</param>
-        /// <param name="indexName">Index name</param>
-        /// 
-        void getKeyIndexField (
-            Firebird::ThrowStatusWrapper* status,
-            Firebird::IAttachment* att,
-            Firebird::ITransaction* tra,
-            unsigned int sqlDialect,
-            const FTSIndexSegmentPtr& keyIndexSegment,
             std::string_view indexName
         );
 

@@ -115,12 +115,6 @@ FROM FTS$INDEX_SEGMENTS
 WHERE FTS$INDEX_NAME = ? AND FTS$KEY IS TRUE
 )SQL";
 
-    constexpr const char* SQL_GET_FTS_KEY_INDEX_FIELD = R"SQL(
-SELECT FTS$INDEX_NAME, FTS$FIELD_NAME
-FROM FTS$INDEX_SEGMENTS
-WHERE FTS$INDEX_NAME = ? AND FTS$KEY IS TRUE
-)SQL";
-
     constexpr const char* SQL_FTS_ADD_INDEX_FIELD = R"SQL(
 INSERT INTO FTS$INDEX_SEGMENTS (
   FTS$INDEX_NAME, 
@@ -832,77 +826,7 @@ namespace FTSMetadata
 
         return foundFlag;
     }
-
-    /// <summary>
-    /// Returns segment with key field.
-    /// </summary>
-    /// 
-    /// <param name="status">Firebird status</param>
-    /// <param name="att">Firebird attachment</param>
-    /// <param name="tra">Firebird transaction</param>
-    /// <param name="sqlDialect">SQL dialect</param>
-    /// <param name="keyIndexSegment">Key index field</param>
-    /// <param name="indexName">Index name</param>
-    /// 
-    void FTSIndexRepository::getKeyIndexField(
-        ThrowStatusWrapper* status,
-        IAttachment* att,
-        ITransaction* tra,
-        unsigned int sqlDialect,
-        const FTSIndexSegmentPtr& keyIndexSegment,
-        std::string_view indexName)
-    {
-        FB_MESSAGE(Input, ThrowStatusWrapper,
-            (FB_INTL_VARCHAR(252, CS_UTF8), indexName)
-        ) input(status, m_master);
-
-        FB_MESSAGE(Output, ThrowStatusWrapper,
-            (FB_INTL_VARCHAR(252, CS_UTF8), indexName)
-            (FB_INTL_VARCHAR(252, CS_UTF8), fieldName)
-        ) output(status, m_master);
-
-        input.clear();
-
-        input->indexName.length = static_cast<ISC_USHORT>(indexName.length());
-        indexName.copy(input->indexName.str, input->indexName.length);
-
-        if (!m_stmt_index_key_field.hasData()) {
-            m_stmt_index_key_field.reset(att->prepare(
-                status,
-                tra,
-                0,
-                SQL_GET_FTS_KEY_INDEX_FIELD,
-                sqlDialect,
-                IStatement::PREPARE_PREFETCH_NONE
-            ));
-        }
-
-        AutoRelease<IResultSet> rs(m_stmt_index_key_field->openCursor(
-            status,
-            tra,
-            input.getMetadata(),
-            input.getData(),
-            output.getMetadata(),
-            0
-        ));
-
-        int	result = rs->fetchNext(status, output.getData());
-        rs->close(status);
-        rs.release();
-
-        if (result == IStatus::RESULT_NO_DATA) {
-            std::string sIndexName{ indexName };
-            throwException(status, R"(Key field not exists in index "%s".)", sIndexName.c_str());
-        }
-        if (result == IStatus::RESULT_OK) {
-            keyIndexSegment->indexName.assign(output->indexName.str, output->indexName.length);
-            keyIndexSegment->fieldName.assign(output->fieldName.str, output->fieldName.length);
-            keyIndexSegment->key = true;
-            keyIndexSegment->boost = 0;
-            keyIndexSegment->boostNull = true;
-        }	
-    }
-
+ 
     /// <summary>
     /// Adds a new field (segment) to the full-text index.
     /// </summary>
