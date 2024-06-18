@@ -57,7 +57,7 @@ FB_UDR_BEGIN_FUNCTION(getFTSDirectory)
 
     FB_UDR_EXECUTE_FUNCTION
     {
-        const auto& ftsDirectoryPath = getFtsDirectory(status, context);
+        const auto ftsDirectoryPath = getFtsDirectory(status, context);
         const std::string ftsDirectory = ftsDirectoryPath.u8string();
 
         out->directoryNull = false;
@@ -66,33 +66,28 @@ FB_UDR_BEGIN_FUNCTION(getFTSDirectory)
     }
 FB_UDR_END_FUNCTION
 
-
 /***
-PROCEDURE FTS$ALL_ANALYZERS
+PROCEDURE FTS$SYSTEM_ANALYZERS
 RETURNS (
   FTS$ANALYZER VARCHAR(63) CHARACTER SET UTF8,
-  FTS$BASE_ANALYZER VARCHAR(63) CHARACTER SET UTF8,
-  FTS$STOP_WORDS_SUPPORTED BOOLEAN,
-  FTS$SYSTEM_FLAG BOOLEAN
+  FTS$STOP_WORDS_SUPPORTED BOOLEAN
 )
-EXTERNAL NAME 'luceneudr!getAnalyzers' 
+EXTERNAL NAME 'luceneudr!systemAnalyzers'
 ENGINE UDR;
 ***/
-FB_UDR_BEGIN_PROCEDURE(getAnalyzers)
+FB_UDR_BEGIN_PROCEDURE(systemAnalyzers)
 
     FB_UDR_MESSAGE(OutMessage,
         (FB_INTL_VARCHAR(252, CS_UTF8), analyzer)
-        (FB_INTL_VARCHAR(252, CS_UTF8), baseAnalyzer)
         (FB_BOOLEAN, stopWordsSupported)
-        (FB_BOOLEAN, systemFlag)
     );
 
     FB_UDR_CONSTRUCTOR
-        , analyzers(std::make_unique<AnalyzerRepository>(context->getMaster()))
+        , analyzers(std::make_unique<LuceneAnalyzerFactory>())
     {
     }
 
-    std::unique_ptr<AnalyzerRepository> analyzers;
+    std::unique_ptr<LuceneAnalyzerFactory> analyzers;
 
     void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
         char* name, unsigned nameSize)
@@ -104,12 +99,7 @@ FB_UDR_BEGIN_PROCEDURE(getAnalyzers)
 
     FB_UDR_EXECUTE_PROCEDURE
     {
-        AutoRelease<IAttachment> att(context->getAttachment(status));
-        AutoRelease<ITransaction> tra(context->getTransaction(status));
-
-        const unsigned int sqlDialect = getSqlDialect(status, att);
-
-        analyzerInfos = procedure->analyzers->getAnalyzerInfos(status, att, tra, sqlDialect);
+        analyzerInfos = procedure->analyzers->getAnalyzerInfos();
         it = analyzerInfos.begin();
     }
 
@@ -121,21 +111,14 @@ FB_UDR_BEGIN_PROCEDURE(getAnalyzers)
         if (it == analyzerInfos.end()) {
             return false;
         }
-        const AnalyzerInfo info = *it;
+        auto&& info = *it;
 
         out->analyzerNull = false;
         out->analyzer.length = static_cast<ISC_USHORT>(info.analyzerName.length());
         info.analyzerName.copy(out->analyzer.str, out->analyzer.length);
 
-        out->baseAnalyzerNull = (info.baseAnalyzer.length() == 0);
-        out->baseAnalyzer.length = static_cast<ISC_USHORT>(info.baseAnalyzer.length());
-        info.baseAnalyzer.copy(out->baseAnalyzer.str, out->baseAnalyzer.length);
-
         out->stopWordsSupportedNull = false;
         out->stopWordsSupported = static_cast<FB_BOOLEAN>(info.stopWordsSupported);
-
-        out->systemFlagNull = false;
-        out->systemFlag = static_cast<FB_BOOLEAN>(info.systemFlag);
 
         ++it;
         return true;
@@ -143,21 +126,33 @@ FB_UDR_BEGIN_PROCEDURE(getAnalyzers)
 FB_UDR_END_PROCEDURE
 
 /***
-PROCEDURE FTS$CREATE_ANALYZER (
-    FTS$ANALYZER VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
-    FTS$BASE_ANALYZER VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
-    FTS$DESCRIPTION BLOB SUB_TYPE TEXT CHARACTER SET UTF8
+PROCEDURE FTS$GET_SYSTEM_ANALYZER (
+  FTS$ANALYZER_NAME VARCHAR(63) CHARACTER SET UTF8
 )
-EXTERNAL NAME 'luceneudr!createAnalyzer'
+RETURNS (
+  FTS$ANALYZER VARCHAR(63) CHARACTER SET UTF8,
+  FTS$STOP_WORDS_SUPPORTED BOOLEAN
+)
+EXTERNAL NAME 'luceneudr!getSystemAnalyzer'
 ENGINE UDR;
 ***/
-FB_UDR_BEGIN_PROCEDURE(createAnalyzer)
+FB_UDR_BEGIN_PROCEDURE(getSystemAnalyzer)
 
     FB_UDR_MESSAGE(InMessage,
         (FB_INTL_VARCHAR(252, CS_UTF8), analyzerName)
-        (FB_INTL_VARCHAR(252, CS_UTF8), baseAnalyzer)
-        (FB_BLOB, description)
     );
+
+    FB_UDR_MESSAGE(OutMessage,
+        (FB_INTL_VARCHAR(252, CS_UTF8), analyzer)
+        (FB_BOOLEAN, stopWordsSupported)
+    );
+
+    FB_UDR_CONSTRUCTOR
+        , analyzers(std::make_unique<LuceneAnalyzerFactory>())
+    {
+    }
+
+    std::unique_ptr<LuceneAnalyzerFactory> analyzers;
 
     void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
         char* name, unsigned nameSize)
@@ -169,39 +164,63 @@ FB_UDR_BEGIN_PROCEDURE(createAnalyzer)
 
     FB_UDR_EXECUTE_PROCEDURE
     {
+        if (!in->analyzerNameNull) {
+            std::string_view analyzerName(in->analyzerName.str, in->analyzerName.length);
 
-        std::string_view analyzerName(in->analyzerName.str, in->analyzerName.length);
-        std::string_view baseAnalyzer(in->baseAnalyzer.str, in->baseAnalyzer.length);
+            auto info = procedure->analyzers->getAnalyzerInfo(status, analyzerName);
 
-        AutoRelease<IAttachment> att(context->getAttachment(status));
-        AutoRelease<ITransaction> tra(context->getTransaction(status));
+            fetchFlag = true;
 
-        const unsigned int sqlDialect = getSqlDialect(status, att);
+            out->analyzerNull = false;
+            out->analyzer.length = static_cast<ISC_USHORT>(info.analyzerName.length());
+            info.analyzerName.copy(out->analyzer.str, out->analyzer.length);
 
-        auto analyzers = std::make_unique<AnalyzerRepository>(context->getMaster());
-
-        analyzers->addAnalyzer(status, att, tra, sqlDialect, analyzerName, baseAnalyzer, !in->descriptionNull ? &in->description : nullptr);
+            out->stopWordsSupportedNull = false;
+            out->stopWordsSupported = static_cast<FB_BOOLEAN>(info.stopWordsSupported);
+        }
+        else {
+            fetchFlag = false;
+            out->analyzerNull = true;
+            out->stopWordsSupportedNull = true;
+        }
     }
+
+    bool fetchFlag = false;
 
     FB_UDR_FETCH_PROCEDURE
     {
-        return false;
-    }
+        if (!fetchFlag) {
+            return false;
+        }
+        fetchFlag = false;
 
+        return true;
+    }
 FB_UDR_END_PROCEDURE
 
 /***
-PROCEDURE FTS$DROP_ANALYZER (
-    FTS$ANALYZER VARCHAR(63) CHARACTER SET UTF8 NOT NULL
+FUNCTION FTS$HAS_SYSTEM_ANALYZER (
+  FTS$ANALYZER VARCHAR(63) CHARACTER SET UTF8
 )
-EXTERNAL NAME 'luceneudr!dropAnalyzer'
+RETURNS BOOLEAN
+EXTERNAL NAME 'luceneudr!hasSystemAnalyzer'
 ENGINE UDR;
 ***/
-FB_UDR_BEGIN_PROCEDURE(dropAnalyzer)
-
+FB_UDR_BEGIN_FUNCTION(hasSystemAnalyzer)
     FB_UDR_MESSAGE(InMessage,
-        (FB_INTL_VARCHAR(252, CS_UTF8), analyzerName)
+        (FB_INTL_VARCHAR(252, CS_UTF8), analyzer)
     );
+
+    FB_UDR_MESSAGE(OutMessage,
+        (FB_BOOLEAN, exists)
+    );
+
+    FB_UDR_CONSTRUCTOR
+        , analyzers(std::make_unique<LuceneAnalyzerFactory>())
+    {
+    }
+
+    std::unique_ptr<LuceneAnalyzerFactory> analyzers;
 
     void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
         char* name, unsigned nameSize)
@@ -211,34 +230,19 @@ FB_UDR_BEGIN_PROCEDURE(dropAnalyzer)
         memcpy(name, INTERNAL_UDR_CHARSET, std::size(INTERNAL_UDR_CHARSET));
     }
 
-    FB_UDR_EXECUTE_PROCEDURE
+    FB_UDR_EXECUTE_FUNCTION
     {
-
-        std::string_view analyzerName(in->analyzerName.str, in->analyzerName.length);
-
-        AutoRelease<IAttachment> att(context->getAttachment(status));
-        AutoRelease<ITransaction> tra(context->getTransaction(status));
-
-        const unsigned int sqlDialect = getSqlDialect(status, att);
-
-        const auto indexRepository = std::make_unique<FTSIndexRepository>(context->getMaster());
-
-        const auto analyzers = indexRepository->getAnalyzerRepository();
-
-        if (!indexRepository->hasIndexByAnalyzer(status, att, tra, sqlDialect, analyzerName)) {
-            analyzers->deleteAnalyzer(status, att, tra, sqlDialect, analyzerName);
-        }
+        out->existsNull = false;
+        if (!in->analyzerNull) {
+            std::string_view analyzerName(in->analyzer.str, in->analyzer.length);
+            out->exists = analyzers->hasAnalyzer(analyzerName);
+        } 
         else {
-            throwException(status, R"(Unable to drop analyzer, there are dependent indexes.)");
+            out->exists = false;
         }
     }
+FB_UDR_END_FUNCTION
 
-    FB_UDR_FETCH_PROCEDURE
-    {
-        return false;
-    }
-
-FB_UDR_END_PROCEDURE
 
 /***
 PROCEDURE FTS$ANALYZER_STOP_WORDS (

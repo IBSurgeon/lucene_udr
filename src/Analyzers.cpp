@@ -46,21 +46,6 @@ FROM FTS$ANALYZERS A
 WHERE A.FTS$ANALYZER_NAME = ?
 )SQL";
 
-    constexpr const char* SQL_INSERT_ANALYZER = R"SQL(
-INSERT INTO FTS$ANALYZERS (
-    FTS$ANALYZER_NAME,
-    FTS$BASE_ANALYZER,
-    FTS$DESCRIPTION)
-VALUES (
-    ?,
-    ?,
-    ?)
-)SQL";
-
-    constexpr const char* SQL_DELETE_ANALYZER = R"SQL(
-DELETE FROM FTS$ANALYZERS A
-WHERE A.FTS$ANALYZER_NAME = ?
-)SQL";
 
     constexpr const char* SQL_STOP_WORDS = R"SQL(
 SELECT
@@ -291,100 +276,6 @@ namespace FTSMetadata
         rs.release();
 
         return foundFlag;
-    }
-
-    void AnalyzerRepository::addAnalyzer (
-        ThrowStatusWrapper* status,
-        IAttachment* att,
-        ITransaction* tra,
-        unsigned int sqlDialect,
-        std::string_view analyzerName,
-        std::string_view baseAnalyzer,
-        ISC_QUAD* description
-    )
-    {
-        if (hasAnalyzer(status, att, tra, sqlDialect, analyzerName)) {
-            std::string sAnalyzerName{ analyzerName };
-            throwException(status, R"(Cannot create analyzer. Analyzer "%s" already exists)", sAnalyzerName.c_str());
-        }
-
-        if (!m_analyzerFactory->hasAnalyzer(baseAnalyzer)) {
-            std::string sBaseAnalyzerName{ baseAnalyzer };
-            throwException(status, R"(Cannot create analyzer. Base analyzer "%s" not exists or not system analyzer)", sBaseAnalyzerName.c_str());
-        }
-
-        FB_MESSAGE(Input, ThrowStatusWrapper,
-            (FB_INTL_VARCHAR(252, CS_UTF8), analyzerName)
-            (FB_INTL_VARCHAR(252, CS_UTF8), baseAnalyzer)
-            (FB_BLOB, description)
-        ) input(status, m_master);
-
-        input.clear();
-
-        input->analyzerName.length = static_cast<ISC_USHORT>(analyzerName.length());
-        analyzerName.copy(input->analyzerName.str, input->analyzerName.length);
-
-        input->baseAnalyzer.length = static_cast<ISC_USHORT>(baseAnalyzer.length());
-        baseAnalyzer.copy(input->baseAnalyzer.str, input->baseAnalyzer.length);
-
-        if (description) {
-            input->descriptionNull = false;
-            input->description = *description;
-        }
-        else {
-            input->descriptionNull = true;
-        }
-
-        att->execute(
-            status,
-            tra,
-            0,
-            SQL_INSERT_ANALYZER,
-            sqlDialect,
-            input.getMetadata(),
-            input.getData(),
-            nullptr,
-            nullptr
-        );
-    }
-
-    void AnalyzerRepository::deleteAnalyzer(
-        ThrowStatusWrapper* status,
-        IAttachment* att,
-        ITransaction* tra,
-        unsigned int sqlDialect,
-        std::string_view analyzerName
-    )
-    {
-        if (m_analyzerFactory->hasAnalyzer(analyzerName)) {
-            std::string sAnalyzerName{ analyzerName };
-            throwException(status, R"(Cannot drop system analyzer "%s")", sAnalyzerName.c_str());
-        }
-        if (!hasAnalyzer(status, att, tra, sqlDialect, analyzerName)) {
-            std::string sAnalyzerName{ analyzerName };
-            throwException(status, R"(Cannot drop analyzer. Analyzer "%s" not exists)", sAnalyzerName.c_str());
-        }
-
-        FB_MESSAGE(Input, ThrowStatusWrapper,
-            (FB_INTL_VARCHAR(252, CS_UTF8), analyzerName)
-        ) input(status, m_master);
-
-        input.clear();
-
-        input->analyzerName.length = static_cast<ISC_USHORT>(analyzerName.length());
-        analyzerName.copy(input->analyzerName.str, input->analyzerName.length);
-
-        att->execute(
-            status,
-            tra,
-            0,
-            SQL_DELETE_ANALYZER,
-            sqlDialect,
-            input.getMetadata(),
-            input.getData(),
-            nullptr,
-            nullptr
-        );
     }
 
     const HashSet<String> AnalyzerRepository::getStopWords(

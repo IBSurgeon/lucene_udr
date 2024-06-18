@@ -81,24 +81,6 @@ namespace FTSMetadata
             std::string_view analyzerName
         );
 
-        void addAnalyzer (
-            Firebird::ThrowStatusWrapper* status,
-            Firebird::IAttachment* att,
-            Firebird::ITransaction* tra,
-            unsigned int sqlDialect,
-            std::string_view analyzerName,
-            std::string_view baseAnalyzer,
-            ISC_QUAD* description
-        );
-
-        void deleteAnalyzer(
-            Firebird::ThrowStatusWrapper* status,
-            Firebird::IAttachment* att,
-            Firebird::ITransaction* tra,
-            unsigned int sqlDialect,
-            std::string_view analyzerName
-        );
-
         const Lucene::HashSet<Lucene::String> getStopWords (
             Firebird::ThrowStatusWrapper* status,
             Firebird::IAttachment* att,
