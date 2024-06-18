@@ -301,19 +301,21 @@ namespace FTSMetadata
         IAttachment* const att,
         ITransaction* const tra,
         unsigned int sqlDialect,
-        const string& indexName,
-        const string& relationName,
-        const string& analyzerName,
+        std::string_view indexName,
+        std::string_view relationName,
+        std::string_view analyzerName,
         ISC_QUAD* description)
     {
         // check for index existence
         if (hasIndex(status, att, tra, sqlDialect, indexName)) {
-            throwException(status, R"(Index "%s" already exists)", indexName.c_str());
+            std::string sIndexName{ indexName };
+            throwException(status, R"(Index "%s" already exists)", sIndexName.c_str());
         }
 
         // checking the existence of the analyzer
         if (!m_analyzerRepository->hasAnalyzer(status, att, tra, sqlDialect, analyzerName)) {
-            throwException(status, R"(Analyzer "%s" not exists)", analyzerName.c_str());
+            std::string sAnalyzerName{ analyzerName };
+            throwException(status, R"(Analyzer "%s" not exists)", sAnalyzerName.c_str());
         }
 
         FB_MESSAGE(Input, ThrowStatusWrapper,
@@ -343,9 +345,9 @@ namespace FTSMetadata
             input->descriptionNull = true;
         }
 
-        const string indexStatus = "N";
-        input->indexStatus.length = static_cast<ISC_USHORT>(indexStatus.length());
-        indexStatus.copy(input->indexStatus.str, input->indexStatus.length);
+        const char* indexStatus = "N";
+        input->indexStatus.length = 1;
+        memcpy(input->indexStatus.str, indexStatus, 1);
 
 
         att->execute(
@@ -375,7 +377,7 @@ namespace FTSMetadata
         IAttachment* const att,
         ITransaction* const tra,
         unsigned int sqlDialect,
-        const string& indexName)
+        std::string_view indexName)
     {
 
         FB_MESSAGE(Input, ThrowStatusWrapper,
@@ -389,7 +391,8 @@ namespace FTSMetadata
 
         // check for index existence
         if (!hasIndex(status, att, tra, sqlDialect, indexName)) {
-            throwException(status, R"(Index "%s" not exists)", indexName.c_str());
+            std::string sIndexName{ indexName };
+            throwException(status, R"(Index "%s" not exists)", sIndexName.c_str());
         }
 
         att->execute(
@@ -420,8 +423,8 @@ namespace FTSMetadata
         IAttachment* const att,
         ITransaction* const tra,
         unsigned int sqlDialect,
-        const string& indexName,
-        const string& indexStatus)
+        std::string_view indexName,
+        std::string_view indexStatus)
     {
         FB_MESSAGE(Input, ThrowStatusWrapper,
             (FB_INTL_VARCHAR(4, CS_UTF8), indexStatus)
@@ -465,7 +468,7 @@ namespace FTSMetadata
         IAttachment* const att, 
         ITransaction* const tra, 
         unsigned int sqlDialect, 
-        const string& indexName)
+        std::string_view indexName)
     {
         FB_MESSAGE(Input, ThrowStatusWrapper,
             (FB_INTL_VARCHAR(252, CS_UTF8), indexName)
@@ -793,7 +796,7 @@ namespace FTSMetadata
         IAttachment* const att,
         ITransaction* const tra,
         unsigned int sqlDialect,
-        const string& indexName
+        std::string_view indexName
     )
     {
         FB_MESSAGE(Input, ThrowStatusWrapper,
@@ -849,7 +852,7 @@ namespace FTSMetadata
         ITransaction* const tra,
         unsigned int sqlDialect,
         const FTSIndexSegmentPtr& keyIndexSegment,
-        const string& indexName)
+        std::string_view indexName)
     {
         FB_MESSAGE(Input, ThrowStatusWrapper,
             (FB_INTL_VARCHAR(252, CS_UTF8), indexName)
@@ -890,7 +893,8 @@ namespace FTSMetadata
         rs.release();
 
         if (result == IStatus::RESULT_NO_DATA) {
-            throwException(status, R"(Key field not exists in index "%s".)", indexName.c_str());
+            std::string sIndexName{ indexName };
+            throwException(status, R"(Key field not exists in index "%s".)", sIndexName.c_str());
         }
         if (result == IStatus::RESULT_OK) {
             keyIndexSegment->indexName.assign(output->indexName.str, output->indexName.length);
@@ -918,8 +922,8 @@ namespace FTSMetadata
         IAttachment* const att,
         ITransaction* const tra,
         unsigned int sqlDialect,
-        const string &indexName,
-        const string &fieldName,
+        std::string_view indexName,
+        std::string_view fieldName,
         bool key,
         double boost,
         bool boostNull)
@@ -949,20 +953,23 @@ namespace FTSMetadata
 
         // Checking whether the key field exists in the index.
         if (key && hasKeyIndexField(status, att, tra, sqlDialect, indexName)) {
-            throwException(status, R"(The key field already exists in the "%s" index.)", indexName.c_str());
+            std::string sIndexName{ indexName };
+            throwException(status, R"(The key field already exists in the "%s" index.)", sIndexName.c_str());
         }
 
         // Checking whether the field exists in the index.
-        if (hasIndexField(status, att, tra, sqlDialect, indexName, fieldName)) {			
-            throwException(status, R"(Field "%s" already exists in index "%s")", fieldName.c_str(), indexName.c_str());
+        if (hasIndexField(status, att, tra, sqlDialect, indexName, fieldName)) {
+            std::string sIndexName{ indexName };
+            std::string sFieldName{ indexName };
+            throwException(status, R"(Field "%s" already exists in index "%s")", sFieldName.c_str(), sIndexName.c_str());
         }
 
-        if (fieldName != "RDB$DB_KEY") {
-            // Checking whether the field exists in relation.
-            if (!m_relationHelper->fieldExists(status, att, tra, sqlDialect, ftsIndex->relationName, fieldName)) {
-                throwException(status, R"(Field "%s" not exists in relation "%s".)", fieldName.c_str(), ftsIndex->relationName.c_str());
-            }
+        // Checking whether the field exists in relation.
+        if (!m_relationHelper->fieldExists(status, att, tra, sqlDialect, ftsIndex->relationName, fieldName)) {
+            std::string sFieldName{ indexName };
+            throwException(status, R"(Field "%s" not exists in relation "%s".)", sFieldName.c_str(), ftsIndex->relationName.c_str());
         }
+
 
         att->execute(
             status,
@@ -996,8 +1003,8 @@ namespace FTSMetadata
         IAttachment* const att,
         ITransaction* const tra,
         unsigned int sqlDialect,
-        const string &indexName,
-        const string &fieldName)
+        std::string_view indexName,
+        std::string_view fieldName)
     {
         FB_MESSAGE(Input, ThrowStatusWrapper,
             (FB_INTL_VARCHAR(252, CS_UTF8), indexName)
@@ -1014,12 +1021,15 @@ namespace FTSMetadata
 
         // Checking whether the index exists.
         if (!hasIndex(status, att, tra, sqlDialect, indexName)) {
-            throwException(status, R"(Index "%s" not exists)", indexName.c_str());
+            std::string sIndexName{ indexName };
+            throwException(status, R"(Index "%s" not exists)", sIndexName.c_str());
         }
 
         // Checking whether the field exists in the index.
         if (!hasIndexField(status, att, tra, sqlDialect, indexName, fieldName)) {
-            throwException(status, R"(Field "%s" not exists in index "%s")", fieldName.c_str(), indexName.c_str());
+            std::string sIndexName{ indexName };
+            std::string sFieldName{ fieldName };
+            throwException(status, R"(Field "%s" not exists in index "%s")", sFieldName.c_str(), sIndexName.c_str());
         }
 
         att->execute(
@@ -1054,8 +1064,8 @@ namespace FTSMetadata
         IAttachment* const att,
         ITransaction* const tra,
         unsigned int sqlDialect,
-        const string& indexName,
-        const string& fieldName,
+        std::string_view indexName,
+        std::string_view fieldName,
         double boost,
         bool boostNull)
     {
@@ -1078,12 +1088,15 @@ namespace FTSMetadata
 
         // Checking whether the index exists.
         if (!hasIndex(status, att, tra, sqlDialect, indexName)) {
-            throwException(status, R"(Index "%s" not exists)", indexName.c_str());
+            std::string sIndexName{ indexName };
+            throwException(status, R"(Index "%s" not exists)", sIndexName.c_str());
         }
 
         // Checking whether the field exists in the index.
         if (!hasIndexField(status, att, tra, sqlDialect, indexName, fieldName)) {
-            throwException(status, R"(Field "%s" not exists in index "%s")", fieldName.c_str(), indexName.c_str());
+            std::string sIndexName{ indexName };
+            std::string sFieldName{ fieldName };
+            throwException(status, R"(Field "%s" not exists in index "%s")", sFieldName.c_str(), sIndexName.c_str());
         }
 
         att->execute(
@@ -1117,8 +1130,8 @@ namespace FTSMetadata
         IAttachment* const att,
         ITransaction* const tra,
         unsigned int sqlDialect,
-        const string &indexName,
-        const string &fieldName)
+        std::string_view indexName,
+        std::string_view fieldName)
     {
         FB_MESSAGE(Input, ThrowStatusWrapper,
             (FB_INTL_VARCHAR(252, CS_UTF8), indexName)
@@ -1165,7 +1178,7 @@ namespace FTSMetadata
         IAttachment* const att,
         ITransaction* const tra,
         unsigned int sqlDialect,
-        const string& analyzerName)
+        std::string_view analyzerName)
     {
         FB_MESSAGE(Input, ThrowStatusWrapper,
             (FB_INTL_VARCHAR(252, CS_UTF8), analyzerName)
@@ -1209,7 +1222,7 @@ namespace FTSMetadata
         IAttachment* const att,
         ITransaction* const tra,
         unsigned int sqlDialect,
-        const string& analyzerName)
+        std::string_view analyzerName)
     {
         // m_stmt_active_indexes_by_analyzer
         FB_MESSAGE(Input, ThrowStatusWrapper,
@@ -1248,8 +1261,7 @@ namespace FTSMetadata
         ));
 
         while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
-            const string indexName(output->indexName.str, output->indexName.length);
-            indexNames.insert(indexName);
+            indexNames.emplace(output->indexName.str, output->indexName.length);
         }
         rs->close(status);
         rs.release();

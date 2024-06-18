@@ -197,9 +197,9 @@ namespace FTSMetadata
             Firebird::IAttachment* const att,
             Firebird::ITransaction* const tra,
             unsigned int sqlDialect,
-            const std::string& indexName,
-            const std::string& relationName,
-            const std::string& analyzerName,
+            std::string_view indexName,
+            std::string_view relationName,
+            std::string_view analyzerName,
             ISC_QUAD* description);
 
         /// <summary>
@@ -216,7 +216,7 @@ namespace FTSMetadata
             Firebird::IAttachment* const att,
             Firebird::ITransaction* const tra,
             unsigned int sqlDialect,
-            const std::string& indexName);
+            std::string_view indexName);
 
         /// <summary>
         /// Set the index status.
@@ -233,8 +233,8 @@ namespace FTSMetadata
             Firebird::IAttachment* const att,
             Firebird::ITransaction* const tra,
             unsigned int sqlDialect,
-            const std::string& indexName,
-            const std::string& indexStatus);
+            std::string_view indexName,
+            std::string_view indexStatus);
 
         /// <summary>
         /// Checks if an index with the given name exists.
@@ -252,7 +252,7 @@ namespace FTSMetadata
             Firebird::IAttachment* const att,
             Firebird::ITransaction* const tra,
             unsigned int sqlDialect, 
-            const std::string& indexName);
+            std::string_view indexName);
 
         /// <summary>
         /// Returns index metadata by index name.
@@ -349,7 +349,7 @@ namespace FTSMetadata
             Firebird::IAttachment* const att,
             Firebird::ITransaction* const tra,
             unsigned int sqlDialect,
-            const std::string& indexName
+            std::string_view indexName
         );
 
         /// <summary>
@@ -369,7 +369,7 @@ namespace FTSMetadata
             Firebird::ITransaction* const tra,
             unsigned int sqlDialect,
             const FTSIndexSegmentPtr& keyIndexSegment,
-            const std::string& indexName
+            std::string_view indexName
         );
 
         /// <summary>
@@ -390,8 +390,8 @@ namespace FTSMetadata
             Firebird::IAttachment* const att,
             Firebird::ITransaction* const tra,
             unsigned int sqlDialect,
-            const std::string& indexName,
-            const std::string& fieldName,
+            std::string_view indexName,
+            std::string_view fieldName,
             bool key,
             double boost = 1.0,
             bool boostNull = true);
@@ -411,8 +411,8 @@ namespace FTSMetadata
             Firebird::IAttachment* const att,
             Firebird::ITransaction* const tra,
             unsigned int sqlDialect,
-            const std::string& indexName,
-            const std::string& fieldName);
+            std::string_view indexName,
+            std::string_view fieldName);
 
         /// <summary>
         /// Sets the significance multiplier for the index field.
@@ -431,8 +431,8 @@ namespace FTSMetadata
             Firebird::IAttachment* const att,
             Firebird::ITransaction* const tra,
             unsigned int sqlDialect,
-            const std::string& indexName,
-            const std::string& fieldName,
+            std::string_view indexName,
+            std::string_view fieldName,
             double boost,
             bool boostNull = false);
 
@@ -453,15 +453,15 @@ namespace FTSMetadata
             Firebird::IAttachment* const att,
             Firebird::ITransaction* const tra,
             unsigned int sqlDialect,
-            const std::string& indexName,
-            const std::string& fieldName);
+            std::string_view indexName,
+            std::string_view fieldName);
 
         bool hasIndexByAnalyzer(
             Firebird::ThrowStatusWrapper* const status,
             Firebird::IAttachment* const att,
             Firebird::ITransaction* const tra,
             unsigned int sqlDialect,
-            const std::string& analyzerName
+            std::string_view analyzerName
         );
 
         std::unordered_set<std::string> getActiveIndexByAnalyzer(
@@ -469,7 +469,7 @@ namespace FTSMetadata
             Firebird::IAttachment* const att,
             Firebird::ITransaction* const tra,
             unsigned int sqlDialect,
-            const std::string& analyzerName
+            std::string_view analyzerName
         );
     };
     using FTSIndexRepositoryPtr = std::unique_ptr<FTSIndexRepository>;

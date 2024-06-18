@@ -547,6 +547,10 @@ namespace FTSMetadata
         std::string_view relationName,
         std::string_view fieldName)
     {
+
+        if (fieldName == "RDB$DB_KEY")
+            return true;
+
         FB_MESSAGE(Input, ThrowStatusWrapper,
             (FB_INTL_VARCHAR(252, CS_UTF8), relationName)
             (FB_INTL_VARCHAR(252, CS_UTF8), fieldName)

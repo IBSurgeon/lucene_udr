@@ -15,11 +15,18 @@
 **/
 
 #include <string>
+#include <string_view>
 
 std::string ltrim(const std::string& s);
 
 std::string rtrim(const std::string& s);
 
 std::string trim(const std::string& s);
+
+std::string_view ltrim(std::string_view s);
+
+std::string_view rtrim(std::string_view s);
+
+std::string_view trim(std::string_view s);
 
 #endif

@@ -55,7 +55,7 @@ namespace FTSMetadata
             Firebird::IAttachment* att,
             Firebird::ITransaction* tra,
             unsigned int sqlDialect,
-            const std::string& analyzerName
+            std::string_view analyzerName
         );
 
         LuceneUDR::AnalyzerInfo getAnalyzerInfo (
@@ -63,7 +63,7 @@ namespace FTSMetadata
             Firebird::IAttachment* att,
             Firebird::ITransaction* tra,
             unsigned int sqlDialect,
-            const std::string& analyzerName
+            std::string_view analyzerName
         );
 
         std::list<LuceneUDR::AnalyzerInfo> getAnalyzerInfos (
@@ -78,7 +78,7 @@ namespace FTSMetadata
             Firebird::IAttachment* att,
             Firebird::ITransaction* tra,
             unsigned int sqlDialect,
-            const std::string& analyzerName
+            std::string_view analyzerName
         );
 
         void addAnalyzer (
@@ -86,8 +86,8 @@ namespace FTSMetadata
             Firebird::IAttachment* att,
             Firebird::ITransaction* tra,
             unsigned int sqlDialect,
-            const std::string& analyzerName,
-            const std::string& baseAnalyzer,
+            std::string_view analyzerName,
+            std::string_view baseAnalyzer,
             ISC_QUAD* description
         );
 
@@ -96,7 +96,7 @@ namespace FTSMetadata
             Firebird::IAttachment* att,
             Firebird::ITransaction* tra,
             unsigned int sqlDialect,
-            const std::string& analyzerName
+            std::string_view analyzerName
         );
 
         const Lucene::HashSet<Lucene::String> getStopWords (
@@ -104,7 +104,7 @@ namespace FTSMetadata
             Firebird::IAttachment* att,
             Firebird::ITransaction* tra,
             unsigned int sqlDialect,
-            const std::string& analyzerName
+            std::string_view analyzerName
         );
 
         void addStopWord (
@@ -112,8 +112,8 @@ namespace FTSMetadata
             Firebird::IAttachment* att,
             Firebird::ITransaction* tra,
             unsigned int sqlDialect,
-            const std::string& analyzerName,
-            const std::string& stopWord
+            std::string_view analyzerName,
+            std::string_view stopWord
         );
 
         void deleteStopWord(
@@ -121,8 +121,8 @@ namespace FTSMetadata
             Firebird::IAttachment* att,
             Firebird::ITransaction* tra,
             unsigned int sqlDialect,
-            const std::string& analyzerName,
-            const std::string& stopWord
+            std::string_view analyzerName,
+            std::string_view stopWord
         );
     };
 }

@@ -112,7 +112,7 @@ namespace FTSMetadata
         IAttachment* att,
         ITransaction* tra,
         unsigned int sqlDialect,
-        const std::string& analyzerName
+        std::string_view analyzerName
     )
     {
         if (m_analyzerFactory->hasAnalyzer(analyzerName)) {
@@ -131,13 +131,13 @@ namespace FTSMetadata
         IAttachment* att,
         ITransaction* tra,
         unsigned int sqlDialect,
-        const std::string& analyzerName
+        std::string_view analyzerName
     )
     {
         if (m_analyzerFactory->hasAnalyzer(analyzerName)) {
             return m_analyzerFactory->getAnalyzerInfo(status, analyzerName);
         }
-        AnalyzerInfo info;
+        
 
         FB_MESSAGE(Input, ThrowStatusWrapper,
             (FB_INTL_VARCHAR(252, CS_UTF8), analyzerName)
@@ -178,16 +178,16 @@ namespace FTSMetadata
         rs.release();
 
         if (result == IStatus::RESULT_NO_DATA) {
-            throwException(status, R"(Analyzer "%s" not exists)", analyzerName.c_str());
-        }
-        if (result == IStatus::RESULT_OK) {
-            info.analyzerName.assign(output->analyzerName.str, output->analyzerName.length);
-            info.baseAnalyzer.assign(output->baseAnalyzer.str, output->baseAnalyzer.length);
-            info.stopWordsSupported = m_analyzerFactory->isStopWordsSupported(info.baseAnalyzer);
-            info.systemFlag = false;
+            std::string sAnalyzerName{ analyzerName };
+            throwException(status, R"(Analyzer "%s" not exists)", sAnalyzerName.c_str());
         }
 
-        return info;
+        return {
+            std::string_view(output->analyzerName.str, output->analyzerName.length),
+            std::string_view(output->baseAnalyzer.str, output->baseAnalyzer.length),
+            m_analyzerFactory->isStopWordsSupported(std::string_view(output->baseAnalyzer.str, output->baseAnalyzer.length)),
+            false
+        };
     }
 
     std::list<AnalyzerInfo> AnalyzerRepository::getAnalyzerInfos(
@@ -226,12 +226,12 @@ namespace FTSMetadata
         ));
 
         while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
-            AnalyzerInfo info;
-            info.analyzerName.assign(output->analyzerName.str, output->analyzerName.length);
-            info.baseAnalyzer.assign(output->baseAnalyzer.str, output->baseAnalyzer.length);
-            info.stopWordsSupported = m_analyzerFactory->isStopWordsSupported(info.baseAnalyzer);
-            info.systemFlag = false;
-            infos.push_back(info);
+            infos.emplace_back(
+                std::string_view(output->analyzerName.str, output->analyzerName.length),
+                std::string_view(output->baseAnalyzer.str, output->baseAnalyzer.length),
+                m_analyzerFactory->isStopWordsSupported(std::string_view(output->baseAnalyzer.str, output->baseAnalyzer.length)),
+                false
+            );
         }
         rs->close(status);
         rs.release();
@@ -244,7 +244,7 @@ namespace FTSMetadata
         IAttachment* att,
         ITransaction* tra,
         unsigned int sqlDialect,
-        const std::string& analyzerName
+        std::string_view analyzerName
     )
     {
         if (m_analyzerFactory->hasAnalyzer(analyzerName)) {
@@ -298,17 +298,19 @@ namespace FTSMetadata
         IAttachment* att,
         ITransaction* tra,
         unsigned int sqlDialect,
-        const std::string& analyzerName,
-        const std::string& baseAnalyzer,
+        std::string_view analyzerName,
+        std::string_view baseAnalyzer,
         ISC_QUAD* description
     )
     {
         if (hasAnalyzer(status, att, tra, sqlDialect, analyzerName)) {
-            throwException(status, R"(Cannot create analyzer. Analyzer "%s" already exists)", analyzerName.c_str());
+            std::string sAnalyzerName{ analyzerName };
+            throwException(status, R"(Cannot create analyzer. Analyzer "%s" already exists)", sAnalyzerName.c_str());
         }
 
         if (!m_analyzerFactory->hasAnalyzer(baseAnalyzer)) {
-            throwException(status, R"(Cannot create analyzer. Base analyzer "%s" not exists or not system analyzer)", baseAnalyzer.c_str());
+            std::string sBaseAnalyzerName{ baseAnalyzer };
+            throwException(status, R"(Cannot create analyzer. Base analyzer "%s" not exists or not system analyzer)", sBaseAnalyzerName.c_str());
         }
 
         FB_MESSAGE(Input, ThrowStatusWrapper,
@@ -351,14 +353,16 @@ namespace FTSMetadata
         IAttachment* att,
         ITransaction* tra,
         unsigned int sqlDialect,
-        const std::string& analyzerName
+        std::string_view analyzerName
     )
     {
         if (m_analyzerFactory->hasAnalyzer(analyzerName)) {
-            throwException(status, R"(Cannot drop system analyzer "%s")", analyzerName.c_str());
+            std::string sAnalyzerName{ analyzerName };
+            throwException(status, R"(Cannot drop system analyzer "%s")", sAnalyzerName.c_str());
         }
         if (!hasAnalyzer(status, att, tra, sqlDialect, analyzerName)) {
-            throwException(status, R"(Cannot drop analyzer. Analyzer "%s" not exists)", analyzerName.c_str());
+            std::string sAnalyzerName{ analyzerName };
+            throwException(status, R"(Cannot drop analyzer. Analyzer "%s" not exists)", sAnalyzerName.c_str());
         }
 
         FB_MESSAGE(Input, ThrowStatusWrapper,
@@ -388,7 +392,7 @@ namespace FTSMetadata
         IAttachment* att,
         ITransaction* tra,
         unsigned int sqlDialect,
-        const std::string& analyzerName
+        std::string_view analyzerName
     )
     {
         if (m_analyzerFactory->hasAnalyzer(analyzerName)) {
@@ -446,12 +450,13 @@ namespace FTSMetadata
         IAttachment* att,
         ITransaction* tra,
         unsigned int sqlDialect,
-        const std::string& analyzerName,
-        const std::string& stopWord
+        std::string_view analyzerName,
+        std::string_view stopWord
     )
     {
         if (m_analyzerFactory->hasAnalyzer(analyzerName)) {
-            throwException(status, R"(Cannot add stop word to system analyzer "%s")", analyzerName.c_str());
+            std::string sAnalyzerName{ analyzerName };
+            throwException(status, R"(Cannot add stop word to system analyzer "%s")", sAnalyzerName.c_str());
         }
         const auto info = getAnalyzerInfo(status, att, tra, sqlDialect, analyzerName);
         if (!info.stopWordsSupported) {
@@ -500,12 +505,13 @@ namespace FTSMetadata
         IAttachment* att,
         ITransaction* tra,
         unsigned int sqlDialect,
-        const std::string& analyzerName,
-        const std::string& stopWord
+        std::string_view analyzerName,
+        std::string_view stopWord
     )
     {
         if (m_analyzerFactory->hasAnalyzer(analyzerName)) {
-            throwException(status, R"(Cannot delete stop word from system analyzer "%s")", analyzerName.c_str());
+            std::string sAnalyzerName{ analyzerName };
+            throwException(status, R"(Cannot delete stop word from system analyzer "%s")", sAnalyzerName.c_str());
         }
         const auto info = getAnalyzerInfo(status, att, tra, sqlDialect, analyzerName);
         if (!info.stopWordsSupported) {

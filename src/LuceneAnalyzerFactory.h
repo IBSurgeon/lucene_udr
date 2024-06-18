@@ -25,9 +25,11 @@
 namespace LuceneUDR 
 {
 
-    struct ci_more
+    struct ci_less
     {
-        // case-independent (ci) compare_more binary function
+        using is_transparent = void;
+
+        // case-independent (ci) compare_less binary function
         struct nocase_compare
         {
             bool operator() (const unsigned char& c1, const unsigned char& c2) const {
@@ -35,11 +37,11 @@ namespace LuceneUDR
             }
         };
 
-        bool operator() (const std::string_view& s1, const std::string_view& s2) const {
+        bool operator() (std::string_view s1, std::string_view s2) const {
             return std::lexicographical_compare(
                 s1.begin(), s1.end(),   // source range
                 s2.begin(), s2.end(),   // dest range
-                nocase_compare()        // comparison
+                nocase_compare()                // comparison
             );
         }
     };
@@ -72,7 +74,7 @@ namespace LuceneUDR
             bool stopWordsSupported;
         };
 
-        std::map<std::string_view, AnalyzerFactory, ci_more> m_factories;
+        std::map<std::string, AnalyzerFactory, ci_less> m_factories;
 
     public:
 

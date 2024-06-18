@@ -170,15 +170,8 @@ FB_UDR_BEGIN_PROCEDURE(createAnalyzer)
     FB_UDR_EXECUTE_PROCEDURE
     {
 
-        if (in->analyzerNameNull) {
-            throwException(status, "Analyzer name can not be NULL");
-        }
-        const std::string analyzerName(in->analyzerName.str, in->analyzerName.length);
-
-        if (in->baseAnalyzerNull) {
-            throwException(status, "Base analyzer name can not be NULL");
-        }
-        const std::string baseAnalyzer(in->baseAnalyzer.str, in->baseAnalyzer.length);
+        std::string_view analyzerName(in->analyzerName.str, in->analyzerName.length);
+        std::string_view baseAnalyzer(in->baseAnalyzer.str, in->baseAnalyzer.length);
 
         AutoRelease<IAttachment> att(context->getAttachment(status));
         AutoRelease<ITransaction> tra(context->getTransaction(status));
@@ -221,10 +214,7 @@ FB_UDR_BEGIN_PROCEDURE(dropAnalyzer)
     FB_UDR_EXECUTE_PROCEDURE
     {
 
-        if (in->analyzerNameNull) {
-            throwException(status, "Analyzer name can not be NULL");
-        }
-        const std::string analyzerName(in->analyzerName.str, in->analyzerName.length);
+        std::string_view analyzerName(in->analyzerName.str, in->analyzerName.length);
 
         AutoRelease<IAttachment> att(context->getAttachment(status));
         AutoRelease<ITransaction> tra(context->getTransaction(status));
@@ -287,10 +277,7 @@ FB_UDR_BEGIN_PROCEDURE(getAnalyzerStopWords)
 
     FB_UDR_EXECUTE_PROCEDURE
     {
-        if (in->analyzerNull) {
-            throwException(status, "Analyzer can not be NULL");
-        }
-        const std::string analyzerName(in->analyzer.str, in->analyzer.length);
+        std::string_view analyzerName(in->analyzer.str, in->analyzer.length);
 
         AutoRelease<IAttachment> att(context->getAttachment(status));
         AutoRelease<ITransaction> tra(context->getTransaction(status));
@@ -346,11 +333,7 @@ FB_UDR_BEGIN_PROCEDURE(addStopWord)
 
     FB_UDR_EXECUTE_PROCEDURE
     {
-
-        if (in->analyzerNameNull) {
-            throwException(status, "Analyzer name can not be NULL");
-        }
-        const std::string analyzerName(in->analyzerName.str, in->analyzerName.length);
+        std::string_view analyzerName(in->analyzerName.str, in->analyzerName.length);
 
         if (in->stopWord.length == 0) {
             in->stopWordNull = true;
@@ -359,7 +342,7 @@ FB_UDR_BEGIN_PROCEDURE(addStopWord)
         if (in->stopWordNull) {
             throwException(status, "Stop word can not be NULL");
         }
-        const std::string stopWord(in->stopWord.str, in->stopWord.length);
+        std::string_view stopWord(in->stopWord.str, in->stopWord.length);
 
         AutoRelease<IAttachment> att(context->getAttachment(status));
         AutoRelease<ITransaction> tra(context->getTransaction(status));
@@ -370,7 +353,8 @@ FB_UDR_BEGIN_PROCEDURE(addStopWord)
 
         auto analyzers = indexRepository->getAnalyzerRepository();
 
-        analyzers->addStopWord(status, att, tra, sqlDialect, analyzerName, trim(stopWord));
+        stopWord = trim(stopWord);
+        analyzers->addStopWord(status, att, tra, sqlDialect, analyzerName, stopWord);
 
         //set dependent active index as rebuild
         auto dependentActiveIndexes = indexRepository->getActiveIndexByAnalyzer(status, att, tra, sqlDialect, analyzerName);
@@ -412,10 +396,7 @@ FB_UDR_BEGIN_PROCEDURE(dropStopWord)
     FB_UDR_EXECUTE_PROCEDURE
     {
 
-        if (in->analyzerNameNull) {
-            throwException(status, "Analyzer name can not be NULL");
-        }
-        const std::string analyzerName(in->analyzerName.str, in->analyzerName.length);
+        std::string_view analyzerName(in->analyzerName.str, in->analyzerName.length);
 
         if (in->stopWord.length == 0) {
             in->stopWordNull = true;
@@ -424,7 +405,7 @@ FB_UDR_BEGIN_PROCEDURE(dropStopWord)
         if (in->stopWordNull) {
             throwException(status, "Stop word can not be NULL");
         }
-        const std::string stopWord(in->stopWord.str, in->stopWord.length);
+        std::string_view stopWord(in->stopWord.str, in->stopWord.length);
 
         AutoRelease<IAttachment> att(context->getAttachment(status));
         AutoRelease<ITransaction> tra(context->getTransaction(status));
@@ -435,7 +416,8 @@ FB_UDR_BEGIN_PROCEDURE(dropStopWord)
 
         auto analyzers = indexRepository->getAnalyzerRepository();
 
-        analyzers->deleteStopWord(status, att, tra, sqlDialect, analyzerName, trim(stopWord));
+        stopWord = trim(stopWord);
+        analyzers->deleteStopWord(status, att, tra, sqlDialect, analyzerName, stopWord);
 
         //set dependent active index as rebuild
         auto dependentActiveIndexes = indexRepository->getActiveIndexByAnalyzer(status, att, tra, sqlDialect, analyzerName);
@@ -488,15 +470,9 @@ FB_UDR_BEGIN_PROCEDURE(createIndex)
 
     FB_UDR_EXECUTE_PROCEDURE
     {
-        if (in->indexNameNull) {
-            throwException(status, "Index name can not be NULL");
-        }
-        const std::string indexName(in->indexName.str, in->indexName.length);
+        std::string_view indexName(in->indexName.str, in->indexName.length);
 
-        if (in->relationNameNull) {
-            throwException(status, "Relation name can not be NULL");
-        }
-        const std::string relationName(in->relationName.str, in->relationName.length);
+        std::string_view relationName(in->relationName.str, in->relationName.length);
 
         std::string analyzerName;
         if (!in->analyzerNull) {
@@ -606,10 +582,7 @@ FB_UDR_BEGIN_PROCEDURE(dropIndex)
 
     FB_UDR_EXECUTE_PROCEDURE
     {
-        if (in->index_nameNull) {
-            throwException(status, "Index name can not be NULL");
-        }
-        const std::string indexName(in->index_name.str, in->index_name.length);
+        std::string_view indexName(in->index_name.str, in->index_name.length);
 
         AutoRelease<IAttachment> att(context->getAttachment(status));
         AutoRelease<ITransaction> tra(context->getTransaction(status));
@@ -668,8 +641,8 @@ FB_UDR_BEGIN_PROCEDURE(setIndexActive)
         if (in->index_nameNull) {
             throwException(status, "Index name can not be NULL");
         }
-        const std::string indexName(in->index_name.str, in->index_name.length);
-        const bool indexActive = in->index_active;
+        std::string_view indexName(in->index_name.str, in->index_name.length);
+        bool indexActive = in->index_active;
 
         AutoRelease<IAttachment> att(context->getAttachment(status));
         AutoRelease<ITransaction> tra(context->getTransaction(status));
@@ -735,16 +708,8 @@ FB_UDR_BEGIN_PROCEDURE(addIndexField)
 
     FB_UDR_EXECUTE_PROCEDURE
     {
-        if (in->index_nameNull) {
-            throwException(status, "Index name can not be NULL");
-        }
-        const std::string indexName(in->index_name.str, in->index_name.length);
-
-
-        if (in->field_nameNull) {
-            throwException(status, "Field name can not be NULL");
-        }
-        const std::string fieldName(in->field_name.str, in->field_name.length);
+        std::string_view indexName(in->index_name.str, in->index_name.length);
+        std::string_view fieldName(in->field_name.str, in->field_name.length);
 
         AutoRelease<IAttachment> att(context->getAttachment(status));
         AutoRelease<ITransaction> tra(context->getTransaction(status));
@@ -794,15 +759,8 @@ FB_UDR_BEGIN_PROCEDURE(dropIndexField)
 
     FB_UDR_EXECUTE_PROCEDURE
     {
-        if (in->index_nameNull) {
-            throwException(status, "Index name can not be NULL");
-        }
-        const std::string indexName(in->index_name.str, in->index_name.length);
-
-        if (in->field_nameNull) {
-            throwException(status, "Field name can not be NULL");
-        }
-        const std::string fieldName(in->field_name.str, in->field_name.length);
+        std::string_view indexName(in->index_name.str, in->index_name.length);
+        std::string_view fieldName(in->field_name.str, in->field_name.length);
 
         AutoRelease<IAttachment> att(context->getAttachment(status));
         AutoRelease<ITransaction> tra(context->getTransaction(status));
@@ -854,16 +812,8 @@ FB_UDR_BEGIN_PROCEDURE(setIndexFieldBoost)
 
     FB_UDR_EXECUTE_PROCEDURE
     {
-        if (in->indexNameNull) {
-            throwException(status, "Index name can not be NULL");
-        }
-        const std::string indexName(in->indexName.str, in->indexName.length);
-
-
-        if (in->fieldNameNull) {
-            throwException(status, "Field name can not be NULL");
-        }
-        const std::string fieldName(in->fieldName.str, in->fieldName.length);
+        std::string_view indexName(in->indexName.str, in->indexName.length);
+        std::string_view fieldName(in->fieldName.str, in->fieldName.length);
 
         AutoRelease<IAttachment> att(context->getAttachment(status));
         AutoRelease<ITransaction> tra(context->getTransaction(status));
@@ -913,9 +863,6 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
         AutoRelease<IAttachment> att(context->getAttachment(status));
         AutoRelease<ITransaction> tra(context->getTransaction(status));
 
-        if (in->index_nameNull) {
-            throwException(status, "Index name can not be NULL");
-        }
         const std::string indexName(in->index_name.str, in->index_name.length);
 
         const auto ftsDirectoryPath = getFtsDirectory(status, context);
@@ -1104,9 +1051,6 @@ FB_UDR_BEGIN_PROCEDURE(optimizeIndex)
         AutoRelease<IAttachment> att(context->getAttachment(status));
         AutoRelease<ITransaction> tra(context->getTransaction(status));
 
-        if (in->index_nameNull) {
-            throwException(status, "Index name can not be NULL");
-        }
         const std::string indexName(in->index_name.str, in->index_name.length);
 
         const auto ftsDirectoryPath = getFtsDirectory(status, context);	

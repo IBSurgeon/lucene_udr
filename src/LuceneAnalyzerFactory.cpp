@@ -384,7 +384,7 @@ namespace LuceneUDR
     {
         std::unordered_set<std::string> names;
         for (auto&& pFactory : m_factories) {
-            names.insert(std::string(pFactory.first));
+            names.insert(pFactory.first);
         }
         return names;
     }

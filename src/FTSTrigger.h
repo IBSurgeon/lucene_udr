@@ -38,7 +38,7 @@ namespace FTSMetadata
     public:
         FTSKeyFieldBlock() = default;
 
-        const std::string getProcedureName() const
+        std::string getProcedureName() const
         {
             switch (keyFieldType) {
             case FTSKeyType::DB_KEY:
