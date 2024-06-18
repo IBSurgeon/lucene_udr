@@ -649,8 +649,7 @@ FB_UDR_BEGIN_PROCEDURE(setIndexActive)
 
         const unsigned int sqlDialect = getSqlDialect(status, att);
 
-        auto ftsIndex = std::make_unique<FTSIndex>();
-        procedure->indexRepository->getIndex(status, att, tra, sqlDialect, ftsIndex, indexName);
+        auto ftsIndex =  procedure->indexRepository->getIndex(status, att, tra, sqlDialect, indexName);
         if (indexActive) {
             // index is inactive
             if (ftsIndex->status == "I") {
@@ -874,9 +873,8 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
         const unsigned int sqlDialect = getSqlDialect(status, att);
 
         try {
-            // check for index existence
-            auto ftsIndex = std::make_unique<FTSIndex>();
-            procedure->indexRepository->getIndex(status, att, tra, sqlDialect, ftsIndex, indexName, true);
+            // get FTS index metadata
+            auto ftsIndex = procedure->indexRepository->getIndex(status, att, tra, sqlDialect, indexName, true);
             // Check if the index directory exists, and if it doesn't exist, create it. 
             const auto indexDirectoryPath = ftsDirectoryPath / indexName;
             if (!createIndexDirectory(indexDirectoryPath)) {
@@ -1062,9 +1060,8 @@ FB_UDR_BEGIN_PROCEDURE(optimizeIndex)
         const unsigned int sqlDialect = getSqlDialect(status, att);
 
         try {
-            // check for index existence
-            auto ftsIndex = std::make_unique<FTSIndex>();
-            procedure->indexRepository->getIndex(status, att, tra, sqlDialect, ftsIndex, indexName);
+            // get FTS index metadata
+            auto ftsIndex = procedure->indexRepository->getIndex(status, att, tra, sqlDialect, indexName);
             // Check if the index directory exists. 
             const auto& indexDirectoryPath = ftsDirectoryPath / indexName;
             if (!fs::is_directory(indexDirectoryPath)) {

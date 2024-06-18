@@ -200,9 +200,9 @@ namespace FTSMetadata
     }
 
     void FTSIndex::prepareExtractRecordStmt(
-        ThrowStatusWrapper* const status,
-        IAttachment* const att,
-        ITransaction* const tra,
+        ThrowStatusWrapper* status,
+        IAttachment* att,
+        ITransaction* tra,
         unsigned int sqlDialect
     )
     {
@@ -223,7 +223,7 @@ namespace FTSMetadata
     }
 
     string FTSIndex::buildSqlSelectFieldValues(
-        ThrowStatusWrapper* const status,
+        ThrowStatusWrapper* status,
         unsigned int sqlDialect,
         bool whereKey)
     {
@@ -297,9 +297,9 @@ namespace FTSMetadata
     /// <param name="analyzerName">Analyzer name</param>
     /// <param name="description">Custom index description</param>
     void FTSIndexRepository::createIndex (
-        ThrowStatusWrapper* const status,
-        IAttachment* const att,
-        ITransaction* const tra,
+        ThrowStatusWrapper* status,
+        IAttachment* att,
+        ITransaction* tra,
         unsigned int sqlDialect,
         std::string_view indexName,
         std::string_view relationName,
@@ -373,9 +373,9 @@ namespace FTSMetadata
     /// <param name="sqlDialect">SQL dialect</param>
     /// <param name="indexName">Index name</param>
     void FTSIndexRepository::dropIndex (
-        ThrowStatusWrapper* const status,
-        IAttachment* const att,
-        ITransaction* const tra,
+        ThrowStatusWrapper* status,
+        IAttachment* att,
+        ITransaction* tra,
         unsigned int sqlDialect,
         std::string_view indexName)
     {
@@ -419,9 +419,9 @@ namespace FTSMetadata
     /// <param name="indexName">Index name</param>
     /// <param name="indexStatus">Index Status</param>
     void FTSIndexRepository::setIndexStatus (
-        ThrowStatusWrapper* const status,
-        IAttachment* const att,
-        ITransaction* const tra,
+        ThrowStatusWrapper* status,
+        IAttachment* att,
+        ITransaction* tra,
         unsigned int sqlDialect,
         std::string_view indexName,
         std::string_view indexStatus)
@@ -464,9 +464,9 @@ namespace FTSMetadata
     /// 
     /// <returns>Returns true if the index exists, false otherwise</returns>
     bool FTSIndexRepository::hasIndex (
-        ThrowStatusWrapper* const status, 
-        IAttachment* const att, 
-        ITransaction* const tra, 
+        ThrowStatusWrapper* status, 
+        IAttachment* att, 
+        ITransaction* tra, 
         unsigned int sqlDialect, 
         std::string_view indexName)
     {
@@ -525,22 +525,19 @@ namespace FTSMetadata
     /// <param name="att">Firebird attachment</param>
     /// <param name="tra">Firebird transaction</param>
     /// <param name="sqlDialect">SQL dialect</param>
-    /// <param name="ftsIndex">Index metadata</param>	
     /// <param name="indexName">Index name</param>
     /// <param name="withSegments">Fill segments list</param>
     /// 
-    void FTSIndexRepository::getIndex (
-        ThrowStatusWrapper* const status,
+    FTSIndexPtr FTSIndexRepository::getIndex (
+        ThrowStatusWrapper* status,
         IAttachment* att,
         ITransaction* tra,
         unsigned int sqlDialect,
-        const FTSIndexPtr& ftsIndex,
         std::string_view indexName,
         bool withSegments)
     {	
         FTSIndexNameInput input(status, m_master);		
         FTSIndexRecord output(status, m_master);
-
 
         input.clear();
         input->indexNameNull = false;
@@ -576,16 +573,17 @@ namespace FTSMetadata
             throwException(status, R"(Index "%s" not exists)", sIndexName.c_str());
         }
         // index found
-        if (result == IStatus::RESULT_OK) {
-            ftsIndex->indexName.assign(output->indexName.str, output->indexName.length);
-            ftsIndex->relationName.assign(output->relationName.str, output->relationName.length);
-            ftsIndex->analyzer.assign(output->analyzer.str, output->analyzer.length);
-            ftsIndex->status.assign(output->indexStatus.str, output->indexStatus.length);	
+        auto ftsIndex = std::make_unique<FTSIndex>();
 
-            if (withSegments) {
-                fillIndexFields(status, att, tra, sqlDialect, indexName, ftsIndex->segments);
-            }
+        ftsIndex->indexName.assign(output->indexName.str, output->indexName.length);
+        ftsIndex->relationName.assign(output->relationName.str, output->relationName.length);
+        ftsIndex->analyzer.assign(output->analyzer.str, output->analyzer.length);
+        ftsIndex->status.assign(output->indexStatus.str, output->indexStatus.length);	
+
+        if (withSegments) {
+            fillIndexFields(status, att, tra, sqlDialect, indexName, ftsIndex->segments);
         }
+        return ftsIndex;
     }
 
     /// <summary>
@@ -599,9 +597,9 @@ namespace FTSMetadata
     /// <param name="indexes">List of indexes</param>
     /// 
     void FTSIndexRepository::fillAllIndexes(
-        ThrowStatusWrapper* const status,
-        IAttachment* const att,
-        ITransaction* const tra,
+        ThrowStatusWrapper* status,
+        IAttachment* att,
+        ITransaction* tra,
         unsigned int sqlDialect,
         FTSIndexList& indexes)
     {
@@ -640,9 +638,9 @@ namespace FTSMetadata
     /// <param name="indexes">Map indexes of name with segments</param>
     /// 
     void FTSIndexRepository::fillAllIndexesWithFields(
-        ThrowStatusWrapper* const status,
-        IAttachment* const att,
-        ITransaction* const tra,
+        ThrowStatusWrapper* status,
+        IAttachment* att,
+        ITransaction* tra,
         unsigned int sqlDialect,
         FTSIndexMap& indexes)
     {
@@ -716,9 +714,9 @@ namespace FTSMetadata
     /// 
     /// <returns>List of index segments</returns>
     void FTSIndexRepository::fillIndexFields(
-        ThrowStatusWrapper* const status,
-        IAttachment* const att,
-        ITransaction* const tra,
+        ThrowStatusWrapper* status,
+        IAttachment* att,
+        ITransaction* tra,
         unsigned int sqlDialect,
         std::string_view indexName,
         FTSIndexSegmentList& segments)
@@ -792,9 +790,9 @@ namespace FTSMetadata
     /// 
     /// <returns>Returns true if the index field exists, false otherwise</returns>
     bool FTSIndexRepository::hasKeyIndexField(
-        ThrowStatusWrapper* const status,
-        IAttachment* const att,
-        ITransaction* const tra,
+        ThrowStatusWrapper* status,
+        IAttachment* att,
+        ITransaction* tra,
         unsigned int sqlDialect,
         std::string_view indexName
     )
@@ -847,9 +845,9 @@ namespace FTSMetadata
     /// <param name="indexName">Index name</param>
     /// 
     void FTSIndexRepository::getKeyIndexField(
-        ThrowStatusWrapper* const status,
-        IAttachment* const att,
-        ITransaction* const tra,
+        ThrowStatusWrapper* status,
+        IAttachment* att,
+        ITransaction* tra,
         unsigned int sqlDialect,
         const FTSIndexSegmentPtr& keyIndexSegment,
         std::string_view indexName)
@@ -918,9 +916,9 @@ namespace FTSMetadata
     /// <param name="boost">Significance multiplier</param>
     /// <param name="boostNull">Boost null flag</param>
     void FTSIndexRepository::addIndexField(
-        ThrowStatusWrapper* const status,
-        IAttachment* const att,
-        ITransaction* const tra,
+        ThrowStatusWrapper* status,
+        IAttachment* att,
+        ITransaction* tra,
         unsigned int sqlDialect,
         std::string_view indexName,
         std::string_view fieldName,
@@ -948,8 +946,7 @@ namespace FTSMetadata
         input->boostNull = boostNull;
         input->boost = boost;
 
-        auto ftsIndex = make_unique<FTSIndex>();
-        getIndex(status, att, tra, sqlDialect, ftsIndex, indexName);
+        auto ftsIndex = getIndex(status, att, tra, sqlDialect, indexName);
 
         // Checking whether the key field exists in the index.
         if (key && hasKeyIndexField(status, att, tra, sqlDialect, indexName)) {
@@ -999,9 +996,9 @@ namespace FTSMetadata
     /// <param name="indexName">Index name</param>
     /// <param name="fieldName">Field name</param>
     void FTSIndexRepository::dropIndexField(
-        ThrowStatusWrapper* const status,
-        IAttachment* const att,
-        ITransaction* const tra,
+        ThrowStatusWrapper* status,
+        IAttachment* att,
+        ITransaction* tra,
         unsigned int sqlDialect,
         std::string_view indexName,
         std::string_view fieldName)
@@ -1060,9 +1057,9 @@ namespace FTSMetadata
     /// <param name="boost">Significance multiplier</param>
     /// <param name="boostNull">Boost null flag</param>
     void FTSIndexRepository::setIndexFieldBoost(
-        ThrowStatusWrapper* const status,
-        IAttachment* const att,
-        ITransaction* const tra,
+        ThrowStatusWrapper* status,
+        IAttachment* att,
+        ITransaction* tra,
         unsigned int sqlDialect,
         std::string_view indexName,
         std::string_view fieldName,
@@ -1126,9 +1123,9 @@ namespace FTSMetadata
     /// <param name="fieldName">Field name</param>
     /// <returns>Returns true if the field (segment) exists in the index, false otherwise</returns>
     bool FTSIndexRepository::hasIndexField(
-        ThrowStatusWrapper* const status,
-        IAttachment* const att,
-        ITransaction* const tra,
+        ThrowStatusWrapper* status,
+        IAttachment* att,
+        ITransaction* tra,
         unsigned int sqlDialect,
         std::string_view indexName,
         std::string_view fieldName)
@@ -1174,9 +1171,9 @@ namespace FTSMetadata
     }
 
     bool FTSIndexRepository::hasIndexByAnalyzer(
-        ThrowStatusWrapper* const status,
-        IAttachment* const att,
-        ITransaction* const tra,
+        ThrowStatusWrapper* status,
+        IAttachment* att,
+        ITransaction* tra,
         unsigned int sqlDialect,
         std::string_view analyzerName)
     {
@@ -1218,9 +1215,9 @@ namespace FTSMetadata
     }
 
     unordered_set<string> FTSIndexRepository::getActiveIndexByAnalyzer(
-        ThrowStatusWrapper* const status,
-        IAttachment* const att,
-        ITransaction* const tra,
+        ThrowStatusWrapper* status,
+        IAttachment* att,
+        ITransaction* tra,
         unsigned int sqlDialect,
         std::string_view analyzerName)
     {

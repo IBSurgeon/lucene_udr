@@ -139,9 +139,8 @@ FB_UDR_BEGIN_PROCEDURE(getIndexStatistics)
         out->indexSizeNull = true;
 
         try {
-            // check for index existence
-            auto ftsIndex = std::make_unique<FTSIndex>();
-            procedure->indexRepository->getIndex(status, att, tra, sqlDialect, ftsIndex, indexName);
+            // get FTS index metadata
+            auto ftsIndex = procedure->indexRepository->getIndex(status, att, tra, sqlDialect, indexName);
 
             out->analyzerNameNull = false;
             out->analyzerName.length = static_cast<ISC_USHORT>(ftsIndex->analyzer.length());
@@ -835,9 +834,8 @@ FB_UDR_BEGIN_PROCEDURE(indexTerms)
         const unsigned int sqlDialect = getSqlDialect(status, att);
 
         try {
-            // check for index existence
-            auto ftsIndex = std::make_unique<FTSIndex>();
-            procedure->indexRepository->getIndex(status, att, tra, sqlDialect, ftsIndex, indexName);
+            // get FTS index metadata
+            auto ftsIndex = procedure->indexRepository->getIndex(status, att, tra, sqlDialect, indexName);
             // Check if the index directory exists. 
             const auto indexDirectoryPath = ftsDirectoryPath / indexName;
             if (!fs::is_directory(indexDirectoryPath)) {
