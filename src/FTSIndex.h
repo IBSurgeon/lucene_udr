@@ -107,8 +107,6 @@ namespace FTSMetadata
 
         explicit FTSIndex(const FTSIndexRecord& record);
 
-        void init(const FTSIndexRecord& record);
-
         bool isActive() const {
             return (status == "C") || (status == "U");
         }

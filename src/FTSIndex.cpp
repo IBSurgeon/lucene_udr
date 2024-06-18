@@ -206,14 +206,6 @@ namespace FTSMetadata
     {
     }
 
-    void FTSIndex::init(const FTSIndexRecord& record)
-    {
-        indexName.assign(record->indexName.str, record->indexName.length);
-        relationName.assign(record->relationName.str, record->relationName.length);
-        analyzer.assign(record->analyzer.str, record->analyzer.length);
-        status.assign(record->indexStatus.str, record->indexStatus.length);
-    }
-
     bool FTSIndex::checkAllFieldsExists()
     {
         bool existsFlag = true;
