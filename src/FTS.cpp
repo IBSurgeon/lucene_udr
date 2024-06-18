@@ -834,6 +834,7 @@ ORDER BY FTS$LOG_ID
 
         const auto ftsDirectoryPath = getFtsDirectory(status, context);
         
+        std::unordered_map<std::string, FTSPreparedIndexStmt> ftsPreparedIndexesStmt;
         // get all indexes with segments
         FTSIndexMap indexes;
         procedure->indexRepository->fillAllIndexesWithFields(status, att, tra, sqlDialect, indexes);
@@ -853,9 +854,18 @@ ORDER BY FTS$LOG_ID
             ftsIndex->unicodeIndexDir = indexDirectoryPath.wstring();
 
             // collect and save the SQL query to extract the record by key
-            ftsIndex->prepareExtractRecordStmt(status, att, tra, sqlDialect);
+            const std::string sql = ftsIndex->buildSqlSelectFieldValues(status, sqlDialect, true);
+            auto&& [itIndexStmt, inserted] = ftsPreparedIndexesStmt.try_emplace(
+                indexName,
+                status,
+                att,
+                tra,
+                sqlDialect,
+                sql
+            );
+            auto&& indexStmt = itIndexStmt->second;
 
-            const auto inMetadata = ftsIndex->getInExtractRecordMetadata();
+            auto inMetadata = indexStmt.getInExtractRecordMetadata();
             if (inMetadata->getCount(status) != 1) {
                 // The number of input parameters must be equal to 1.
                 // index need to rebuild
@@ -891,7 +901,7 @@ ORDER BY FTS$LOG_ID
             }
 
 
-            const auto outMetadata =  ftsIndex->getOutExtractRecordMetadata();
+            auto outMetadata = indexStmt.getOutExtractRecordMetadata();
             // add fields info for index
             if (auto&& [it, inserted] = fieldsInfoMap.try_emplace(indexName, status, outMetadata); inserted) {
                 auto&& fields = it->second;
@@ -1017,8 +1027,10 @@ ORDER BY FTS$LOG_ID
                         continue;
                     }
 
-                    auto stmt = ftsIndex->getPreparedExtractRecordStmt();
-                    const auto outMetadata = ftsIndex->getOutExtractRecordMetadata();
+                    auto&& ftsIndexStmt = ftsPreparedIndexesStmt[indexName];
+
+                    auto stmt = ftsIndexStmt.getPreparedExtractRecordStmt();
+                    auto outMetadata = ftsIndexStmt.getOutExtractRecordMetadata();
 
                     const auto& fields = fieldsInfoMap[indexName];
 

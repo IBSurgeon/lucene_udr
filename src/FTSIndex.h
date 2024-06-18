@@ -46,6 +46,45 @@ namespace FTSMetadata
     using FTSIndexSegmentsMap = std::map<std::string, FTSIndexSegmentList>;
 
 
+    class FTSPreparedIndexStmt final
+    {
+    public:
+        FTSPreparedIndexStmt() = default;
+
+        FTSPreparedIndexStmt(
+            Firebird::ThrowStatusWrapper* status,
+            Firebird::IAttachment* att,
+            Firebird::ITransaction* tra,
+            unsigned int sqlDialect,
+            std::string_view sql
+        );
+
+        FTSPreparedIndexStmt(const FTSPreparedIndexStmt&) = delete;
+        FTSPreparedIndexStmt(FTSPreparedIndexStmt&&) = default;
+
+        FTSPreparedIndexStmt& operator=(const FTSPreparedIndexStmt&) = delete;
+        FTSPreparedIndexStmt& operator=(FTSPreparedIndexStmt&&) = default;
+
+        Firebird::IStatement* getPreparedExtractRecordStmt()
+        {
+            return m_stmtExtractRecord;
+        }
+
+        Firebird::IMessageMetadata* getOutExtractRecordMetadata()
+        {
+            return m_outMetaExtractRecord;
+        }
+
+        Firebird::IMessageMetadata* getInExtractRecordMetadata()
+        {
+            return m_inMetaExtractRecord;
+        }
+    private:
+        Firebird::AutoRelease<Firebird::IStatement> m_stmtExtractRecord;
+        Firebird::AutoRelease<Firebird::IMessageMetadata> m_inMetaExtractRecord;
+        Firebird::AutoRelease<Firebird::IMessageMetadata> m_outMetaExtractRecord;
+    };
+
     /// <summary>
     /// Full-text index metadata.
     /// </summary>
@@ -62,10 +101,6 @@ namespace FTSMetadata
         FTSKeyType keyFieldType{ FTSKeyType::NONE };
         std::wstring unicodeKeyFieldName{ L"" };
         std::wstring unicodeIndexDir{ L"" };
-    private:
-        Firebird::AutoRelease<Firebird::IStatement> m_stmtExtractRecord{ nullptr };
-        Firebird::AutoRelease<Firebird::IMessageMetadata> m_inMetaExtractRecord{ nullptr };
-        Firebird::AutoRelease<Firebird::IMessageMetadata> m_outMetaExtractRecord{ nullptr };
     public: 
 
         FTSIndex() = default;
@@ -85,31 +120,10 @@ namespace FTSMetadata
         bool checkAllFieldsExists();
 
         std::string buildSqlSelectFieldValues(
-            Firebird::ThrowStatusWrapper* const status,
+            Firebird::ThrowStatusWrapper* status,
             unsigned int sqlDialect,
-            bool whereKey = false);
-
-        void prepareExtractRecordStmt(
-            Firebird::ThrowStatusWrapper* const status,
-            Firebird::IAttachment* const att,
-            Firebird::ITransaction* const tra,
-            unsigned int sqlDialect
+            bool whereKey = false
         );
-
-        Firebird::IStatement* getPreparedExtractRecordStmt()
-        {
-            return m_stmtExtractRecord;
-        }
-
-        Firebird::IMessageMetadata* getOutExtractRecordMetadata()
-        {
-            return m_outMetaExtractRecord;
-        }
-
-        Firebird::IMessageMetadata* getInExtractRecordMetadata()
-        {
-            return m_inMetaExtractRecord;
-        }
     };
 
 

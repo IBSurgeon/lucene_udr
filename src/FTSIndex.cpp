@@ -152,6 +152,32 @@ WHERE FTS$ANALYZER = ? AND FTS$INDEX_STATUS = 'C'
 
 namespace FTSMetadata
 {
+    FTSPreparedIndexStmt::FTSPreparedIndexStmt(
+        Firebird::ThrowStatusWrapper* status,
+        Firebird::IAttachment* att,
+        Firebird::ITransaction* tra,
+        unsigned int sqlDialect,
+        std::string_view sql
+    )
+        : m_stmtExtractRecord{ nullptr }
+        , m_inMetaExtractRecord{ nullptr }
+        , m_outMetaExtractRecord{ nullptr }
+    {
+        m_stmtExtractRecord.reset(att->prepare(
+            status,
+            tra,
+            static_cast<unsigned int>(sql.length()),
+            sql.data(),
+            sqlDialect,
+            IStatement::PREPARE_PREFETCH_METADATA
+        ));
+        // get a description of the fields				
+        AutoRelease<IMessageMetadata> outputMetadata(m_stmtExtractRecord->getOutputMetadata(status));
+        // make all fields of string type except BLOB
+        m_outMetaExtractRecord.reset(prepareTextMetaData(status, outputMetadata));
+        m_inMetaExtractRecord.reset(m_stmtExtractRecord->getInputMetadata(status));
+    }
+
     FTSIndexSegmentList::const_iterator FTSIndex::findSegment(const string& fieldName) {
         return std::find_if(
             segments.cbegin(),
@@ -169,11 +195,15 @@ namespace FTSMetadata
     }
 
     FTSIndex::FTSIndex(const FTSIndexRecord& record)
+        : indexName(record->indexName.str, record->indexName.length)
+        , relationName(record->relationName.str, record->relationName.length)
+        , analyzer(record->analyzer.str, record->analyzer.length)
+        , status(record->indexStatus.str, record->indexStatus.length)
+        , segments()
+        , keyFieldType{ FTSKeyType::NONE }
+        , unicodeKeyFieldName{ L"" }
+        , unicodeIndexDir{ L"" }
     {
-        indexName.assign(record->indexName.str, record->indexName.length);
-        relationName.assign(record->relationName.str, record->relationName.length);
-        analyzer.assign(record->analyzer.str, record->analyzer.length);
-        status.assign(record->indexStatus.str, record->indexStatus.length);
     }
 
     void FTSIndex::init(const FTSIndexRecord& record)
@@ -191,29 +221,6 @@ namespace FTSMetadata
             existsFlag = existsFlag && segment->fieldExists;
         }
         return existsFlag;
-    }
-
-    void FTSIndex::prepareExtractRecordStmt(
-        ThrowStatusWrapper* status,
-        IAttachment* att,
-        ITransaction* tra,
-        unsigned int sqlDialect
-    )
-    {
-        const auto sql = buildSqlSelectFieldValues(status, sqlDialect, true);
-        m_stmtExtractRecord.reset(att->prepare(
-            status,
-            tra,
-            static_cast<unsigned int>(sql.length()),
-            sql.c_str(),
-            sqlDialect,
-            IStatement::PREPARE_PREFETCH_METADATA
-        ));
-        // get a description of the fields				
-        AutoRelease<IMessageMetadata> outputMetadata(m_stmtExtractRecord->getOutputMetadata(status));
-        // make all fields of string type except BLOB
-        m_outMetaExtractRecord.reset(prepareTextMetaData(status, outputMetadata));
-        m_inMetaExtractRecord.reset(m_stmtExtractRecord->getInputMetadata(status));
     }
 
     string FTSIndex::buildSqlSelectFieldValues(
