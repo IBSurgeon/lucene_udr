@@ -106,7 +106,7 @@ namespace LuceneUDR
         blob.release();
     }
 
-    const unsigned int getSqlDialect(ThrowStatusWrapper* status, IAttachment* att)
+    unsigned int getSqlDialect(ThrowStatusWrapper* status, IAttachment* att)
     {
         unsigned int sql_dialect = 1;
         const unsigned char info_options[] = { isc_info_db_sql_dialect, isc_info_end };

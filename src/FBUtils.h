@@ -28,7 +28,7 @@ namespace LuceneUDR
         Firebird::ITransaction* tra, ISC_QUAD* blobIdPtr, std::string_view str);
 
 
-    const unsigned int getSqlDialect(Firebird::ThrowStatusWrapper* status, Firebird::IAttachment* att);
+    unsigned int getSqlDialect(Firebird::ThrowStatusWrapper* status, Firebird::IAttachment* att);
 
     /// <summary>
     /// Escapes the name of the metadata object depending on the SQL dialect. 

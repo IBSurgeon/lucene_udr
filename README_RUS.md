@@ -56,15 +56,16 @@ $ sudo make install
 Теперь можно приступать к сборке UDR Lucene.
 
 ```
-$ git clone https://github.com/IBSurgeon/lucene_udr.git
-$ cd lucene_udr
-$ mkdir build; cd build
-$ cmake ..
-$ make
-$ sudo make install
+git clone https://github.com/IBSurgeon/lucene_udr.git
+cd lucene_udr
+mkdir build
+cmake -S . -B ./build
+cmake --build ./build -- -j12
+cd build
+sudo make install
 ```
 
-В процессе выполнения `cmake ..` может возникнуть следующая ошибка
+В процессе выполнения `cmake -S . -B ./build` может возникнуть следующая ошибка
 
 ```
 CMake Error at /usr/lib64/cmake/liblucene++/liblucene++Config.cmake:41 (message):
