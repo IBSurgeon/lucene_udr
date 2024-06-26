@@ -58,7 +58,7 @@ namespace Lucene
 
     /// Constructs a {@link StandardTokenizer} filtered by a {@link StandardFilter}, a {@link LowerCaseFilter}
     /// a {@link StopFilter} and a {@link PorterStemFilter}.
-    TokenStreamPtr EnglishAnalyzer::tokenStream(const String& fieldName, const ReaderPtr& reader)
+    TokenStreamPtr EnglishAnalyzer::tokenStream([[maybe_unused]] const String& fieldName, const ReaderPtr& reader)
     {
         StandardTokenizerPtr tokenStream(newLucene<StandardTokenizer>(matchVersion, reader));
         tokenStream->setMaxTokenLength(maxTokenLength);
@@ -77,7 +77,7 @@ namespace Lucene
         return maxTokenLength;
     }
 
-    TokenStreamPtr EnglishAnalyzer::reusableTokenStream(const String& fieldName, const ReaderPtr& reader) {
+    TokenStreamPtr EnglishAnalyzer::reusableTokenStream([[maybe_unused]] const String& fieldName, const ReaderPtr& reader) {
         auto streams = boost::dynamic_pointer_cast<EnglishAnalyzerSavedStreams>(getPreviousTokenStream());
         if (!streams) {
             streams = newLucene<EnglishAnalyzerSavedStreams>();
