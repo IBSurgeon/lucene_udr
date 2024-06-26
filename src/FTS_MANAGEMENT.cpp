@@ -46,7 +46,7 @@ FB_UDR_BEGIN_FUNCTION(getFTSDirectory)
        (FB_INTL_VARCHAR(1020, CS_UTF8), directory)
     );
 
-    void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
+    void getCharSet([[maybe_unused]] ThrowStatusWrapper* status, [[maybe_unused]] IExternalContext* context,
         char* name, unsigned nameSize)
     {
         // Forced internal request encoding to UTF8
@@ -88,7 +88,7 @@ FB_UDR_BEGIN_PROCEDURE(systemAnalyzers)
 
     std::unique_ptr<LuceneAnalyzerFactory> analyzers;
 
-    void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
+    void getCharSet([[maybe_unused]] ThrowStatusWrapper* status, [[maybe_unused]] IExternalContext* context,
         char* name, unsigned nameSize)
     {
         // Forced internal request encoding to UTF8
@@ -153,7 +153,7 @@ FB_UDR_BEGIN_PROCEDURE(getSystemAnalyzer)
 
     std::unique_ptr<LuceneAnalyzerFactory> analyzers;
 
-    void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
+    void getCharSet([[maybe_unused]] ThrowStatusWrapper* status, [[maybe_unused]] IExternalContext* context,
         char* name, unsigned nameSize)
     {
         // Forced internal request encoding to UTF8
@@ -221,7 +221,7 @@ FB_UDR_BEGIN_FUNCTION(hasSystemAnalyzer)
 
     std::unique_ptr<LuceneAnalyzerFactory> analyzers;
 
-    void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
+    void getCharSet([[maybe_unused]] ThrowStatusWrapper* status, [[maybe_unused]] IExternalContext* context,
         char* name, unsigned nameSize)
     {
         // Forced internal request encoding to UTF8
@@ -270,7 +270,7 @@ FB_UDR_BEGIN_PROCEDURE(getAnalyzerStopWords)
 
     std::unique_ptr<AnalyzerRepository> analyzers;
 
-    void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
+    void getCharSet([[maybe_unused]] ThrowStatusWrapper* status, [[maybe_unused]] IExternalContext* context,
         char* name, unsigned nameSize)
     {
         // Forced internal request encoding to UTF8
@@ -326,7 +326,7 @@ FB_UDR_BEGIN_PROCEDURE(addStopWord)
         (FB_INTL_VARCHAR(252, CS_UTF8), stopWord)
     );
 
-    void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
+    void getCharSet([[maybe_unused]] ThrowStatusWrapper* status, [[maybe_unused]] IExternalContext* context,
         char* name, unsigned nameSize)
     {
         // Forced internal request encoding to UTF8
@@ -388,7 +388,7 @@ FB_UDR_BEGIN_PROCEDURE(dropStopWord)
         (FB_INTL_VARCHAR(252, CS_UTF8), stopWord)
     );
 
-    void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
+    void getCharSet([[maybe_unused]] ThrowStatusWrapper* status, [[maybe_unused]] IExternalContext* context,
         char* name, unsigned nameSize)
     {
         // Forced internal request encoding to UTF8
@@ -463,7 +463,7 @@ FB_UDR_BEGIN_PROCEDURE(createIndex)
 
     FTSIndexRepositoryPtr indexRepository{nullptr};
 
-    void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
+    void getCharSet([[maybe_unused]] ThrowStatusWrapper* status, [[maybe_unused]] IExternalContext* context,
         char* name, unsigned nameSize)
     {
         // Forced internal request encoding to UTF8
@@ -575,7 +575,7 @@ FB_UDR_BEGIN_PROCEDURE(dropIndex)
 
     FTSIndexRepositoryPtr indexRepository{nullptr};
 
-    void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
+    void getCharSet([[maybe_unused]] ThrowStatusWrapper* status, [[maybe_unused]] IExternalContext* context,
         char* name, unsigned nameSize)
     {
         // Forced internal request encoding to UTF8
@@ -631,7 +631,7 @@ FB_UDR_BEGIN_PROCEDURE(setIndexActive)
 
     FTSIndexRepositoryPtr indexRepository{nullptr};
 
-    void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
+    void getCharSet([[maybe_unused]] ThrowStatusWrapper* status, [[maybe_unused]] IExternalContext* context,
         char* name, unsigned nameSize)
     {
         // Forced internal request encoding to UTF8
@@ -700,7 +700,7 @@ FB_UDR_BEGIN_PROCEDURE(addIndexField)
 
     FTSIndexRepositoryPtr indexRepository{nullptr};
 
-    void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
+    void getCharSet([[maybe_unused]] ThrowStatusWrapper* status, [[maybe_unused]] IExternalContext* context,
         char* name, unsigned nameSize)
     {
         // Forced internal request encoding to UTF8
@@ -751,7 +751,7 @@ FB_UDR_BEGIN_PROCEDURE(dropIndexField)
 
     FTSIndexRepositoryPtr indexRepository{nullptr};
 
-    void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
+    void getCharSet([[maybe_unused]] ThrowStatusWrapper* status, [[maybe_unused]] IExternalContext* context,
         char* name, unsigned nameSize)
     {
         // Forced internal request encoding to UTF8
@@ -804,7 +804,7 @@ FB_UDR_BEGIN_PROCEDURE(setIndexFieldBoost)
 
     FTSIndexRepositoryPtr indexRepository{nullptr};
 
-    void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
+    void getCharSet([[maybe_unused]] ThrowStatusWrapper* status, [[maybe_unused]] IExternalContext* context,
         char* name, unsigned nameSize)
     {
         // Forced internal request encoding to UTF8
@@ -852,7 +852,7 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 
     FTSIndexRepositoryPtr indexRepository{nullptr};
 
-    void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
+    void getCharSet([[maybe_unused]] ThrowStatusWrapper* status, [[maybe_unused]] IExternalContext* context,
         char* name, unsigned nameSize)
     {
         // Forced internal request encoding to UTF8
@@ -1026,7 +1026,7 @@ FB_UDR_BEGIN_PROCEDURE(optimizeIndex)
 
     FTSIndexRepositoryPtr indexRepository{nullptr};
 
-    void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
+    void getCharSet([[maybe_unused]] ThrowStatusWrapper* status, [[maybe_unused]] IExternalContext* context,
         char* name, unsigned nameSize)
     {
         // Forced internal request encoding to UTF8

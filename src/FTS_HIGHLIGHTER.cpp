@@ -63,7 +63,7 @@ FB_UDR_BEGIN_FUNCTION(bestFragementHighligh)
 
     std::unique_ptr<AnalyzerRepository> analyzers;
 
-    void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
+    void getCharSet([[maybe_unused]] ThrowStatusWrapper* status, [[maybe_unused]] IExternalContext* context,
         char* name, unsigned nameSize)
     {
         // Forced internal request encoding to UTF8
@@ -188,7 +188,7 @@ FB_UDR_BEGIN_PROCEDURE(bestFragementsHighligh)
 
     std::unique_ptr<AnalyzerRepository> analyzers;
 
-    void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
+    void getCharSet([[maybe_unused]] ThrowStatusWrapper* status, [[maybe_unused]] IExternalContext* context,
         char* name, unsigned nameSize)
     {
         // Forced internal request encoding to UTF8

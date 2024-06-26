@@ -69,9 +69,9 @@ target_compile_options(luceneudr PRIVATE
 #    -Wold-style-cast
 #    -Woverloaded-virtual
     -Wredundant-decls
-    -Wsign-conversion
+#    -Wsign-conversion
     -Wsign-promo
-    -Wno-unused-parameter
+#    -Wno-unused-parameter
 )
 
 find_package(liblucene++ REQUIRED)

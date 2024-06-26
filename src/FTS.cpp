@@ -149,7 +149,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
     FTSIndexRepositoryPtr indexRepository{nullptr};
 
     
-    void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
+    void getCharSet([[maybe_unused]] ThrowStatusWrapper* status, [[maybe_unused]] IExternalContext* context,
         char* name, unsigned nameSize)
     {
         // Forced internal request encoding to UTF8
@@ -345,7 +345,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsAnalyze)
 
     std::unique_ptr<AnalyzerRepository> analyzers;
 
-    void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
+    void getCharSet([[maybe_unused]] ThrowStatusWrapper* status, [[maybe_unused]] IExternalContext* context,
         char* name, unsigned nameSize)
     {
         // Forced internal request encoding to UTF8
@@ -429,7 +429,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogByDdKey)
 
     AutoRelease<IStatement> appendLogStmt;
 
-    void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
+    void getCharSet([[maybe_unused]] ThrowStatusWrapper* status, [[maybe_unused]] IExternalContext* context,
         char* name, unsigned nameSize)
     {
         // Forced internal request encoding to UTF8
@@ -541,7 +541,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogById)
 
     AutoRelease<IStatement> appendLogStmt;
 
-    void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
+    void getCharSet([[maybe_unused]] ThrowStatusWrapper* status, [[maybe_unused]] IExternalContext* context,
         char* name, unsigned nameSize)
     {
         // Forced internal request encoding to UTF8
@@ -654,7 +654,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsLogByUuid)
 
     AutoRelease<IStatement> appendLogStmt;
 
-    void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
+    void getCharSet([[maybe_unused]] ThrowStatusWrapper* status, [[maybe_unused]] IExternalContext* context,
         char* name, unsigned nameSize)
     {
         // Forced internal request encoding to UTF8
@@ -750,7 +750,7 @@ ENGINE UDR;
 ***/
 FB_UDR_BEGIN_PROCEDURE(ftsClearLog)
 
-    void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
+    void getCharSet([[maybe_unused]] ThrowStatusWrapper* status, [[maybe_unused]] IExternalContext* context,
         char* name, unsigned nameSize)
     {
         // Forced internal request encoding to UTF8
@@ -804,7 +804,7 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
     AutoRelease<IStatement> logDeleteStmt{nullptr};
     AutoRelease<IStatement> logStmt{nullptr};
 
-    void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
+    void getCharSet([[maybe_unused]] ThrowStatusWrapper* status, [[maybe_unused]] IExternalContext* context,
         char* name, unsigned nameSize) 
     {
         // Forced internal request encoding to UTF8

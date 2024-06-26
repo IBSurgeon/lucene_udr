@@ -101,7 +101,7 @@ FB_UDR_BEGIN_PROCEDURE(getIndexStatistics)
 
     FTSIndexRepositoryPtr indexRepository{nullptr};
 
-    void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
+    void getCharSet([[maybe_unused]] ThrowStatusWrapper* status, [[maybe_unused]] IExternalContext* context,
         char* name, unsigned nameSize)
     {
         // Forced internal request encoding to UTF8
@@ -250,7 +250,7 @@ FB_UDR_BEGIN_PROCEDURE(getIndexFields)
 
     FTSIndexRepositoryPtr indexRepository{nullptr};
 
-    void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
+    void getCharSet([[maybe_unused]] ThrowStatusWrapper* status, [[maybe_unused]] IExternalContext* context,
         char* name, unsigned nameSize)
     {
         // Forced internal request encoding to UTF8
@@ -364,7 +364,7 @@ FB_UDR_BEGIN_PROCEDURE(getIndexFiles)
 
     FTSIndexRepositoryPtr indexRepository{nullptr};
 
-    void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
+    void getCharSet([[maybe_unused]] ThrowStatusWrapper* status, [[maybe_unused]] IExternalContext* context,
         char* name, unsigned nameSize)
     {
         // Forced internal request encoding to UTF8
@@ -496,7 +496,7 @@ FB_UDR_BEGIN_PROCEDURE(getIndexSegments)
 
     FTSIndexRepositoryPtr indexRepository{nullptr};
 
-    void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
+    void getCharSet([[maybe_unused]] ThrowStatusWrapper* status, [[maybe_unused]] IExternalContext* context,
         char* name, unsigned nameSize)
     {
         // Forced internal request encoding to UTF8
@@ -648,7 +648,7 @@ FB_UDR_BEGIN_PROCEDURE(getFieldInfos)
 
     FTSIndexRepositoryPtr indexRepository{nullptr};
 
-    void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
+    void getCharSet([[maybe_unused]] ThrowStatusWrapper* status, [[maybe_unused]] IExternalContext* context,
         char* name, unsigned nameSize)
     {
         // Forced internal request encoding to UTF8
@@ -807,7 +807,7 @@ FB_UDR_BEGIN_PROCEDURE(indexTerms)
 
     FTSIndexRepositoryPtr indexRepository{ nullptr };
 
-    void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
+    void getCharSet([[maybe_unused]] ThrowStatusWrapper* status, [[maybe_unused]] IExternalContext* context,
         char* name, unsigned nameSize)
     {
         // Forced internal request encoding to UTF8

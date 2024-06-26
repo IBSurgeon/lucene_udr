@@ -64,7 +64,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsMakeTrigger)
 
     std::unique_ptr<FTSTriggerHelper> triggerHelper{nullptr};
 
-    void getCharSet(ThrowStatusWrapper* status, IExternalContext* context,
+    void getCharSet([[maybe_unused]] ThrowStatusWrapper* status, [[maybe_unused]] IExternalContext* context,
         char* name, unsigned nameSize)
     {
         // Forced internal request encoding to UTF8
