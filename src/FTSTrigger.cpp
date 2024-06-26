@@ -174,7 +174,7 @@ ORDER BY FTS$KEY_FIELD_NAME
         unsigned int sqlDialect,
         const std::string& relationName,
         bool multiAction,
-        unsigned short position,
+        short position,
         FTSTriggerList& triggers)
     {
 

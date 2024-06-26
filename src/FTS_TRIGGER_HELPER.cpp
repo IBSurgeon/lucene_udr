@@ -79,9 +79,9 @@ FB_UDR_BEGIN_PROCEDURE(ftsMakeTrigger)
         }
         std::string relationName(in->relationName.str, in->relationName.length);
 
-        const bool multiActionFlag = in->multiAction;
+        bool multiActionFlag = in->multiAction;
 
-        const auto triggerPosition = in->position;
+        auto triggerPosition = in->position;
 
         att.reset(context->getAttachment(status));
         tra.reset(context->getTransaction(status));

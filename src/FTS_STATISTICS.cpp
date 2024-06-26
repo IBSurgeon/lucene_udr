@@ -749,7 +749,7 @@ FB_UDR_BEGIN_PROCEDURE(getFieldInfos)
         fieldName.copy(out->fieldName.str, out->fieldName.length);
 
         out->fieldNumberNull = false;
-        out->fieldNumber = static_cast<ISC_USHORT>(fieldInfo->number);
+        out->fieldNumber = static_cast<ISC_SHORT>(fieldInfo->number);
 
         out->isIndexedNull = false;
         out->isIndexed = fieldInfo->isIndexed;

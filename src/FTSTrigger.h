@@ -62,7 +62,7 @@ namespace FTSMetadata
         std::string triggerName{ "" };
         std::string relationName{ "" };
         std::string triggerEvents{ "" };
-        unsigned int position = 0;
+        short position = 0;
         std::string triggerSource{ "" };
     public:
         FTSTrigger() = default;
@@ -70,7 +70,7 @@ namespace FTSMetadata
         FTSTrigger(const std::string& aTriggerName, 
             const std::string& aRelationName, 
             const std::string& aTriggerEvents, 
-            unsigned int aPosition, 
+            short aPosition,
             const std::string& aTriggerSource
         )
             : triggerName(aTriggerName)
@@ -121,7 +121,7 @@ namespace FTSMetadata
             unsigned int sqlDialect,
             const std::string& relationName,
             bool multiAction,
-            unsigned short position,
+            short position,
             FTSTriggerList& triggers);
 
     private:
