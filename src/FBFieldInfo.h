@@ -153,6 +153,22 @@ namespace FTSMetadata
             }
         }
 
+        unsigned char* getBinaryValue(unsigned char* buffer) const {
+            switch (dataType)
+            {
+            case SQL_TEXT:
+                return buffer + offset;
+            case SQL_VARYING:
+                return buffer + offset + sizeof(short);
+            default:
+                return nullptr;
+            }
+        }
+
+        bool isBlob() const {
+            return dataType == SQL_BLOB;
+        }
+
         bool isBinary() const {
             switch (dataType) {
             case SQL_TEXT:

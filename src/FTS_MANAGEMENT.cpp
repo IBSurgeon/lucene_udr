@@ -16,7 +16,6 @@
 #include "FTSUtils.h"
 #include "Relations.h"
 #include "FBUtils.h"
-#include "EncodeUtils.h"
 #include "FBFieldInfo.h"
 #include "LuceneHeaders.h"
 #include "FileUtils.h"
@@ -959,22 +958,10 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
                 while (rs->fetchNext(status, buffer.data()) == IStatus::RESULT_OK) {						
                     bool emptyFlag = true;
                     auto doc = newLucene<Document>();
-                        
+
                     for (const auto& field : fields) {
-                        Lucene::String unicodeValue;	
-                        if (!field.isNull(buffer.data())) {
-                            const std::string value = field.getStringValue(status, att, tra, buffer.data());
-                            if (!value.empty()) {
-                                // re-encode content to Unicode only if the string is non-binary
-                                if (!field.isBinary()) {
-                                    unicodeValue = StringUtils::toUnicode(value);
-                                }
-                                else {
-                                    // convert the binary string to a hexadecimal representation
-                                    unicodeValue = StringUtils::toUnicode(string_to_hex(value));
-                                }
-                            }
-                        }
+                        const std::string value = field.getStringValue(status, att, tra, buffer.data());
+                        Lucene::String unicodeValue = StringUtils::toUnicode(value);
                         // add field to document
                         if (field.ftsKey) {
                             auto luceneField = newLucene<Field>(field.ftsFieldName, unicodeValue, Field::STORE_YES, Field::INDEX_NOT_ANALYZED);
@@ -988,7 +975,6 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
                             doc->add(luceneField);
                             emptyFlag = emptyFlag && unicodeValue.empty();
                         }
-                        
                     }
                     // if all indexed fields are empty, then it makes no sense to add the document to the index
                     if (!emptyFlag) {

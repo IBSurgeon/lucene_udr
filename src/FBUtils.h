@@ -16,10 +16,15 @@
 
 #include "LuceneUdr.h"
 #include <string>
+#include <string_view>
+#include <vector>
 
 
 namespace LuceneUDR
 {
+
+    std::vector<unsigned char> readBinaryFromBlob(Firebird::ThrowStatusWrapper* status, Firebird::IAttachment* att,
+        Firebird::ITransaction* tra, ISC_QUAD* blobIdPtr);
 
     std::string readStringFromBlob(Firebird::ThrowStatusWrapper* status, Firebird::IAttachment* att, 
         Firebird::ITransaction* tra, ISC_QUAD* blobIdPtr);
@@ -86,6 +91,10 @@ namespace LuceneUDR
     };
 
     Firebird::IMessageMetadata* prepareTextMetaData(Firebird::ThrowStatusWrapper* status, Firebird::IMessageMetadata* meta);
+
+    std::string binary_to_hex(const unsigned char* data, size_t size);
+
+    std::vector<unsigned char> hex_to_binary(std::string_view input);
 }
 
 #endif	// FB_BLOB_UTILS_H

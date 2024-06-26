@@ -17,7 +17,6 @@
 #include "Relations.h"
 #include "FBUtils.h"
 #include "FBFieldInfo.h"
-#include "EncodeUtils.h"
 #include "LuceneHeaders.h"
 #include "FileUtils.h"
 #include "TermAttribute.h"
@@ -35,36 +34,39 @@ using namespace Lucene;
 using namespace FTSMetadata;
 using namespace LuceneUDR;
 
-const std::string queryEscape(const std::string& query)
-{
-    std::stringstream ss;
-    for (const auto ch : query) {
-        switch (ch) {
-        case '+': 
-        case '-':
-        case '!':
-        case '^':
-        case '"':
-        case '~':
-        case '*':
-        case '?':
-        case ':':
-        case '\\':
-        case '&':
-        case '|':
-        case '(':
-        case ')':
-        case '[':
-        case ']':
-        case '{':
-        case '}':
-            ss << '\\' << ch;
-            break;
-        default:
-            ss << ch;
+namespace {
+
+    std::string queryEscape(const std::string& query)
+    {
+        std::stringstream ss;
+        for (auto ch : query) {
+            switch (ch) {
+            case '+':
+            case '-':
+            case '!':
+            case '^':
+            case '"':
+            case '~':
+            case '*':
+            case '?':
+            case ':':
+            case '\\':
+            case '&':
+            case '|':
+            case '(':
+            case ')':
+            case '[':
+            case ']':
+            case '{':
+            case '}':
+                ss << '\\' << ch;
+                break;
+            default:
+                ss << ch;
+            }
         }
+        return ss.str();
     }
-    return ss.str();
 }
 
 /***
@@ -269,17 +271,19 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
                 const std::string keyValue = StringUtils::toUTF8(doc->get(unicodeKeyFieldName));
                 if (unicodeKeyFieldName == L"RDB$DB_KEY") {
                     // In the Lucene index, the string is stored in hexadecimal form, so let's convert it back to binary format.
-                    const std::string dbKey = hex_to_string(keyValue);
+                    auto dbKey = hex_to_binary(keyValue);
+                    auto dbKeyPtr = reinterpret_cast<char*>(dbKey.data());
                     out->dbKeyNull = false;
-                    out->dbKey.length = static_cast<ISC_USHORT>(dbKey.length());
-                    dbKey.copy(out->dbKey.str, out->dbKey.length);
+                    out->dbKey.length = static_cast<ISC_USHORT>(dbKey.size());
+                    std::copy(dbKeyPtr, dbKeyPtr + out->dbKey.length, out->dbKey.str);
                 }
                 else if (keyFieldInfo.isBinary()) {
                     // In the Lucene index, the string is stored in hexadecimal form, so let's convert it back to binary format.
-                    const std::string uuid = hex_to_string(keyValue);
+                    auto uuid = hex_to_binary(keyValue);
+                    auto uuidPtr = reinterpret_cast<char*>(uuid.data());
                     out->uuidNull = false;
-                    out->uuid.length = static_cast<ISC_USHORT>(uuid.length());
-                    uuid.copy(out->uuid.str, out->uuid.length);
+                    out->uuid.length = static_cast<ISC_USHORT>(uuid.size());
+                    std::copy(uuidPtr, uuidPtr + out->uuid.length, out->uuid.str);
                 }
                 else if (keyFieldInfo.isInt()) {
                     out->idNull = false;
@@ -997,14 +1001,14 @@ ORDER BY FTS$LOG_ID
                     switch (ftsIndex->keyFieldType) {
                     case FTSKeyType::DB_KEY:
                         if (!logOutput->dbKeyNull) {
-                            std::string dbKey(logOutput->dbKey.str, logOutput->dbKey.length);
-                            unicodeKeyValue = StringUtils::toUnicode(string_to_hex(dbKey));
+                            std::string dbKey = binary_to_hex(reinterpret_cast<unsigned char*>(logOutput->dbKey.str), logOutput->dbKey.length);
+                            unicodeKeyValue = StringUtils::toUnicode(dbKey);
                         }
                         break;
                     case FTSKeyType::UUID:
                         if (!logOutput->uuidNull) {
-                            std::string uuid(logOutput->uuid.str, logOutput->uuid.length);
-                            unicodeKeyValue = StringUtils::toUnicode(string_to_hex(uuid));
+                            std::string uuid = binary_to_hex(reinterpret_cast<unsigned char*>(logOutput->uuid.str), logOutput->uuid.length);
+                            unicodeKeyValue = StringUtils::toUnicode(uuid);
                         }
                         break;
                     case FTSKeyType::INT_ID:
@@ -1095,20 +1099,10 @@ ORDER BY FTS$LOG_ID
                             auto doc = newLucene<Document>();
 
                             for (const auto& field : fields) {
-                                Lucene::String unicodeValue;
-                                if (!field.isNull(buffer.data())) {
-                                    const std::string value = field.getStringValue(status, att, tra, buffer.data());
-                                    if (!value.empty()) {
-                                        // re-encode content to Unicode only if the string is non-binary
-                                        if (!field.isBinary()) {
-                                            unicodeValue = StringUtils::toUnicode(value); 
-                                        }
-                                        else {
-                                            // convert the binary string to a hexadecimal representation
-                                            unicodeValue = StringUtils::toUnicode(string_to_hex(value));
-                                        }
-                                    }
-                                }
+                                const std::string value = field.getStringValue(status, att, tra, buffer.data());
+
+                                Lucene::String unicodeValue = StringUtils::toUnicode(value);
+
                                 // add field to document
                                 if (field.ftsKey) {
                                     auto luceneField = newLucene<Field>(field.ftsFieldName, unicodeValue, Field::STORE_YES, Field::INDEX_NOT_ANALYZED);

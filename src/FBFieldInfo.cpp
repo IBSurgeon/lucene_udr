@@ -37,43 +37,42 @@ namespace FTSMetadata
     }
 
     std::string FbFieldInfo::getStringValue(ThrowStatusWrapper* status, IAttachment* att, ITransaction* tra, unsigned char* buffer) const
+    try
     {
+        if (isNull(buffer)) {
+            return {};
+        }
         switch (dataType) {
         case SQL_TEXT:
         case SQL_VARYING:
         {
-            return { getCharValue(buffer), static_cast<size_t>(getOctetsLength(buffer)) };
+            if (charSet != CS_BINARY) {
+                return { getCharValue(buffer), static_cast<size_t>(getOctetsLength(buffer)) };
+            }
+            else {
+                return binary_to_hex(getBinaryValue(buffer), static_cast<size_t>(getOctetsLength(buffer)));
+            }
+            
         }
         case SQL_BLOB:
         {
             ISC_QUAD* blobIdPtr = getQuadPtr(buffer);
-            return readStringFromBlob(status, att, tra, blobIdPtr);
-        }
-        case SQL_SHORT:
-        {
-            if (!scale) {
-                return std::to_string(getShortValue(buffer));
+            if (subType == 1) {
+                return readStringFromBlob(status, att, tra, blobIdPtr);
             }
-            return {};
-        }
-        case SQL_LONG:
-        {
-            if (!scale) {
-                return std::to_string(getLongValue(buffer));
+            else {
+                auto v = readBinaryFromBlob(status, att, tra, blobIdPtr);
+                return binary_to_hex(v.data(), v.size());
             }
-            return {};
-        }
-        case SQL_INT64:
-        {
-            if (!scale) {
-                return std::to_string(getInt64Value(buffer));
-            }
-            return {};
         }
         default:
             // Other types are not considered yet.
             return {};
         }
+    }
+    catch (const std::exception& e) {
+        IscRandomStatus st(e);
+        throw Firebird::FbException(status, st);
     }
 
     FbFieldsInfo::FbFieldsInfo(ThrowStatusWrapper* status, IMessageMetadata* const meta)

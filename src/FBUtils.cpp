@@ -23,6 +23,11 @@ using namespace Firebird;
 
 namespace {
 
+    constexpr unsigned int BUFFER_LARGE = 2048;
+    constexpr size_t MAX_SEGMENT_SIZE = 65535;
+
+    constexpr const char hex_digits[] = "0123456789ABCDEF";
+
     int64_t portable_integer(const unsigned char* ptr, short length);
 
     int64_t portable_integer(const unsigned char* ptr, short length)
@@ -42,19 +47,29 @@ namespace {
 
         return value;
     }
+
+    unsigned char hexval(unsigned char c)
+    {
+        if ('0' <= c && c <= '9')
+            return c - '0';
+        else if ('A' <= c && c <= 'F')
+            return c - 'A' + 10;
+        else if ('a' <= c && c <= 'f')
+            return c - 'a' + 10;
+        else
+            throw std::invalid_argument("not a hex digit");
+    }
 }
 
 namespace LuceneUDR
 {
-    constexpr unsigned int BUFFER_LARGE = 2048;
-    constexpr size_t MAX_SEGMENT_SIZE = 65535;
-
-    std::string readStringFromBlob(Firebird::ThrowStatusWrapper* status, Firebird::IAttachment* att, Firebird::ITransaction* tra, ISC_QUAD* blobIdPtr)
+    std::vector<unsigned char> readBinaryFromBlob(Firebird::ThrowStatusWrapper* status, Firebird::IAttachment* att,
+        Firebird::ITransaction* tra, ISC_QUAD* blobIdPtr)
     {
         if (!blobIdPtr) {
-            return "";
+            return {};
         }
-        std::stringstream ss;
+        std::vector<unsigned char> v;
         AutoRelease<IBlob> blob(att->openBlob(status, tra, blobIdPtr, 0, nullptr));
         auto buffer = std::vector<char>(MAX_SEGMENT_SIZE);
         {
@@ -64,7 +79,7 @@ namespace LuceneUDR
                 switch (blob->getSegment(status, MAX_SEGMENT_SIZE, buffer.data(), &l)) {
                 case IStatus::RESULT_OK:
                 case IStatus::RESULT_SEGMENT:
-                    ss.write(buffer.data(), l);
+                    v.insert(v.end(), buffer.data(), buffer.data() + l);
                     continue;
                 default:
                     eof = true;
@@ -74,7 +89,36 @@ namespace LuceneUDR
         }
         blob->close(status);
         blob.release();
-        return ss.str();
+        return v;
+    }
+
+    std::string readStringFromBlob(Firebird::ThrowStatusWrapper* status, Firebird::IAttachment* att, Firebird::ITransaction* tra, ISC_QUAD* blobIdPtr)
+    {
+        if (!blobIdPtr) {
+            return {};
+        }
+        std::string s;
+        s.reserve(MAX_SEGMENT_SIZE);
+        AutoRelease<IBlob> blob(att->openBlob(status, tra, blobIdPtr, 0, nullptr));
+        auto buffer = std::vector<char>(MAX_SEGMENT_SIZE);
+        {
+            bool eof = false;
+            unsigned int l;
+            while (!eof) {
+                switch (blob->getSegment(status, MAX_SEGMENT_SIZE, buffer.data(), &l)) {
+                case IStatus::RESULT_OK:
+                case IStatus::RESULT_SEGMENT:
+                    s.append(buffer.data(), l);
+                    continue;
+                default:
+                    eof = true;
+                    break;
+                }
+            }
+        }
+        blob->close(status);
+        blob.release();
+        return s;
     }
 
     void writeStringToBlob(Firebird::ThrowStatusWrapper* status, Firebird::IAttachment* att,
@@ -233,5 +277,36 @@ namespace LuceneUDR
             }
         }
         return builder->getMetadata(status);
+    }
+
+    std::string binary_to_hex(const unsigned char* data, size_t size)
+    {
+        std::string output;
+        output.reserve(size * 2);
+        for (const auto end = data + size; data < end; ++data) {
+            unsigned char c = *data;
+            output.push_back(hex_digits[c >> 4]);
+            output.push_back(hex_digits[c & 15]);
+        }
+        return output;
+    }
+
+    std::vector<unsigned char> hex_to_binary(std::string_view input)
+    {
+        size_t len = input.length();
+        if (len & 1)
+            throw std::invalid_argument("A hexadecimal string has an odd length");
+
+        std::vector<unsigned char> output(len / 2);
+        for (auto p = input.begin(); p != input.end(); ++p)
+        {
+            unsigned char c = hexval(*p);
+            ++p;
+            if (p == input.end())
+                throw std::invalid_argument("Incomplete last digit in hex string");
+            c = (c << 4) + hexval(*p); // + takes precedence over <<
+            output.push_back(c);
+        }
+        return output;
     }
 }

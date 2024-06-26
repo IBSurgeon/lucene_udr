@@ -32,7 +32,6 @@ set(FIREBIRD_UDR_DIR ${FIREBIRD_DIR}/plugins/udr)
 add_library(luceneudr SHARED ${luceneudr_sources})
 target_sources(luceneudr PRIVATE
     "src/Analyzers.cpp"
-	"src/EncodeUtils.cpp"
     "src/EnglishAnalyzer.cpp"
     "src/FBFieldInfo.cpp"
     "src/FBUtils.cpp"

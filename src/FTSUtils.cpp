@@ -1,5 +1,7 @@
 #include "FTSUtils.h"
 
+#include <string>
+
 #include "FBUtils.h"
 #include "inicpp.h"
 

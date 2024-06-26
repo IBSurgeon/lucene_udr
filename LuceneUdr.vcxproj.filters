@@ -40,9 +40,6 @@
     <ClCompile Include="src\FTS_MANAGEMENT.cpp">
       <Filter>Source files</Filter>
     </ClCompile>
-    <ClCompile Include="src\EncodeUtils.cpp">
-      <Filter>Source files</Filter>
-    </ClCompile>
     <ClCompile Include="src\FTS_STATISTICS.cpp">
       <Filter>Source files</Filter>
     </ClCompile>
@@ -97,9 +94,6 @@
       <Filter>Header files</Filter>
     </ClInclude>
     <ClInclude Include="src\FBUtils.h">
-      <Filter>Header files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\EncodeUtils.h">
       <Filter>Header files</Filter>
     </ClInclude>
     <ClInclude Include="src\LuceneAnalyzerFactory.h">
