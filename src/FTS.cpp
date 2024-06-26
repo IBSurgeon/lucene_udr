@@ -36,9 +36,10 @@ using namespace LuceneUDR;
 
 namespace {
 
-    std::string queryEscape(const std::string& query)
+    std::string queryEscape(std::string_view query)
     {
-        std::stringstream ss;
+        std::string s;
+        s.reserve(query.size());
         for (auto ch : query) {
             switch (ch) {
             case '+':
@@ -59,13 +60,13 @@ namespace {
             case ']':
             case '{':
             case '}':
-                ss << '\\' << ch;
+                s+= '\\' + ch;
                 break;
             default:
-                ss << ch;
+                s += ch;
             }
         }
-        return ss.str();
+        return s;
     }
 }
 
@@ -89,10 +90,9 @@ FB_UDR_BEGIN_FUNCTION(ftsEscapeQuery)
     FB_UDR_EXECUTE_FUNCTION
     {
         if (!in->queryNull) {
-            std::string queryStr;
-            queryStr.assign(in->query.str, in->query.length);
+            std::string_view queryStr(in->query.str, in->query.length);
 
-            const auto escapedQuery = queryEscape(queryStr);
+            const std::string escapedQuery = queryEscape(queryStr);
 
             out->queryNull = false;
             out->query.length = static_cast<ISC_USHORT>(escapedQuery.length());
@@ -180,7 +180,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
         att.reset(context->getAttachment(status));
         tra.reset(context->getTransaction(status));
 
-        const unsigned int sqlDialect = getSqlDialect(status, att);
+        unsigned int sqlDialect = getSqlDialect(status, att);
 
         auto ftsIndex = procedure->indexRepository->getIndex(status, att, tra, sqlDialect, indexName, true);
 
@@ -406,384 +406,6 @@ FB_UDR_BEGIN_PROCEDURE(ftsAnalyze)
 
 FB_UDR_END_PROCEDURE
 
-/***
-PROCEDURE FTS$LOG_BY_DBKEY (
-    FTS$RELATION_NAME  VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
-    FTS$DBKEY          CHAR(8) CHARACTER SET OCTETS NOT NULL,
-    FTS$CHANGE_TYPE    FTS$D_CHANGE_TYPE NOT NULL
-)
-EXTERNAL NAME 'luceneudr!ftsLogByDdKey'
-ENGINE UDR;
-***/
-FB_UDR_BEGIN_PROCEDURE(ftsLogByDdKey)
-    FB_UDR_MESSAGE(InMessage,
-        (FB_INTL_VARCHAR(252, CS_UTF8), relationName)
-        (FB_INTL_VARCHAR(8, CS_BINARY), dbKey)
-        (FB_INTL_VARCHAR(4, CS_UTF8), changeType)
-    );
-
-    FB_UDR_CONSTRUCTOR
-        , appendLogStmt(nullptr)
-    {
-    }
-
-    AutoRelease<IStatement> appendLogStmt;
-
-    void getCharSet([[maybe_unused]] ThrowStatusWrapper* status, [[maybe_unused]] IExternalContext* context,
-        char* name, unsigned nameSize)
-    {
-        // Forced internal request encoding to UTF8
-        memset(name, 0, nameSize);
-        memcpy(name, INTERNAL_UDR_CHARSET, std::size(INTERNAL_UDR_CHARSET));
-    }
-
-    FB_UDR_EXECUTE_PROCEDURE
-    {
-        if (in->relationNameNull) {
-            throwException(status, "FTS$RELATION_NAME can not be NULL");
-        }
-        std::string relationName(in->relationName.str, in->relationName.length);
-        relationName = rtrim(relationName);
-
-        if (in->dbKeyNull) {
-            throwException(status, "FTS$DBKEY can not be NULL");
-        }
-
-        if (in->changeTypeNull) {
-            throwException(status, "FTS$CHANGE_TYPE can not be NULL");
-        }
-        std::string changeType(in->changeType.str, in->changeType.length);
-        changeType = rtrim(changeType);
-
-        AutoRelease<IAttachment> att(context->getAttachment(status));
-        AutoRelease<ITransaction> tra(context->getTransaction(status));
-
-        const unsigned int sqlDialect = getSqlDialect(status, att);
-
-        constexpr const char* SQL_APPEND_LOG = R"SQL(
-INSERT INTO FTS$LOG (
-  FTS$RELATION_NAME,
-  FTS$DB_KEY,
-  FTS$REC_UUID,
-  FTS$REC_ID,
-  FTS$CHANGE_TYPE
-)
-VALUES(?, ?, NULL, NULL, ?)
-)SQL";
-
-        // prepare statement for append record to FTS log
-        if (!procedure->appendLogStmt.hasData()) {
-            procedure->appendLogStmt.reset(att->prepare(
-                status,
-                tra,
-                0,
-                SQL_APPEND_LOG,
-                sqlDialect,
-                IStatement::PREPARE_PREFETCH_METADATA
-            ));
-        }
-
-        FB_MESSAGE(Input, ThrowStatusWrapper,
-            (FB_INTL_VARCHAR(252, CS_UTF8), relationName)
-            (FB_INTL_VARCHAR(8, CS_BINARY), dbKey)
-            (FB_INTL_VARCHAR(4, CS_UTF8), changeType)
-        ) input(status, context->getMaster());
-
-        input.clear();
-
-        input->relationName.length = static_cast<ISC_USHORT>(relationName.length());
-        relationName.copy(input->relationName.str, input->relationName.length);
-
-        input->dbKey.length = in->dbKey.length;
-        memcpy(input->dbKey.str, in->dbKey.str, in->dbKey.length);
-
-        input->changeType.length = static_cast<ISC_USHORT>(changeType.length());
-        changeType.copy(input->changeType.str, input->changeType.length);
-
-        procedure->appendLogStmt->execute(
-            status,
-            tra,
-            input.getMetadata(),
-            input.getData(),
-            nullptr,
-            nullptr
-        );
-    }
-
-    FB_UDR_FETCH_PROCEDURE
-    {
-        return false;
-    }
-
-FB_UDR_END_PROCEDURE
-
-
-/***
-PROCEDURE FTS$LOG_BY_ID (
-    FTS$RELATION_NAME  VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
-    FTS$ID             BIGINT NOT NULL,
-    FTS$CHANGE_TYPE    FTS$D_CHANGE_TYPE NOT NULL
-)
-EXTERNAL NAME 'luceneudr!ftsLogById'
-ENGINE UDR;
-***/
-FB_UDR_BEGIN_PROCEDURE(ftsLogById)
-    FB_UDR_MESSAGE(InMessage,
-        (FB_INTL_VARCHAR(252, CS_UTF8), relationName)
-        (FB_BIGINT, id)
-        (FB_INTL_VARCHAR(4, CS_UTF8), changeType)
-    );
-
-    FB_UDR_CONSTRUCTOR
-        , appendLogStmt(nullptr)
-    {
-    }
-
-    AutoRelease<IStatement> appendLogStmt;
-
-    void getCharSet([[maybe_unused]] ThrowStatusWrapper* status, [[maybe_unused]] IExternalContext* context,
-        char* name, unsigned nameSize)
-    {
-        // Forced internal request encoding to UTF8
-        memset(name, 0, nameSize);
-        memcpy(name, INTERNAL_UDR_CHARSET, std::size(INTERNAL_UDR_CHARSET));
-    }
-
-    FB_UDR_EXECUTE_PROCEDURE
-    {
-        if (in->relationNameNull) {
-            throwException(status, "FTS$RELATION_NAME can not be NULL");
-        }
-        std::string relationName(in->relationName.str, in->relationName.length);
-        relationName = rtrim(relationName);
-
-        if (in->idNull) {
-            throwException(status, "FTS$ID can not be NULL");
-        }
-
-        if (in->changeTypeNull) {
-            throwException(status, "FTS$CHANGE_TYPE can not be NULL");
-        }
-        std::string changeType(in->changeType.str, in->changeType.length);
-        changeType = rtrim(changeType);
-
-        AutoRelease<IAttachment> att(context->getAttachment(status));
-        AutoRelease<ITransaction> tra(context->getTransaction(status));
-
-        const unsigned int sqlDialect = getSqlDialect(status, att);
-
-        constexpr const char* SQL_APPEND_LOG =
-            R"SQL(
-INSERT INTO FTS$LOG (
-  FTS$RELATION_NAME,
-  FTS$DB_KEY,
-  FTS$REC_UUID,
-  FTS$REC_ID,
-  FTS$CHANGE_TYPE
-)
-VALUES(?, NULL, NULL, ?, ?)
-)SQL";
-
-        // prepare statement for append record to FTS log
-        if (!procedure->appendLogStmt.hasData()) {
-            procedure->appendLogStmt.reset(att->prepare(
-                status,
-                tra,
-                0,
-                SQL_APPEND_LOG,
-                sqlDialect,
-                IStatement::PREPARE_PREFETCH_METADATA
-            ));
-        }
-
-        FB_MESSAGE(Input, ThrowStatusWrapper,
-            (FB_INTL_VARCHAR(252, CS_UTF8), relationName)
-            (FB_BIGINT, id)
-            (FB_INTL_VARCHAR(4, CS_UTF8), changeType)
-        ) input(status, context->getMaster());
-
-        input.clear();
-
-        input->relationName.length = static_cast<ISC_USHORT>(relationName.length());
-        relationName.copy(input->relationName.str, input->relationName.length);
-
-        input->idNull = in->idNull;
-        input->id = in->id;
-
-        input->changeType.length = static_cast<ISC_USHORT>(changeType.length());
-        changeType.copy(input->changeType.str, input->changeType.length);
-
-        procedure->appendLogStmt->execute(
-            status,
-            tra,
-            input.getMetadata(),
-            input.getData(),
-            nullptr,
-            nullptr
-        );
-    }
-
-    FB_UDR_FETCH_PROCEDURE
-    {
-        return false;
-    }
-
-FB_UDR_END_PROCEDURE
-
-
-/***
-PROCEDURE FTS$LOG_BY_UUID (
-    FTS$RELATION_NAME  VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
-    FTS$UUID           CHAR(16) CHARACTER SET OCTETS NOT NULL,
-    FTS$CHANGE_TYPE    FTS$D_CHANGE_TYPE NOT NULL
-)
-EXTERNAL NAME 'luceneudr!ftsLogByUuid'
-ENGINE UDR;
-***/
-FB_UDR_BEGIN_PROCEDURE(ftsLogByUuid)
-    FB_UDR_MESSAGE(InMessage,
-        (FB_INTL_VARCHAR(252, CS_UTF8), relationName)
-        (FB_INTL_VARCHAR(16, CS_BINARY), uuid)
-        (FB_INTL_VARCHAR(4, CS_UTF8), changeType)
-    );
-
-    FB_UDR_CONSTRUCTOR
-        , appendLogStmt(nullptr)
-    {
-    }
-
-    AutoRelease<IStatement> appendLogStmt;
-
-    void getCharSet([[maybe_unused]] ThrowStatusWrapper* status, [[maybe_unused]] IExternalContext* context,
-        char* name, unsigned nameSize)
-    {
-        // Forced internal request encoding to UTF8
-        memset(name, 0, nameSize);
-        memcpy(name, INTERNAL_UDR_CHARSET, std::size(INTERNAL_UDR_CHARSET));
-    }
-
-    FB_UDR_EXECUTE_PROCEDURE
-    {
-        if (in->relationNameNull) {
-            throwException(status, "FTS$RELATION_NAME can not be NULL");
-        }
-        std::string relationName(in->relationName.str, in->relationName.length);
-        relationName = rtrim(relationName);
-
-        if (in->uuidNull) {
-            throwException(status, "FTS$UUID can not be NULL");
-        }
-
-        if (in->changeTypeNull) {
-            throwException(status, "FTS$CHANGE_TYPE can not be NULL");
-        }
-        std::string changeType(in->changeType.str, in->changeType.length);
-        changeType = rtrim(changeType);
-
-        AutoRelease<IAttachment> att(context->getAttachment(status));
-        AutoRelease<ITransaction> tra(context->getTransaction(status));
-
-        const unsigned int sqlDialect = getSqlDialect(status, att);
-
-        constexpr const char* SQL_APPEND_LOG = R"SQL(
-INSERT INTO FTS$LOG (
-  FTS$RELATION_NAME,
-  FTS$DB_KEY,
-  FTS$REC_UUID,
-  FTS$REC_ID,
-  FTS$CHANGE_TYPE
-)
-VALUES(?, NULL, ?, NULL, ?)
-)SQL";
-
-        // prepare statement for append record to FTS log
-        if (!procedure->appendLogStmt.hasData()) {
-            procedure->appendLogStmt.reset(att->prepare(
-                status,
-                tra,
-                0,
-                SQL_APPEND_LOG,
-                sqlDialect,
-                IStatement::PREPARE_PREFETCH_METADATA
-            ));
-        }
-
-        FB_MESSAGE(Input, ThrowStatusWrapper,
-            (FB_INTL_VARCHAR(252, CS_UTF8), relationName)
-            (FB_INTL_VARCHAR(16, CS_BINARY), uuid)
-            (FB_INTL_VARCHAR(4, CS_UTF8), changeType)
-        ) input(status, context->getMaster());
-
-        input.clear();
-
-        input->relationName.length = static_cast<ISC_USHORT>(relationName.length());
-        relationName.copy(input->relationName.str, input->relationName.length);
-
-        input->uuid.length = in->uuid.length;
-        memcpy(input->uuid.str, in->uuid.str, in->uuid.length);
-
-        input->changeType.length = static_cast<ISC_USHORT>(changeType.length());
-        changeType.copy(input->changeType.str, input->changeType.length);
-
-        procedure->appendLogStmt->execute(
-            status,
-            tra,
-            input.getMetadata(),
-            input.getData(),
-            nullptr,
-            nullptr
-        );
-    }
-
-    FB_UDR_FETCH_PROCEDURE
-    {
-        return false;
-    }
-
-FB_UDR_END_PROCEDURE
-
-
-/***
-PROCEDURE FTS$CLEAR_LOG
-EXTERNAL NAME 'luceneudr!ftsClearLog'
-ENGINE UDR;
-***/
-FB_UDR_BEGIN_PROCEDURE(ftsClearLog)
-
-    void getCharSet([[maybe_unused]] ThrowStatusWrapper* status, [[maybe_unused]] IExternalContext* context,
-        char* name, unsigned nameSize)
-    {
-        // Forced internal request encoding to UTF8
-        memset(name, 0, nameSize);
-        memcpy(name, INTERNAL_UDR_CHARSET, std::size(INTERNAL_UDR_CHARSET));
-    }
-
-    FB_UDR_EXECUTE_PROCEDURE
-    {
-        AutoRelease<IAttachment> att(context->getAttachment(status));
-        AutoRelease<ITransaction> tra(context->getTransaction(status));
-
-        const unsigned int sqlDialect = getSqlDialect(status, att);
-
-        att->execute(
-            status,
-            tra,
-            0,
-            "DELETE FROM FTS$LOG",
-            sqlDialect,
-            nullptr,
-            nullptr,
-            nullptr,
-            nullptr
-        );
-    }
-
-    FB_UDR_FETCH_PROCEDURE
-    {
-        return false;
-    }
-
-FB_UDR_END_PROCEDURE
 
 /***
 PROCEDURE FTS$UPDATE_INDEXES 

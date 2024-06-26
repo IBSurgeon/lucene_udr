@@ -42,6 +42,21 @@ namespace FTSMetadata
 
     enum class FTSKeyType {NONE, DB_KEY, INT_ID, UUID};
 
+    inline FTSKeyType FTSKeyTypeFromString(std::string_view sKeyFieldType)
+    {
+        FTSKeyType keyFieldType{ FTSKeyType::DB_KEY };
+        if (sKeyFieldType == "UUID") {
+            keyFieldType = FTSKeyType::UUID;
+        }
+        if (sKeyFieldType == "DBKEY") {
+            keyFieldType = FTSKeyType::DB_KEY;
+        }
+        if (sKeyFieldType == "INT_ID") {
+            keyFieldType = FTSKeyType::INT_ID;
+        }
+        return keyFieldType;
+    }
+
     class FTSIndexSegment;
 
     using FTSIndexSegmentPtr = std::unique_ptr<FTSIndexSegment>;

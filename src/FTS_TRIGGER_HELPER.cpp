@@ -90,12 +90,13 @@ FB_UDR_BEGIN_PROCEDURE(ftsMakeTrigger)
 
 
         try {
-            procedure->triggerHelper->makeTriggerSourceByRelation(status, att, tra, sqlDialect, relationName, multiActionFlag, triggerPosition, triggers);
+            triggers = procedure->triggerHelper->makeTriggerSourceByRelation(status, att, tra, sqlDialect, relationName, multiActionFlag, triggerPosition);
             it = triggers.cbegin();
         }
         catch (LuceneException& e) {
             std::string error_message = StringUtils::toUTF8(e.getError());
-            throwException(status, error_message.c_str());
+            IscRandomStatus statusVector(error_message);
+            throw FbException(status, statusVector);
         }
     }
 
@@ -108,32 +109,32 @@ FB_UDR_BEGIN_PROCEDURE(ftsMakeTrigger)
 
     FB_UDR_FETCH_PROCEDURE
     {
-        if (it == triggers.end()) {
+        if (it == triggers.cend()) {
             return false;
         }
 
-        const auto& trigger = *it;
+        auto&& trigger = *it;
 
         out->triggerNameNull = false;
-        out->triggerName.length = static_cast<ISC_USHORT>(trigger->triggerName.length());
-        trigger->triggerName.copy(out->triggerName.str, out->triggerName.length);
+        out->triggerName.length = static_cast<ISC_USHORT>(trigger.triggerName.length());
+        trigger.triggerName.copy(out->triggerName.str, out->triggerName.length);
 
         out->relationNameNull = false;
-        out->relationName.length = static_cast<ISC_USHORT>(trigger->relationName.length());
-        trigger->relationName.copy(out->relationName.str, out->relationName.length);
+        out->relationName.length = static_cast<ISC_USHORT>(trigger.relationName.length());
+        trigger.relationName.copy(out->relationName.str, out->relationName.length);
 
         out->eventsNull = false;
-        out->events.length = static_cast<ISC_USHORT>(trigger->triggerEvents.length());
-        trigger->triggerEvents.copy(out->events.str, out->events.length);
+        out->events.length = static_cast<ISC_USHORT>(trigger.triggerEvents.length());
+        trigger.triggerEvents.copy(out->events.str, out->events.length);
 
         out->positionNull = false;
-        out->position = trigger->position;
+        out->position = trigger.position;
 
         out->triggerSourceNull = false;
-        writeStringToBlob(status, att, tra, &out->triggerSource, trigger->triggerSource);
+        writeStringToBlob(status, att, tra, &out->triggerSource, trigger.triggerSource);
 
         out->triggerScriptNull = false;
-        writeStringToBlob(status, att, tra, &out->triggerScript, trigger->getScript(sqlDialect));
+        writeStringToBlob(status, att, tra, &out->triggerScript, trigger.getScript(sqlDialect));
 
         ++it;
         return true;
