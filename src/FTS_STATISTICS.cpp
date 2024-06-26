@@ -745,11 +745,11 @@ FB_UDR_BEGIN_PROCEDURE(getFieldInfos)
 
         const std::string fieldName = StringUtils::toUTF8(fieldInfo->name);
         out->fieldNameNull = false;
-        out->fieldName.length = static_cast<ISC_SHORT>(fieldName.length());
+        out->fieldName.length = static_cast<ISC_USHORT>(fieldName.length());
         fieldName.copy(out->fieldName.str, out->fieldName.length);
 
         out->fieldNumberNull = false;
-        out->fieldNumber = static_cast<ISC_SHORT>(fieldInfo->number);
+        out->fieldNumber = static_cast<ISC_USHORT>(fieldInfo->number);
 
         out->isIndexedNull = false;
         out->isIndexed = fieldInfo->isIndexed;

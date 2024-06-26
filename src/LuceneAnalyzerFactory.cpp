@@ -52,7 +52,7 @@ namespace LuceneUDR
                 "SIMPLE",
                 {
                     []() -> AnalyzerPtr { return newLucene<SimpleAnalyzer>(); },
-                    [](const HashSet<String> stopWords) -> AnalyzerPtr { return nullptr; },
+                    []([[maybe_unused]] const HashSet<String> stopWords) -> AnalyzerPtr { return nullptr; },
                     []() -> HashSet<String> { return HashSet<String>::newInstance(); },
                     false
                 }
@@ -61,7 +61,7 @@ namespace LuceneUDR
                 "WHITESPACE",
                 {
                     []() -> AnalyzerPtr { return newLucene<WhitespaceAnalyzer>(); },
-                    [](const HashSet<String> stopWords) -> AnalyzerPtr { return nullptr; },
+                    []([[maybe_unused]] const HashSet<String> stopWords) -> AnalyzerPtr { return nullptr; },
                     []() -> HashSet<String> { return HashSet<String>::newInstance(); },
                     false
                 }
@@ -70,7 +70,7 @@ namespace LuceneUDR
                 "KEYWORD",
                 {
                     []() -> AnalyzerPtr { return newLucene<KeywordAnalyzer>(); },
-                    [](const HashSet<String> stopWords) -> AnalyzerPtr { return nullptr; },
+                    []([[maybe_unused]] const HashSet<String> stopWords) -> AnalyzerPtr { return nullptr; },
                     []() -> HashSet<String> { return HashSet<String>::newInstance(); },
                     false
                 }
@@ -106,7 +106,7 @@ namespace LuceneUDR
                 "CHINESE",
                 {
                     []() -> AnalyzerPtr { return newLucene<ChineseAnalyzer>(); },
-                    [](const HashSet<String> stopWords) -> AnalyzerPtr { return nullptr; },
+                    []([[maybe_unused]] const HashSet<String> stopWords) -> AnalyzerPtr { return nullptr; },
                     []() -> HashSet<String> { return HashSet<String>::newInstance(); },
                     false
                 }

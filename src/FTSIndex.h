@@ -15,12 +15,15 @@
 **/
 
 #include "LuceneUdr.h"
+
 #include <string>
 #include <list>
 #include <unordered_set>
 #include <map>
 #include <memory>
 #include <algorithm>
+
+#include "FBFieldInfo.h"
 
 namespace FTSMetadata
 {

@@ -926,7 +926,7 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
             AutoRelease<IMessageMetadata> outputMetadata(stmt->getOutputMetadata(status));
             // make all fields of string type except BLOB
             AutoRelease<IMessageMetadata> newMeta(prepareTextMetaData(status, outputMetadata));
-            FbFieldsInfo fields(status, newMeta);
+            auto fields = makeFbFieldsInfo(status, newMeta);
 
             // initial specific FTS property for fields
             for (auto& field : fields) {

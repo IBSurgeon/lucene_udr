@@ -26,13 +26,12 @@ namespace FTSMetadata
 
     class FbFieldInfo {
     public:
+        std::string fieldName;
+        std::string relationName;
+        std::string owner;
+        std::string alias;
+        
         unsigned fieldIndex = 0;
-
-        std::string fieldName{""};
-        std::string relationName{""};
-        std::string owner{""};
-        std::string alias{""};
-        bool nullable = false;
         unsigned dataType = 0;
         int subType = 0;
         unsigned length = 0;
@@ -41,13 +40,22 @@ namespace FTSMetadata
         unsigned offset = 0;
         unsigned nullOffset = 0;
         // lucene specific
-        std::wstring ftsFieldName{L""};
-        bool ftsKey = false;
+        std::wstring ftsFieldName;
         double ftsBoost = 1.0;
         bool ftsBoostNull = true;
+        bool ftsKey = false;
+
+        bool nullable = false;
 
         FbFieldInfo() = default;
         FbFieldInfo(Firebird::ThrowStatusWrapper* status, Firebird::IMessageMetadata* const meta, unsigned index);
+
+        // non-copyable
+        FbFieldInfo(const FbFieldInfo& rhs) = delete;
+        FbFieldInfo& operator=(const FbFieldInfo& rhs) = delete;
+        // movable
+        FbFieldInfo(FbFieldInfo&& rhs) noexcept = default;
+        FbFieldInfo& operator=(FbFieldInfo&& rhs) noexcept = default;
 
 
         bool isNull(unsigned char* buffer) const {
@@ -207,27 +215,9 @@ namespace FTSMetadata
 
 
 
-    using FbFieldInfoVector = std::vector<FbFieldInfo>;
+    using FbFieldsInfo = std::vector<FbFieldInfo>;
 
-    class FbFieldsInfo : public FbFieldInfoVector
-    {
-    private:
-        std::unordered_map<std::string, unsigned> m_fieldByNameMap;
-    public:
-        FbFieldsInfo() = default;
-
-        FbFieldsInfo(Firebird::ThrowStatusWrapper* status, Firebird::IMessageMetadata* const meta);
-
-        // non-copyable
-        FbFieldsInfo(const FbFieldsInfo& rhs) = delete;
-        FbFieldsInfo& operator=(const FbFieldsInfo& rhs) = delete;
-        // movable
-        FbFieldsInfo(FbFieldsInfo&& rhs) noexcept = default;
-        FbFieldsInfo& operator=(FbFieldsInfo&& rhs) noexcept = default;
-
-        int findFieldByName(const std::string& fieldName) const;
-    };
-
+    FbFieldsInfo makeFbFieldsInfo(Firebird::ThrowStatusWrapper* status, Firebird::IMessageMetadata* meta);
 }
 
 

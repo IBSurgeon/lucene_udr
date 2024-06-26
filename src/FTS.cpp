@@ -877,7 +877,7 @@ ORDER BY FTS$LOG_ID
                 // go to next index
                 continue;
             }
-            const FbFieldsInfo params(status, inMetadata);
+            auto params = makeFbFieldsInfo(status, inMetadata);
             const auto& keyParam = params.at(0);
             if (keyParam.isBinary()) {
                 switch (keyParam.length) {
@@ -907,27 +907,25 @@ ORDER BY FTS$LOG_ID
 
             auto outMetadata = indexStmt.getOutExtractRecordMetadata();
             // add fields info for index
-            if (auto&& [it, inserted] = fieldsInfoMap.try_emplace(indexName, status, outMetadata); inserted) {
-                auto&& fields = it->second;
-                // initial specific FTS property for fields
-                for (auto& field : fields) {
-                    auto iSegment = ftsIndex->findSegment(field.fieldName);
-                    if (iSegment == ftsIndex->segments.end()) {
-                        // index need to rebuild
-                        setIndexToRebuild(status, att, sqlDialect, ftsIndex);
-                        // go to next index
-                        continue;
-                    }
-                    auto const& segment = *iSegment;
-                    field.ftsFieldName = StringUtils::toUnicode(segment->fieldName);
-                    field.ftsKey = segment->key;
-                    field.ftsBoost = segment->boost;
-                    field.ftsBoostNull = segment->boostNull;
-                    if (field.ftsKey) {
-                        ftsIndex->unicodeKeyFieldName = field.ftsFieldName;
-                    }
+            auto fields = makeFbFieldsInfo(status, outMetadata);
+            for (auto& field : fields) {
+                auto iSegment = ftsIndex->findSegment(field.fieldName);
+                if (iSegment == ftsIndex->segments.end()) {
+                    // index need to rebuild
+                    setIndexToRebuild(status, att, sqlDialect, ftsIndex);
+                    // go to next index
+                    continue;
+                }
+                auto const& segment = *iSegment;
+                field.ftsFieldName = StringUtils::toUnicode(segment->fieldName);
+                field.ftsKey = segment->key;
+                field.ftsBoost = segment->boost;
+                field.ftsBoostNull = segment->boostNull;
+                if (field.ftsKey) {
+                    ftsIndex->unicodeKeyFieldName = field.ftsFieldName;
                 }
             }
+            fieldsInfoMap.try_emplace(indexName, std::move(fields));
 
             // Add FTS indexName for relation
             auto& indexNames = indexesByRelation[ftsIndex->relationName];

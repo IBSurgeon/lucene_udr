@@ -115,15 +115,15 @@ FB_UDR_BEGIN_PROCEDURE(ftsMakeTrigger)
         const auto& trigger = *it;
 
         out->triggerNameNull = false;
-        out->triggerName.length = static_cast<ISC_SHORT>(trigger->triggerName.length());
+        out->triggerName.length = static_cast<ISC_USHORT>(trigger->triggerName.length());
         trigger->triggerName.copy(out->triggerName.str, out->triggerName.length);
 
         out->relationNameNull = false;
-        out->relationName.length = static_cast<ISC_SHORT>(trigger->relationName.length());
+        out->relationName.length = static_cast<ISC_USHORT>(trigger->relationName.length());
         trigger->relationName.copy(out->relationName.str, out->relationName.length);
 
         out->eventsNull = false;
-        out->events.length = static_cast<ISC_SHORT>(trigger->triggerEvents.length());
+        out->events.length = static_cast<ISC_USHORT>(trigger->triggerEvents.length());
         trigger->triggerEvents.copy(out->events.str, out->events.length);
 
         out->positionNull = false;

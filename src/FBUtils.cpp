@@ -298,13 +298,12 @@ namespace LuceneUDR
             throw std::invalid_argument("A hexadecimal string has an odd length");
 
         std::vector<unsigned char> output(len / 2);
-        for (auto p = input.begin(); p != input.end(); ++p)
-        {
+        const unsigned char* begin = reinterpret_cast<const unsigned char*>(input.data());
+        const unsigned char* end = begin + len;
+        for (auto p = begin; p != end; ++p) {
             unsigned char c = hexval(*p);
             ++p;
-            if (p == input.end())
-                throw std::invalid_argument("Incomplete last digit in hex string");
-            c = (c << 4) + hexval(*p); // + takes precedence over <<
+            c = (c << 4) + hexval(*p);
             output.push_back(c);
         }
         return output;
