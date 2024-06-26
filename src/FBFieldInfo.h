@@ -137,13 +137,13 @@ namespace FTSMetadata
         }
 #endif
 
-        short getOctetsLength(unsigned char* buffer) const {
+        unsigned short getOctetsLength(unsigned char* buffer) const {
             switch (dataType)
             {
             case SQL_TEXT:
-                return length;
+                return static_cast<unsigned short>(length);
             case SQL_VARYING:
-                return *reinterpret_cast<short*>(buffer + offset);
+                return *reinterpret_cast<unsigned short*>(buffer + offset);
             default:
                 return 0;
             }

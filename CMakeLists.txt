@@ -61,7 +61,7 @@ target_compile_options(luceneudr PRIVATE
 
     -Wcast-align
 #    -Wcast-qual
-#    -Wconversion
+    -Wconversion
 #    -Wctor-dtor-privacy
     -Wenum-compare
     -Wfloat-equal
@@ -71,7 +71,7 @@ target_compile_options(luceneudr PRIVATE
     -Wredundant-decls
 #    -Wsign-conversion
     -Wsign-promo
-#    -Wno-unused-parameter
+    -Wno-unused-parameter
 )
 
 find_package(liblucene++ REQUIRED)

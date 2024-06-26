@@ -303,7 +303,7 @@ namespace LuceneUDR
         for (auto p = begin; p != end; ++p) {
             unsigned char c = hexval(*p);
             ++p;
-            c = (c << 4) + hexval(*p);
+            c = static_cast<unsigned char>(c << 4) + hexval(*p);
             output.push_back(c);
         }
         return output;

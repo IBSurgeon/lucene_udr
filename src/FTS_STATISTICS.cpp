@@ -188,7 +188,7 @@ FB_UDR_BEGIN_PROCEDURE(getIndexStatistics)
 
                     out->numFieldsNull = false;
                     auto fieldNames = reader->getFieldNames(IndexReader::FIELD_OPTION_ALL);
-                    out->numFields = fieldNames.size();
+                    out->numFields = static_cast<ISC_SHORT>(fieldNames.size());
 
 
                     // calculate index size
