@@ -48,17 +48,17 @@ namespace FTSMetadata
         case FTSKeyType::DB_KEY:
         {
             return "INSERT INTO FTS$LOG(FTS$RELATION_NAME, FTS$DB_KEY, FTS$CHANGE_TYPE) "
-                "VALUES('" + relationName + "', " + context + escapeMetaName(sqlDialect, keyFieldName) + ", '" + opType + "');";
+                "VALUES('" + relationName + "', " + context + escapeMetaName(sqlDialect, keyFieldName) + ", '" + opType + "')";
         }
         case FTSKeyType::INT_ID:
         {
             return "INSERT INTO FTS$LOG(FTS$RELATION_NAME, FTS$REC_ID, FTS$CHANGE_TYPE) "
-                "VALUES('" + relationName + "', " + context + escapeMetaName(sqlDialect, keyFieldName) + ", '" + opType + "');";
+                "VALUES('" + relationName + "', " + context + escapeMetaName(sqlDialect, keyFieldName) + ", '" + opType + "')";
         }
         case FTSKeyType::UUID:
         {
             return "INSERT INTO FTS$LOG(FTS$RELATION_NAME, FTS$REC_UUID, FTS$CHANGE_TYPE) "
-                "VALUES('" + relationName + "', " + context + escapeMetaName(sqlDialect, keyFieldName) + ", '" + opType + "');";
+                "VALUES('" + relationName + "', " + context + escapeMetaName(sqlDialect, keyFieldName) + ", '" + opType + "')";
         }
         default:
             return {};
@@ -304,14 +304,17 @@ ORDER BY FTS$KEY_FIELD_NAME
             "BEGIN\n";
 
         for (const auto& [keyFieldName, keyFieldBlock] : keyFieldBlocks) {
-            const std::string keycodeBlock =
-                "  /* Block for key " + keyFieldName + " */\n"
+            std::string keycodeBlock =
+                "  /* Block for key " + keyFieldName + " */\n";
+            keycodeBlock +=
                 "  IF (INSERTING AND (" + keyFieldBlock.insertingCondition + ")) THEN\n"
-                "    " + keyFieldBlock.makeInsertSQL(relationName, 'I', sqlDialect) + "\n";
+                "    " + keyFieldBlock.makeInsertSQL(relationName, 'I', sqlDialect) + ";\n";
+            keycodeBlock +=
                 "  IF (UPDATING AND (" + keyFieldBlock.updatingCondition + ")) THEN\n"
-                "    " + keyFieldBlock.makeInsertSQL(relationName, 'U', sqlDialect) + "\n";
+                "    " + keyFieldBlock.makeInsertSQL(relationName, 'U', sqlDialect) + ";\n";
+            keycodeBlock +=
                 "  IF (DELETING AND (" + keyFieldBlock.deletingCondition + ")) THEN\n"
-                "    " + keyFieldBlock.makeInsertSQL(relationName, 'D', sqlDialect) + "\n";
+                "    " + keyFieldBlock.makeInsertSQL(relationName, 'D', sqlDialect) + ";\n";
             triggerSource += keycodeBlock;
         }
 
@@ -334,7 +337,7 @@ ORDER BY FTS$KEY_FIELD_NAME
             const std::string keycodeBlock =
                 "  /* Block for key " + keyFieldName + " */\n"
                 "  IF (" + keyFieldBlock.insertingCondition + ") THEN\n"
-                "    " + keyFieldBlock.makeInsertSQL(relationName, 'I', sqlDialect) + "\n";
+                "    " + keyFieldBlock.makeInsertSQL(relationName, 'I', sqlDialect) + ";\n";
             triggerSource += keycodeBlock;
         }
 
@@ -357,7 +360,7 @@ ORDER BY FTS$KEY_FIELD_NAME
             const std::string keycodeBlock =
                 "  /* Block for key " + keyFieldName + " */\n"
                 "  IF (" + keyFieldBlock.updatingCondition + ") THEN\n"
-                "    " + keyFieldBlock.makeInsertSQL(relationName, 'U', sqlDialect) + "\n";
+                "    " + keyFieldBlock.makeInsertSQL(relationName, 'U', sqlDialect) + ";\n";
             triggerSource += keycodeBlock;
         }
 
@@ -380,7 +383,7 @@ ORDER BY FTS$KEY_FIELD_NAME
             const std::string keycodeBlock =
                 "  /* Block for key " + keyFieldName + " */\n"
                 "  IF (" + keyFieldBlock.deletingCondition + ") THEN\n"
-                "    " + keyFieldBlock.makeInsertSQL(relationName, 'D', sqlDialect) + "\n";
+                "    " + keyFieldBlock.makeInsertSQL(relationName, 'D', sqlDialect) + ";\n";
             triggerSource += keycodeBlock;
         }
 
