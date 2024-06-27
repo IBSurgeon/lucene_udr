@@ -152,6 +152,24 @@ WHERE FTS$ANALYZER = ? AND FTS$INDEX_STATUS = 'C'
 
 namespace FTSMetadata
 {
+
+    FTSIndexSegment::FTSIndexSegment (
+        std::string_view aIndexName,
+        std::string_view aFieldName,
+        bool aKey,
+        double aBoost,
+        bool aBoostNull,
+        bool aFieldExists
+    )
+        : indexName(aIndexName)
+        , fieldName(aFieldName)
+        , key(aKey)
+        , boost(aBoost)
+        , boostNull(aBoostNull)
+        , fieldExists(aFieldExists)
+    {
+    }
+
     FTSPreparedIndexStmt::FTSPreparedIndexStmt(
         Firebird::ThrowStatusWrapper* status,
         Firebird::IAttachment* att,
@@ -182,7 +200,7 @@ namespace FTSMetadata
         return std::find_if(
             segments.cbegin(),
             segments.cend(),
-            [&fieldName](const auto& segment) { return segment->compareFieldName(fieldName); }
+            [&fieldName](const auto& segment) { return segment.compareFieldName(fieldName); }
         );
     }
 
@@ -190,7 +208,7 @@ namespace FTSMetadata
         return std::find_if(
             segments.cbegin(),
             segments.cend(),
-            [](const auto& segment) { return segment->key; }
+            [](const auto& segment) { return segment.key; }
         );
     }
 
@@ -210,7 +228,7 @@ namespace FTSMetadata
     {
         bool existsFlag = true;
         for (const auto& segment : segments) {
-            existsFlag = existsFlag && segment->fieldExists;
+            existsFlag = existsFlag && segment.fieldExists;
         }
         return existsFlag;
     }
@@ -224,17 +242,17 @@ namespace FTSMetadata
         if (iKeySegment == segments.end()) {
             throwException(status, R"(Key field not exists in index "%s".)", indexName.c_str());
         }
-        const string keyFieldName = (*iKeySegment)->fieldName;
+        const string keyFieldName = (*iKeySegment).fieldName;
 
         std::stringstream ss;
         ss << "SELECT\n";
         int field_cnt = 0;
         for (const auto& segment : segments) {
             if (field_cnt == 0) {
-                ss << "  " << escapeMetaName(sqlDialect, segment->fieldName);
+                ss << "  " << escapeMetaName(sqlDialect, segment.fieldName);
             }
             else {
-                ss << ",\n  " << escapeMetaName(sqlDialect, segment->fieldName);
+                ss << ",\n  " << escapeMetaName(sqlDialect, segment.fieldName);
             }
             field_cnt++;
         }
@@ -247,11 +265,11 @@ namespace FTSMetadata
             ss << escapeMetaName(sqlDialect, keyFieldName) << " IS NOT NULL";
             string where;
             for (const auto& segment : segments) {
-                if (segment->fieldName == keyFieldName) continue;
+                if (segment.fieldName == keyFieldName) continue;
                 if (where.empty())
-                    where += escapeMetaName(sqlDialect, segment->fieldName) + " IS NOT NULL";
+                    where += escapeMetaName(sqlDialect, segment.fieldName) + " IS NOT NULL";
                 else
-                    where += " OR " + escapeMetaName(sqlDialect, segment->fieldName) + " IS NOT NULL";
+                    where += " OR " + escapeMetaName(sqlDialect, segment.fieldName) + " IS NOT NULL";
             }
             if (!where.empty())
                 ss << "\nAND (" << where << ")";
@@ -674,20 +692,20 @@ namespace FTSMetadata
                 index->status.assign(output->indexStatus.str, output->indexStatus.length);
             }
 
-            auto indexSegment = make_unique<FTSIndexSegment>();
-            indexSegment->indexName.assign(output->indexName.str, output->indexName.length);
-            indexSegment->fieldName.assign(output->fieldName.str, output->fieldName.length);
-            indexSegment->key = output->key;
-            indexSegment->boost = output->boost;
-            indexSegment->boostNull = output->boostNull;
-            if (indexSegment->fieldName == "RDB$DB_KEY") {
-                indexSegment->fieldExists = true;
-            }
-            else {
-                indexSegment->fieldExists = output->fieldExists;
+            std::string_view fieldName(output->fieldName.str, output->fieldName.length);
+            bool fieldExists = output->fieldExists;
+            if (fieldName == "RDB$DB_KEY") {
+                fieldExists = true;
             }
 
-            index->segments.push_back(std::move(indexSegment));
+            index->segments.emplace_back(
+                std::string_view{ output->indexName.str, output->indexName.length },
+                fieldName,
+                static_cast<bool>(output->key),
+                output->boost,
+                static_cast<bool>(output->boostNull),
+                fieldExists
+            );
         }
         rs->close(status);
         rs.release();
@@ -752,20 +770,20 @@ namespace FTSMetadata
         ));
 
         while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
-            auto indexSegment = make_unique<FTSIndexSegment>();
-            indexSegment->indexName.assign(output->indexName.str, output->indexName.length);
-            indexSegment->fieldName.assign(output->fieldName.str, output->fieldName.length);
-            indexSegment->key = output->key;
-            indexSegment->boost = output->boost;
-            indexSegment->boostNull = output->boostNull;
-            if (indexSegment->fieldName == "RDB$DB_KEY") {
-                indexSegment->fieldExists = true;
-            }
-            else {
-                indexSegment->fieldExists = output->fieldExists;
+            std::string_view fieldName(output->fieldName.str, output->fieldName.length);
+            bool fieldExists = output->fieldExists;
+            if (fieldName == "RDB$DB_KEY") {
+                fieldExists = true;
             }
 
-            segments.push_back(std::move(indexSegment));
+            segments.emplace_back(
+                std::string_view { output->indexName.str, output->indexName.length },
+                fieldName,
+                static_cast<bool>(output->key),
+                output->boost,
+                static_cast<bool>(output->boostNull),
+                fieldExists
+            );
         }
         rs->close(status);
         rs.release();

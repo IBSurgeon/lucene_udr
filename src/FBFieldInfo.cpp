@@ -82,7 +82,8 @@ namespace FTSMetadata
     FbFieldsInfo makeFbFieldsInfo(Firebird::ThrowStatusWrapper* status, Firebird::IMessageMetadata* meta)
     {
         const auto fieldCount = meta->getCount(status);
-        FbFieldsInfo fields(fieldCount);
+        FbFieldsInfo fields;
+        fields.reserve(fieldCount);
         for (unsigned i = 0; i < fieldCount; i++) {
             fields.emplace_back(status, meta, i);
         }

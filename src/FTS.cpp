@@ -205,11 +205,11 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
             std::string keyFieldName;
             auto fields = Collection<String>::newInstance();
             for (const auto& segment : ftsIndex->segments) {
-                if (!segment->key) {
-                    fields.add(StringUtils::toUnicode(segment->fieldName));
+                if (!segment.key) {
+                    fields.add(StringUtils::toUnicode(segment.fieldName));
                 }
                 else {
-                    keyFieldName = segment->fieldName;
+                    keyFieldName = segment.fieldName;
                     unicodeKeyFieldName = StringUtils::toUnicode(keyFieldName);
                 }
             }
@@ -539,10 +539,10 @@ ORDER BY FTS$LOG_ID
                     continue;
                 }
                 auto const& segment = *iSegment;
-                field.ftsFieldName = StringUtils::toUnicode(segment->fieldName);
-                field.ftsKey = segment->key;
-                field.ftsBoost = segment->boost;
-                field.ftsBoostNull = segment->boostNull;
+                field.ftsFieldName = StringUtils::toUnicode(segment.fieldName);
+                field.ftsKey = segment.key;
+                field.ftsBoost = segment.boost;
+                field.ftsBoostNull = segment.boostNull;
                 if (field.ftsKey) {
                     ftsIndex->unicodeKeyFieldName = field.ftsFieldName;
                 }

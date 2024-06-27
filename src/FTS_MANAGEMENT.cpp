@@ -906,9 +906,9 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
             writer->commit();
 
             for (const auto& segment : ftsIndex->segments) {
-                if (segment->fieldName != "RDB$DB_KEY") {
-                    if (!segment->fieldExists) {
-                        throwException(status, R"(Cannot rebuild index "%s". Field "%s" not exists in relation "%s".)", indexName.c_str(), segment->fieldName.c_str(), ftsIndex->relationName.c_str());
+                if (segment.fieldName != "RDB$DB_KEY") {
+                    if (!segment.fieldExists) {
+                        throwException(status, R"(Cannot rebuild index "%s". Field "%s" not exists in relation "%s".)", indexName.c_str(), segment.fieldName.c_str(), ftsIndex->relationName.c_str());
                     }
                 }
             }
@@ -935,10 +935,10 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
                     throwException(status, R"(Cannot rebuild index "%s". Field "%s" not found.)", indexName.c_str(), field.fieldName.c_str());
                 }
                 auto&& segment = *iSegment;
-                field.ftsFieldName = StringUtils::toUnicode(segment->fieldName);
-                field.ftsKey = segment->key;
-                field.ftsBoost = segment->boost;
-                field.ftsBoostNull = segment->boostNull;
+                field.ftsFieldName = StringUtils::toUnicode(segment.fieldName);
+                field.ftsKey = segment.key;
+                field.ftsBoost = segment.boost;
+                field.ftsBoostNull = segment.boostNull;
             }
 
             AutoRelease<IResultSet> rs(stmt->openCursor(

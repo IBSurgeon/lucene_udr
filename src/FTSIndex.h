@@ -59,8 +59,7 @@ namespace FTSMetadata
 
     class FTSIndexSegment;
 
-    using FTSIndexSegmentPtr = std::unique_ptr<FTSIndexSegment>;
-    using FTSIndexSegmentList = std::list<FTSIndexSegmentPtr>;
+    using FTSIndexSegmentList = std::list<FTSIndexSegment>;
     using FTSIndexSegmentsMap = std::map<std::string, FTSIndexSegmentList>;
 
 
@@ -109,16 +108,16 @@ namespace FTSMetadata
     class FTSIndex final
     {
     public:
-        std::string indexName{ "" };
-        std::string relationName{ "" };
-        std::string analyzer{ "" };
-        std::string status{ "" }; // N - new index, I - inactive, U - need rebuild, C - complete
+        std::string indexName;
+        std::string relationName;
+        std::string analyzer;
+        std::string status; // N - new index, I - inactive, U - need rebuild, C - complete
 
         FTSIndexSegmentList segments;
 
         FTSKeyType keyFieldType{ FTSKeyType::NONE };
-        std::wstring unicodeKeyFieldName{ L"" };
-        std::wstring unicodeIndexDir{ L"" };
+        std::wstring unicodeKeyFieldName;
+        std::wstring unicodeIndexDir;
     public: 
 
         FTSIndex() = default;
@@ -153,14 +152,30 @@ namespace FTSMetadata
     class FTSIndexSegment final
     {
     public:
-        std::string indexName{""};
-        std::string fieldName{""};
+        std::string indexName;
+        std::string fieldName;
         bool key = false;
         double boost = 1.0;
         bool boostNull = true;
         bool fieldExists = false;
     public:
         FTSIndexSegment() = default;
+
+        FTSIndexSegment(
+            std::string_view aIndexName,
+            std::string_view aFieldName,
+            bool aKey,
+            double aBoost,
+            bool aBoostNull,
+            bool aFieldExists
+        );
+
+        // non-copyable
+        FTSIndexSegment(const FTSIndexSegment& rhs) = delete;
+        FTSIndexSegment& operator=(const FTSIndexSegment& rhs) = delete;
+        // movable
+        FTSIndexSegment(FTSIndexSegment&& rhs) noexcept = default;
+        FTSIndexSegment& operator=(FTSIndexSegment&& rhs) noexcept = default;
 
         bool compareFieldName(const std::string& aFieldName) const {
             return (fieldName == aFieldName) || (fieldName == "RDB$DB_KEY" && aFieldName == "DB_KEY");
