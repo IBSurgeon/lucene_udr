@@ -1128,10 +1128,8 @@ WHERE BOOKS.ID = 8
 Этот способ полностью перестраивает полнотекстовый индекс. В этом случае читаются все записи таблицы или представления 
 для которой создан индекс.
 
-2. Поддерживать полнотекстовые индексы можно с помощью триггеров и вызова внутри них одной из процедур `FTS$LOG_BY_ID`,
-`FTS$LOG_BY_UUID` или `FTS$LOG_BY_DBKEY`. Какую из процедур вызывать 
-зависит от того какой тип поля выбран в качестве ключевого (целочисленный, UUID (GIUD) или RDB$DB_KEY).
-При вызове этих процедур запись об изменении добавляется в специальную таблицу `FTS$LOG` (журнал изменений).
+2. Поддерживать полнотекстовые индексы можно с помощью триггеров. При срабатывании этих триггеров запись об изменении 
+добавляется в специальную таблицу `FTS$LOG` (журнал изменений).
 Изменения из журнала переносятся в полнотекстовые индексы с помощью вызова процедуры `FTS$UPDATE_INDEXES`.
 Вызов этой процедуры необходимо делать в отдельном скрипте, который можно поставить в планировщике заданий (Windows) 
 или cron (Linux) с некоторой периодичностью, например 5 минут.
@@ -1153,17 +1151,40 @@ WHERE BOOKS.ID = 8
 Условия проверки полей должны быть объединены через `OR`.
 
 2. Для операции `INSERT` необходимо проверять все поля, входящие в полнотекстовые индексы значение которых отличается 
-от `NULL`. Если это условие соблюдается, то необходимо выполнить одну из процедур 
-`FTS$LOG_BY_DBKEY('<имя таблицы>', NEW.RDB$DB_KEY, 'I');` или `FTS$LOG_BY_ID('<имя таблицы>', NEW.<ключевое поле>, 'I')`
-или `FTS$LOG_BY_UUID('<имя таблицы>', NEW.<ключевое поле>, 'I')`.
+от `NULL`. Если это условие соблюдается, то необходимо выполнить один из запросов в зависимости от типа ключевого поля
+
+```sql
+-- для ключей типа INTEGER или BIGINT
+INSERT INTO FTS$LOG(FTS$RELATION_NAME, FTS$REC_ID, FTS$CHANGE_TYPE) VALUES('<table_name>', NEW.<key_field_name>, 'I');
+-- для ключей типа RDB$DB_KEY
+INSERT INTO FTS$LOG(FTS$RELATION_NAME, FTS$DB_KEY, FTS$CHANGE_TYPE) VALUES('<table_name>', NEW.<key_field_name>, 'I');
+-- для ключей типа UUID
+INSERT INTO FTS$LOG(FTS$RELATION_NAME, FTS$REC_UUID, FTS$CHANGE_TYPE) VALUES('<table_name>', NEW.<key_field_name>, 'I');
+```
 
 3. Для операции `UPDATE` необходимо проверять все поля, входящие в полнотекстовые индексы значение которых изменилось.
-Если это условие соблюдается, то необходимо выполнить процедуру `FTS$LOG_BY_DBKEY('<имя таблицы>', OLD.RDB$DB_KEY, 'U');`
-или `FTS$LOG_BY_ID('<имя таблицы>', OLD.<ключевое поле>, 'U')` или `FTS$LOG_BY_UUID('<имя таблицы>', OLD.<ключевое поле>, 'U')`.
+Если это условие соблюдается, то необходимо выполнить один из запросов в зависимости от типа ключевого поля
+
+```sql
+-- для ключей типа INTEGER или BIGINT
+INSERT INTO FTS$LOG(FTS$RELATION_NAME, FTS$REC_ID, FTS$CHANGE_TYPE) VALUES('<table_name>', OLD.<key_field_name>, 'U');
+-- для ключей типа RDB$DB_KEY
+INSERT INTO FTS$LOG(FTS$RELATION_NAME, FTS$DB_KEY, FTS$CHANGE_TYPE) VALUES('<table_name>', OLD.<key_field_name>, 'U');
+-- для ключей типа UUID
+INSERT INTO FTS$LOG(FTS$RELATION_NAME, FTS$REC_UUID, FTS$CHANGE_TYPE) VALUES('<table_name>', OLD.<key_field_name>, 'U');
+```
 
 4. Для операции `DELETE` необходимо проверять все поля, входящие в полнотекстовые индексы значение которых отличается 
-от `NULL`. Если это условие соблюдается, то необходимо выполнить процедуру 
-`FTS$LOG_CHANGE('<имя таблицы>', OLD.RDB$DB_KEY, 'D');`.
+от `NULL`. Если это условие соблюдается, то необходимо выполнить один из запросов в зависимости от типа ключевого поля
+
+```sql
+-- для ключей типа INTEGER или BIGINT
+INSERT INTO FTS$LOG(FTS$RELATION_NAME, FTS$REC_ID, FTS$CHANGE_TYPE) VALUES('<table_name>', OLD.<key_field_name>, 'D');
+-- для ключей типа RDB$DB_KEY
+INSERT INTO FTS$LOG(FTS$RELATION_NAME, FTS$DB_KEY, FTS$CHANGE_TYPE) VALUES('<table_name>', OLD.<key_field_name>, 'D');
+-- для ключей типа UUID
+INSERT INTO FTS$LOG(FTS$RELATION_NAME, FTS$REC_UUID, FTS$CHANGE_TYPE) VALUES('<table_name>', OLD.<key_field_name>, 'D');
+```
 
 Для облегчения задачи написания таких триггеров существует специальный пакет `FTS$TRIGGER_HELPER`, в котором 
 расположены процедуры генерирования исходных текстов триггеров. Так например, для того чтобы сгенерировать триггеры 
@@ -1186,27 +1207,27 @@ BEGIN
   /* Block for key PRODUCT_ID */
   IF (INSERTING AND (NEW."ABOUT_PRODUCT" IS NOT NULL
       OR NEW."PRODUCT_NAME" IS NOT NULL)) THEN
-    EXECUTE PROCEDURE FTS$LOG_BY_ID('PRODUCTS', NEW."PRODUCT_ID", 'I');
+    INSERT INTO FTS$LOG(FTS$RELATION_NAME, FTS$REC_ID, FTS$CHANGE_TYPE) VALUES('PRODUCTS', NEW."PRODUCT_ID", 'I');
   IF (UPDATING AND (NEW."ABOUT_PRODUCT" IS DISTINCT FROM OLD."ABOUT_PRODUCT"
       OR NEW."PRODUCT_NAME" IS DISTINCT FROM OLD."PRODUCT_NAME")) THEN
-    EXECUTE PROCEDURE FTS$LOG_BY_ID('PRODUCTS', OLD."PRODUCT_ID", 'U');
+    INSERT INTO FTS$LOG(FTS$RELATION_NAME, FTS$REC_ID, FTS$CHANGE_TYPE) VALUES('PRODUCTS', OLD."PRODUCT_ID", 'U');
   IF (DELETING AND (OLD."ABOUT_PRODUCT" IS NOT NULL
       OR OLD."PRODUCT_NAME" IS NOT NULL)) THEN
-    EXECUTE PROCEDURE FTS$LOG_BY_ID('PRODUCTS', OLD."PRODUCT_ID", 'D');
+    INSERT INTO FTS$LOG(FTS$RELATION_NAME, FTS$REC_ID, FTS$CHANGE_TYPE) VALUES('PRODUCTS', OLD."PRODUCT_ID", 'D');
   /* Block for key PRODUCT_UUID */
   IF (INSERTING AND (NEW."PRODUCT_NAME" IS NOT NULL)) THEN
-    EXECUTE PROCEDURE FTS$LOG_BY_UUID('PRODUCTS', NEW."PRODUCT_UUID", 'I');
+    INSERT INTO FTS$LOG(FTS$RELATION_NAME, FTS$REC_UUID, FTS$CHANGE_TYPE) VALUES('PRODUCTS', NEW."PRODUCT_UUID", 'I');
   IF (UPDATING AND (NEW."PRODUCT_NAME" IS DISTINCT FROM OLD."PRODUCT_NAME")) THEN
-    EXECUTE PROCEDURE FTS$LOG_BY_UUID('PRODUCTS', OLD."PRODUCT_UUID", 'U');
+    INSERT INTO FTS$LOG(FTS$RELATION_NAME, FTS$REC_UUID, FTS$CHANGE_TYPE) VALUES('PRODUCTS', OLD."PRODUCT_UUID", 'U');
   IF (DELETING AND (OLD."PRODUCT_NAME" IS NOT NULL)) THEN
-    EXECUTE PROCEDURE FTS$LOG_BY_UUID('PRODUCTS', OLD."PRODUCT_UUID", 'D');
+    INSERT INTO FTS$LOG(FTS$RELATION_NAME, FTS$REC_UUID, FTS$CHANGE_TYPE) VALUES('PRODUCTS', OLD."PRODUCT_UUID", 'D');
   /* Block for key RDB$DB_KEY */
   IF (INSERTING AND (NEW."PRODUCT_NAME" IS NOT NULL)) THEN
-    EXECUTE PROCEDURE FTS$LOG_BY_DBKEY('PRODUCTS', NEW.RDB$DB_KEY, 'I');
+    INSERT INTO FTS$LOG(FTS$RELATION_NAME, FTS$DB_KEY, FTS$CHANGE_TYPE) VALUES('PRODUCTS', NEW.RDB$DB_KEY, 'I');
   IF (UPDATING AND (NEW."PRODUCT_NAME" IS DISTINCT FROM OLD."PRODUCT_NAME")) THEN
-    EXECUTE PROCEDURE FTS$LOG_BY_DBKEY('PRODUCTS', OLD.RDB$DB_KEY, 'U');
+    INSERT INTO FTS$LOG(FTS$RELATION_NAME, FTS$DB_KEY, FTS$CHANGE_TYPE) VALUES('PRODUCTS', OLD.RDB$DB_KEY, 'U');
   IF (DELETING AND (OLD."PRODUCT_NAME" IS NOT NULL)) THEN
-    EXECUTE PROCEDURE FTS$LOG_BY_DBKEY('PRODUCTS', OLD.RDB$DB_KEY, 'D');
+    INSERT INTO FTS$LOG(FTS$RELATION_NAME, FTS$DB_KEY, FTS$CHANGE_TYPE) VALUES('PRODUCTS', OLD.RDB$DB_KEY, 'D');
 END
 ```
 
@@ -1238,17 +1259,17 @@ POSITION 100
 AS
 BEGIN
   IF (INSERTING) THEN
-    EXECUTE PROCEDURE FTS$LOG_BY_UUID('V_PRODUCT_CATEGORIES', NEW.PRODUCT_UUID, 'I');
+    INSERT INTO FTS$LOG(FTS$RELATION_NAME, FTS$REC_UUID, FTS$CHANGE_TYPE) VALUES('V_PRODUCT_CATEGORIES', NEW.PRODUCT_UUID, 'I');
 
   IF (UPDATING AND (NEW.PRODUCT_UUID <> OLD.PRODUCT_UUID
       OR NEW.CATEGORY_ID <> OLD.CATEGORY_ID)) THEN
   BEGIN
-    EXECUTE PROCEDURE FTS$LOG_BY_UUID('V_PRODUCT_CATEGORIES', OLD.PRODUCT_UUID, 'D');
-    EXECUTE PROCEDURE FTS$LOG_BY_UUID('V_PRODUCT_CATEGORIES', NEW.PRODUCT_UUID, 'I');
+    INSERT INTO FTS$LOG(FTS$RELATION_NAME, FTS$REC_UUID, FTS$CHANGE_TYPE) VALUES('V_PRODUCT_CATEGORIES', OLD.PRODUCT_UUID, 'D');
+    INSERT INTO FTS$LOG(FTS$RELATION_NAME, FTS$REC_UUID, FTS$CHANGE_TYPE) VALUES('V_PRODUCT_CATEGORIES', NEW.PRODUCT_UUID, 'I');
   END
 
   IF (DELETING) THEN
-    EXECUTE PROCEDURE FTS$LOG_BY_UUID('V_PRODUCT_CATEGORIES', OLD.PRODUCT_UUID, 'D');
+    INSERT INTO FTS$LOG(FTS$RELATION_NAME, FTS$REC_UUID, FTS$CHANGE_TYPE) VALUES('V_PRODUCT_CATEGORIES', OLD.PRODUCT_UUID, 'D');
 END
 ^
 
@@ -1267,7 +1288,7 @@ BEGIN
     WHERE CATEGORIES.CATEGORY_NAME = OLD.CATEGORY_NAME
     INTO PRODUCT_UUID;
 
-    EXECUTE PROCEDURE FTS$LOG_BY_UUID('V_PRODUCT_CATEGORIES', :PRODUCT_UUID, 'U');
+    INSERT INTO FTS$LOG(FTS$RELATION_NAME, FTS$REC_UUID, FTS$CHANGE_TYPE) VALUES('V_PRODUCT_CATEGORIES', :PRODUCT_UUID, 'U');
   END
 END
 END
@@ -1651,75 +1672,6 @@ RETURNS (
 Выходные параметры:
 
 - FTS$TERM - терм.
-
-### Процедура FTS$LOG_BY_ID
-
-Процедура `FTS$LOG_BY_ID` добавляет запись об изменении одного из полей входящих в полнотекстовые индексы, 
-построенные на таблице, в журнал изменений `FTS$LOG`, на основе которого будут обновляться полнотекстовые индексы.
-Эту процедуру следует применять если в качестве первичного ключа используется целочисленное поле. Такие ключи
-часто генерируются с помощью генераторов/последовательностей.
-
-```sql
-PROCEDURE FTS$LOG_BY_ID (
-    FTS$RELATION_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
-    FTS$ID            BIGINT NOT NULL,
-    FTS$CHANGE_TYPE   FTS$D_CHANGE_TYPE NOT NULL
-)
-```
-
-Входные параметры:
-
-- FTS$RELATION_NAME - имя таблицы для которой добавляется запись об изменении;
-- FTS$ID - значение ключевого поля;
-- FTS$CHANGE_TYPE - тип изменения (I - INSERT, U - UPDATE, D - DELETE).
-
-
-### Процедура FTS$LOG_BY_UUID
-
-Процедура `FTS$LOG_BY_UUID` добавляет запись об изменении одного из полей входящих в полнотекстовые индексы, 
-построенные на таблице, в журнал изменений `FTS$LOG`, на основе которого будут обновляться полнотекстовые индексы.
-Эту процедуру следует применять если в качестве первичного ключа используется UUID (GUID). Такие ключи
-часто генерируются с помощью функции `GEN_UUID`. 
-
-```sql
-PROCEDURE FTS$LOG_BY_UUID (
-    FTS$RELATION_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
-    FTS$UUID          CHAR(16) CHARACTER SET OCTETS NOT NULL,
-    FTS$CHANGE_TYPE   FTS$D_CHANGE_TYPE NOT NULL
-)
-```
-
-Входные параметры:
-
-- FTS$RELATION_NAME - имя таблицы для которой добавляется запись об изменении;
-- FTS$UUID - значение ключевого поля;
-- FTS$CHANGE_TYPE - тип изменения (I - INSERT, U - UPDATE, D - DELETE).
-
-
-### Процедура FTS$LOG_BY_DBKEY
-
-Процедура `FTS$LOG_BY_DBKEY` добавляет запись об изменении одного из полей входящих в полнотекстовые индексы, 
-построенные на таблице, в журнал изменений `FTS$LOG`, на основе которого будут обновляться полнотекстовые индексы.
-Эту процедуру следует применять если в качестве первичного ключа используется псевдо поле `RDB$DB_KEY`. 
-
-```sql
-PROCEDURE FTS$LOG_BY_DBKEY (
-    FTS$RELATION_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
-    FTS$DBKEY         CHAR(8) CHARACTER SET OCTETS NOT NULL,
-    FTS$CHANGE_TYPE   FTS$D_CHANGE_TYPE NOT NULL
-)
-```
-
-Входные параметры:
-
-- FTS$RELATION_NAME - имя таблицы для которой добавляется запись об изменении;
-- FTS$DBKEY - значение псевдо поля `RDB$DB_KEY`;
-- FTS$CHANGE_TYPE - тип изменения (I - INSERT, U - UPDATE, D - DELETE).
-
-
-### Процедура FTS$CLEAR_LOG
-
-Процедура `FTS$CLEAR_LOG` очищает журнал изменений `FTS$LOG`, на основе которого обновляются полнотекстовые индексы.
 
 ### Процедура FTS$UPDATE_INDEXES
 
