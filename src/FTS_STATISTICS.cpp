@@ -143,8 +143,8 @@ FB_UDR_BEGIN_PROCEDURE(getIndexStatistics)
             auto ftsIndex = procedure->indexRepository->getIndex(status, att, tra, sqlDialect, indexName);
 
             out->analyzerNameNull = false;
-            out->analyzerName.length = static_cast<ISC_USHORT>(ftsIndex->analyzer.length());
-            ftsIndex->analyzer.copy(out->analyzerName.str, out->analyzerName.length);
+            out->analyzerName.length = static_cast<ISC_USHORT>(ftsIndex.analyzer.length());
+            ftsIndex.analyzer.copy(out->analyzerName.str, out->analyzerName.length);
 
             const auto& indexDirectoryPath = ftsDirectoryPath / indexName;
 
@@ -158,14 +158,14 @@ FB_UDR_BEGIN_PROCEDURE(getIndexStatistics)
             // Check if the index directory exists
             if (!fs::is_directory(indexDirectoryPath)) {
                 // index created, but not build
-                ftsIndex->status = "N";
+                ftsIndex.status = "N";
                 out->indexExists = false;
             }
             else {
                 const auto& ftsIndexDir = FSDirectory::open(indexDirectoryPath.wstring());
                 if (!IndexReader::indexExists(ftsIndexDir)) {
                     // index created, but not build
-                    ftsIndex->status = "N";
+                    ftsIndex.status = "N";
                     out->indexExists = false;
                 }
                 else {
@@ -200,8 +200,8 @@ FB_UDR_BEGIN_PROCEDURE(getIndexStatistics)
                 ftsIndexDir->close();
             }
             out->indexStatusNull = false;
-            out->indexStatus.length = static_cast<ISC_USHORT>(ftsIndex->status.length());
-            ftsIndex->status.copy(out->indexStatus.str, out->indexStatus.length);
+            out->indexStatus.length = static_cast<ISC_USHORT>(ftsIndex.status.length());
+            ftsIndex.status.copy(out->indexStatus.str, out->indexStatus.length);
         }
         catch (const LuceneException& e) {
             const std::string error_message = StringUtils::toUTF8(e.getError());

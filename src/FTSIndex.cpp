@@ -69,23 +69,7 @@ FROM FTS$INDICES
 ORDER BY FTS$INDEX_NAME
 )SQL";
 
-    constexpr const char* SQL_ALL_FTS_INDECES_AND_SEGMENTS = R"SQL(
-SELECT
-  FTS$INDICES.FTS$INDEX_NAME,
-  FTS$INDICES.FTS$RELATION_NAME,
-  FTS$INDICES.FTS$ANALYZER,
-  FTS$INDICES.FTS$INDEX_STATUS,
-  FTS$INDEX_SEGMENTS.FTS$FIELD_NAME,
-  FTS$INDEX_SEGMENTS.FTS$KEY,
-  FTS$INDEX_SEGMENTS.FTS$BOOST,
-  (RF.RDB$FIELD_NAME IS NOT NULL) AS FIELD_EXISTS
-FROM FTS$INDICES
-LEFT JOIN FTS$INDEX_SEGMENTS ON FTS$INDEX_SEGMENTS.FTS$INDEX_NAME = FTS$INDICES.FTS$INDEX_NAME
-LEFT JOIN RDB$RELATION_FIELDS RF
-    ON RF.RDB$RELATION_NAME = FTS$INDICES.FTS$RELATION_NAME
-   AND RF.RDB$FIELD_NAME = FTS$INDEX_SEGMENTS.FTS$FIELD_NAME
-ORDER BY FTS$INDICES.FTS$INDEX_NAME
-)SQL";
+
 
     constexpr const char* SQL_FTS_INDEX_SEGMENTS = R"SQL(
 SELECT
@@ -93,7 +77,7 @@ SELECT
   FTS$INDEX_SEGMENTS.FTS$FIELD_NAME,
   FTS$INDEX_SEGMENTS.FTS$KEY,
   FTS$INDEX_SEGMENTS.FTS$BOOST,
-  (RF.RDB$FIELD_NAME IS NOT NULL) AS FIELD_EXISTS
+  (RF.RDB$FIELD_NAME IS NOT NULL OR RF.RDB$FIELD_NAME = 'RDB$DB_KEY') AS FIELD_EXISTS
 FROM FTS$INDICES
 JOIN FTS$INDEX_SEGMENTS
     ON FTS$INDEX_SEGMENTS.FTS$INDEX_NAME = FTS$INDICES.FTS$INDEX_NAME
@@ -154,19 +138,19 @@ namespace FTSMetadata
 {
 
     FTSIndexSegment::FTSIndexSegment (
-        std::string_view aIndexName,
-        std::string_view aFieldName,
-        bool aKey,
-        double aBoost,
-        bool aBoostNull,
-        bool aFieldExists
+        std::string_view indexName,
+        std::string_view fieldName,
+        bool key,
+        double boost,
+        bool boostNull,
+        bool fieldExists
     )
-        : indexName(aIndexName)
-        , fieldName(aFieldName)
-        , key(aKey)
-        , boost(aBoost)
-        , boostNull(aBoostNull)
-        , fieldExists(aFieldExists)
+        : indexName_(indexName)
+        , fieldName_(fieldName)
+        , key_(key)
+        , boost_(boost)
+        , boostNull_(boostNull)
+        , fieldExists_(fieldExists)
     {
     }
 
@@ -196,7 +180,7 @@ namespace FTSMetadata
         m_inMetaExtractRecord.reset(m_stmtExtractRecord->getInputMetadata(status));
     }
 
-    FTSIndexSegmentList::const_iterator FTSIndex::findSegment(const string& fieldName) {
+    FTSIndexSegmentList::const_iterator FTSIndex::findSegment(const string& fieldName) const {
         return std::find_if(
             segments.cbegin(),
             segments.cend(),
@@ -204,11 +188,11 @@ namespace FTSMetadata
         );
     }
 
-    FTSIndexSegmentList::const_iterator FTSIndex::findKey() {
+    FTSIndexSegmentList::const_iterator FTSIndex::findKey() const {
         return std::find_if(
             segments.cbegin(),
             segments.cend(),
-            [](const auto& segment) { return segment.key; }
+            [](const auto& segment) { return segment.isKey(); }
         );
     }
 
@@ -219,16 +203,16 @@ namespace FTSMetadata
         , status(record->indexStatus.str, record->indexStatus.length)
         , segments()
         , keyFieldType{ FTSKeyType::NONE }
-        , unicodeKeyFieldName{ L"" }
-        , unicodeIndexDir{ L"" }
+        , unicodeKeyFieldName()
+        , unicodeIndexDir()
     {
     }
 
-    bool FTSIndex::checkAllFieldsExists()
+    bool FTSIndex::checkAllFieldsExists() const
     {
         bool existsFlag = true;
         for (const auto& segment : segments) {
-            existsFlag = existsFlag && segment.fieldExists;
+            existsFlag = existsFlag && segment.isFieldExists();
         }
         return existsFlag;
     }
@@ -236,23 +220,23 @@ namespace FTSMetadata
     string FTSIndex::buildSqlSelectFieldValues(
         ThrowStatusWrapper* status,
         unsigned int sqlDialect,
-        bool whereKey)
+        bool whereKey) const
     {
         auto iKeySegment = findKey();
         if (iKeySegment == segments.end()) {
             throwException(status, R"(Key field not exists in index "%s".)", indexName.c_str());
         }
-        const string keyFieldName = (*iKeySegment).fieldName;
+        const string keyFieldName = (*iKeySegment).fieldName();
 
         std::stringstream ss;
         ss << "SELECT\n";
         int field_cnt = 0;
         for (const auto& segment : segments) {
             if (field_cnt == 0) {
-                ss << "  " << escapeMetaName(sqlDialect, segment.fieldName);
+                ss << "  " << escapeMetaName(sqlDialect, segment.fieldName());
             }
             else {
-                ss << ",\n  " << escapeMetaName(sqlDialect, segment.fieldName);
+                ss << ",\n  " << escapeMetaName(sqlDialect, segment.fieldName());
             }
             field_cnt++;
         }
@@ -265,11 +249,11 @@ namespace FTSMetadata
             ss << escapeMetaName(sqlDialect, keyFieldName) << " IS NOT NULL";
             string where;
             for (const auto& segment : segments) {
-                if (segment.fieldName == keyFieldName) continue;
+                if (segment.isKey()) continue;
                 if (where.empty())
-                    where += escapeMetaName(sqlDialect, segment.fieldName) + " IS NOT NULL";
+                    where += escapeMetaName(sqlDialect, segment.fieldName()) + " IS NOT NULL";
                 else
-                    where += " OR " + escapeMetaName(sqlDialect, segment.fieldName) + " IS NOT NULL";
+                    where += " OR " + escapeMetaName(sqlDialect, segment.fieldName()) + " IS NOT NULL";
             }
             if (!where.empty())
                 ss << "\nAND (" << where << ")";
@@ -539,7 +523,7 @@ namespace FTSMetadata
     /// <param name="indexName">Index name</param>
     /// <param name="withSegments">Fill segments list</param>
     /// 
-    FTSIndexPtr FTSIndexRepository::getIndex (
+    FTSIndex FTSIndexRepository::getIndex (
         ThrowStatusWrapper* status,
         IAttachment* att,
         ITransaction* tra,
@@ -584,15 +568,9 @@ namespace FTSMetadata
             throwException(status, R"(Index "%s" not exists)", sIndexName.c_str());
         }
         // index found
-        auto ftsIndex = std::make_unique<FTSIndex>();
-
-        ftsIndex->indexName.assign(output->indexName.str, output->indexName.length);
-        ftsIndex->relationName.assign(output->relationName.str, output->relationName.length);
-        ftsIndex->analyzer.assign(output->analyzer.str, output->analyzer.length);
-        ftsIndex->status.assign(output->indexStatus.str, output->indexStatus.length);	
-
+        FTSIndex ftsIndex(output);
         if (withSegments) {
-            fillIndexFields(status, att, tra, sqlDialect, indexName, ftsIndex->segments);
+            fillIndexFields(status, att, tra, sqlDialect, indexName, ftsIndex.segments);
         }
         return ftsIndex;
     }
@@ -605,14 +583,14 @@ namespace FTSMetadata
     /// <param name="att">Firebird attachment</param>
     /// <param name="tra">Firebird transaction</param>
     /// <param name="sqlDialect">SQL dialect</param>
-    /// <param name="indexes">List of indexes</param>
+    /// <param name="withSegments">Fill segments list</param>
     /// 
-    void FTSIndexRepository::fillAllIndexes(
-        ThrowStatusWrapper* status,
-        IAttachment* att,
-        ITransaction* tra,
+    FTSIndexList FTSIndexRepository::allIndexes(
+        Firebird::ThrowStatusWrapper* status,
+        Firebird::IAttachment* att,
+        Firebird::ITransaction* tra,
         unsigned int sqlDialect,
-        FTSIndexList& indexes)
+        bool withSegments = false)
     {
 
         FTSIndexRecord output(status, m_master);
@@ -630,87 +608,20 @@ namespace FTSMetadata
             0
         ));
 
+        FTSIndexList indexes;
         while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
-            auto ftsIndex = make_unique<FTSIndex>(output);
+            FTSIndex ftsIndex(output);
+            if (withSegments) {
+                fillIndexFields(status, att, tra, sqlDialect, ftsIndex.indexName, ftsIndex.segments);
+            }
             indexes.push_back(std::move(ftsIndex));
         }
         rs->close(status);
         rs.release();
+
+        return indexes;
     }
 
-    /// <summary>
-    /// Returns a list of indexes with segments. 
-    /// </summary>
-    /// 
-    /// <param name="status">Firebird status</param>
-    /// <param name="att">Firebird attachment</param>
-    /// <param name="tra">Firebird transaction</param>
-    /// <param name="sqlDialect">SQL dialect</param>
-    /// <param name="indexes">Map indexes of name with segments</param>
-    /// 
-    void FTSIndexRepository::fillAllIndexesWithFields(
-        ThrowStatusWrapper* status,
-        IAttachment* att,
-        ITransaction* tra,
-        unsigned int sqlDialect,
-        FTSIndexMap& indexes)
-    {
-        FB_MESSAGE(Output, ThrowStatusWrapper,
-            (FB_INTL_VARCHAR(252, CS_UTF8), indexName)
-            (FB_INTL_VARCHAR(252, CS_UTF8), relationName)
-            (FB_INTL_VARCHAR(252, CS_UTF8), analyzerName)
-            (FB_INTL_VARCHAR(4, CS_UTF8), indexStatus)
-            (FB_INTL_VARCHAR(252, CS_UTF8), fieldName)
-            (FB_BOOLEAN, key)
-            (FB_DOUBLE, boost)
-            (FB_BOOLEAN, fieldExists)
-        ) output(status, m_master);
-
-
-        AutoRelease<IResultSet> rs(att->openCursor(
-            status,
-            tra,
-            0,
-            SQL_ALL_FTS_INDECES_AND_SEGMENTS,
-            sqlDialect,
-            nullptr,
-            nullptr,
-            output.getMetadata(),
-            nullptr,
-            0
-        ));
-
-        while (rs->fetchNext(status, output.getData()) == IStatus::RESULT_OK) {
-            const string indexName(output->indexName.str, output->indexName.length);
-
-            const auto& [it, result] = indexes.try_emplace(indexName, lazy_convert_construct([] { return std::make_unique<FTSIndex>(); }));
-            auto& index = it->second;
-            if (result) {
-                index->indexName.assign(output->indexName.str, output->indexName.length);
-                index->relationName.assign(output->relationName.str, output->relationName.length);
-                index->analyzer.assign(output->analyzerName.str, output->analyzerName.length);
-                index->status.assign(output->indexStatus.str, output->indexStatus.length);
-            }
-
-            std::string_view fieldName(output->fieldName.str, output->fieldName.length);
-            bool fieldExists = output->fieldExists;
-            if (fieldName == "RDB$DB_KEY") {
-                fieldExists = true;
-            }
-
-            index->segments.emplace_back(
-                std::string_view{ output->indexName.str, output->indexName.length },
-                fieldName,
-                static_cast<bool>(output->key),
-                output->boost,
-                static_cast<bool>(output->boostNull),
-                fieldExists
-            );
-        }
-        rs->close(status);
-        rs.release();
-
-    }
 
     /// <summary>
     /// Returns a list of index segments with the given name.
@@ -887,7 +798,7 @@ namespace FTSMetadata
         input->boostNull = boostNull;
         input->boost = boost;
 
-        auto ftsIndex = getIndex(status, att, tra, sqlDialect, indexName);
+        const auto ftsIndex = getIndex(status, att, tra, sqlDialect, indexName);
 
         // Checking whether the key field exists in the index.
         if (key && hasKeyIndexField(status, att, tra, sqlDialect, indexName)) {
@@ -903,9 +814,9 @@ namespace FTSMetadata
         }
 
         // Checking whether the field exists in relation.
-        if (!m_relationHelper->fieldExists(status, att, tra, sqlDialect, ftsIndex->relationName, fieldName)) {
+        if (!m_relationHelper->fieldExists(status, att, tra, sqlDialect, ftsIndex.relationName, fieldName)) {
             std::string sFieldName{ indexName };
-            throwException(status, R"(Field "%s" not exists in relation "%s".)", sFieldName.c_str(), ftsIndex->relationName.c_str());
+            throwException(status, R"(Field "%s" not exists in relation "%s".)", sFieldName.c_str(), ftsIndex.relationName.c_str());
         }
 
 
@@ -920,7 +831,7 @@ namespace FTSMetadata
             nullptr,
             nullptr
         );
-        if (ftsIndex->status != "N") {
+        if (ftsIndex.status != "N") {
             // set the status that the index metadata has been updated
             setIndexStatus(status, att, tra, sqlDialect, indexName, "U");
         }

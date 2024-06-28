@@ -186,7 +186,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 
         // check if directory exists for index
         const auto indexDirectoryPath = ftsDirectoryPath / indexName;
-        if (ftsIndex->status == "N" || !fs::is_directory(indexDirectoryPath)) {
+        if (ftsIndex.status == "N" || !fs::is_directory(indexDirectoryPath)) {
             std::string sIndexName(indexName);
             throwException(status, R"(Index "%s" exists, but is not build. Please rebuild index.)", sIndexName.c_str());
         }
@@ -199,22 +199,22 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
             }
 
             const auto analyzers = procedure->indexRepository->getAnalyzerRepository();
-            AnalyzerPtr analyzer = analyzers->createAnalyzer(status, att, tra, sqlDialect, ftsIndex->analyzer);
+            AnalyzerPtr analyzer = analyzers->createAnalyzer(status, att, tra, sqlDialect, ftsIndex.analyzer);
             searcher = newLucene<IndexSearcher>(ftsIndexDir, true);
             
             std::string keyFieldName;
             auto fields = Collection<String>::newInstance();
-            for (const auto& segment : ftsIndex->segments) {
-                if (!segment.key) {
-                    fields.add(StringUtils::toUnicode(segment.fieldName));
+            for (const auto& segment : ftsIndex.segments) {
+                if (!segment.isKey()) {
+                    fields.add(StringUtils::toUnicode(segment.fieldName()));
                 }
                 else {
-                    keyFieldName = segment.fieldName;
+                    keyFieldName = segment.fieldName();
                     unicodeKeyFieldName = StringUtils::toUnicode(keyFieldName);
                 }
             }
 
-            keyFieldInfo = procedure->indexRepository->getRelationHelper()->getField(status, att, tra, sqlDialect, ftsIndex->relationName, keyFieldName);
+            keyFieldInfo = procedure->indexRepository->getRelationHelper()->getField(status, att, tra, sqlDialect, ftsIndex.relationName, keyFieldName);
 
             if (fields.size() == 1) {
                 QueryParserPtr parser = newLucene<QueryParser>(LuceneVersion::LUCENE_CURRENT, fields[0], analyzer);
@@ -230,8 +230,8 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
             it = docs->scoreDocs.begin();
 
             out->relationNameNull = false;
-            out->relationName.length = static_cast<ISC_USHORT>(ftsIndex->relationName.length());
-            ftsIndex->relationName.copy(out->relationName.str, out->relationName.length);
+            out->relationName.length = static_cast<ISC_USHORT>(ftsIndex.relationName.length());
+            ftsIndex.relationName.copy(out->relationName.str, out->relationName.length);
 
             out->keyFieldNameNull = false;
             out->keyFieldName.length = static_cast<ISC_USHORT>(keyFieldName.length());
@@ -462,27 +462,26 @@ ORDER BY FTS$LOG_ID
         
         std::unordered_map<std::string, FTSPreparedIndexStmt> ftsPreparedIndexesStmt;
         // get all indexes with segments
-        FTSIndexMap indexes;
-        procedure->indexRepository->fillAllIndexesWithFields(status, att, tra, sqlDialect, indexes);
+        auto indexes = procedure->indexRepository->allIndexes(status, att, tra, sqlDialect, true);
         // fill map indexes of relationName
         std::unordered_map<std::string, std::list<std::string>> indexesByRelation;
-        for (auto&& [indexName, ftsIndex] : indexes) {	
-            if (!ftsIndex->isActive()) {
+        for (auto&& ftsIndex : indexes) {	
+            if (!ftsIndex.isActive()) {
                 continue;
             }
-            const auto indexDirectoryPath = ftsDirectoryPath / indexName;
-            if (!ftsIndex->checkAllFieldsExists() || !fs::is_directory(indexDirectoryPath)) {
+            const auto indexDirectoryPath = ftsDirectoryPath / ftsIndex.indexName;
+            if (!ftsIndex.checkAllFieldsExists() || !fs::is_directory(indexDirectoryPath)) {
                 // index need to rebuild
                 setIndexToRebuild(status, att, sqlDialect, ftsIndex);
                 // go to next index
                 continue;
             }
-            ftsIndex->unicodeIndexDir = indexDirectoryPath.wstring();
+            ftsIndex.unicodeIndexDir = indexDirectoryPath.wstring();
 
             // collect and save the SQL query to extract the record by key
-            const std::string sql = ftsIndex->buildSqlSelectFieldValues(status, sqlDialect, true);
+            const std::string sql = ftsIndex.buildSqlSelectFieldValues(status, sqlDialect, true);
             auto&& [itIndexStmt, inserted] = ftsPreparedIndexesStmt.try_emplace(
-                indexName,
+                ftsIndex.indexName,
                 status,
                 att,
                 tra,
@@ -504,10 +503,10 @@ ORDER BY FTS$LOG_ID
             if (keyParam.isBinary()) {
                 switch (keyParam.length) {
                 case 8:
-                    ftsIndex->keyFieldType = FTSKeyType::DB_KEY;
+                    ftsIndex.keyFieldType = FTSKeyType::DB_KEY;
                     break;
                 case 16:
-                    ftsIndex->keyFieldType = FTSKeyType::UUID;
+                    ftsIndex.keyFieldType = FTSKeyType::UUID;
                     break;
                 default:
                     // index need to rebuild
@@ -517,7 +516,7 @@ ORDER BY FTS$LOG_ID
                 }
             }
             else if (keyParam.isInt()) {
-                ftsIndex->keyFieldType = FTSKeyType::INT_ID;
+                ftsIndex.keyFieldType = FTSKeyType::INT_ID;
             }
             else {
                 // index need to rebuild
@@ -531,27 +530,27 @@ ORDER BY FTS$LOG_ID
             // add fields info for index
             auto fields = makeFbFieldsInfo(status, outMetadata);
             for (auto& field : fields) {
-                auto iSegment = ftsIndex->findSegment(field.fieldName);
-                if (iSegment == ftsIndex->segments.end()) {
+                auto iSegment = ftsIndex.findSegment(field.fieldName);
+                if (iSegment == ftsIndex.segments.end()) {
                     // index need to rebuild
                     setIndexToRebuild(status, att, sqlDialect, ftsIndex);
                     // go to next index
                     continue;
                 }
                 auto const& segment = *iSegment;
-                field.ftsFieldName = StringUtils::toUnicode(segment.fieldName);
-                field.ftsKey = segment.key;
-                field.ftsBoost = segment.boost;
-                field.ftsBoostNull = segment.boostNull;
+                field.ftsFieldName = StringUtils::toUnicode(segment.fieldName());
+                field.ftsKey = segment.isKey();
+                field.ftsBoost = segment.boost();
+                field.ftsBoostNull = segment.isBoostNull();
                 if (field.ftsKey) {
-                    ftsIndex->unicodeKeyFieldName = field.ftsFieldName;
+                    ftsIndex.unicodeKeyFieldName = field.ftsFieldName;
                 }
             }
-            fieldsInfoMap.try_emplace(indexName, std::move(fields));
+            fieldsInfoMap.try_emplace(ftsIndex.indexName, std::move(fields));
 
             // Add FTS indexName for relation
-            auto& indexNames = indexesByRelation[ftsIndex->relationName];
-            indexNames.push_back(ftsIndex->indexName);
+            auto& indexNames = indexesByRelation[ftsIndex.relationName];
+            indexNames.push_back(ftsIndex.indexName);
         }
 
         try 
@@ -825,13 +824,13 @@ ORDER BY FTS$LOG_ID
     }
 
 
-    void setIndexToRebuild(ThrowStatusWrapper* status, IAttachment* att, unsigned int sqlDialect, const FTSIndexPtr& ftsIndex)
+    void setIndexToRebuild(ThrowStatusWrapper* status, IAttachment* att, unsigned int sqlDialect, FTSIndex& ftsIndex)
     {
-        ftsIndex->status = "U";
+        ftsIndex.status = "U";
         // this is done in an autonomous transaction				
         AutoRelease<ITransaction> tra(att->startTransaction(status, 0, nullptr));
         try {
-            procedure->indexRepository->setIndexStatus(status, att, tra, sqlDialect, ftsIndex->indexName, ftsIndex->status);
+            procedure->indexRepository->setIndexStatus(status, att, tra, sqlDialect, ftsIndex.indexName, "U");
             tra->commit(status);
             tra.release();
         }
@@ -841,15 +840,15 @@ ORDER BY FTS$LOG_ID
         }
     }
 
-    IndexWriterPtr getIndexWriter(ThrowStatusWrapper* status, IAttachment* att, ITransaction* tra, unsigned int sqlDialect, const FTSIndexPtr& ftsIndex)
+    IndexWriterPtr getIndexWriter(ThrowStatusWrapper* status, IAttachment* att, ITransaction* tra, unsigned int sqlDialect, const FTSIndex& ftsIndex)
     {
-        const auto it = indexWriters.find(ftsIndex->indexName);
+        const auto it = indexWriters.find(ftsIndex.indexName);
         if (it == indexWriters.end()) {
-            auto fsIndexDir = FSDirectory::open(ftsIndex->unicodeIndexDir);
+            auto fsIndexDir = FSDirectory::open(ftsIndex.unicodeIndexDir);
             const auto analyzers = procedure->indexRepository->getAnalyzerRepository();
-            auto analyzer = analyzers->createAnalyzer(status, att, tra, sqlDialect, ftsIndex->analyzer);
+            auto analyzer = analyzers->createAnalyzer(status, att, tra, sqlDialect, ftsIndex.analyzer);
             auto indexWriter = newLucene<IndexWriter>(fsIndexDir, analyzer, IndexWriter::MaxFieldLengthUNLIMITED);
-            indexWriters[ftsIndex->indexName] = indexWriter;
+            indexWriters[ftsIndex.indexName] = indexWriter;
             return indexWriter;
         }
         else {

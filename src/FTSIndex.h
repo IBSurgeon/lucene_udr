@@ -124,50 +124,49 @@ namespace FTSMetadata
 
         explicit FTSIndex(const FTSIndexRecord& record);
 
+        // non-copyable
+        FTSIndex(const FTSIndex& rhs) = delete;
+        FTSIndex& operator=(const FTSIndex& rhs) = delete;
+        // movable
+        FTSIndex(FTSIndex&& rhs) noexcept = default;
+        FTSIndex& operator=(FTSIndex&& rhs) noexcept = default;
+
         bool isActive() const {
             return (status == "C") || (status == "U");
         }
 
-        FTSIndexSegmentList::const_iterator findSegment(const std::string& fieldName);
+        FTSIndexSegmentList::const_iterator findSegment(const std::string& fieldName) const;
 
-        FTSIndexSegmentList::const_iterator findKey();
+        FTSIndexSegmentList::const_iterator findKey() const;
 
-        bool checkAllFieldsExists();
+        bool checkAllFieldsExists() const;
 
         std::string buildSqlSelectFieldValues(
             Firebird::ThrowStatusWrapper* status,
             unsigned int sqlDialect,
             bool whereKey = false
-        );
+        ) const;
     };
 
 
-    using FTSIndexPtr = std::unique_ptr<FTSIndex>;
-    using FTSIndexList = std::list<FTSIndexPtr>;
-    using FTSIndexMap = std::map<std::string, FTSIndexPtr>;
+    using FTSIndexList = std::list<FTSIndex>;
 
     /// <summary>
     /// Metadata for a full-text index segment.
     /// </summary>
     class FTSIndexSegment final
     {
-    public:
-        std::string indexName;
-        std::string fieldName;
-        bool key = false;
-        double boost = 1.0;
-        bool boostNull = true;
-        bool fieldExists = false;
+
     public:
         FTSIndexSegment() = default;
 
         FTSIndexSegment(
-            std::string_view aIndexName,
-            std::string_view aFieldName,
-            bool aKey,
-            double aBoost,
-            bool aBoostNull,
-            bool aFieldExists
+            std::string_view indexName,
+            std::string_view fieldName,
+            bool key,
+            double boost,
+            bool boostNull,
+            bool fieldExists
         );
 
         // non-copyable
@@ -177,9 +176,40 @@ namespace FTSMetadata
         FTSIndexSegment(FTSIndexSegment&& rhs) noexcept = default;
         FTSIndexSegment& operator=(FTSIndexSegment&& rhs) noexcept = default;
 
-        bool compareFieldName(const std::string& aFieldName) const {
-            return (fieldName == aFieldName) || (fieldName == "RDB$DB_KEY" && aFieldName == "DB_KEY");
+        bool compareFieldName(std::string_view fieldName) const {
+            return (fieldName_ == fieldName) || (fieldName_ == "RDB$DB_KEY" && fieldName == "DB_KEY");
         }
+
+        const std::string& indexName() const {
+            return indexName_;
+        }
+
+        const std::string& fieldName() const {
+            return fieldName_;
+        }
+
+        bool isKey() const {
+            return key_;
+        }
+
+        double boost() const {
+            return boost_;
+        }
+
+        bool isBoostNull() const {
+            return boostNull_;
+        }
+
+        bool isFieldExists() const {
+            return fieldExists_;
+        }
+    private:
+        std::string indexName_;
+        std::string fieldName_;
+        bool key_ = false;
+        double boost_ = 1.0;
+        bool boostNull_ = true;
+        bool fieldExists_ = false;
     };
 
 
@@ -311,7 +341,7 @@ namespace FTSMetadata
         /// <param name="indexName">Index name</param>
         /// <param name="withSegments">Fill segments list</param>
         /// 
-        FTSIndexPtr getIndex (
+        FTSIndex getIndex (
             Firebird::ThrowStatusWrapper* status,
             Firebird::IAttachment* att,
             Firebird::ITransaction* tra,
@@ -327,31 +357,15 @@ namespace FTSMetadata
         /// <param name="att">Firebird attachment</param>
         /// <param name="tra">Firebird transaction</param>
         /// <param name="sqlDialect">SQL dialect</param>
-        /// <param name="indexes">List of indexes</param>
+        /// <param name="withSegments">Fill segments list</param>
         /// 
-        void fillAllIndexes (
+        FTSIndexList allIndexes (
             Firebird::ThrowStatusWrapper* status,
             Firebird::IAttachment* att,
             Firebird::ITransaction* tra,
             unsigned int sqlDialect,
-            FTSIndexList& indexes);
+            bool withSegments);
 
-        /// <summary>
-        /// Returns a list of indexes with fields (segments). 
-        /// </summary>
-        /// 
-        /// <param name="status">Firebird status</param>
-        /// <param name="att">Firebird attachment</param>
-        /// <param name="tra">Firebird transaction</param>
-        /// <param name="sqlDialect">SQL dialect</param>
-        /// <param name="indexes">Map indexes of name with fields (segments)</param>
-        /// 
-        void fillAllIndexesWithFields(
-            Firebird::ThrowStatusWrapper* status,
-            Firebird::IAttachment* att,
-            Firebird::ITransaction* tra,
-            unsigned int sqlDialect,
-            FTSIndexMap& indexes);
 
         /// <summary>
         /// Returns a list of index fields with the given name.
