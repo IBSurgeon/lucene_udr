@@ -135,6 +135,10 @@ namespace FTSMetadata
             return (status == "C") || (status == "U");
         }
 
+        bool emptySegments() const { 
+            return segments.empty();
+        }
+
         FTSIndexSegmentList::const_iterator findSegment(const std::string& fieldName) const;
 
         FTSIndexSegmentList::const_iterator findKey() const;

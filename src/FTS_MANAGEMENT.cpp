@@ -17,6 +17,7 @@
 #include "Relations.h"
 #include "FBUtils.h"
 #include "FBFieldInfo.h"
+#include "FtsHelper.h"
 #include "LuceneHeaders.h"
 #include "FileUtils.h"
 #include "Analyzers.h"
@@ -877,117 +878,21 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
 
         try {
             // get FTS index metadata
-            const auto ftsIndex = procedure->indexRepository->getIndex(status, att, tra, sqlDialect, indexName, true);
-            // Check if the index directory exists, and if it doesn't exist, create it. 
-            const auto indexDirectoryPath = ftsDirectoryPath / indexName;
-            if (!createIndexDirectory(indexDirectoryPath)) {
-                throwException(status, R"(Cannot create index directory "%s".)", indexDirectoryPath.u8string().c_str());
-            }
+            auto ftsIndex = procedure->indexRepository->getIndex(status, att, tra, sqlDialect, indexName, true);
+            // prepare index to rebuild
+            auto preparedIndex = prepareFtsIndex(
+                status, context->getMaster(), att, tra, sqlDialect, 
+                std::move(ftsIndex), ftsDirectoryPath);
 
-            // check relation exists
-            auto relationHelper = procedure->indexRepository->getRelationHelper();
-            if (!relationHelper->relationExists(status, att, tra, sqlDialect, ftsIndex.relationName)) {
-                throwException(status, R"(Cannot rebuild index "%s". Table "%s" not exists.)", indexName.c_str(), ftsIndex.relationName.c_str());
-            }
+            preparedIndex.deleteAll(status);
+            preparedIndex.commit(status);
 
-            // check segments exists
-            if (ftsIndex.segments.size() == 0) {
-                throwException(status, R"(Cannot rebuild index "%s". The index does not contain fields.)", indexName.c_str());
-            }
+            preparedIndex.rebuild(status, att, tra);
+            preparedIndex.commit(status);
 
-            auto analyzers = procedure->indexRepository->getAnalyzerRepository();
-            auto wIndexDirectoryPath = indexDirectoryPath.wstring();
-            auto fsIndexDir = FSDirectory::open(wIndexDirectoryPath);
-            auto analyzer = analyzers->createAnalyzer(status, att, tra, sqlDialect, ftsIndex.analyzer);
-            auto writer = newLucene<IndexWriter>(fsIndexDir, analyzer, true, IndexWriter::MaxFieldLengthUNLIMITED);
-
-            // clean up index directory
-            writer->deleteAll();
-            writer->commit();
-
-            for (const auto& segment : ftsIndex.segments) {
-                if (!segment.isFieldExists()) {
-                    throwException(status, R"(Cannot rebuild index "%s". Field "%s" not exists in relation "%s".)", indexName.c_str(), segment.fieldName().c_str(), ftsIndex.relationName.c_str());
-                }
-            }
-                
-            const std::string sql = ftsIndex.buildSqlSelectFieldValues(status, sqlDialect);
-
-            AutoRelease<IStatement> stmt(att->prepare(
-                status,
-                tra,
-                0,
-                sql.c_str(),
-                sqlDialect,
-                IStatement::PREPARE_PREFETCH_METADATA
-            ));
-            AutoRelease<IMessageMetadata> outputMetadata(stmt->getOutputMetadata(status));
-            // make all fields of string type except BLOB
-            AutoRelease<IMessageMetadata> newMeta(prepareTextMetaData(status, outputMetadata));
-            auto fields = makeFbFieldsInfo(status, newMeta);
-
-            // initial specific FTS property for fields
-            for (auto& field : fields) {
-                auto iSegment = ftsIndex.findSegment(field.fieldName);
-                if (iSegment == ftsIndex.segments.end()) {
-                    throwException(status, R"(Cannot rebuild index "%s". Field "%s" not found.)", indexName.c_str(), field.fieldName.c_str());
-                }
-                auto&& segment = *iSegment;
-                field.ftsFieldName = StringUtils::toUnicode(segment.fieldName());
-                field.ftsKey = segment.isKey();
-                field.ftsBoost = segment.boost();
-                field.ftsBoostNull = segment.isBoostNull();
-            }
-
-            AutoRelease<IResultSet> rs(stmt->openCursor(
-                status,
-                tra,
-                nullptr,
-                nullptr,
-                newMeta,
-                0
-            ));
-                
-            //const unsigned colCount = newMeta->getCount(status);
-            const unsigned msgLength = newMeta->getMessageLength(status);
-            {
-                // allocate output buffer
-                std::vector<unsigned char> buffer(msgLength, 0);
-                while (rs->fetchNext(status, buffer.data()) == IStatus::RESULT_OK) {						
-                    bool emptyFlag = true;
-                    auto doc = newLucene<Document>();
-
-                    for (const auto& field : fields) {
-                        const std::string value = field.getStringValue(status, att, tra, buffer.data());
-                        Lucene::String unicodeValue = StringUtils::toUnicode(value);
-                        // add field to document
-                        if (field.ftsKey) {
-                            auto luceneField = newLucene<Field>(field.ftsFieldName, unicodeValue, Field::STORE_YES, Field::INDEX_NOT_ANALYZED);
-                            doc->add(luceneField);
-                        }
-                        else {
-                            auto luceneField = newLucene<Field>(field.ftsFieldName, unicodeValue, Field::STORE_NO, Field::INDEX_ANALYZED);
-                            if (!field.ftsBoostNull) {
-                                luceneField->setBoost(field.ftsBoost);
-                            }
-                            doc->add(luceneField);
-                            emptyFlag = emptyFlag && unicodeValue.empty();
-                        }
-                    }
-                    // if all indexed fields are empty, then it makes no sense to add the document to the index
-                    if (!emptyFlag) {
-                        writer->addDocument(doc);
-                    }
-                    std::fill(buffer.begin(), buffer.end(), 0);
-                }
-                rs->close(status);
-                rs.release();
-            }
-            writer->commit();
-
-            writer->optimize();
-            writer->commit();
-            writer->close();
+            preparedIndex.optimize(status); 
+            preparedIndex.commit(status);
+            preparedIndex.close(status);
 
             // if the index building was successful, then set the indexing completion status
             procedure->indexRepository->setIndexStatus(status, att, tra, sqlDialect, indexName, "C");
