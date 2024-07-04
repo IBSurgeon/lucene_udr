@@ -11,15 +11,15 @@
  *  Contributor(s): ______________________________________.
 **/
 
-#include "LuceneUdr.h"
-#include "FTSIndex.h"
-#include "FBUtils.h"
-#include "LuceneHeaders.h"
 #include "Analyzers.h"
-#include "LuceneAnalyzerFactory.h"
-#include "SimpleHTMLFormatter.h"
-#include "QueryScorer.h"
+#include "FBUtils.h"
+#include "FTSIndex.h"
 #include "Highlighter.h"
+#include "LuceneAnalyzerFactory.h"
+#include "LuceneHeaders.h"
+#include "LuceneUdr.h"
+#include "QueryScorer.h"
+#include "SimpleHTMLFormatter.h"
 #include "SimpleSpanFragmenter.h"
 
 using namespace Firebird;

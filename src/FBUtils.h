@@ -14,10 +14,12 @@
  *  Contributor(s): ______________________________________.
 **/
 
-#include "LuceneUdr.h"
 #include <string>
 #include <string_view>
 #include <vector>
+
+#include "LuceneUdr.h"
+
 
 
 namespace LuceneUDR

@@ -1,8 +1,8 @@
 #include "FTSHelper.h"
 
+#include "Analyzers.h"
 #include "FBUtils.h"
 #include "FTSUtils.h"
-#include "Analyzers.h"
 
 
 
@@ -323,5 +323,111 @@ namespace LuceneUDR
         rs->close(status);
         rs.release();
     } // void FTSPreparedIndex::updateIndexById()
+
+    void FTSPreparedIndex::updateIndexByUuui(
+        Firebird::ThrowStatusWrapper* status,
+        Firebird::IAttachment* att,
+        Firebird::ITransaction* tra,
+        const unsigned char* uuid,
+        ISC_USHORT uuidLength,
+        std::string_view changeType)
+    {
+        std::string sUuid = binary_to_hex(uuid, uuidLength);
+        Lucene::String unicodeKeyValue = StringUtils::toUnicode(sUuid);
+
+        if (changeType == "D") {
+            TermPtr term = newLucene<Term>(m_unicodeKeyFieldName, unicodeKeyValue);
+            m_indexWriter->deleteDocuments(term);
+            return;
+        }
+
+        FB_MESSAGE(UUIDInput, ThrowStatusWrapper,
+            (FB_INTL_VARCHAR(16, CS_BINARY), uuid))
+        input(status, m_master);
+
+        input->uuidNull = FB_FALSE;
+        input->uuid.length = uuidLength;
+        memcpy(input->uuid.str, uuid, uuidLength);
+
+        AutoRelease<IResultSet> rs(
+            m_stmtExtractRecord->openCursor(
+                status,
+                tra,
+                input.getMetadata(),
+                input.getData(),
+                m_outMetaExtractRecord,
+                0));
+
+        while (rs->fetchNext(status, m_outputBuffer.data()) == IStatus::RESULT_OK) {
+            auto doc = makeDocument(status, att, tra);
+
+            if ((changeType == "I") && doc) {
+                m_indexWriter->addDocument(doc);
+            }
+            if (changeType == "U") {
+                TermPtr term = newLucene<Term>(m_ftsIndex.unicodeKeyFieldName, unicodeKeyValue);
+                if (doc) {
+                    m_indexWriter->updateDocument(term, doc);
+                } else {
+                    m_indexWriter->deleteDocuments(term);
+                }
+            }
+        }
+        rs->close(status);
+        rs.release();
+    }
+
+    void FTSPreparedIndex::updateIndexByDbkey(
+        Firebird::ThrowStatusWrapper* status,
+        Firebird::IAttachment* att,
+        Firebird::ITransaction* tra,
+        const unsigned char* dbkey,
+        ISC_USHORT dbkeyLength,
+        std::string_view changeType)
+    {
+        std::string sDbkey = binary_to_hex(dbkey, dbkeyLength);
+        Lucene::String unicodeKeyValue = StringUtils::toUnicode(sDbkey);
+
+        if (changeType == "D") {
+            TermPtr term = newLucene<Term>(m_unicodeKeyFieldName, unicodeKeyValue);
+            m_indexWriter->deleteDocuments(term);
+            return;
+        }
+
+        FB_MESSAGE(UUIDInput, ThrowStatusWrapper,
+            (FB_INTL_VARCHAR(8, CS_BINARY), dbkey))
+        input(status, m_master);
+
+        input->dbkeyNull = FB_FALSE;
+        input->dbkey.length = dbkeyLength;
+        memcpy(input->dbkey.str, dbkey, dbkeyLength);
+
+        AutoRelease<IResultSet> rs(
+            m_stmtExtractRecord->openCursor(
+                status,
+                tra,
+                input.getMetadata(),
+                input.getData(),
+                m_outMetaExtractRecord,
+                0));
+
+        while (rs->fetchNext(status, m_outputBuffer.data()) == IStatus::RESULT_OK) {
+            auto doc = makeDocument(status, att, tra);
+
+            if ((changeType == "I") && doc) {
+                m_indexWriter->addDocument(doc);
+            }
+            if (changeType == "U") {
+                TermPtr term = newLucene<Term>(m_ftsIndex.unicodeKeyFieldName, unicodeKeyValue);
+                if (doc) {
+                    m_indexWriter->updateDocument(term, doc);
+                } else {
+                    m_indexWriter->deleteDocuments(term);
+                }
+            }
+        }
+        rs->close(status);
+        rs.release();
+    }
 
 }

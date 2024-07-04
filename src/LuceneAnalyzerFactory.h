@@ -14,13 +14,14 @@
  *  Contributor(s): ______________________________________.
 **/
 
-#include "LuceneUdr.h"
-#include <map>
 #include <list>
-#include <unordered_set>
+#include <map>
 #include <string>
 #include <string_view>
+#include <unordered_set>
+
 #include "LuceneHeaders.h"
+#include "LuceneUdr.h"
 
 namespace LuceneUDR 
 {

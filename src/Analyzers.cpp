@@ -12,9 +12,9 @@
 **/
 
 #include "Analyzers.h"
-#include "LuceneAnalyzerFactory.h"
+
 #include "FBUtils.h"
-#include "Utils.h"
+#include "LuceneAnalyzerFactory.h"
 
 using namespace LuceneUDR;
 using namespace Firebird;

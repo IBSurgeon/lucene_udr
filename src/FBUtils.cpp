@@ -12,12 +12,13 @@
 **/
 
 #include "FBUtils.h"
-#include "FBAutoPtr.h"
-#include <sstream>
-#include <memory>
+
 #include <algorithm>
 #include <cstdarg>
+#include <stdexcept>
 #include <vector>
+
+#include "FBAutoPtr.h"
 
 using namespace Firebird;
 

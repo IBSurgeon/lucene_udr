@@ -13,8 +13,7 @@
  *  All Rights Reserved.
  *  Contributor(s): ______________________________________.
 **/
-
-
+#include "LuceneHeaders.h"
 #include "Analyzer.h"
 
 namespace Lucene 

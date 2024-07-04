@@ -11,10 +11,10 @@
  *  Contributor(s): ______________________________________.
 **/
 
-#include "LuceneHeaders.h"
+#include "EnglishAnalyzer.h"
+
 #include "WordlistLoader.h"
 #include "StandardAnalyzer.h"
-#include "EnglishAnalyzer.h"
 #include "PorterStemFilter.h"
 
 namespace Lucene 

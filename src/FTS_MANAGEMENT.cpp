@@ -11,22 +11,20 @@
  *  Contributor(s): ______________________________________.
 **/
 
-#include "LuceneUdr.h"
-#include "FTSIndex.h"
-#include "FTSUtils.h"
-#include "Relations.h"
-#include "FBUtils.h"
-#include "FBFieldInfo.h"
-#include "FtsHelper.h"
-#include "LuceneHeaders.h"
-#include "FileUtils.h"
-#include "Analyzers.h"
-#include "LuceneAnalyzerFactory.h"
-#include "Utils.h"
-#include <sstream>
-#include <memory>
 #include <algorithm>
 #include <filesystem> 
+#include <memory>
+
+#include "Analyzers.h"
+#include "FBUtils.h"
+#include "FtsHelper.h"
+#include "FTSIndex.h"
+#include "FTSUtils.h"
+#include "LuceneAnalyzerFactory.h"
+#include "LuceneUdr.h"
+#include "LuceneHeaders.h"
+#include "Relations.h"
+#include "Utils.h"
 
 namespace fs = std::filesystem;
 

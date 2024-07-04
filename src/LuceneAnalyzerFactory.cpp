@@ -11,24 +11,25 @@
  *  Contributor(s): ______________________________________.
 **/
 
-#include "LuceneAnalyzerFactory.h"
-#include "WhitespaceAnalyzer.h"
+#include <functional>
+#include <stdexcept>
+
 #include "ArabicAnalyzer.h"
 #include "BrazilianAnalyzer.h"
-#include "CJKAnalyzer.h"
 #include "ChineseAnalyzer.h"
+#include "CJKAnalyzer.h"
 #include "CzechAnalyzer.h"
 #include "DutchAnalyzer.h"
+#include "EnglishAnalyzer.h"
+#include "FBUtils.h"
 #include "FrenchAnalyzer.h"
 #include "GermanAnalyzer.h"
 #include "GreekAnalyzer.h"
+#include "LuceneAnalyzerFactory.h"
 #include "PersianAnalyzer.h"
 #include "RussianAnalyzer.h"
-#include "EnglishAnalyzer.h"
 #include "SnowballAnalyzer.h"
-#include "FBUtils.h"
-#include <functional>
-#include <stdexcept>
+#include "WhitespaceAnalyzer.h"
 
 using namespace Firebird;
 using namespace Lucene;

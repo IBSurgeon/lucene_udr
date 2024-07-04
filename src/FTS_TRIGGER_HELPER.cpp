@@ -11,12 +11,12 @@
  *  Contributor(s): ______________________________________.
 **/
 
-#include "LuceneUdr.h"
-#include "FTSTrigger.h"
-#include "FBUtils.h"
-#include "LuceneHeaders.h"
 #include <memory>
-#include <algorithm>
+
+#include "FBUtils.h"
+#include "FTSTrigger.h"
+#include "LuceneHeaders.h"
+#include "LuceneUdr.h"
 
 using namespace Firebird;
 using namespace Lucene;

@@ -81,6 +81,27 @@ namespace Firebird
             Clear::clear(ptr);
         }
 
+        // non-copyable
+        AutoImpl<T, Clear>(AutoImpl<T, Clear>&) = delete;
+        void operator=(AutoImpl<T, Clear>&) = delete;
+
+        // movable
+        AutoImpl<T, Clear>(AutoImpl<T, Clear>&& v) noexcept
+            : ptr(v.ptr)
+        {
+            v.ptr = nullptr;
+        }
+
+        AutoImpl<T, Clear>& operator=(AutoImpl<T, Clear>&& r) noexcept
+        {
+            if (this != &r) {
+                ptr = r.ptr;
+                r.ptr = nullptr;
+            }
+
+            return *this;
+        }
+
         AutoImpl<T, Clear>& operator =(T* aPtr)
         {
             Clear::clear(ptr);
@@ -128,11 +149,6 @@ namespace Firebird
                 ptr = aPtr;
             }
         }
-
-    private:
-        // not implemented
-        AutoImpl<T, Clear>(AutoImpl<T, Clear>&);
-        void operator =(AutoImpl<T, Clear>&);
 
     private:
         T* ptr;

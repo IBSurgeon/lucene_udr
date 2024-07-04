@@ -14,8 +14,9 @@
  *  Contributor(s): ______________________________________.
 **/
 
-#include "LuceneHeaders.h"
 #include <list>
+
+#include "LuceneHeaders.h"
 
 namespace LuceneUDR 
 {

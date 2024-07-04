@@ -1,11 +1,12 @@
-#pragma once
-
-#include "LuceneUdr.h"
-#include "LuceneHeaders.h"
-#include "FBFieldInfo.h"
-#include "FTSIndex.h"
+#ifndef FTS_HELPER_H
+#define FTS_HELPER_H
 
 #include <filesystem>
+
+#include "FBFieldInfo.h"
+#include "FTSIndex.h"
+#include "LuceneHeaders.h"
+#include "LuceneUdr.h"
 
 namespace LuceneUDR
 {
@@ -24,6 +25,9 @@ namespace LuceneUDR
             const std::filesystem::path& ftsDirectoryPath,
             bool whereKey);
 
+        FTSPreparedIndex(FTSPreparedIndex&&) noexcept = default;
+        FTSPreparedIndex& operator=(FTSPreparedIndex&&) noexcept = default;
+
         void rebuild(
             Firebird::ThrowStatusWrapper* status,
             Firebird::IAttachment* att,
@@ -38,6 +42,24 @@ namespace LuceneUDR
             std::string_view changeType
         );
 
+        void updateIndexByUuui(
+            Firebird::ThrowStatusWrapper* status,
+            Firebird::IAttachment* att,
+            Firebird::ITransaction* tra,
+            const unsigned char* uuid,
+            ISC_USHORT uuidLength,
+            std::string_view changeType
+        );
+
+        void updateIndexByDbkey(
+            Firebird::ThrowStatusWrapper* status,
+            Firebird::IAttachment* att,
+            Firebird::ITransaction* tra,
+            const unsigned char* dbkey,
+            ISC_USHORT dbkeyLength,
+            std::string_view changeType
+        );
+
         void deleteAll(Firebird::ThrowStatusWrapper* status);
         void optimize(Firebird::ThrowStatusWrapper* status);
         void commit(Firebird::ThrowStatusWrapper* status);
@@ -48,6 +70,10 @@ namespace LuceneUDR
             return m_indexWriter;
         }
 
+        FTSMetadata::FTSKeyType keyType() const
+        {
+            return m_ftsIndex.keyFieldType;
+        }
     private:
         Lucene::DocumentPtr makeDocument(
             Firebird::ThrowStatusWrapper* status,
@@ -80,3 +106,5 @@ namespace LuceneUDR
     );
 
 }
+
+#endif // FTS_HELPER_H

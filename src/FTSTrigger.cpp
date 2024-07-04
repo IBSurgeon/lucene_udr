@@ -13,8 +13,8 @@
 
 
 #include "FTSTrigger.h"
+
 #include "FBUtils.h"
-#include "LazyFactory.h"
 
 using namespace LuceneUDR;
 using namespace Firebird;

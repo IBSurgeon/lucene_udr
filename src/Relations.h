@@ -14,10 +14,11 @@
  *  Contributor(s): ______________________________________.
 **/
 
-#include "LuceneUdr.h"
-#include <string>
 #include <list>
 #include <memory>
+#include <string>
+
+#include "LuceneUdr.h"
 
 namespace FTSMetadata
 {

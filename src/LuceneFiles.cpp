@@ -12,9 +12,9 @@
 **/
 
 #include "LuceneFiles.h"
+
 #include "IndexFileNameFilter.h"
 #include "IndexFileNames.h"
-#include "FileUtils.h"
 
 namespace LuceneUDR
 {

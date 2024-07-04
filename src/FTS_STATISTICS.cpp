@@ -11,22 +11,27 @@
  *  Contributor(s): ______________________________________.
 **/
 
+#include <algorithm>
+#include <memory>
+
 #include "LuceneUdr.h"
+#include "LuceneHeaders.h"
+
+
+#include "CompoundFileReader.h"
+#include "FBUtils.h"
+#include "FieldInfo.h"
+#include "FieldInfos.h"
+#include "FileUtils.h"
 #include "FTSIndex.h"
 #include "FTSUtils.h"
-#include "FBUtils.h"
-#include "LuceneFiles.h"
-#include "LuceneHeaders.h"
-#include "FileUtils.h"
-#include "IndexFileNames.h"
-#include "SegmentInfos.h"
-#include "SegmentInfo.h"
 #include "IndexFileNameFilter.h"
-#include "FieldInfos.h"
-#include "FieldInfo.h"
-#include "CompoundFileReader.h"
-#include <memory>
-#include <algorithm>
+#include "IndexFileNames.h"
+#include "LuceneFiles.h"
+#include "SegmentInfo.h"
+#include "SegmentInfos.h"
+
+
 
 using namespace Firebird;
 using namespace Lucene;

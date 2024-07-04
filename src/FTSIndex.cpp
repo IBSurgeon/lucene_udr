@@ -12,10 +12,10 @@
 **/
 
 #include "FTSIndex.h"
-#include "FBUtils.h"
-#include "LazyFactory.h"
-#include "Relations.h"
+
 #include "Analyzers.h"
+#include "FBUtils.h"
+#include "Relations.h"
 
 using namespace Firebird;
 using namespace std;
@@ -228,25 +228,24 @@ namespace FTSMetadata
         }
         const string keyFieldName = (*iKeySegment).fieldName();
 
-        std::stringstream ss;
-        ss << "SELECT\n";
+        std::string s = "SELECT\n";
         int field_cnt = 0;
         for (const auto& segment : segments) {
             if (field_cnt == 0) {
-                ss << "  " << escapeMetaName(sqlDialect, segment.fieldName());
+                s += "  " + escapeMetaName(sqlDialect, segment.fieldName());
             }
             else {
-                ss << ",\n  " << escapeMetaName(sqlDialect, segment.fieldName());
+                s += ",\n  " + escapeMetaName(sqlDialect, segment.fieldName());
             }
             field_cnt++;
         }
-        ss << "\nFROM " << escapeMetaName(sqlDialect, relationName);
-        ss << "\nWHERE ";
+        s += "\nFROM " + escapeMetaName(sqlDialect, relationName);
+        s += "\nWHERE ";
         if (whereKey) {
-            ss << escapeMetaName(sqlDialect, keyFieldName) << " = ?";
+            s += escapeMetaName(sqlDialect, keyFieldName) + " = ?";
         }
         else {
-            ss << escapeMetaName(sqlDialect, keyFieldName) << " IS NOT NULL";
+            s += escapeMetaName(sqlDialect, keyFieldName) + " IS NOT NULL";
             string where;
             for (const auto& segment : segments) {
                 if (segment.isKey()) continue;
@@ -256,9 +255,9 @@ namespace FTSMetadata
                     where += " OR " + escapeMetaName(sqlDialect, segment.fieldName()) + " IS NOT NULL";
             }
             if (!where.empty())
-                ss << "\nAND (" << where << ")";
+                s += "\nAND (" + where + ")";
         }
-        return ss.str();
+        return s;
     }
 
     //

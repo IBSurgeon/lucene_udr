@@ -14,9 +14,9 @@
  *  Contributor(s): ______________________________________.
 **/
 
-#include "LuceneUdr.h"
-
 #include <filesystem> 
+
+#include "LuceneUdr.h"
 
 namespace fs = std::filesystem;
 

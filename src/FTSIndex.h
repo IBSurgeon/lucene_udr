@@ -14,16 +14,13 @@
  *  Contributor(s): ______________________________________.
 **/
 
-#include "LuceneUdr.h"
-
-#include <string>
 #include <list>
-#include <unordered_set>
 #include <map>
 #include <memory>
-#include <algorithm>
+#include <string>
+#include <unordered_set>
 
-#include "FBFieldInfo.h"
+#include "LuceneUdr.h"
 
 namespace FTSMetadata
 {

@@ -12,6 +12,7 @@
 **/
 
 #include "FBFieldInfo.h"
+
 #include "FBUtils.h"
 
 using namespace Firebird;

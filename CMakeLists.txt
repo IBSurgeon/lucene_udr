@@ -40,6 +40,7 @@ target_sources(luceneudr PRIVATE
     "src/FTS_MANAGEMENT.cpp"
     "src/FTS_STATISTICS.cpp"
     "src/FTS_TRIGGER_HELPER.cpp"
+    "src/FTSHelper.cpp"
     "src/FTSIndex.cpp"
     "src/FTSTrigger.cpp"
     "src/FTSUtils.cpp"
@@ -59,18 +60,6 @@ target_compile_options(luceneudr PRIVATE
     -Wextra
     -Wpedantic
 
-    -Wcast-align
-#    -Wcast-qual
-    -Wconversion
-#    -Wctor-dtor-privacy
-    -Wenum-compare
-    -Wfloat-equal
-#    -Wnon-virtual-dtor
-#    -Wold-style-cast
-#    -Woverloaded-virtual
-    -Wredundant-decls
-#    -Wsign-conversion
-    -Wsign-promo
     -Wno-unused-parameter
 )
 

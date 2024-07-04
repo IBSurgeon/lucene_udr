@@ -14,15 +14,13 @@
  *  Contributor(s): ______________________________________.
 **/
 
-#include "LuceneUdr.h"
-
-
-#include <string>
-#include <string_view>
 #include <list>
 #include <map>
-#include <memory>
-#include <algorithm>
+#include <string>
+#include <string_view>
+#include <unordered_set>
+
+#include "LuceneUdr.h"
 
 #include "FTSIndex.h"
 
