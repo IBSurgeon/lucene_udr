@@ -154,32 +154,6 @@ namespace FTSMetadata
     {
     }
 
-    FTSPreparedIndexStmt::FTSPreparedIndexStmt(
-        Firebird::ThrowStatusWrapper* status,
-        Firebird::IAttachment* att,
-        Firebird::ITransaction* tra,
-        unsigned int sqlDialect,
-        std::string_view sql
-    )
-        : m_stmtExtractRecord{ nullptr }
-        , m_inMetaExtractRecord{ nullptr }
-        , m_outMetaExtractRecord{ nullptr }
-    {
-        m_stmtExtractRecord.reset(att->prepare(
-            status,
-            tra,
-            static_cast<unsigned int>(sql.length()),
-            sql.data(),
-            sqlDialect,
-            IStatement::PREPARE_PREFETCH_METADATA
-        ));
-        // get a description of the fields				
-        AutoRelease<IMessageMetadata> outputMetadata(m_stmtExtractRecord->getOutputMetadata(status));
-        // make all fields of string type except BLOB
-        m_outMetaExtractRecord.reset(prepareTextMetaData(status, outputMetadata));
-        m_inMetaExtractRecord.reset(m_stmtExtractRecord->getInputMetadata(status));
-    }
-
     FTSIndexSegmentList::const_iterator FTSIndex::findSegment(const string& fieldName) const {
         return std::find_if(
             segments.cbegin(),
