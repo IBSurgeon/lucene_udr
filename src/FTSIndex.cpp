@@ -177,8 +177,6 @@ namespace FTSMetadata
         , status(record->indexStatus.str, record->indexStatus.length)
         , segments()
         , keyFieldType{ FTSKeyType::NONE }
-        , unicodeKeyFieldName()
-        , unicodeIndexDir()
     {
     }
 

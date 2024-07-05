@@ -87,7 +87,7 @@ namespace LuceneUDR
         m_outputBuffer = std::vector<unsigned char>(m_outMetaExtractRecord->getMessageLength(status));
 
         // parameters description
-        const auto paramCount = m_outMetaExtractRecord->getCount(status);
+        const auto paramCount = m_inMetaExtractRecord->getCount(status);
         if (whereKey) {
             if (paramCount != 1) {
                 auto iscStatus = IscRandomStatus::createFmtStatus(
@@ -169,8 +169,9 @@ namespace LuceneUDR
 
         try {
             auto fsIndexDir = FSDirectory::open(wIndexDirectoryPath);
+            bool created = fsIndexDir->listAll().empty();
             auto analyzer = analyzerRepository.createAnalyzer(status, att, tra, sqlDialect, m_ftsIndex.analyzer);
-            m_indexWriter = newLucene<IndexWriter>(fsIndexDir, analyzer, true, IndexWriter::MaxFieldLengthUNLIMITED);
+            m_indexWriter = newLucene<IndexWriter>(fsIndexDir, analyzer, created, IndexWriter::MaxFieldLengthUNLIMITED);
         } catch (const LuceneException& e) {
             const std::string error_message = StringUtils::toUTF8(e.getError());
             auto iscStatus = IscRandomStatus(error_message);
@@ -191,6 +192,15 @@ namespace LuceneUDR
     void FTSPreparedIndex::optimize(Firebird::ThrowStatusWrapper* status)
     try {
         m_indexWriter->optimize();
+    } catch (const LuceneException& e) {
+        const std::string error_message = StringUtils::toUTF8(e.getError());
+        auto iscStatus = IscRandomStatus(error_message);
+        throw FbException(status, iscStatus);
+    }
+
+    void FTSPreparedIndex::rollback(Firebird::ThrowStatusWrapper* status)
+    try {
+        m_indexWriter->rollback();
     } catch (const LuceneException& e) {
         const std::string error_message = StringUtils::toUTF8(e.getError());
         auto iscStatus = IscRandomStatus(error_message);
@@ -312,7 +322,7 @@ namespace LuceneUDR
                 m_indexWriter->addDocument(doc);
             }
             if (changeType == "U") {
-                TermPtr term = newLucene<Term>(m_ftsIndex.unicodeKeyFieldName, unicodeKeyValue);
+                TermPtr term = newLucene<Term>(m_unicodeKeyFieldName, unicodeKeyValue);
                 if (doc) {
                     m_indexWriter->updateDocument(term, doc);
                 } else {
@@ -365,7 +375,7 @@ namespace LuceneUDR
                 m_indexWriter->addDocument(doc);
             }
             if (changeType == "U") {
-                TermPtr term = newLucene<Term>(m_ftsIndex.unicodeKeyFieldName, unicodeKeyValue);
+                TermPtr term = newLucene<Term>(m_unicodeKeyFieldName, unicodeKeyValue);
                 if (doc) {
                     m_indexWriter->updateDocument(term, doc);
                 } else {
@@ -418,7 +428,7 @@ namespace LuceneUDR
                 m_indexWriter->addDocument(doc);
             }
             if (changeType == "U") {
-                TermPtr term = newLucene<Term>(m_ftsIndex.unicodeKeyFieldName, unicodeKeyValue);
+                TermPtr term = newLucene<Term>(m_unicodeKeyFieldName, unicodeKeyValue);
                 if (doc) {
                     m_indexWriter->updateDocument(term, doc);
                 } else {

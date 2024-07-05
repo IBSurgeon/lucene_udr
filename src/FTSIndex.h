@@ -74,8 +74,6 @@ namespace FTSMetadata
         FTSIndexSegmentList segments;
 
         FTSKeyType keyFieldType{ FTSKeyType::NONE };
-        std::wstring unicodeKeyFieldName;
-        std::wstring unicodeIndexDir;
     public: 
 
         FTSIndex() = default;

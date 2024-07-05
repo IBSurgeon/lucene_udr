@@ -554,7 +554,8 @@ ORDER BY FTS$LOG_ID
                                 tra,
                                 reinterpret_cast<unsigned char*>(logOutput->dbKey.str),
                                 logOutput->dbKey.length,
-                                changeType);                                
+                                changeType
+                            );                                
                         }
                         break;
                     case FTSKeyType::UUID:
@@ -602,6 +603,7 @@ ORDER BY FTS$LOG_ID
             // commit changes for all indexes
             for (auto&& [relationName, preparedIndexes] : indexesByRelation) {
                 for (auto& preparedIndex : preparedIndexes) {
+                    preparedIndex.optimize(status);
                     preparedIndex.commit(status);
                     preparedIndex.close(status);
                 }

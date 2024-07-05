@@ -886,7 +886,6 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
             preparedIndex.commit(status);
 
             preparedIndex.rebuild(status, att, tra);
-            preparedIndex.commit(status);
 
             preparedIndex.optimize(status); 
             preparedIndex.commit(status);

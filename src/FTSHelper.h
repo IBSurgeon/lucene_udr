@@ -25,6 +25,10 @@ namespace LuceneUDR
             const std::filesystem::path& ftsDirectoryPath,
             bool whereKey);
 
+        // non-copyable
+        FTSPreparedIndex(const FTSPreparedIndex& rhs) = delete;
+        FTSPreparedIndex& operator=(const FTSPreparedIndex& rhs) = delete;
+
         FTSPreparedIndex(FTSPreparedIndex&&) noexcept = default;
         FTSPreparedIndex& operator=(FTSPreparedIndex&&) noexcept = default;
 
@@ -63,6 +67,7 @@ namespace LuceneUDR
         void deleteAll(Firebird::ThrowStatusWrapper* status);
         void optimize(Firebird::ThrowStatusWrapper* status);
         void commit(Firebird::ThrowStatusWrapper* status);
+        void rollback(Firebird::ThrowStatusWrapper* status);
         void close(Firebird::ThrowStatusWrapper* status);
 
 
