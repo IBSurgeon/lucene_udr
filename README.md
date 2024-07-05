@@ -1360,14 +1360,14 @@ The procedure `FTS$MANAGEMENT.FTS$ADD_STOP_WORD` adds a stop word to the custom 
 
 ```sql
   PROCEDURE FTS$ADD_STOP_WORD (
-      FTS$ANALYZER VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+      FTS$ANALYZER_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
       FTS$WORD VARCHAR(63) CHARACTER SET UTF8 NOT NULL
   );
 ```
 
 Input parameters:
 
-- FTS$ANALYZER - analyzer name;
+- FTS$ANALYZER_NAME - analyzer name;
 - FTS$WORD - stop word.
 
 #### Procedure FTS$MANAGEMENT.FTS$DROP_STOP_WORD
@@ -1376,14 +1376,14 @@ The procedure `FTS$MANAGEMENT.FTS$DROP_STOP_WORD` removes a stop word from the c
 
 ```sql
   PROCEDURE FTS$DROP_STOP_WORD (
-      FTS$ANALYZER VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
+      FTS$ANALYZER_NAME VARCHAR(63) CHARACTER SET UTF8 NOT NULL,
       FTS$WORD VARCHAR(63) CHARACTER SET UTF8 NOT NULL
   );
 ```
 
 Входные параметры:
 
-- FTS$ANALYZER - analyzer name;
+- FTS$ANALYZER_NAME - analyzer name;
 - FTS$WORD - stop word.
 
 #### Procedure FTS$MANAGEMENT.FTS$CREATE_INDEX
