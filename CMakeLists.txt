@@ -46,6 +46,7 @@ target_sources(luceneudr PRIVATE
     "src/FTSUtils.cpp"
     "src/LuceneAnalyzerFactory.cpp"
     "src/LuceneFiles.cpp"
+    "src/LuceneUdr.cpp"
     "src/Relations.cpp"
 )
 

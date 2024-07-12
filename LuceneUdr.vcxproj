@@ -42,6 +42,7 @@
     <ClCompile Include="src\FTS_STATISTICS.cpp" />
     <ClCompile Include="src\LuceneAnalyzerFactory.cpp" />
     <ClCompile Include="src\LuceneFiles.cpp" />
+    <ClCompile Include="src\LuceneUdr.cpp" />
     <ClCompile Include="src\Relations.cpp" />
   </ItemGroup>
   <ItemGroup>
