@@ -47,7 +47,6 @@ target_sources(luceneudr PRIVATE
     "src/LuceneAnalyzerFactory.cpp"
     "src/LuceneFiles.cpp"
     "src/Relations.cpp"
-    "src/Utils.cpp"
 )
 
 # require C++17 standard
