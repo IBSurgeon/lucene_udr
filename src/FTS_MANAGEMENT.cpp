@@ -17,7 +17,7 @@
 
 #include "Analyzers.h"
 #include "FBUtils.h"
-#include "FtsHelper.h"
+#include "FTSHelper.h"
 #include "FTSIndex.h"
 #include "FTSUtils.h"
 #include "LuceneAnalyzerFactory.h"
