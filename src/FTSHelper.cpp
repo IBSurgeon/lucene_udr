@@ -52,6 +52,7 @@ namespace LuceneUDR
                 R"(Invalid FTS index "%s". The index does not contain fields.)", 
                 m_ftsIndex.indexName.c_str()
             );
+            throw FbException(status, iscStatus);
         }
 
         // check all field present
