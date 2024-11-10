@@ -10,8 +10,8 @@
 
 namespace LuceneUDR
 {
-	class FTSPreparedIndex final
-	{
+    class FTSPreparedIndex final
+    {
     public:
         FTSPreparedIndex() = default;
 
@@ -97,7 +97,7 @@ namespace LuceneUDR
         std::vector<unsigned char> m_outputBuffer;
         Lucene::IndexWriterPtr m_indexWriter;
         Lucene::String m_unicodeKeyFieldName; 
-	};
+    };
 
     FTSPreparedIndex prepareFtsIndex(
             Firebird::ThrowStatusWrapper* status,

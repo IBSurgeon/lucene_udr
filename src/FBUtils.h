@@ -99,4 +99,4 @@ namespace LuceneUDR
     std::vector<unsigned char> hex_to_binary(std::string_view input);
 }
 
-#endif	// FB_BLOB_UTILS_H
+#endif // FB_BLOB_UTILS_H

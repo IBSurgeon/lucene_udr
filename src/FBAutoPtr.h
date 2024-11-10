@@ -191,4 +191,4 @@ namespace Firebird
     };
 }
 
-#endif	// FB_AUTO_PTR_H
+#endif // FB_AUTO_PTR_H

@@ -103,4 +103,4 @@ namespace LuceneUDR
 
 }
 
-#endif	// LUCENE_ANALYZER_FACTORY_H
+#endif // LUCENE_ANALYZER_FACTORY_H
