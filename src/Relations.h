@@ -33,7 +33,7 @@ namespace FTSMetadata
 
     struct RelationInfo final
     {
-        std::string relationName{ "" };
+        std::string relationName;
         RelationType relationType{ RelationType::RT_REGULAR };
         bool systemFlag = false;
     
@@ -53,8 +53,8 @@ namespace FTSMetadata
     class RelationFieldInfo final
     {
     public:
-        std::string relationName{ "" };
-        std::string fieldName{ "" };
+        std::string relationName;
+        std::string fieldName;
         short fieldType = 0;
         short fieldLength = 0;
         short charLength = 0;
