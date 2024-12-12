@@ -1110,19 +1110,14 @@ WHERE BOOKS.ID = 8
 
 ## Keeping data up-to-date in full-text indexes
 
-There are several ways to keep full-text indexes up-to- date:
+There are several ways to keep full-text indexes up-to-date:
 
 1. Periodically call the procedure `FTS$MANAGEMENT.FTS$REBUILD_INDEX` for the specified index.
 This method completely rebuilds the full-text index. In this case, all records of the table or view are read
 for which the index was created.
 
-2. You can maintain full-text indexes using triggers and calling one of the `FTS$LOG_BY_ID` procedures inside them,
-`FTS$LOG_BY_UUID` or `FTS$LOG_BY_DBKEY`. Which of the procedures to call
-depends on which type of field is selected as the key (integer, UUID (GIUD) or `RDB$DB_KEY`).
-When calling these procedures, the change record is added to a special table `FTS$LOG` (change log).
-Changes from the log are transferred to full-text indexes by calling the procedure `FTS$UPDATE_INDEXES`.
-The call to this procedure must be done in a separate script, which can be placed in the task scheduler (Windows)
-or cron (Linux) with some frequency, for example 5 minutes.
+2. Full-text indexes can be maintained using triggers. When these triggers are triggered, a record of the change is added to a special table `FTS$LOG` (change log).
+Changes from the log are transferred to full-text indexes by calling the `FTS$UPDATE_INDEXES` procedure. This procedure must be called in a separate script, which can be set in the task scheduler (Windows) or cron (Linux) with some frequency, for example, 5 minutes.
 
 3. Delayed updating of full-text indexes, using FirebirdStreaming technology. In this case, a special
 service reads the replication logs and extracts from them the information necessary to update the full-text indexes.
@@ -1139,18 +1134,38 @@ Rules for writing triggers to support full-text indexes:
 1. In the trigger, it is necessary to check all fields that participate in the full-text index.
 The field validation conditions must be combined via `OR`.
 
-2. For the `INSERT` operation, it is necessary to check all fields included in full-text indexes whose value is different
-from `NULL`. If this condition is met, then one of the procedures must be performed
-`FTS$LOG_BY_DBKEY('<table name>', NEW.RDB$DB_KEY, 'I');` or `FTS$LOG_BY_ID('<table name>', NEW.<key field>, 'I')`
-or `FTS$LOG_BY_UUID('<table name>', NEW.<key field>, 'I')`.
+2. For the `INSERT` operation, it is necessary to check all fields included in full-text indexes whose value differs from `NULL`. If this condition is met, then it is necessary to execute one of the queries depending on the type of the key field
 
-3. For the `UPDATE` operation, it is necessary to check all fields included in full-text indexes whose value has changed.
-If this condition is met, then the procedure `FTS$LOG_BY_DBKEY('<table name>', OLD.RDB$DB_KEY, 'U');`
-or `FTS$LOG_BY_ID('<table name>', OLD.<key field>, 'U')`or `FTS$LOG_BY_UUID('<table name>', OLD.<key field>, 'U')`.
+```sql
+-- for keys INTEGER or BIGINT types
+INSERT INTO FTS$LOG(FTS$RELATION_NAME, FTS$REC_ID, FTS$CHANGE_TYPE) VALUES('<table_name>', NEW.<key_field_name>, 'I');
+-- for keys RDB$DB_KEY type
+INSERT INTO FTS$LOG(FTS$RELATION_NAME, FTS$DB_KEY, FTS$CHANGE_TYPE) VALUES('<table_name>', NEW.<key_field_name>, 'I');
+-- for keys UUID type
+INSERT INTO FTS$LOG(FTS$RELATION_NAME, FTS$REC_UUID, FTS$CHANGE_TYPE) VALUES('<table_name>', NEW.<key_field_name>, 'I');
+```
 
-4. For the `DELETE` operation, it is necessary to check all fields included in full-text indexes whose value is different
-from `NULL`. If this condition is met, then it is necessary to perform the procedure
-`FTS$LOG_CHANGE('<table name>', OLD.RDB$DB_KEY, 'D');`.
+3. For the `UPDATE` operation, it is necessary to check all fields included in the full-text indexes whose value has changed. If this condition is met, then it is necessary to execute one of the queries depending on the type of the key field.
+
+```sql
+-- for keys INTEGER or BIGINT types
+INSERT INTO FTS$LOG(FTS$RELATION_NAME, FTS$REC_ID, FTS$CHANGE_TYPE) VALUES('<table_name>', OLD.<key_field_name>, 'U');
+-- for keys RDB$DB_KEY type
+INSERT INTO FTS$LOG(FTS$RELATION_NAME, FTS$DB_KEY, FTS$CHANGE_TYPE) VALUES('<table_name>', OLD.<key_field_name>, 'U');
+-- for keys UUID type
+INSERT INTO FTS$LOG(FTS$RELATION_NAME, FTS$REC_UUID, FTS$CHANGE_TYPE) VALUES('<table_name>', OLD.<key_field_name>, 'U');
+```
+
+4. For the `DELETE` operation, it is necessary to check all fields included in the full-text indexes whose value differs from `NULL`. If this condition is met, then it is necessary to execute one of the queries depending on the type of the key field.
+
+```sql
+-- for keys INTEGER or BIGINT types
+INSERT INTO FTS$LOG(FTS$RELATION_NAME, FTS$REC_ID, FTS$CHANGE_TYPE) VALUES('<table_name>', OLD.<key_field_name>, 'D');
+-- for keys RDB$DB_KEY type
+INSERT INTO FTS$LOG(FTS$RELATION_NAME, FTS$DB_KEY, FTS$CHANGE_TYPE) VALUES('<table_name>', OLD.<key_field_name>, 'D');
+-- для for keys UUID type
+INSERT INTO FTS$LOG(FTS$RELATION_NAME, FTS$REC_UUID, FTS$CHANGE_TYPE) VALUES('<table_name>', OLD.<key_field_name>, 'D');
+```
 
 To facilitate the task of writing such triggers, there is a special package `FTS$TRIGGER_HELPER`, which
 contains procedures for generating trigger source texts. So for example, in order to generate triggers
@@ -1174,27 +1189,27 @@ BEGIN
   /* Block for key PRODUCT_ID */
   IF (INSERTING AND (NEW."ABOUT_PRODUCT" IS NOT NULL
       OR NEW."PRODUCT_NAME" IS NOT NULL)) THEN
-    EXECUTE PROCEDURE FTS$LOG_BY_ID('PRODUCTS', NEW."PRODUCT_ID", 'I');
+    INSERT INTO FTS$LOG(FTS$RELATION_NAME, FTS$REC_ID, FTS$CHANGE_TYPE) VALUES('PRODUCTS', NEW."PRODUCT_ID", 'I');
   IF (UPDATING AND (NEW."ABOUT_PRODUCT" IS DISTINCT FROM OLD."ABOUT_PRODUCT"
       OR NEW."PRODUCT_NAME" IS DISTINCT FROM OLD."PRODUCT_NAME")) THEN
-    EXECUTE PROCEDURE FTS$LOG_BY_ID('PRODUCTS', OLD."PRODUCT_ID", 'U');
+    INSERT INTO FTS$LOG(FTS$RELATION_NAME, FTS$REC_ID, FTS$CHANGE_TYPE) VALUES('PRODUCTS', OLD."PRODUCT_ID", 'U');
   IF (DELETING AND (OLD."ABOUT_PRODUCT" IS NOT NULL
       OR OLD."PRODUCT_NAME" IS NOT NULL)) THEN
-    EXECUTE PROCEDURE FTS$LOG_BY_ID('PRODUCTS', OLD."PRODUCT_ID", 'D');
+    INSERT INTO FTS$LOG(FTS$RELATION_NAME, FTS$REC_ID, FTS$CHANGE_TYPE) VALUES('PRODUCTS', OLD."PRODUCT_ID", 'D');
   /* Block for key PRODUCT_UUID */
   IF (INSERTING AND (NEW."PRODUCT_NAME" IS NOT NULL)) THEN
-    EXECUTE PROCEDURE FTS$LOG_BY_UUID('PRODUCTS', NEW."PRODUCT_UUID", 'I');
+    INSERT INTO FTS$LOG(FTS$RELATION_NAME, FTS$REC_UUID, FTS$CHANGE_TYPE) VALUES('PRODUCTS', NEW."PRODUCT_UUID", 'I');
   IF (UPDATING AND (NEW."PRODUCT_NAME" IS DISTINCT FROM OLD."PRODUCT_NAME")) THEN
-    EXECUTE PROCEDURE FTS$LOG_BY_UUID('PRODUCTS', OLD."PRODUCT_UUID", 'U');
+    INSERT INTO FTS$LOG(FTS$RELATION_NAME, FTS$REC_UUID, FTS$CHANGE_TYPE) VALUES('PRODUCTS', OLD."PRODUCT_UUID", 'U');
   IF (DELETING AND (OLD."PRODUCT_NAME" IS NOT NULL)) THEN
-    EXECUTE PROCEDURE FTS$LOG_BY_UUID('PRODUCTS', OLD."PRODUCT_UUID", 'D');
+    INSERT INTO FTS$LOG(FTS$RELATION_NAME, FTS$REC_UUID, FTS$CHANGE_TYPE) VALUES('PRODUCTS', OLD."PRODUCT_UUID", 'D');
   /* Block for key RDB$DB_KEY */
   IF (INSERTING AND (NEW."PRODUCT_NAME" IS NOT NULL)) THEN
-    EXECUTE PROCEDURE FTS$LOG_BY_DBKEY('PRODUCTS', NEW.RDB$DB_KEY, 'I');
+    INSERT INTO FTS$LOG(FTS$RELATION_NAME, FTS$DB_KEY, FTS$CHANGE_TYPE) VALUES('PRODUCTS', NEW.RDB$DB_KEY, 'I');
   IF (UPDATING AND (NEW."PRODUCT_NAME" IS DISTINCT FROM OLD."PRODUCT_NAME")) THEN
-    EXECUTE PROCEDURE FTS$LOG_BY_DBKEY('PRODUCTS', OLD.RDB$DB_KEY, 'U');
+    INSERT INTO FTS$LOG(FTS$RELATION_NAME, FTS$DB_KEY, FTS$CHANGE_TYPE) VALUES('PRODUCTS', OLD.RDB$DB_KEY, 'U');
   IF (DELETING AND (OLD."PRODUCT_NAME" IS NOT NULL)) THEN
-    EXECUTE PROCEDURE FTS$LOG_BY_DBKEY('PRODUCTS', OLD.RDB$DB_KEY, 'D');
+    INSERT INTO FTS$LOG(FTS$RELATION_NAME, FTS$DB_KEY, FTS$CHANGE_TYPE) VALUES('PRODUCTS', OLD.RDB$DB_KEY, 'D');
 END
 ```
 
@@ -1225,17 +1240,17 @@ POSITION 100
 AS
 BEGIN
   IF (INSERTING) THEN
-    EXECUTE PROCEDURE FTS$LOG_BY_UUID('V_PRODUCT_CATEGORIES', NEW.PRODUCT_UUID, 'I');
+    INSERT INTO FTS$LOG(FTS$RELATION_NAME, FTS$REC_UUID, FTS$CHANGE_TYPE) VALUES('V_PRODUCT_CATEGORIES', NEW.PRODUCT_UUID, 'I');
 
   IF (UPDATING AND (NEW.PRODUCT_UUID <> OLD.PRODUCT_UUID
       OR NEW.CATEGORY_ID <> OLD.CATEGORY_ID)) THEN
   BEGIN
-    EXECUTE PROCEDURE FTS$LOG_BY_UUID('V_PRODUCT_CATEGORIES', OLD.PRODUCT_UUID, 'D');
-    EXECUTE PROCEDURE FTS$LOG_BY_UUID('V_PRODUCT_CATEGORIES', NEW.PRODUCT_UUID, 'I');
+    INSERT INTO FTS$LOG(FTS$RELATION_NAME, FTS$REC_UUID, FTS$CHANGE_TYPE) VALUES('V_PRODUCT_CATEGORIES', OLD.PRODUCT_UUID, 'D');
+    INSERT INTO FTS$LOG(FTS$RELATION_NAME, FTS$REC_UUID, FTS$CHANGE_TYPE) VALUES('V_PRODUCT_CATEGORIES', NEW.PRODUCT_UUID, 'I');
   END
 
   IF (DELETING) THEN
-    EXECUTE PROCEDURE FTS$LOG_BY_UUID('V_PRODUCT_CATEGORIES', OLD.PRODUCT_UUID, 'D');
+    INSERT INTO FTS$LOG(FTS$RELATION_NAME, FTS$REC_UUID, FTS$CHANGE_TYPE) VALUES('V_PRODUCT_CATEGORIES', OLD.PRODUCT_UUID, 'D');
 END
 ^
 
@@ -1254,7 +1269,7 @@ BEGIN
     WHERE CATEGORIES.CATEGORY_NAME = OLD.CATEGORY_NAME
     INTO PRODUCT_UUID;
 
-    EXECUTE PROCEDURE FTS$LOG_BY_UUID('V_PRODUCT_CATEGORIES', :PRODUCT_UUID, 'U');
+    INSERT INTO FTS$LOG(FTS$RELATION_NAME, FTS$REC_UUID, FTS$CHANGE_TYPE) VALUES('V_PRODUCT_CATEGORIES', :PRODUCT_UUID, 'U');
   END
 END
 END
