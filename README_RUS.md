@@ -41,15 +41,13 @@ Lucene UDR построена на основе [Lucene++](https://github.com/lu
 их репозиториев. Если же библиотеки в репозиториях отсутствуют, то вам потребуется скачать и собрать их из исходников.
 
 ```
-$ git clone https://github.com/luceneplusplus/LucenePlusPlus.git
-$ cd LucenePlusPlus
-$ mkdir build; cd build
-$ cmake ..
-$ make
-$ sudo make install
+git clone https://github.com/luceneplusplus/LucenePlusPlus.git
+cd LucenePlusPlus
+mkdir build; cd build
+cmake ..
+make
+sudo cmake --install . --prefix /usr
 ```
-
-Чтобы lucene++ была установлена в `/usr/lib`, а не в `/usr/local/lib`, выполните `cmake -DCMAKE_INSTALL_PREFIX=/usr ..` вместо `cmake ..`
 
 Более подробно сборка библиотеки lucene++ описана в [BUILDING.md](https://github.com/luceneplusplus/LucenePlusPlus/blob/master/doc/BUILDING.md).
 
@@ -61,8 +59,7 @@ cd lucene_udr
 mkdir build
 cmake -S . -B ./build
 cmake --build ./build -- -j12
-cd build
-sudo make install
+sudo cmake --install ./build
 ```
 
 В процессе выполнения `cmake -S . -B ./build` может возникнуть следующая ошибка

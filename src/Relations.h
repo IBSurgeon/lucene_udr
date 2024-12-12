@@ -245,4 +245,4 @@ namespace FTSMetadata
     using RelationHelperPtr = std::unique_ptr<RelationHelper>;
 }
 
-#endif	// FTS_RELATIONS_H
+#endif // FTS_RELATIONS_H

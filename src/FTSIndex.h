@@ -473,4 +473,4 @@ namespace FTSMetadata
 
 }
 
-#endif	// FTS_INDEX_H
+#endif // FTS_INDEX_H

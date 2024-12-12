@@ -41,27 +41,25 @@ In some Linux distributions, you can install `lucene++` and `lucene++-contrib` f
 If there are no libraries in the repositories, then you will need to download and build them from the source.
 
 ```
-$ git clone https://github.com/luceneplusplus/LucenePlusPlus.git
-$ cd LucenePlusPlus
-$ mkdir build; cd build
-$ cmake ..
-$ make
-$ sudo make install
+git clone https://github.com/luceneplusplus/LucenePlusPlus.git
+cd LucenePlusPlus
+mkdir build; cd build
+cmake ..
+make
+sudo cmake --install . --prefix /usr
 ```
-
-In order for the `lucene++` library to be installed in `/usr/lib` and not in `/usr/local/lib`, run `cmake -DCMAKE_INSTALL_PREFIX=/usr..` instead of `cmake ..`
 
 The building of the lucene++ library is described in more detail in [BUILDING.md](https://github.com/luceneplusplus/LucenePlusPlus/blob/master/doc/BUILDING.md).
 
 Now you can start building UDR Lucene.
 
 ```
-$ git clone https://github.com/IBSurgeon/lucene_udr.git
-$ cd lucene_udr
-$ mkdir build; cd build
-$ cmake ..
-$ make
-$ sudo make install
+git clone https://github.com/IBSurgeon/lucene_udr.git
+cd lucene_udr
+mkdir build
+cmake -S . -B ./build
+cmake --build ./build -- -j12
+sudo cmake --install ./build
 ```
 
 In the process of executing `cmake ..` the following error may occur
