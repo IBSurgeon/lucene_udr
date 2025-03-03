@@ -376,8 +376,8 @@ FB_UDR_BEGIN_PROCEDURE(ftsAnalyze)
         }
     }
 
-    TokenStreamPtr tokenStream = nullptr;
-    TermAttributePtr termAttribute = nullptr;
+    TokenStreamPtr tokenStream;
+    TermAttributePtr termAttribute;
 
     FB_UDR_FETCH_PROCEDURE
     {

@@ -62,7 +62,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsMakeTrigger)
     {
     }
 
-    std::unique_ptr<FTSTriggerHelper> triggerHelper{nullptr};
+    std::unique_ptr<FTSTriggerHelper> triggerHelper;
 
     void getCharSet([[maybe_unused]] ThrowStatusWrapper* status, [[maybe_unused]] IExternalContext* context,
         char* name, unsigned nameSize)

@@ -190,10 +190,10 @@ namespace FTSMetadata
         AnalyzerRepository* m_analyzerRepository{ nullptr };
         RelationHelper* m_relationHelper{nullptr};
         // prepared statements
-        Firebird::AutoRelease<Firebird::IStatement> m_stmt_exists_index{ nullptr };
-        Firebird::AutoRelease<Firebird::IStatement> m_stmt_get_index{ nullptr };
-        Firebird::AutoRelease<Firebird::IStatement> m_stmt_index_fields{ nullptr };
-        Firebird::AutoRelease<Firebird::IStatement> m_stmt_active_indexes_by_analyzer{ nullptr };
+        Firebird::AutoRelease<Firebird::IStatement> m_stmt_exists_index;
+        Firebird::AutoRelease<Firebird::IStatement> m_stmt_get_index;
+        Firebird::AutoRelease<Firebird::IStatement> m_stmt_index_fields;
+        Firebird::AutoRelease<Firebird::IStatement> m_stmt_active_indexes_by_analyzer;
 
     public:
 

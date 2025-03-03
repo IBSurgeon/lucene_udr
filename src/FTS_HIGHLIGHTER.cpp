@@ -263,8 +263,8 @@ FB_UDR_BEGIN_PROCEDURE(bestFragementsHighligh)
         }
     }
 
-    AutoRelease<IAttachment> att{nullptr};
-    AutoRelease<ITransaction> tra{nullptr};
+    AutoRelease<IAttachment> att;
+    AutoRelease<ITransaction> tra;
     Collection<String> fragments;
     Collection<String>::iterator it;
 

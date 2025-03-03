@@ -214,8 +214,8 @@ FB_UDR_BEGIN_PROCEDURE(getIndexStatistics)
         }
     }
 
-    AutoRelease<IAttachment> att{nullptr};
-    AutoRelease<ITransaction> tra{nullptr};
+    AutoRelease<IAttachment> att;
+    AutoRelease<ITransaction> tra;
     bool fetched = false;
 
     FB_UDR_FETCH_PROCEDURE
@@ -560,8 +560,8 @@ FB_UDR_BEGIN_PROCEDURE(getIndexSegments)
         }
     }
 
-    AutoRelease<IAttachment> att{nullptr};
-    AutoRelease<ITransaction> tra{nullptr};
+    AutoRelease<IAttachment> att;
+    AutoRelease<ITransaction> tra;
     SegmentInfosPtr segmentInfos;
     int32_t segNo = 0;
 
@@ -736,8 +736,8 @@ FB_UDR_BEGIN_PROCEDURE(getFieldInfos)
         }
     }
 
-    AutoRelease<IAttachment> att{nullptr};
-    AutoRelease<ITransaction> tra{nullptr};
+    AutoRelease<IAttachment> att;
+    AutoRelease<ITransaction> tra;
     FieldInfosPtr fieldInfos;
     int32_t fieldNo = 0;
 
@@ -860,7 +860,7 @@ FB_UDR_BEGIN_PROCEDURE(indexTerms)
         }
     }
 
-    TermEnumPtr termIt{ nullptr };
+    TermEnumPtr termIt;
 
     FB_UDR_FETCH_PROCEDURE
     {
