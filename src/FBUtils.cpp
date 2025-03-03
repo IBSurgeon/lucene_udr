@@ -298,7 +298,8 @@ namespace LuceneUDR
         if (len & 1)
             throw std::invalid_argument("A hexadecimal string has an odd length");
 
-        std::vector<unsigned char> output(len / 2);
+        std::vector<unsigned char> output;
+        output.reserve(len / 2);
         const unsigned char* begin = reinterpret_cast<const unsigned char*>(input.data());
         const unsigned char* end = begin + len;
         for (auto p = begin; p != end; ++p) {
