@@ -128,6 +128,7 @@ namespace FTSMetadata
         , fieldSubType(fieldSubType_)
         , fieldPrecision(fieldPrecision_)
         , fieldScale(fieldScale_)
+        , dbKeyFlag(fieldName_ == "RDB$DB_KEY")
     {}
 
 
@@ -200,7 +201,11 @@ namespace FTSMetadata
         
         std::string_view swRelationName(output->relationName.str, output->relationName.length);
 
-        return { swRelationName, static_cast<RelationType>(output->relationType), static_cast<bool>(output->systemFlag) };        
+        return RelationInfo(
+            swRelationName, 
+            static_cast<RelationType>(output->relationType), 
+            static_cast<bool>(output->systemFlag)
+        );
     }
 
     /// <summary>

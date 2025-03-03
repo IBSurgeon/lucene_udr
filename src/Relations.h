@@ -62,6 +62,7 @@ namespace FTSMetadata
         short fieldSubType = 0;
         short fieldPrecision = 0;
         short fieldScale = 0;
+        bool dbKeyFlag = false;
     public:
         RelationFieldInfo() = default;
         RelationFieldInfo(
@@ -100,6 +101,10 @@ namespace FTSMetadata
 
         bool isBinary() const {
             return (isBlob() && fieldSubType == 0) || ((isFixedChar() || isVarChar()) && charsetId == 1);
+        }
+
+        bool isDbKey() const {
+            return dbKeyFlag;
         }
 
         bool ftsKeySupported() const {

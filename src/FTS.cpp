@@ -197,9 +197,13 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
                 }
                 else {
                     keyFieldName = segment.fieldName();
-                    unicodeKeyFieldName = StringUtils::toUnicode(keyFieldName);
                 }
             }
+            if (keyFieldName.empty()) {
+                std::string sIndexName(indexName);
+                throwException(status, R"(Not found key field in FTS index "%s".)", sIndexName.c_str());
+            }
+            unicodeKeyFieldName = StringUtils::toUnicode(keyFieldName);
 
             keyFieldInfo = procedure->indexRepository->getRelationHelper()->getField(status, att, tra, sqlDialect, ftsIndex.relationName, keyFieldName);
 
@@ -236,13 +240,13 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
     }
 
     bool explainFlag = false;
-    AutoRelease<IAttachment> att{ nullptr };
-    AutoRelease<ITransaction> tra{ nullptr };
+    AutoRelease<IAttachment> att;
+    AutoRelease<ITransaction> tra;
     RelationFieldInfo keyFieldInfo;
-    String unicodeKeyFieldName = L"";
-    SearcherPtr searcher{ nullptr };
-    QueryPtr query{ nullptr };	
-    TopDocsPtr docs{ nullptr };
+    String unicodeKeyFieldName;
+    SearcherPtr searcher;
+    QueryPtr query;
+    TopDocsPtr docs;
     Collection<ScoreDocPtr>::iterator it;
 
     FB_UDR_FETCH_PROCEDURE
@@ -256,7 +260,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 
             try {
                 const std::string keyValue = StringUtils::toUTF8(doc->get(unicodeKeyFieldName));
-                if (unicodeKeyFieldName == L"RDB$DB_KEY") {
+                if (keyFieldInfo.isDbKey()) {
                     // In the Lucene index, the string is stored in hexadecimal form, so let's convert it back to binary format.
                     auto dbKey = hex_to_binary(keyValue);
                     std::string_view svDbKey(reinterpret_cast<char*>(dbKey.data()), dbKey.size());
@@ -276,6 +280,10 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
                     out->idNull = false;
                     out->id = std::stoll(keyValue);
                 }
+                else {
+                    std::string sMessage = "FTS index does not know the key type.";
+                    throwException(status, sMessage.c_str());
+                }
             }
             catch (const std::invalid_argument& e) {
                 throwException(status, e.what());
@@ -284,7 +292,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
             out->scoreNull = false;
             out->score = scoreDoc->score;
 
-            if (explainFlag) {    
+            if (explainFlag) {
                 auto explanation = searcher->explain(query, scoreDoc->doc);
                 const std::string explanationStr = StringUtils::toUTF8(explanation->toString());
                 out->explanationNull = false;
