@@ -5,6 +5,6 @@
   EDIT write_build_no.bat
   FORMAL BUILD NUMBER:41
 */
-#define PRODUCT_VER_STRING "1.5.0.41"
-#define FILE_VER_STRING "WIN-1.5.0.41"
-#define FILE_VER_NUMBER 1, 5, 0, 41
+#define PRODUCT_VER_STRING "1.4.0.41"
+#define FILE_VER_STRING "WIN-1.4.0.41"
+#define FILE_VER_NUMBER 1, 4, 0, 41

@@ -14,7 +14,7 @@
 cmake_minimum_required (VERSION 3.13)
 
 project (luceneudr 
-    VERSION 1.5.0
+    VERSION 1.4.0
     LANGUAGES CXX
 )
 

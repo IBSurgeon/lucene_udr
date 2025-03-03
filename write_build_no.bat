@@ -1,7 +1,7 @@
 @echo off
 
 SET MajorVer=1
-SET MinorVer=5
+SET MinorVer=4
 SET RevNo=0
 SET BuildNum=41
 
