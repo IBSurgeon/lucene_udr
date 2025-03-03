@@ -1,10 +1,3 @@
-#include "FTSUtils.h"
-
-#include <string>
-
-#include "FBUtils.h"
-#include "inicpp.h"
-
 /**
  *  Various utilities to support full-text indexes.
  *
@@ -17,6 +10,13 @@
  *  All Rights Reserved.
  *  Contributor(s): ______________________________________.
 **/
+
+#include "FTSUtils.h"
+
+#include <string>
+
+#include "FBUtils.h"
+#include "inicpp.h"
 
 using namespace Firebird;
 
