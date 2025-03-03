@@ -35,36 +35,24 @@ using namespace LuceneUDR;
 
 namespace {
 
+    constexpr std::string_view SPECIAL_CHARS = "+-!^\"~*?:\\&|()[]{}";
+
     std::string queryEscape(std::string_view query)
     {
         std::string s;
         s.reserve(query.size());
-        for (auto ch : query) {
-            switch (ch) {
-            case '+':
-            case '-':
-            case '!':
-            case '^':
-            case '"':
-            case '~':
-            case '*':
-            case '?':
-            case ':':
-            case '\\':
-            case '&':
-            case '|':
-            case '(':
-            case ')':
-            case '[':
-            case ']':
-            case '{':
-            case '}':
-                s+= '\\' + ch;
-                break;
-            default:
-                s += ch;
-            }
+
+        auto p = query.find_first_of(SPECIAL_CHARS);
+        while (p != std::string::npos) {
+            s += query.substr(0, p);
+            s += '\\';
+            s += query.substr(p, 1);
+            query.remove_prefix(p + 1);
+
+            p = query.find_first_of(SPECIAL_CHARS);
         }
+        s += query;
+
         return s;
     }
 }
