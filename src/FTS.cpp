@@ -259,18 +259,18 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
                 if (unicodeKeyFieldName == L"RDB$DB_KEY") {
                     // In the Lucene index, the string is stored in hexadecimal form, so let's convert it back to binary format.
                     auto dbKey = hex_to_binary(keyValue);
-                    auto dbKeyPtr = reinterpret_cast<char*>(dbKey.data());
+                    std::string_view svDbKey(reinterpret_cast<char*>(dbKey.data()), dbKey.size());
                     out->dbKeyNull = false;
-                    out->dbKey.length = static_cast<ISC_USHORT>(dbKey.size());
-                    std::copy(dbKeyPtr, dbKeyPtr + out->dbKey.length, out->dbKey.str);
+                    out->dbKey.length = static_cast<ISC_USHORT>(svDbKey.size());
+                    svDbKey.copy(out->dbKey.str, out->dbKey.length);
                 }
                 else if (keyFieldInfo.isBinary()) {
                     // In the Lucene index, the string is stored in hexadecimal form, so let's convert it back to binary format.
                     auto uuid = hex_to_binary(keyValue);
-                    auto uuidPtr = reinterpret_cast<char*>(uuid.data());
+                    std::string_view svUuid(reinterpret_cast<char*>(uuid.data()), uuid.size());
                     out->uuidNull = false;
-                    out->uuid.length = static_cast<ISC_USHORT>(uuid.size());
-                    std::copy(uuidPtr, uuidPtr + out->uuid.length, out->uuid.str);
+                    out->uuid.length = static_cast<ISC_USHORT>(svUuid.size());
+                    svUuid.copy(out->uuid.str, out->uuid.length);
                 }
                 else if (keyFieldInfo.isInt()) {
                     out->idNull = false;

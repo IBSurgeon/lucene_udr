@@ -446,7 +446,7 @@ namespace FTSMetadata
 
         if (fieldName == "RDB$DB_KEY") {
             // special case
-            return {
+            return RelationFieldInfo(
                 relationName,
                 "RDB$DB_KEY",
                 14,
@@ -456,7 +456,7 @@ namespace FTSMetadata
                 0,
                 0,
                 0
-            };
+            );
         }
 
         FB_MESSAGE(Input, ThrowStatusWrapper,
@@ -515,7 +515,7 @@ namespace FTSMetadata
             throwException(status, R"(Field "%s" not found in relation "%s".)", sFieldName.c_str(), sRelationName.c_str());
         }
 
-        return { 
+        return RelationFieldInfo(
             std::string_view(output->relationName.str, output->relationName.length),
             std::string_view(output->fieldName.str, output->fieldName.length),
             output->fieldType,
@@ -525,7 +525,7 @@ namespace FTSMetadata
             output->fieldSubType,
             output->fieldPrecision,
             output->fieldScale
-        };
+        );
     }
 
     /// <summary>
