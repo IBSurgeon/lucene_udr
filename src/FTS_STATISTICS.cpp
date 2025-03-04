@@ -104,7 +104,7 @@ FB_UDR_BEGIN_PROCEDURE(getIndexStatistics)
     {
     }
 
-    FTSIndexRepositoryPtr indexRepository{nullptr};
+    FTSIndexRepositoryPtr indexRepository;
 
     void getCharSet([[maybe_unused]] ThrowStatusWrapper* status, [[maybe_unused]] IExternalContext* context,
         char* name, unsigned nameSize)
@@ -253,7 +253,7 @@ FB_UDR_BEGIN_PROCEDURE(getIndexFields)
     {
     }
 
-    FTSIndexRepositoryPtr indexRepository{nullptr};
+    FTSIndexRepositoryPtr indexRepository;
 
     void getCharSet([[maybe_unused]] ThrowStatusWrapper* status, [[maybe_unused]] IExternalContext* context,
         char* name, unsigned nameSize)
@@ -367,7 +367,7 @@ FB_UDR_BEGIN_PROCEDURE(getIndexFiles)
     {
     }
 
-    FTSIndexRepositoryPtr indexRepository{nullptr};
+    FTSIndexRepositoryPtr indexRepository;
 
     void getCharSet([[maybe_unused]] ThrowStatusWrapper* status, [[maybe_unused]] IExternalContext* context,
         char* name, unsigned nameSize)
@@ -499,7 +499,7 @@ FB_UDR_BEGIN_PROCEDURE(getIndexSegments)
     {
     }
 
-    FTSIndexRepositoryPtr indexRepository{nullptr};
+    FTSIndexRepositoryPtr indexRepository;
 
     void getCharSet([[maybe_unused]] ThrowStatusWrapper* status, [[maybe_unused]] IExternalContext* context,
         char* name, unsigned nameSize)
@@ -651,7 +651,7 @@ FB_UDR_BEGIN_PROCEDURE(getFieldInfos)
     {
     }
 
-    FTSIndexRepositoryPtr indexRepository{nullptr};
+    FTSIndexRepositoryPtr indexRepository;
 
     void getCharSet([[maybe_unused]] ThrowStatusWrapper* status, [[maybe_unused]] IExternalContext* context,
         char* name, unsigned nameSize)
@@ -810,7 +810,7 @@ FB_UDR_BEGIN_PROCEDURE(indexTerms)
     {
     }
 
-    FTSIndexRepositoryPtr indexRepository{ nullptr };
+    FTSIndexRepositoryPtr indexRepository;
 
     void getCharSet([[maybe_unused]] ThrowStatusWrapper* status, [[maybe_unused]] IExternalContext* context,
         char* name, unsigned nameSize)

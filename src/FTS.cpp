@@ -414,15 +414,13 @@ FB_UDR_BEGIN_PROCEDURE(updateFtsIndexes)
 
     FB_UDR_CONSTRUCTOR
         , indexRepository(std::make_unique<FTSIndexRepository>(context->getMaster()))
-        , logDeleteStmt(nullptr)
-        , logStmt(nullptr)
     {
     }
 
 
-    FTSIndexRepositoryPtr indexRepository{nullptr};
-    AutoRelease<IStatement> logDeleteStmt{nullptr};
-    AutoRelease<IStatement> logStmt{nullptr};
+    FTSIndexRepositoryPtr indexRepository;
+    AutoRelease<IStatement> logDeleteStmt;
+    AutoRelease<IStatement> logStmt;
 
     void getCharSet([[maybe_unused]] ThrowStatusWrapper* status, [[maybe_unused]] IExternalContext* context,
         char* name, unsigned nameSize) 
