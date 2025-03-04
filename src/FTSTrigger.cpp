@@ -84,8 +84,6 @@ namespace FTSMetadata
     {
     }
 
-    FTSTriggerHelper::~FTSTriggerHelper() = default;
-
 
 
     /// <summary>

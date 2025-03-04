@@ -42,13 +42,6 @@ namespace FTSMetadata
 
         FTSKeyFieldBlock(const std::string& aKeyFieldName, FTSKeyType aKeyFieldType);
 
-        // non-copyable
-        FTSKeyFieldBlock(const FTSKeyFieldBlock& rhs) = delete;
-        FTSKeyFieldBlock& operator=(const FTSKeyFieldBlock& rhs) = delete;
-        // movable
-        FTSKeyFieldBlock(FTSKeyFieldBlock&& rhs) noexcept = default;
-        FTSKeyFieldBlock& operator=(FTSKeyFieldBlock&& rhs) noexcept = default;
-
         std::string makeInsertSQL(const std::string& relationName, char opType, unsigned int sqlDialect) const;
     };
 
@@ -79,13 +72,6 @@ namespace FTSMetadata
             , triggerSource(aTriggerSource)
         {}
 
-        // non-copyable
-        FTSTrigger(const FTSTrigger& rhs) = delete;
-        FTSTrigger& operator=(const FTSTrigger& rhs) = delete;
-        // movable
-        FTSTrigger(FTSTrigger&& rhs) noexcept = default;
-        FTSTrigger& operator=(FTSTrigger&& rhs) noexcept = default;
-
         std::string getHeader(unsigned int sqlDialect) const;
 
         std::string getScript(unsigned int sqlDialect) const;
@@ -103,8 +89,6 @@ namespace FTSMetadata
         FTSTriggerHelper() = delete;
 
         explicit FTSTriggerHelper(Firebird::IMaster* master);
-
-        ~FTSTriggerHelper();
 
         /// <summary>
         /// Returns a list of trigger source codes to support full-text indexes by relation name. 

@@ -130,10 +130,14 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 
     FB_UDR_CONSTRUCTOR
         , indexRepository(std::make_unique<FTSIndexRepository>(context->getMaster()))
+        , analyzerRepository(std::make_unique<AnalyzerRepository>(context->getMaster()))
+        , relationHelper(std::make_unique<RelationHelper>(context->getMaster()))
     {
     }
 
-    FTSIndexRepositoryPtr indexRepository{nullptr};
+    FTSIndexRepositoryPtr indexRepository;
+    std::unique_ptr<AnalyzerRepository> analyzerRepository;
+    RelationHelperPtr relationHelper;
 
     
     void getCharSet([[maybe_unused]] ThrowStatusWrapper* status, [[maybe_unused]] IExternalContext* context,
@@ -185,8 +189,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
                 throwException(status, R"(Index "%s" exists, but is not build. Please rebuild index.)", sIndexName.c_str());
             }
 
-            const auto analyzers = procedure->indexRepository->getAnalyzerRepository();
-            AnalyzerPtr analyzer = analyzers->createAnalyzer(status, att, tra, sqlDialect, ftsIndex.analyzer);
+            AnalyzerPtr analyzer = procedure->analyzerRepository->createAnalyzer(status, att, tra, sqlDialect, ftsIndex.analyzer);
             searcher = newLucene<IndexSearcher>(ftsIndexDir, true);
             
             std::string keyFieldName;
@@ -205,7 +208,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
             }
             unicodeKeyFieldName = StringUtils::toUnicode(keyFieldName);
 
-            keyFieldInfo = procedure->indexRepository->getRelationHelper()->getField(status, att, tra, sqlDialect, ftsIndex.relationName, keyFieldName);
+            keyFieldInfo = procedure->relationHelper->getField(status, att, tra, sqlDialect, ftsIndex.relationName, keyFieldName);
 
             if (fields.size() == 1) {
                 QueryParserPtr parser = newLucene<QueryParser>(LuceneVersion::LUCENE_CURRENT, fields[0], analyzer);

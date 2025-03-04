@@ -36,9 +36,9 @@ namespace FTSMetadata
         LuceneUDR::LuceneAnalyzerFactory* m_analyzerFactory = nullptr;
 
         // prepared statements
-        Firebird::AutoRelease<Firebird::IStatement> m_stmt_get_analyzer{ nullptr };
-        Firebird::AutoRelease<Firebird::IStatement> m_stmt_has_analyzer{ nullptr };
-        Firebird::AutoRelease<Firebird::IStatement> m_stmt_get_stopwords{ nullptr };
+        Firebird::AutoRelease<Firebird::IStatement> m_stmt_get_analyzer;
+        Firebird::AutoRelease<Firebird::IStatement> m_stmt_has_analyzer;
+        Firebird::AutoRelease<Firebird::IStatement> m_stmt_get_stopwords;
 
     public:
         AnalyzerRepository() = delete;

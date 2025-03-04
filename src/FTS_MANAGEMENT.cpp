@@ -331,10 +331,14 @@ FB_UDR_BEGIN_PROCEDURE(createIndex)
 
     FB_UDR_CONSTRUCTOR
         , indexRepository(std::make_unique<FTSIndexRepository>(context->getMaster()))
+        , analyzerRepository(std::make_unique<AnalyzerRepository>(context->getMaster()))
+        , relationHelper(std::make_unique<RelationHelper>(context->getMaster()))
     {
     }
 
-    FTSIndexRepositoryPtr indexRepository{nullptr};
+    FTSIndexRepositoryPtr indexRepository;
+    std::unique_ptr<AnalyzerRepository> analyzerRepository;
+    RelationHelperPtr relationHelper;
 
     void getCharSet([[maybe_unused]] ThrowStatusWrapper* status, [[maybe_unused]] IExternalContext* context,
         char* name, unsigned nameSize)
@@ -366,16 +370,26 @@ FB_UDR_BEGIN_PROCEDURE(createIndex)
 
         const unsigned int sqlDialect = getSqlDialect(status, att);
 
-        auto relationHelper = procedure->indexRepository->getRelationHelper();
-        auto relationInfo = relationHelper->getRelationInfo(status, att, tra, sqlDialect, relationName);
+        auto relationInfo = procedure->relationHelper->getRelationInfo(status, att, tra, sqlDialect, relationName);
 
+        // check for index existence
+        if (procedure->indexRepository->hasIndex(status, att, tra, sqlDialect, indexName)) {
+            std::string sIndexName{ indexName };
+            throwException(status, R"(Index "%s" already exists)", sIndexName.c_str());
+        }
+
+        // checking the existence of the analyzer
+        if (!procedure->analyzerRepository->hasAnalyzer(status, att, tra, sqlDialect, analyzerName)) {
+            std::string sAnalyzerName{ analyzerName };
+            throwException(status, R"(Analyzer "%s" not exists)", sAnalyzerName.c_str());
+        }
 
         procedure->indexRepository->createIndex(status, att, tra, sqlDialect, indexName, relationName, analyzerName, !in->descriptionNull ? &in->description : nullptr);
 
         std::string keyFieldName;
         if (in->keyFieldNameNull) {
             if (relationInfo.findKeyFieldSupported()) {
-                auto keyFields = relationHelper->fillPrimaryKeyFields(status, att, tra, sqlDialect, relationName);
+                auto keyFields = procedure->relationHelper->fillPrimaryKeyFields(status, att, tra, sqlDialect, relationName);
                 if (keyFields.size() == 0) {
                    // There is no primary key constraint.
                     if (relationInfo.relationType == RelationType::RT_REGULAR) {
@@ -410,7 +424,7 @@ FB_UDR_BEGIN_PROCEDURE(createIndex)
             }
         }
         else {
-            const auto keyFieldInfo = relationHelper->getField(status, att, tra, sqlDialect, relationName, keyFieldName);
+            const auto keyFieldInfo = procedure->relationHelper->getField(status, att, tra, sqlDialect, relationName, keyFieldName);
             // check field type
             if (!keyFieldInfo.ftsKeySupported()) {
                 throwException(status, "Unsupported data type for the key field. Supported data types: SMALLINT, INTEGER, BIGINT, CHAR(16) CHARACTER SET OCTETS, BINARY(16).");
@@ -502,7 +516,7 @@ FB_UDR_BEGIN_PROCEDURE(setIndexActive)
     {
     }
 
-    FTSIndexRepositoryPtr indexRepository{nullptr};
+    FTSIndexRepositoryPtr indexRepository;
 
     void getCharSet([[maybe_unused]] ThrowStatusWrapper* status, [[maybe_unused]] IExternalContext* context,
         char* name, unsigned nameSize)
@@ -571,7 +585,7 @@ FB_UDR_BEGIN_PROCEDURE(addIndexField)
     {
     }
 
-    FTSIndexRepositoryPtr indexRepository{nullptr};
+    FTSIndexRepositoryPtr indexRepository;
 
     void getCharSet([[maybe_unused]] ThrowStatusWrapper* status, [[maybe_unused]] IExternalContext* context,
         char* name, unsigned nameSize)
@@ -622,7 +636,7 @@ FB_UDR_BEGIN_PROCEDURE(dropIndexField)
     {
     }
 
-    FTSIndexRepositoryPtr indexRepository{nullptr};
+    FTSIndexRepositoryPtr indexRepository;
 
     void getCharSet([[maybe_unused]] ThrowStatusWrapper* status, [[maybe_unused]] IExternalContext* context,
         char* name, unsigned nameSize)
@@ -795,10 +809,12 @@ FB_UDR_BEGIN_PROCEDURE(optimizeIndex)
 
     FB_UDR_CONSTRUCTOR
         , indexRepository(std::make_unique<FTSIndexRepository>(context->getMaster()))
+        , analyzerRepository(std::make_unique<AnalyzerRepository>(context->getMaster()))
     {
     }
 
-    FTSIndexRepositoryPtr indexRepository{nullptr};
+    FTSIndexRepositoryPtr indexRepository;
+    std::unique_ptr<AnalyzerRepository> analyzerRepository;
 
     void getCharSet([[maybe_unused]] ThrowStatusWrapper* status, [[maybe_unused]] IExternalContext* context,
         char* name, unsigned nameSize)
@@ -832,10 +848,8 @@ FB_UDR_BEGIN_PROCEDURE(optimizeIndex)
                 throwException(status, R"(Index directory "%s" not exists.)", indexDirectoryPath.u8string().c_str());
             }
 
-            const auto analyzers = procedure->indexRepository->getAnalyzerRepository();
-
             auto fsIndexDir = FSDirectory::open(indexDirectoryPath.wstring());
-            auto analyzer = analyzers->createAnalyzer(status, att, tra, sqlDialect, ftsIndex.analyzer);
+            auto analyzer = procedure->analyzerRepository->createAnalyzer(status, att, tra, sqlDialect, ftsIndex.analyzer);
             auto writer = newLucene<IndexWriter>(fsIndexDir, analyzer, false, IndexWriter::MaxFieldLengthUNLIMITED);
 
             // clean up index directory

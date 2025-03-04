@@ -49,14 +49,6 @@ namespace FTSMetadata
         FbFieldInfo() = default;
         FbFieldInfo(Firebird::ThrowStatusWrapper* status, Firebird::IMessageMetadata* const meta, unsigned index);
 
-        // non-copyable
-        FbFieldInfo(const FbFieldInfo& rhs) = delete;
-        FbFieldInfo& operator=(const FbFieldInfo& rhs) = delete;
-        // movable
-        FbFieldInfo(FbFieldInfo&& rhs) noexcept = default;
-        FbFieldInfo& operator=(FbFieldInfo&& rhs) noexcept = default;
-
-
         bool isNull(unsigned char* buffer) const {
             return *reinterpret_cast<short*>(buffer + nullOffset);
         }

@@ -71,6 +71,7 @@ namespace LuceneUDR
             return {};
         }
         std::vector<unsigned char> v;
+        v.reserve(MAX_SEGMENT_SIZE);
         AutoRelease<IBlob> blob(att->openBlob(status, tra, blobIdPtr, 0, nullptr));
         auto buffer = std::vector<char>(MAX_SEGMENT_SIZE);
         {

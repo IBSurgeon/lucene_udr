@@ -80,13 +80,6 @@ namespace FTSMetadata
 
         explicit FTSIndex(const FTSIndexRecord& record);
 
-        // non-copyable
-        FTSIndex(const FTSIndex& rhs) = delete;
-        FTSIndex& operator=(const FTSIndex& rhs) = delete;
-        // movable
-        FTSIndex(FTSIndex&& rhs) noexcept = default;
-        FTSIndex& operator=(FTSIndex&& rhs) noexcept = default;
-
         bool isActive() const {
             return (status == "C") || (status == "U");
         }
@@ -129,13 +122,6 @@ namespace FTSMetadata
             bool fieldExists
         );
 
-        // non-copyable
-        FTSIndexSegment(const FTSIndexSegment& rhs) = delete;
-        FTSIndexSegment& operator=(const FTSIndexSegment& rhs) = delete;
-        // movable
-        FTSIndexSegment(FTSIndexSegment&& rhs) noexcept = default;
-        FTSIndexSegment& operator=(FTSIndexSegment&& rhs) noexcept = default;
-
         bool compareFieldName(std::string_view fieldName) const {
             return (fieldName_ == fieldName) || (fieldName_ == "RDB$DB_KEY" && fieldName == "DB_KEY");
         }
@@ -174,7 +160,6 @@ namespace FTSMetadata
 
 
     class RelationHelper;
-    class AnalyzerRepository;
 
 
     /// <summary>
@@ -187,8 +172,6 @@ namespace FTSMetadata
 
     private:
         Firebird::IMaster* m_master = nullptr;
-        AnalyzerRepository* m_analyzerRepository{ nullptr };
-        RelationHelper* m_relationHelper{nullptr};
         // prepared statements
         Firebird::AutoRelease<Firebird::IStatement> m_stmt_exists_index;
         Firebird::AutoRelease<Firebird::IStatement> m_stmt_get_index;
@@ -201,18 +184,6 @@ namespace FTSMetadata
 
 
         explicit FTSIndexRepository(Firebird::IMaster* master);
-
-        ~FTSIndexRepository();
-
-        RelationHelper* getRelationHelper()
-        {
-            return m_relationHelper;
-        }
-
-        AnalyzerRepository* getAnalyzerRepository()
-        {
-            return m_analyzerRepository;
-        }
 
         /// <summary>
         /// Create a new full-text index. 

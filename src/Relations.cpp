@@ -136,8 +136,6 @@ namespace FTSMetadata
         : m_master(master)
     {}
 
-    RelationHelper::~RelationHelper() = default;
-
     /// <summary>
     /// Returns information about the relation.
     /// </summary>

@@ -126,8 +126,6 @@ namespace FTSMetadata
 
         explicit RelationHelper(Firebird::IMaster* master);
 
-        ~RelationHelper();
-
         /// <summary>
         /// Returns information about the relation.
         /// </summary>

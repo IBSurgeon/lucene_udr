@@ -13,7 +13,6 @@
 
 #include "FTSIndex.h"
 
-#include "Analyzers.h"
 #include "FBUtils.h"
 #include "Relations.h"
 
@@ -238,17 +237,8 @@ namespace FTSMetadata
 
     FTSIndexRepository::FTSIndexRepository(IMaster* master)
         : m_master(master)
-        , m_analyzerRepository(new AnalyzerRepository(master))
-        , m_relationHelper(new RelationHelper(master))
     {
     }
-
-    FTSIndexRepository::~FTSIndexRepository()
-    {
-        delete m_relationHelper;
-        delete m_analyzerRepository;
-    }
-
 
     /// <summary>
     /// Create a new full-text index. 
@@ -272,18 +262,6 @@ namespace FTSMetadata
         std::string_view analyzerName,
         ISC_QUAD* description)
     {
-        // check for index existence
-        if (hasIndex(status, att, tra, sqlDialect, indexName)) {
-            std::string sIndexName{ indexName };
-            throwException(status, R"(Index "%s" already exists)", sIndexName.c_str());
-        }
-
-        // checking the existence of the analyzer
-        if (!m_analyzerRepository->hasAnalyzer(status, att, tra, sqlDialect, analyzerName)) {
-            std::string sAnalyzerName{ analyzerName };
-            throwException(status, R"(Analyzer "%s" not exists)", sAnalyzerName.c_str());
-        }
-
         FB_MESSAGE(Input, ThrowStatusWrapper,
             (FB_INTL_VARCHAR(252, CS_UTF8), indexName)
             (FB_INTL_VARCHAR(252, CS_UTF8), relationName)
@@ -785,7 +763,8 @@ namespace FTSMetadata
         }
 
         // Checking whether the field exists in relation.
-        if (!m_relationHelper->fieldExists(status, att, tra, sqlDialect, ftsIndex.relationName, fieldName)) {
+        RelationHelperPtr relationHelper(std::make_unique<RelationHelper>(m_master));
+        if (!relationHelper->fieldExists(status, att, tra, sqlDialect, ftsIndex.relationName, fieldName)) {
             std::string sFieldName{ indexName };
             throwException(status, R"(Field "%s" not exists in relation "%s".)", sFieldName.c_str(), ftsIndex.relationName.c_str());
         }
