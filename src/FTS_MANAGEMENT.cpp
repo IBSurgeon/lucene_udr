@@ -813,7 +813,8 @@ FB_UDR_BEGIN_PROCEDURE(optimizeIndex)
     {
     }
 
-    FTSIndexRepositoryPtr indexRepository{nullptr};
+    FTSIndexRepositoryPtr indexRepository;
+    std::unique_ptr<AnalyzerRepository> analyzerRepository;
 
     void getCharSet([[maybe_unused]] ThrowStatusWrapper* status, [[maybe_unused]] IExternalContext* context,
         char* name, unsigned nameSize)
