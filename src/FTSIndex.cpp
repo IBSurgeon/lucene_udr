@@ -13,6 +13,8 @@
 
 #include "FTSIndex.h"
 
+#include <algorithm>
+
 #include "FBUtils.h"
 #include "Relations.h"
 
