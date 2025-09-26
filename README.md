@@ -45,7 +45,7 @@ git clone https://github.com/luceneplusplus/LucenePlusPlus.git
 cd LucenePlusPlus
 mkdir build; cd build
 cmake ..
-make
+make -j$(nproc)
 sudo cmake --install . --prefix /usr
 ```
 
@@ -58,7 +58,7 @@ git clone https://github.com/IBSurgeon/lucene_udr.git
 cd lucene_udr
 mkdir build
 cmake -S . -B ./build
-cmake --build ./build -- -j12
+cmake --build ./build -- -j$(nproc)
 sudo cmake --install ./build
 ```
 
