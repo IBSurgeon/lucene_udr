@@ -600,7 +600,6 @@ ORDER BY FTS$LOG_ID
             // commit changes for all indexes
             for (auto&& [relationName, preparedIndexes] : indexesByRelation) {
                 for (auto& preparedIndex : preparedIndexes) {
-                    preparedIndex.optimize(status);
                     preparedIndex.commit(status);
                     preparedIndex.close(status);
                 }
