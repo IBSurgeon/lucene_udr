@@ -183,6 +183,7 @@ FROM RDB$DATABASE
 * RUSSIAN - RussianAnalyzer (Русский язык);
 * STANDARD - StandardAnalyzer (Английский язык);
 * SIMPLE - SimpleAnalyzer;
+* SIMPLE_AI - SimpleASCIIFoldingAnalyzer;
 * STOP - StopAnalyzer;
 * WHITESPACE - WhitespaceAnalyzer;
 * WHITESPACE_LC - WhitespaceLowerCaseAnalyzer;
@@ -224,6 +225,13 @@ StopAnalyzer разделяет текст на небуквенные симв�
 
 SimpleAnalyzer разделяет текст на небуквенные символы. Он преобразует текст в нижний регистр.
 SimpleAnalyzer не применяет фильтр стоп слов, кроме того он не способен распознавать URL-адреса и e-mail.
+
+==== SIMPLE_AI - SimpleASCIIFoldingAnalyzer
+
+SimpleASCIIFoldingAnalyzer разделяет текст на небуквенные символы, преобразует текст в нижний регистр,
+и заменяет символы с диакритическими знаками на их ASCII-эквиваленты (например, 'ā' становится 'a'), что делает поиск
+нечувствительным к регистру и диакритическим знакам.
+SimpleASCIIFoldingAnalyzer не применяет фильтр стоп слов, кроме того он не способен распознавать URL-адреса и e-mail.
 
 ==== WHITESPACE - WhitespaceAnalyzer
 

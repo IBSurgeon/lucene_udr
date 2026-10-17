@@ -48,6 +48,7 @@ target_sources(luceneudr PRIVATE
     "src/LuceneFiles.cpp"
     "src/LuceneUdr.cpp"
     "src/Relations.cpp"
+    "src/SimpleASCIIFoldingAnalyzer.cpp"
     "src/WhitespaceLowerCaseAnalyzer.cpp"
     "src/WhitespaceLowerCaseASCIIFoldingAnalyzer.cpp"
 )

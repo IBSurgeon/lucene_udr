@@ -161,6 +161,7 @@ The following analyzers are available by default:
 * PERSIAN - PersianAnalyzer;
 * RUSSIAN - RussianAnalyzer;
 * SIMPLE - SimpleAnalyzer;
+* SIMPLE_AI - SimpleASCIIFoldingAnalyzer;
 * STANDARD - StandardAnalyzer (English);
 * STOP - StopAnalyzer;
 * WHITESPACE - WhitespaceAnalyzer;
@@ -202,6 +203,12 @@ Unlike StandardAnalyzer, StopAnalyzer is not capable of recognizing URLs and e-m
 
 SimpleAnalyzer separates text into non-letter characters. It converts text to lowercase.
 SimpleAnalyzer does not apply a stop-word filter, and it is not capable of recognizing URLs and e-mails.
+
+#### SIMPLE_AI - SimpleASCIIFoldingAnalyzer
+
+SimpleASCIIFoldingAnalyzer separates text into non-letter characters, converts text to lowercase,
+and folds accented characters to their ASCII equivalents (e.g. 'ā' becomes 'a'), making search case- and accent-insensitive.
+SimpleASCIIFoldingAnalyzer does not apply a stop-word filter, and it is not capable of recognizing URLs and e-mails.
 
 #### WHITESPACE - WhitespaceAnalyzer
 

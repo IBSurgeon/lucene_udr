@@ -28,6 +28,7 @@
 #include "LuceneAnalyzerFactory.h"
 #include "PersianAnalyzer.h"
 #include "RussianAnalyzer.h"
+#include "SimpleASCIIFoldingAnalyzer.h"
 #include "SnowballAnalyzer.h"
 #include "WhitespaceAnalyzer.h"
 #include "WhitespaceLowerCaseAnalyzer.h"
@@ -55,6 +56,15 @@ namespace LuceneUDR
                 "SIMPLE",
                 {
                     []() -> AnalyzerPtr { return newLucene<SimpleAnalyzer>(); },
+                    []([[maybe_unused]] const HashSet<String> stopWords) -> AnalyzerPtr { return nullptr; },
+                    []() -> HashSet<String> { return HashSet<String>::newInstance(); },
+                    false
+                }
+            },
+            {
+                "SIMPLE_AI",
+                {
+                    []() -> AnalyzerPtr { return newLucene<SimpleASCIIFoldingAnalyzer>(); },
                     []([[maybe_unused]] const HashSet<String> stopWords) -> AnalyzerPtr { return nullptr; },
                     []() -> HashSet<String> { return HashSet<String>::newInstance(); },
                     false
