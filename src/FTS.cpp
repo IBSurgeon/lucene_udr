@@ -15,6 +15,7 @@
 #include <string>
 #include <unordered_map>
 
+#include "AnalyzingMultiFieldQueryParser.h"
 #include "Analyzers.h"
 #include "FBUtils.h"
 #include "FTSHelper.h"
@@ -210,15 +211,9 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
 
             keyFieldInfo = procedure->relationHelper->getField(status, att, tra, sqlDialect, ftsIndex.relationName, keyFieldName);
 
-            if (fields.size() == 1) {
-                QueryParserPtr parser = newLucene<QueryParser>(LuceneVersion::LUCENE_CURRENT, fields[0], analyzer);
-                query = parser->parse(StringUtils::toUnicode(queryStr));
-            }
-            else {
-                MultiFieldQueryParserPtr  parser = newLucene<MultiFieldQueryParser>(LuceneVersion::LUCENE_CURRENT, fields, analyzer);
-                parser->setDefaultOperator(QueryParser::OR_OPERATOR);
-                query = parser->parse(StringUtils::toUnicode(queryStr));
-            }
+            MultiFieldQueryParserPtr parser = newLucene<AnalyzingMultiFieldQueryParser>(LuceneVersion::LUCENE_CURRENT, fields, analyzer);
+            parser->setDefaultOperator(QueryParser::OR_OPERATOR);
+            query = parser->parse(StringUtils::toUnicode(queryStr));
             docs = searcher->search(query, limit);
 
             it = docs->scoreDocs.begin();

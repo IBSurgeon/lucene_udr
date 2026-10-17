@@ -67,6 +67,12 @@
     <ClCompile Include="src\EnglishAnalyzer.cpp">
       <Filter>Source files</Filter>
     </ClCompile>
+    <ClCompile Include="src\AnalyzingMultiFieldQueryParser.cpp">
+      <Filter>Source files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\AnalyzingQueryParser.cpp">
+      <Filter>Source files</Filter>
+    </ClCompile>
     <ClCompile Include="src\Analyzers.cpp">
       <Filter>Source files</Filter>
     </ClCompile>
@@ -115,6 +121,12 @@
       <Filter>Header files</Filter>
     </ClInclude>
     <ClInclude Include="src\EnglishAnalyzer.h">
+      <Filter>Header files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\AnalyzingMultiFieldQueryParser.h">
+      <Filter>Header files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\AnalyzingQueryParser.h">
       <Filter>Header files</Filter>
     </ClInclude>
     <ClInclude Include="src\Analyzers.h">
