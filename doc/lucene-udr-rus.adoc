@@ -180,6 +180,8 @@ FROM RDB$DATABASE
 * GREEK - GreekAnalyzer (Греческий язык);
 * KEYWORD - KeywordAnalyzer;
 * PERSIAN - PersianAnalyzer (Персидский язык);
+* PUNCT_SPLIT_LC_AI - PunctSplitLowerCaseASCIIFoldingAnalyzer;
+* PUNCT_STRIP_LC_AI - PunctStripLowerCaseASCIIFoldingAnalyzer;
 * RUSSIAN - RussianAnalyzer (Русский язык);
 * STANDARD - StandardAnalyzer (Английский язык);
 * SIMPLE - SimpleAnalyzer;
@@ -210,6 +212,20 @@ FROM RDB$DATABASE
 
 Стандартный анализатор разделяет текст на слова, числа, URL адреса и EMAIL. Он преобразует текст в нижний регистр, после чего к
 полученным термам применяется фильтр стоп слов для английского языка.
+
+==== PUNCT_SPLIT_LC_AI - PunctSplitLowerCaseASCIIFoldingAnalyzer
+
+PunctSplitLowerCaseASCIIFoldingAnalyzer разделяет текст по каждому символу, который не является буквой или цифрой
+(Unicode, независимо от локали), поэтому коды разбиваются на части: 'V10-0423' становится 'v10' и '0423'.
+Он преобразует текст в нижний регистр и заменяет символы с диакритическими знаками на их ASCII-эквиваленты.
+Стоп слова не применяются.
+
+==== PUNCT_STRIP_LC_AI - PunctStripLowerCaseASCIIFoldingAnalyzer
+
+PunctStripLowerCaseASCIIFoldingAnalyzer разделяет текст по пробельным символам и удаляет из термов все символы,
+которые не являются буквами или цифрами, поэтому коды находятся независимо от разделителей: 'V10-0423' становится
+'v100423'. Он преобразует текст в нижний регистр и заменяет символы с диакритическими знаками на их ASCII-эквиваленты.
+Стоп слова не применяются.
 
 ==== STOP - StopAnalyzer
 
