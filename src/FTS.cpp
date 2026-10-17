@@ -212,6 +212,7 @@ FB_UDR_BEGIN_PROCEDURE(ftsSearch)
             keyFieldInfo = procedure->relationHelper->getField(status, att, tra, sqlDialect, ftsIndex.relationName, keyFieldName);
 
             MultiFieldQueryParserPtr parser = newLucene<AnalyzingMultiFieldQueryParser>(LuceneVersion::LUCENE_CURRENT, fields, analyzer);
+            parser->setAllowLeadingWildcard(true);
             parser->setDefaultOperator(QueryParser::OR_OPERATOR);
             query = parser->parse(StringUtils::toUnicode(queryStr));
             docs = searcher->search(query, limit);

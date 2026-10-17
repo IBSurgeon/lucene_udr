@@ -124,6 +124,7 @@ FB_UDR_BEGIN_FUNCTION(bestFragementHighligh)
 
             auto analyzer = analyzers->createAnalyzer(status, att, tra, sqlDialect, analyzerName);
             auto parser = newLucene<AnalyzingQueryParser>(LuceneVersion::LUCENE_CURRENT, StringUtils::toUnicode(fieldName), analyzer);
+            parser->setAllowLeadingWildcard(true);
             auto query = parser->parse(StringUtils::toUnicode(queryStr));
             auto formatter = newLucene<SimpleHTMLFormatter>(StringUtils::toUnicode(leftTag), StringUtils::toUnicode(rightTag));
             auto scorer = newLucene<QueryScorer>(query);
@@ -248,6 +249,7 @@ FB_UDR_BEGIN_PROCEDURE(bestFragementsHighligh)
 
             auto analyzer = procedure->analyzers->createAnalyzer(status, att, tra, sqlDialect, analyzerName);
             auto parser = newLucene<AnalyzingQueryParser>(LuceneVersion::LUCENE_CURRENT, StringUtils::toUnicode(fieldName), analyzer);
+            parser->setAllowLeadingWildcard(true);
             auto query = parser->parse(StringUtils::toUnicode(queryStr));
             auto formatter = newLucene<SimpleHTMLFormatter>(StringUtils::toUnicode(leftTag), StringUtils::toUnicode(rightTag));
             auto scorer = newLucene<QueryScorer>(query);
