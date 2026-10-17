@@ -161,9 +161,13 @@ The following analyzers are available by default:
 * PERSIAN - PersianAnalyzer;
 * RUSSIAN - RussianAnalyzer;
 * SIMPLE - SimpleAnalyzer;
+* SIMPLE_AI - SimpleASCIIFoldingAnalyzer;
 * STANDARD - StandardAnalyzer (English);
+* STANDARD_NS_AI - StandardNoStopASCIIFoldingAnalyzer;
 * STOP - StopAnalyzer;
 * WHITESPACE - WhitespaceAnalyzer;
+* WHITESPACE_LC - WhitespaceLowerCaseAnalyzer;
+* WHITESPACE_LC_AI - WhitespaceLowerCaseASCIIFoldingAnalyzer;
 * SNOWBALL(DANISH) - SnowballAnalyzer('danish');
 * SNOWBALL(DUTCH) - SnowballAnalyzer('dutch', DutchStopWords);
 * SNOWBALL(ENGLISH) - SnowballAnalyzer('english', EnglishStopWords);
@@ -190,6 +194,14 @@ Let's consider the most commonly used analyzers.
 The standard analyzer splits text into words, numbers, URLs and emails. It converts the text to lowercase, 
 after which the stop-word filter for English is applied to the resulting terms.
 
+#### STANDARD_NS_AI - StandardNoStopASCIIFoldingAnalyzer
+
+StandardNoStopASCIIFoldingAnalyzer splits text into words, numbers, URLs and emails, keeping numeric and
+alphanumeric tokens (such as VAT numbers or codes like 'EU00000000001') intact. It converts the text to
+lowercase and folds accented characters to their ASCII equivalents (e.g. 'ā' becomes 'a'), but unlike
+StandardAnalyzer it does **not** apply any stop-word filtering, making it suitable for non-English text and
+identifiers where an English stop-word list would be inappropriate.
+
 #### STOP - StopAnalyzer
 
 StopAnalyzer splits text into non-letter characters. It converts the text to lowercase, after which the stop-word filter for English is applied to the resulting terms.
@@ -201,9 +213,24 @@ Unlike StandardAnalyzer, StopAnalyzer is not capable of recognizing URLs and e-m
 SimpleAnalyzer separates text into non-letter characters. It converts text to lowercase.
 SimpleAnalyzer does not apply a stop-word filter, and it is not capable of recognizing URLs and e-mails.
 
+#### SIMPLE_AI - SimpleASCIIFoldingAnalyzer
+
+SimpleASCIIFoldingAnalyzer separates text into non-letter characters, converts text to lowercase,
+and folds accented characters to their ASCII equivalents (e.g. 'ā' becomes 'a'), making search case- and accent-insensitive.
+SimpleASCIIFoldingAnalyzer does not apply a stop-word filter, and it is not capable of recognizing URLs and e-mails.
+
 #### WHITESPACE - WhitespaceAnalyzer
 
 WhitespaceAnalyzer - splits text by whitespace characters.
+
+#### WHITESPACE_LC - WhitespaceLowerCaseAnalyzer
+
+WhitespaceLowerCaseAnalyzer - splits text by whitespace characters, and converts the resulting terms to lowercase.
+
+#### WHITESPACE_LC_AI - WhitespaceLowerCaseASCIIFoldingAnalyzer
+
+WhitespaceLowerCaseASCIIFoldingAnalyzer - splits text by whitespace characters, converts the resulting terms to lowercase,
+and folds accented characters to their ASCII equivalents (e.g. 'ā' becomes 'a'), making search case- and accent-insensitive.
 
 #### KEYWORD - KeywordAnalyzer
 
