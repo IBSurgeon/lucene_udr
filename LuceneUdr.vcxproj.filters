@@ -34,6 +34,15 @@
     <ClCompile Include="src\FTSIndex.cpp">
       <Filter>Source files</Filter>
     </ClCompile>
+    <ClCompile Include="src\PunctTokenizers.cpp">
+      <Filter>Source files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\PunctSplitLowerCaseASCIIFoldingAnalyzer.cpp">
+      <Filter>Source files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\PunctStripLowerCaseASCIIFoldingAnalyzer.cpp">
+      <Filter>Source files</Filter>
+    </ClCompile>
     <ClCompile Include="src\Relations.cpp">
       <Filter>Source files</Filter>
     </ClCompile>
@@ -85,6 +94,15 @@
       <Filter>Header files</Filter>
     </ClInclude>
     <ClInclude Include="src\FTSIndex.h">
+      <Filter>Header files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PunctTokenizers.h">
+      <Filter>Header files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PunctSplitLowerCaseASCIIFoldingAnalyzer.h">
+      <Filter>Header files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PunctStripLowerCaseASCIIFoldingAnalyzer.h">
       <Filter>Header files</Filter>
     </ClInclude>
     <ClInclude Include="src\Relations.h">

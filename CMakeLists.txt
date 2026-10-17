@@ -47,6 +47,9 @@ target_sources(luceneudr PRIVATE
     "src/LuceneAnalyzerFactory.cpp"
     "src/LuceneFiles.cpp"
     "src/LuceneUdr.cpp"
+    "src/PunctSplitLowerCaseASCIIFoldingAnalyzer.cpp"
+    "src/PunctStripLowerCaseASCIIFoldingAnalyzer.cpp"
+    "src/PunctTokenizers.cpp"
     "src/Relations.cpp"
 )
 

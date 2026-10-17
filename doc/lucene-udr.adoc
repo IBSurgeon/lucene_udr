@@ -178,6 +178,8 @@ The following analyzers are available by default:
 * GREEK - GreekAnalyzer;
 * KEYWORD - KeywordAnalyzer;
 * PERSIAN - PersianAnalyzer;
+* PUNCT_SPLIT_LC_AI - PunctSplitLowerCaseASCIIFoldingAnalyzer;
+* PUNCT_STRIP_LC_AI - PunctStripLowerCaseASCIIFoldingAnalyzer;
 * RUSSIAN - RussianAnalyzer;
 * SIMPLE - SimpleAnalyzer;
 * STANDARD - StandardAnalyzer (English);
@@ -208,6 +210,19 @@ Let's consider the most commonly used analyzers.
 
 The standard analyzer splits text into words, numbers, URLs and emails. It converts the text to lowercase,
 after which the stop-word filter for English is applied to the resulting terms.
+
+==== PUNCT_SPLIT_LC_AI - PunctSplitLowerCaseASCIIFoldingAnalyzer
+
+PunctSplitLowerCaseASCIIFoldingAnalyzer splits text at every character that is neither a letter nor a digit
+(Unicode, independent of locale), so codes are split into their parts: 'V10-0423' becomes 'v10' and '0423'.
+It converts the text to lowercase and folds accented characters to their ASCII equivalents. No stop words.
+
+==== PUNCT_STRIP_LC_AI - PunctStripLowerCaseASCIIFoldingAnalyzer
+
+PunctStripLowerCaseASCIIFoldingAnalyzer splits text at whitespace and removes every character that is neither
+a letter nor a digit from the tokens, so codes are matched regardless of separators: 'V10-0423' becomes
+'v100423'. It converts the text to lowercase and folds accented characters to their ASCII equivalents.
+No stop words.
 
 ==== STOP - StopAnalyzer
 
