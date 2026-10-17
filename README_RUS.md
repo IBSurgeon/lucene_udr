@@ -162,6 +162,7 @@ FROM RDB$DATABASE
 * PERSIAN - PersianAnalyzer (Персидский язык);
 * RUSSIAN - RussianAnalyzer (Русский язык);
 * STANDARD - StandardAnalyzer (Английский язык);
+* STANDARD_NS_AI - StandardNoStopASCIIFoldingAnalyzer;
 * SIMPLE - SimpleAnalyzer;
 * SIMPLE_AI - SimpleASCIIFoldingAnalyzer;
 * STOP - StopAnalyzer;
@@ -193,6 +194,14 @@ FROM RDB$DATABASE
 
 Стандартный анализатор разделяет текст на слова, числа, URL адреса и EMAIL. Он преобразует текст в нижний регистр, после чего к 
 полученным термам применяется фильтр стоп слов для английского языка.
+
+#### STANDARD_NS_AI - StandardNoStopASCIIFoldingAnalyzer
+
+StandardNoStopASCIIFoldingAnalyzer разделяет текст на слова, числа, URL адреса и EMAIL, сохраняя числовые и
+буквенно-цифровые термы (например, коды вида 'EU00000000001') без разбиения. Он преобразует текст в нижний
+регистр и заменяет символы с диакритическими знаками на их ASCII-эквиваленты (например, 'ā' становится 'a'),
+но, в отличие от StandardAnalyzer, **не** применяет фильтр стоп слов, что делает его пригодным для не-английского
+текста и идентификаторов, где английский список стоп слов неуместен.
 
 #### STOP - StopAnalyzer
 

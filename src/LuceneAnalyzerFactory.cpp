@@ -30,6 +30,7 @@
 #include "RussianAnalyzer.h"
 #include "SimpleASCIIFoldingAnalyzer.h"
 #include "SnowballAnalyzer.h"
+#include "StandardNoStopASCIIFoldingAnalyzer.h"
 #include "WhitespaceAnalyzer.h"
 #include "WhitespaceLowerCaseAnalyzer.h"
 #include "WhitespaceLowerCaseASCIIFoldingAnalyzer.h"
@@ -50,6 +51,15 @@ namespace LuceneUDR
                     [](const HashSet<String> stopWords) -> AnalyzerPtr { return newLucene<StandardAnalyzer>(LuceneVersion::LUCENE_CURRENT, stopWords); },
                     []() -> HashSet<String> { return StopAnalyzer::ENGLISH_STOP_WORDS_SET(); },
                     true
+                }
+            },
+            {
+                "STANDARD_NS_AI",
+                {
+                    []() -> AnalyzerPtr { return newLucene<StandardNoStopASCIIFoldingAnalyzer>(); },
+                    []([[maybe_unused]] const HashSet<String> stopWords) -> AnalyzerPtr { return nullptr; },
+                    []() -> HashSet<String> { return HashSet<String>::newInstance(); },
+                    false
                 }
             },
             {

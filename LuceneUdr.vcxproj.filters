@@ -43,6 +43,9 @@
     <ClCompile Include="src\SimpleASCIIFoldingAnalyzer.cpp">
       <Filter>Source files</Filter>
     </ClCompile>
+    <ClCompile Include="src\StandardNoStopASCIIFoldingAnalyzer.cpp">
+      <Filter>Source files</Filter>
+    </ClCompile>
     <ClCompile Include="src\Relations.cpp">
       <Filter>Source files</Filter>
     </ClCompile>
@@ -103,6 +106,9 @@
       <Filter>Header files</Filter>
     </ClInclude>
     <ClInclude Include="src\SimpleASCIIFoldingAnalyzer.h">
+      <Filter>Header files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\StandardNoStopASCIIFoldingAnalyzer.h">
       <Filter>Header files</Filter>
     </ClInclude>
     <ClInclude Include="src\Relations.h">

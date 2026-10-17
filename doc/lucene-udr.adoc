@@ -182,6 +182,7 @@ The following analyzers are available by default:
 * SIMPLE - SimpleAnalyzer;
 * SIMPLE_AI - SimpleASCIIFoldingAnalyzer;
 * STANDARD - StandardAnalyzer (English);
+* STANDARD_NS_AI - StandardNoStopASCIIFoldingAnalyzer;
 * STOP - StopAnalyzer;
 * WHITESPACE - WhitespaceAnalyzer;
 * WHITESPACE_LC - WhitespaceLowerCaseAnalyzer;
@@ -211,6 +212,14 @@ Let's consider the most commonly used analyzers.
 
 The standard analyzer splits text into words, numbers, URLs and emails. It converts the text to lowercase,
 after which the stop-word filter for English is applied to the resulting terms.
+
+==== STANDARD_NS_AI - StandardNoStopASCIIFoldingAnalyzer
+
+StandardNoStopASCIIFoldingAnalyzer splits text into words, numbers, URLs and emails, keeping numeric and
+alphanumeric tokens (such as VAT numbers or codes like 'EU00000000001') intact. It converts the text to
+lowercase and folds accented characters to their ASCII equivalents (e.g. 'ā' becomes 'a'), but unlike
+StandardAnalyzer it does *not* apply any stop-word filtering, making it suitable for non-English text and
+identifiers where an English stop-word list would be inappropriate.
 
 ==== STOP - StopAnalyzer
 
