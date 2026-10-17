@@ -31,6 +31,7 @@
 #include "SnowballAnalyzer.h"
 #include "WhitespaceAnalyzer.h"
 #include "WhitespaceLowerCaseAnalyzer.h"
+#include "WhitespaceLowerCaseASCIIFoldingAnalyzer.h"
 
 using namespace Firebird;
 using namespace Lucene;
@@ -72,6 +73,15 @@ namespace LuceneUDR
                 "WHITESPACE_LC",
                 {
                     []() -> AnalyzerPtr { return newLucene<WhitespaceLowerCaseAnalyzer>(); },
+                    []([[maybe_unused]] const HashSet<String> stopWords) -> AnalyzerPtr { return nullptr; },
+                    []() -> HashSet<String> { return HashSet<String>::newInstance(); },
+                    false
+                }
+            },
+            {
+                "WHITESPACE_LC_AI",
+                {
+                    []() -> AnalyzerPtr { return newLucene<WhitespaceLowerCaseASCIIFoldingAnalyzer>(); },
                     []([[maybe_unused]] const HashSet<String> stopWords) -> AnalyzerPtr { return nullptr; },
                     []() -> HashSet<String> { return HashSet<String>::newInstance(); },
                     false

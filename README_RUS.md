@@ -166,6 +166,7 @@ FROM RDB$DATABASE
 * STOP - StopAnalyzer;
 * WHITESPACE - WhitespaceAnalyzer;
 * WHITESPACE_LC - WhitespaceLowerCaseAnalyzer;
+* WHITESPACE_LC_AI - WhitespaceLowerCaseASCIIFoldingAnalyzer;
 * SNOWBALL(DANISH) - SnowballAnalyzer('danish');
 * SNOWBALL(DUTCH) - SnowballAnalyzer('dutch', DutchStopWords);
 * SNOWBALL(ENGLISH) - SnowballAnalyzer('english', EnglishStopWords);
@@ -211,6 +212,12 @@ WhitespaceAnalyzer - разбивает текст по пробельным с�
 #### WHITESPACE_LC - WhitespaceLowerCaseAnalyzer
 
 WhitespaceLowerCaseAnalyzer - разбивает текст по пробельным символам и приводит полученные термы к нижнему регистру.
+
+#### WHITESPACE_LC_AI - WhitespaceLowerCaseASCIIFoldingAnalyzer
+
+WhitespaceLowerCaseASCIIFoldingAnalyzer - разбивает текст по пробельным символам, приводит полученные термы к нижнему регистру,
+и заменяет символы с диакритическими знаками на их ASCII-эквиваленты (например, 'ā' становится 'a'), что делает поиск
+нечувствительным к регистру и диакритическим знакам.
 
 #### KEYWORD - KeywordAnalyzer
 

@@ -165,6 +165,7 @@ The following analyzers are available by default:
 * STOP - StopAnalyzer;
 * WHITESPACE - WhitespaceAnalyzer;
 * WHITESPACE_LC - WhitespaceLowerCaseAnalyzer;
+* WHITESPACE_LC_AI - WhitespaceLowerCaseASCIIFoldingAnalyzer;
 * SNOWBALL(DANISH) - SnowballAnalyzer('danish');
 * SNOWBALL(DUTCH) - SnowballAnalyzer('dutch', DutchStopWords);
 * SNOWBALL(ENGLISH) - SnowballAnalyzer('english', EnglishStopWords);
@@ -209,6 +210,11 @@ WhitespaceAnalyzer - splits text by whitespace characters.
 #### WHITESPACE_LC - WhitespaceLowerCaseAnalyzer
 
 WhitespaceLowerCaseAnalyzer - splits text by whitespace characters, and converts the resulting terms to lowercase.
+
+#### WHITESPACE_LC_AI - WhitespaceLowerCaseASCIIFoldingAnalyzer
+
+WhitespaceLowerCaseASCIIFoldingAnalyzer - splits text by whitespace characters, converts the resulting terms to lowercase,
+and folds accented characters to their ASCII equivalents (e.g. 'ā' becomes 'a'), making search case- and accent-insensitive.
 
 #### KEYWORD - KeywordAnalyzer
 
