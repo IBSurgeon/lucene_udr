@@ -86,6 +86,17 @@ with
 get_filename_component(PACKAGE_PREFIX_DIR "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
 ```
 
+Alternatively, bypass these files with `-DLUCENE_DIR=/usr`. If Firebird is not in `/opt/firebird`, add `-DFIREBIRD_DIR=<path>`.
+
+## Building the library under Windows
+
+Set `FIREBIRD_ROOT`, `LUCENE_INCLUDE_DIR`, `LUCENE_LIB_DIR`, `BOOST_ROOT`, `BOOST_LIBRARYDIR` as environment variables (or in `Directory.Build.props`) and build `LuceneUdr.sln`. Or use CMake:
+
+```
+cmake -S . -B build -A x64 -DFIREBIRD_DIR="C:/Program Files/Firebird/Firebird_5_0" -DLUCENE_DIR="C:/Program Files/lucene++" -DBoost_ROOT=C:/local/boost_1_83_0 -DBOOST_LIBRARYDIR=C:/local/boost_1_83_0/lib64-msvc-14.3
+cmake --build build --config Release
+```
+
 ## Configuring Lucene UDR
 
 Before using full-text search in your database, you need to make a preliminary configuration.

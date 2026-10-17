@@ -22,7 +22,12 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
-set(FIREBIRD_DIR /opt/firebird)
+set(FIREBIRD_DIR /opt/firebird CACHE PATH "Firebird installation directory")
+set(LUCENE_DIR "" CACHE PATH "Lucene++ installation prefix (if empty, find_package() is used)")
+if(MSVC)
+    set(BOOST_LIBRARYDIR "" CACHE PATH "Directory with Boost libraries for MSVC auto-linking")
+endif()
+
 set(FIREBIRD_INCLUDE_DIR ${FIREBIRD_DIR}/include)
 set(FIREBIRD_UDR_DIR ${FIREBIRD_DIR}/plugins/udr)
 
@@ -53,18 +58,40 @@ target_sources(luceneudr PRIVATE
 # require C++17 standard
 target_compile_features(luceneudr PRIVATE cxx_std_17)
 target_compile_definitions(luceneudr PRIVATE HAVE_CONFIG_H)
-target_compile_options(luceneudr PRIVATE
-#    -Werror
+if(MSVC)
+    target_compile_definitions(luceneudr PRIVATE WIN32_LEAN_AND_MEAN)
+    target_compile_options(luceneudr PRIVATE /MP)
+else()
+    target_compile_options(luceneudr PRIVATE
+    #    -Werror
 
-    -Wall
-    -Wextra
-    -Wpedantic
+        -Wall
+        -Wextra
+        -Wpedantic
 
-    -Wno-unused-parameter
-)
+        -Wno-unused-parameter
+    )
+endif()
 
-find_package(liblucene++ REQUIRED)
-find_package(liblucene++-contrib REQUIRED)
+if(LUCENE_DIR)
+    set(liblucene++_INCLUDE_DIRS ${LUCENE_DIR}/include/lucene++)
+    set(liblucene++_LIBRARY_DIRS ${LUCENE_DIR}/lib)
+    set(liblucene++_LIBRARIES lucene++)
+    set(liblucene++-contrib_INCLUDE_DIRS ${LUCENE_DIR}/include/lucene++)
+    set(liblucene++-contrib_LIBRARY_DIRS ${LUCENE_DIR}/lib)
+    set(liblucene++-contrib_LIBRARIES lucene++-contrib)
+else()
+    find_package(liblucene++ QUIET)
+    find_package(liblucene++-contrib QUIET)
+    if(NOT liblucene++_FOUND OR NOT liblucene++-contrib_FOUND)
+        message(FATAL_ERROR "Lucene++ not found. Set LUCENE_DIR, e.g. -DLUCENE_DIR=\"C:/Program Files/lucene++\"")
+    endif()
+endif()
+
+if(MSVC)
+    # Lucene++ headers depend on Boost
+    find_package(Boost REQUIRED)
+endif()
 
 ####################################
 # include directories
@@ -84,11 +111,19 @@ target_link_directories(luceneudr PRIVATE
     ${liblucene++-contrib_LIBRARY_DIRS}
 )
 
-target_link_libraries(luceneudr 
-    -lstdc++fs
+target_link_libraries(luceneudr
     ${liblucene++_LIBRARIES}
     ${liblucene++-contrib_LIBRARIES}
 )
+
+if(MSVC)
+    target_link_libraries(luceneudr Boost::boost)
+    if(BOOST_LIBRARYDIR)
+        target_link_directories(luceneudr PRIVATE ${BOOST_LIBRARYDIR})
+    endif()
+else()
+    target_link_libraries(luceneudr -lstdc++fs)
+endif()
 
 install(TARGETS luceneudr DESTINATION ${FIREBIRD_UDR_DIR})
 install(FILES "sql/fts$install.sql"
