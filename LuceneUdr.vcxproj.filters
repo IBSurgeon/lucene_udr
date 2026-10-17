@@ -34,6 +34,9 @@
     <ClCompile Include="src\FTSIndex.cpp">
       <Filter>Source files</Filter>
     </ClCompile>
+    <ClCompile Include="src\WhitespaceLowerCaseAnalyzer.cpp">
+      <Filter>Source files</Filter>
+    </ClCompile>
     <ClCompile Include="src\Relations.cpp">
       <Filter>Source files</Filter>
     </ClCompile>
@@ -85,6 +88,9 @@
       <Filter>Header files</Filter>
     </ClInclude>
     <ClInclude Include="src\FTSIndex.h">
+      <Filter>Header files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\WhitespaceLowerCaseAnalyzer.h">
       <Filter>Header files</Filter>
     </ClInclude>
     <ClInclude Include="src\Relations.h">

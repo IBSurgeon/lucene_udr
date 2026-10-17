@@ -164,6 +164,7 @@ The following analyzers are available by default:
 * STANDARD - StandardAnalyzer (English);
 * STOP - StopAnalyzer;
 * WHITESPACE - WhitespaceAnalyzer;
+* WHITESPACE_LC - WhitespaceLowerCaseAnalyzer;
 * SNOWBALL(DANISH) - SnowballAnalyzer('danish');
 * SNOWBALL(DUTCH) - SnowballAnalyzer('dutch', DutchStopWords);
 * SNOWBALL(ENGLISH) - SnowballAnalyzer('english', EnglishStopWords);
@@ -204,6 +205,10 @@ SimpleAnalyzer does not apply a stop-word filter, and it is not capable of recog
 #### WHITESPACE - WhitespaceAnalyzer
 
 WhitespaceAnalyzer - splits text by whitespace characters.
+
+#### WHITESPACE_LC - WhitespaceLowerCaseAnalyzer
+
+WhitespaceLowerCaseAnalyzer - splits text by whitespace characters, and converts the resulting terms to lowercase.
 
 #### KEYWORD - KeywordAnalyzer
 

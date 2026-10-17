@@ -44,6 +44,7 @@
     <ClCompile Include="src\LuceneFiles.cpp" />
     <ClCompile Include="src\LuceneUdr.cpp" />
     <ClCompile Include="src\Relations.cpp" />
+    <ClCompile Include="src\WhitespaceLowerCaseAnalyzer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Analyzers.h" />
@@ -61,6 +62,7 @@
     <ClInclude Include="src\LuceneUdr.h" />
     <ClInclude Include="src\Relations.h" />
     <ClInclude Include="src\udr_build_no.h" />
+    <ClInclude Include="src\WhitespaceLowerCaseAnalyzer.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="doc\lucene-udr-rus.adoc" />

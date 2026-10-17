@@ -185,6 +185,7 @@ FROM RDB$DATABASE
 * SIMPLE - SimpleAnalyzer;
 * STOP - StopAnalyzer;
 * WHITESPACE - WhitespaceAnalyzer;
+* WHITESPACE_LC - WhitespaceLowerCaseAnalyzer;
 * SNOWBALL(DANISH) - SnowballAnalyzer('danish');
 * SNOWBALL(DUTCH) - SnowballAnalyzer('dutch', DutchStopWords);
 * SNOWBALL(ENGLISH) - SnowballAnalyzer('english', EnglishStopWords);
@@ -226,6 +227,10 @@ SimpleAnalyzer не применяет фильтр стоп слов, кром�
 ==== WHITESPACE - WhitespaceAnalyzer
 
 WhitespaceAnalyzer - разбивает текст по пробельным символам.
+
+==== WHITESPACE_LC - WhitespaceLowerCaseAnalyzer
+
+WhitespaceLowerCaseAnalyzer - разбивает текст по пробельным символам и приводит полученные термы к нижнему регистру.
 
 ==== KEYWORD - KeywordAnalyzer
 

@@ -48,6 +48,7 @@ target_sources(luceneudr PRIVATE
     "src/LuceneFiles.cpp"
     "src/LuceneUdr.cpp"
     "src/Relations.cpp"
+    "src/WhitespaceLowerCaseAnalyzer.cpp"
 )
 
 # require C++17 standard

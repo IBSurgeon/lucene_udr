@@ -30,6 +30,7 @@
 #include "RussianAnalyzer.h"
 #include "SnowballAnalyzer.h"
 #include "WhitespaceAnalyzer.h"
+#include "WhitespaceLowerCaseAnalyzer.h"
 
 using namespace Firebird;
 using namespace Lucene;
@@ -62,6 +63,15 @@ namespace LuceneUDR
                 "WHITESPACE",
                 {
                     []() -> AnalyzerPtr { return newLucene<WhitespaceAnalyzer>(); },
+                    []([[maybe_unused]] const HashSet<String> stopWords) -> AnalyzerPtr { return nullptr; },
+                    []() -> HashSet<String> { return HashSet<String>::newInstance(); },
+                    false
+                }
+            },
+            {
+                "WHITESPACE_LC",
+                {
+                    []() -> AnalyzerPtr { return newLucene<WhitespaceLowerCaseAnalyzer>(); },
                     []([[maybe_unused]] const HashSet<String> stopWords) -> AnalyzerPtr { return nullptr; },
                     []() -> HashSet<String> { return HashSet<String>::newInstance(); },
                     false
