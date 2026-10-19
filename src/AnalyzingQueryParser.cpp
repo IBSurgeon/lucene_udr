@@ -28,10 +28,17 @@ namespace Lucene
         TermAttributePtr termAttribute = tokenStream->addAttribute<TermAttribute>();
         tokenStream->reset();
 
-        if (tokenStream->incrementToken()) {
-            return termAttribute->term();
+        if (!tokenStream->incrementToken()) {
+            return text;
         }
-        return text;
+        const String term = termAttribute->term();
+
+        // Several tokens can't be one wildcard/prefix/fuzzy term - keeping only the first would match far more
+        // (ABC-XY-000123* -> abc*). Behave as stock QueryParser: lower-cased text, which matches nothing.
+        if (tokenStream->incrementToken()) {
+            return getLowercaseExpandedTerms() ? StringUtils::toLower(text) : text;
+        }
+        return term;
     }
 
     String AnalyzingQueryParser::analyzeWildcard(const String& fieldName, const String& termStr)
