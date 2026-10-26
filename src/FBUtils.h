@@ -64,32 +64,32 @@ namespace LuceneUDR
     struct IscRandomStatus {
     public:
         explicit IscRandomStatus(const std::string& message)
-            : statusVector{ isc_arg_gds, isc_random,
-                isc_arg_string, (ISC_STATUS)message.c_str(),
-                isc_arg_end }
+            : message(message)
         {
         }
 
         explicit IscRandomStatus(const char* message)
-            : statusVector{ isc_arg_gds, isc_random,
-                isc_arg_string, (ISC_STATUS)message,
-                isc_arg_end }
+            : message(message)
         {
         }
 
         explicit IscRandomStatus(const std::exception& e)
-            : statusVector{ isc_arg_gds, isc_random,
-                isc_arg_string, (ISC_STATUS)e.what(),
-                isc_arg_end }
+            : message(e.what())
         {
         }
 
-        operator const ISC_STATUS* () const { return statusVector; }
+        // The message is owned, so the vector stays valid after createFmtStatus() returns or the object is copied
+        operator const ISC_STATUS* () const
+        {
+            statusVector[3] = (ISC_STATUS)message.c_str();
+            return statusVector;
+        }
 
         static IscRandomStatus createFmtStatus(const char* message, ...);
 
     private:
-        ISC_STATUS statusVector[5] = {};
+        std::string message;
+        mutable ISC_STATUS statusVector[5] = { isc_arg_gds, isc_random, isc_arg_string, 0, isc_arg_end };
     };
 
     Firebird::IMessageMetadata* prepareTextMetaData(Firebird::ThrowStatusWrapper* status, Firebird::IMessageMetadata* meta);
