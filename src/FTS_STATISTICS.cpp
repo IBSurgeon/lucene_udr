@@ -212,6 +212,9 @@ FB_UDR_BEGIN_PROCEDURE(getIndexStatistics)
             const std::string error_message = StringUtils::toUTF8(e.getError());
             throwException(status, error_message.c_str());
         }
+        catch (const std::exception& e) {
+            throwException(status, "%s", e.what());
+        }
     }
 
     AutoRelease<IAttachment> att;
@@ -314,6 +317,9 @@ FB_UDR_BEGIN_PROCEDURE(getIndexFields)
         catch (const LuceneException& e) {
             const std::string error_message = StringUtils::toUTF8(e.getError());
             throwException(status, error_message.c_str());
+        }
+        catch (const std::exception& e) {
+            throwException(status, "%s", e.what());
         }
     }
 
@@ -428,6 +434,9 @@ FB_UDR_BEGIN_PROCEDURE(getIndexFiles)
         catch (const LuceneException& e) {
             const std::string error_message = StringUtils::toUTF8(e.getError());
             throwException(status, error_message.c_str());
+        }
+        catch (const std::exception& e) {
+            throwException(status, "%s", e.what());
         }
     }
 
@@ -557,6 +566,9 @@ FB_UDR_BEGIN_PROCEDURE(getIndexSegments)
         catch (const LuceneException& e) {
             const std::string error_message = StringUtils::toUTF8(e.getError());
             throwException(status, error_message.c_str());
+        }
+        catch (const std::exception& e) {
+            throwException(status, "%s", e.what());
         }
     }
 
@@ -734,6 +746,9 @@ FB_UDR_BEGIN_PROCEDURE(getFieldInfos)
             const std::string error_message = StringUtils::toUTF8(e.getError());
             throwException(status, error_message.c_str());
         }
+        catch (const std::exception& e) {
+            throwException(status, "%s", e.what());
+        }
     }
 
     AutoRelease<IAttachment> att;
@@ -857,6 +872,9 @@ FB_UDR_BEGIN_PROCEDURE(indexTerms)
         catch (const LuceneException& e) {
             const std::string error_message = StringUtils::toUTF8(e.getError());
             throwException(status, error_message.c_str());
+        }
+        catch (const std::exception& e) {
+            throwException(status, "%s", e.what());
         }
     }
 

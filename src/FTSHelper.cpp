@@ -170,10 +170,12 @@ namespace LuceneUDR
         }
 
         // Check if the index directory exists, and if it doesn't exist, create it.
-        if (!LuceneUDR::createIndexDirectory(m_indexDirectoryPath)) {
+        std::error_code ec;
+        if (!LuceneUDR::createIndexDirectory(m_indexDirectoryPath, ec)) {
             auto iscStatus = IscRandomStatus::createFmtStatus(
-                R"(Cannot create index directory "%s".)", 
-                m_indexDirectoryPath.u8string().c_str()
+                R"(Cannot create index directory "%s". %s)",
+                m_indexDirectoryPath.u8string().c_str(),
+                ec.message().c_str()
             );
             throw FbException(status, iscStatus);
         }
@@ -190,6 +192,9 @@ namespace LuceneUDR
             const std::string error_message = StringUtils::toUTF8(e.getError());
             auto iscStatus = IscRandomStatus(error_message);
             throw FbException(status, iscStatus);
+        } catch (const std::exception& e) {
+            auto iscStatus = IscRandomStatus(e);
+            throw FbException(status, iscStatus);
         }
     }
 
@@ -201,6 +206,9 @@ namespace LuceneUDR
         const std::string error_message = StringUtils::toUTF8(e.getError());
         auto iscStatus = IscRandomStatus(error_message);
         throw FbException(status, iscStatus);
+    } catch (const std::exception& e) {
+        auto iscStatus = IscRandomStatus(e);
+        throw FbException(status, iscStatus);
     }
 
     void FTSPreparedIndex::optimize(Firebird::ThrowStatusWrapper* status)
@@ -209,6 +217,9 @@ namespace LuceneUDR
     } catch (const LuceneException& e) {
         const std::string error_message = StringUtils::toUTF8(e.getError());
         auto iscStatus = IscRandomStatus(error_message);
+        throw FbException(status, iscStatus);
+    } catch (const std::exception& e) {
+        auto iscStatus = IscRandomStatus(e);
         throw FbException(status, iscStatus);
     }
 
@@ -219,6 +230,9 @@ namespace LuceneUDR
         const std::string error_message = StringUtils::toUTF8(e.getError());
         auto iscStatus = IscRandomStatus(error_message);
         throw FbException(status, iscStatus);
+    } catch (const std::exception& e) {
+        auto iscStatus = IscRandomStatus(e);
+        throw FbException(status, iscStatus);
     }
 
     void FTSPreparedIndex::commit(Firebird::ThrowStatusWrapper* status)
@@ -228,6 +242,9 @@ namespace LuceneUDR
         const std::string error_message = StringUtils::toUTF8(e.getError());
         auto iscStatus = IscRandomStatus(error_message);
         throw FbException(status, iscStatus);
+    } catch (const std::exception& e) {
+        auto iscStatus = IscRandomStatus(e);
+        throw FbException(status, iscStatus);
     }
 
     void FTSPreparedIndex::close(Firebird::ThrowStatusWrapper* status)
@@ -236,6 +253,9 @@ namespace LuceneUDR
     } catch (const LuceneException& e) {
         const std::string error_message = StringUtils::toUTF8(e.getError());
         auto iscStatus = IscRandomStatus(error_message);
+        throw FbException(status, iscStatus);
+    } catch (const std::exception& e) {
+        auto iscStatus = IscRandomStatus(e);
         throw FbException(status, iscStatus);
     }
 

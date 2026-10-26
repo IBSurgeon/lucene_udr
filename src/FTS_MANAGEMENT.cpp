@@ -484,8 +484,9 @@ FB_UDR_BEGIN_PROCEDURE(dropIndex)
         const auto ftsDirectoryPath = getFtsDirectory(status, context);
         const auto indexDirectoryPath = ftsDirectoryPath / indexName;
         // If the directory exists, then delete it.
-        if (!removeIndexDirectory(indexDirectoryPath)) {
-            throwException(status, R"(Cannot delete index directory "%s".)", indexDirectoryPath.u8string().c_str());
+        std::error_code ec;
+        if (!removeIndexDirectory(indexDirectoryPath, ec)) {
+            throwException(status, R"(Cannot delete index directory "%s". %s)", indexDirectoryPath.u8string().c_str(), ec.message().c_str());
         }
     }
 
@@ -786,6 +787,9 @@ FB_UDR_BEGIN_PROCEDURE(rebuildIndex)
             const std::string error_message = StringUtils::toUTF8(e.getError());
             throwException(status, error_message.c_str());
         }
+        catch (const std::exception& e) {
+            throwException(status, "%s", e.what());
+        }
     }
 
     FB_UDR_FETCH_PROCEDURE
@@ -860,6 +864,9 @@ FB_UDR_BEGIN_PROCEDURE(optimizeIndex)
         catch (const LuceneException& e) {
             const std::string error_message = StringUtils::toUTF8(e.getError());
             throwException(status, error_message.c_str());
+        }
+        catch (const std::exception& e) {
+            throwException(status, "%s", e.what());
         }
     }
 
