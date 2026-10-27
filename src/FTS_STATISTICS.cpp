@@ -30,6 +30,7 @@
 #include "LuceneFiles.h"
 #include "SegmentInfo.h"
 #include "SegmentInfos.h"
+#include "udr_build_no.h"
 
 
 
@@ -58,6 +59,29 @@ FB_UDR_BEGIN_FUNCTION(getLuceneVersion)
         out->luceneVersionNull = false;
         out->luceneVersion.length = static_cast<ISC_USHORT>(luceneVersion.length());
         luceneVersion.copy(out->luceneVersion.str, out->luceneVersion.length);
+    }
+FB_UDR_END_FUNCTION
+
+/***
+FUNCTION FTS$UDR_VERSION ()
+RETURNS VARCHAR(20) CHARACTER SET UTF8
+DETERMINISTIC
+EXTERNAL NAME 'luceneudr!getUdrVersion'
+ENGINE UDR;
+***/
+FB_UDR_BEGIN_FUNCTION(getUdrVersion)
+    FB_UDR_MESSAGE(OutMessage,
+        (FB_INTL_VARCHAR(80, CS_UTF8), udrVersion)
+    );
+
+
+    FB_UDR_EXECUTE_FUNCTION
+    {
+        const std::string udrVersion = PRODUCT_VER_STRING;
+
+        out->udrVersionNull = false;
+        out->udrVersion.length = static_cast<ISC_USHORT>(udrVersion.length());
+        udrVersion.copy(out->udrVersion.str, out->udrVersion.length);
     }
 FB_UDR_END_FUNCTION
 
