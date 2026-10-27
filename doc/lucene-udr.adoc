@@ -1992,6 +1992,17 @@ The function `FTS$STATISTICS.FTS$LUCENE_VERSION` returns the version of the luce
   DETERMINISTIC;
 ----
 
+==== Function FTS$STATISTICS.FTS$UDR_VERSION
+
+The function `FTS$STATISTICS.FTS$UDR_VERSION` returns the version of the Lucene UDR library.
+
+[source,sql]
+----
+  FUNCTION FTS$UDR_VERSION ()
+  RETURNS VARCHAR(20) CHARACTER SET UTF8
+  DETERMINISTIC;
+----
+
 ==== Function FTS$STATISTICS.FTS$GET_DIRECTORY
 
 The function `FTS$STATISTICS.FTS$GET_DIRECTORY` returns the directory where the files and folders of full-text indexes for

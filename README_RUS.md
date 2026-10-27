@@ -1874,6 +1874,16 @@ RETURNS (
   DETERMINISTIC;
 ```
 
+#### Функция FTS$STATISTICS.FTS$UDR_VERSION
+
+Функция `FTS$STATISTICS.FTS$UDR_VERSION` возвращает версию библиотеки Lucene UDR.
+
+```sql
+  FUNCTION FTS$UDR_VERSION ()
+  RETURNS VARCHAR(20) CHARACTER SET UTF8
+  DETERMINISTIC;
+```
+
 #### Функция FTS$STATISTICS.FTS$GET_DIRECTORY
 
 Функция `FTS$STATISTICS.FTS$GET_DIRECTORY` возвращает директорию в которой расположены файлы и папки полнотекстовых индексов для 
