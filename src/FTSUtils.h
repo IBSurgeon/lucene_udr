@@ -32,20 +32,22 @@ namespace LuceneUDR
     /// <returns>Full path to full-text index directory</returns>
     fs::path getFtsDirectory(Firebird::ThrowStatusWrapper* status, Firebird::IExternalContext* context);
 
-    inline bool createIndexDirectory(const fs::path& indexDir)
+    // error_code overloads: a thrown filesystem_error would surface as "Unrecognized C++ exception"
+    inline bool createIndexDirectory(const fs::path& indexDir, std::error_code& ec)
     {
-        if (!fs::is_directory(indexDir)) {
-            return fs::create_directory(indexDir);
+        if (!fs::is_directory(indexDir, ec)) {
+            return fs::create_directory(indexDir, ec);
         }
         return true;
     }
 
-    inline bool removeIndexDirectory(const fs::path& indexDir)
+    inline bool removeIndexDirectory(const fs::path& indexDir, std::error_code& ec)
     {
-        if (fs::is_directory(indexDir)) {
-            return (fs::remove_all(indexDir) > 0);
+        if (fs::is_directory(indexDir, ec)) {
+            const auto removed = fs::remove_all(indexDir, ec);
+            return !ec && removed > 0;
         }
-        return true;
+        return !ec;
     }
 
 }

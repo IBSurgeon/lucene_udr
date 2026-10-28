@@ -145,6 +145,9 @@ FB_UDR_BEGIN_FUNCTION(bestFragementHighligh)
             const std::string error_message = StringUtils::toUTF8(e.getError());
             throwException(status, error_message.c_str());
         }
+        catch (const std::exception& e) {
+            throwException(status, "%s", e.what());
+        }
     }
 FB_UDR_END_FUNCTION
 
@@ -260,6 +263,9 @@ FB_UDR_BEGIN_PROCEDURE(bestFragementsHighligh)
         catch (const LuceneException& e) {
             const std::string error_message = StringUtils::toUTF8(e.getError());
             throwException(status, error_message.c_str());
+        }
+        catch (const std::exception& e) {
+            throwException(status, "%s", e.what());
         }
     }
 
