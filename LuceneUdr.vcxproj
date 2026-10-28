@@ -27,6 +27,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\AnalyzingMultiFieldQueryParser.cpp" />
+    <ClCompile Include="src\AnalyzingQueryParser.cpp" />
     <ClCompile Include="src\Analyzers.cpp" />
     <ClCompile Include="src\EnglishAnalyzer.cpp" />
     <ClCompile Include="src\FBFieldInfo.cpp" />
@@ -46,6 +48,8 @@
     <ClCompile Include="src\Relations.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\AnalyzingMultiFieldQueryParser.h" />
+    <ClInclude Include="src\AnalyzingQueryParser.h" />
     <ClInclude Include="src\Analyzers.h" />
     <ClInclude Include="src\EnglishAnalyzer.h" />
     <ClInclude Include="src\FTSHelper.h" />
